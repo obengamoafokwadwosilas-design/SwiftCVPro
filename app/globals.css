@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --teal: #0d9488;
+  --teal-dark: #0f766e;
+  --teal-light: #14b8a6;
+  --teal-bg: #f0fdf9;
+  --navy: #0a0f1a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: #f8fafc;
+  color: #0a0f1a;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  /* Smaller headings on mobile */
+  h1, .h1-style {
+    font-size: 1.75rem !important;
+  }
+  
+  /* Reduce padding on mobile */
+  .wrap-mobile {
+    padding: 40px 20px 60px !important;
+  }
+  
+  /* Nav adjustments */
+  nav {
+    padding: 14px 20px !important;
+  }
+  
+  /* Form cards - less padding */
+  .form-card-mobile {
+    padding: 20px !important;
+  }
+  
+  /* Buttons - full width on mobile */
+  .btn-full-mobile {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Preview page - hide sidebar, show as dropdown */
+  .preview-grid-mobile {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .preview-sidebar-mobile {
+    display: none;
+  }
+  
+  .preview-sidebar-mobile.show {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    background: white;
+    overflow-y: auto;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  h1, .h1-style {
+    font-size: 1.5rem !important;
+  }
+  
+  /* Stack navigation elements */
+  .nav-split-mobile {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .nav-split-mobile > * {
+    width: 100%;
+  }
+}
+
+/* Preview page mobile styles */
+@media (max-width: 900px) {
+  .preview-layout {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .preview-sidebar {
+    display: none !important;
+  }
+  
+  .mobile-template-bar {
+    display: block !important;
+  }
+}
+
+@media (min-width: 901px) {
+  .mobile-template-bar {
+    display: none !important;
+  }
+}
