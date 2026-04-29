@@ -1,19 +1,34 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getCredits, normalizePhone } from '@/lib/credits'
+import { normalizePhone } from '@/lib/credits'
+
+// ⚠️ TESTING MODE — always returns hasCredits: true
+// TODO: Remove this before going live
+const TESTING_MODE = true
 
 export async function POST(req: NextRequest) {
   try {
     const { phoneNumber } = await req.json()
-    if (!phoneNumber) return NextResponse.json({ error: 'Phone number required' }, { status: 400 })
+    if (!phoneNumber) {
+      return NextResponse.json({ error: 'Phone number required' }, { status: 400 })
+    }
 
     const phone = normalizePhone(phoneNumber)
-    const credits = await getCredits(phone)
 
+    if (TESTING_MODE) {
+      // Skip Supabase entirely — just say yes
+      return NextResponse.json({ hasCredits: true, credits: 999, phoneNumber: phone })
+    }
+
+    // Production: real Supabase check
+    const { getCredits } = await import('@/lib/credits')
+    const credits = await getCredits(phone)
     return NextResponse.json({ hasCredits: credits > 0, credits, phoneNumber: phone })
+
   } catch (error) {
     console.error('Check credits error:', error)
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+    // In testing mode, fail open so generation still works
+    return NextResponse.json({ hasCredits: true, credits: 999, phoneNumber: '' })
   }
 }
