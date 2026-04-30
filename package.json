@@ -13,13 +13,16 @@
     "@supabase/supabase-js": "^2.39.0",
     "axios": "^1.6.0",
     "docx": "^8.5.0",
+    "mammoth": "^1.8.0",
     "next": "14.2.3",
+    "pdf-parse": "^1.1.1",
     "puppeteer-core": "^22.0.0",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pdf-parse": "^1.1.4",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
