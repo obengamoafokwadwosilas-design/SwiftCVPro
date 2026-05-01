@@ -1,7 +1,16 @@
 export type CVType = 'professional' | 'targeted' | 'academic' | 'cover_letter'
 
-// 6 premium templates — all single column, all ResumeNow level
-export type TemplateId = 'london' | 'nordic' | 'newyork' | 'atelier' | 'noir' | 'academic'
+export type TemplateId =
+  | 'classic'
+  | 'modern'
+  | 'executive'
+  | 'academic'
+  | 'editorial'
+  | 'london'
+  | 'nordic'
+  | 'newyork'
+  | 'atelier'
+  | 'noir'
 
 export type ExportFormat = 'docx' | 'pdf'
 
@@ -61,4 +70,28 @@ export interface GeneratedCV {
   publications?: string[]
   research?: string[]
   teaching?: string[]
+}
+
+export interface CheckCreditsResponse {
+  hasCredits: boolean
+  credits: number
+  phoneNumber: string
+}
+
+export interface GenerateResponse {
+  success: boolean
+  cv?: GeneratedCV
+  error?: string
+}
+
+export interface RegenerateResponse {
+  success: boolean
+  content?: string | string[]
+  error?: string
+}
+
+export interface ExtractResponse {
+  success: boolean
+  text?: string
+  error?: string
 }
