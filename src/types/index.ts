@@ -1,13 +1,20 @@
 export type CVType = 'professional' | 'targeted' | 'academic' | 'cover_letter'
 
-export type TemplateId = 'bold-header' | 'classic' | 'minimal' | 'accent' | 'academic' | 'clean' | 'editorial' | 'executive'
+export type TemplateId =
+  | 'bold-header'
+  | 'classic'
+  | 'minimal'
+  | 'accent'
+  | 'academic'
+  | 'clean'
+  | 'editorial'
+  | 'executive'
+  | 'modern'
 
 export type ExportFormat = 'docx' | 'pdf'
 
-// Raw form input from user
 export interface CVFormData {
   cvType: CVType
-  // Basic details
   fullName: string
   jobTitle: string
   email: string
@@ -17,19 +24,15 @@ export interface CVFormData {
   dob?: string
   linkedin?: string
   languages?: string
-  // Content — paste path or extracted from file
   rawContent?: string
-  // Form path sections
   education?: string
   experience?: string
   references?: string
   additionalInfo?: string
   specialRequests?: string
-  // Targeted CV / Cover Letter
   jobDescription?: string
 }
 
-// Structured CV returned by Claude
 export interface GeneratedCV {
   fullName: string
   jobTitle: string
@@ -44,7 +47,6 @@ export interface GeneratedCV {
   languages?: string[]
   additionalInfo?: string
   coverLetterBody?: string
-  // Academic only
   publications?: string[]
   research?: string[]
   teaching?: string[]
@@ -66,7 +68,7 @@ export interface GeneratedEducation {
   field: string
   startYear: string
   endYear: string
-  grade?: string
+  grade?: string | null
 }
 
 export interface CheckCreditsResponse {
