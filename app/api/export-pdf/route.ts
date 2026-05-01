@@ -1,594 +1,339 @@
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 import { NextRequest, NextResponse } from 'next/server'
+import chromium from '@sparticuz/chromium'
+import puppeteer from 'puppeteer-core'
 import { GeneratedCV, TemplateId } from '@/types'
 
 export async function POST(req: NextRequest) {
   try {
-    const { cv, templateId }: { cv: GeneratedCV; templateId: TemplateId } = await req.json()
+    const { cv, templateId } = await req.json() as { cv: GeneratedCV; templateId: TemplateId }
     if (!cv) return NextResponse.json({ error: 'No CV data' }, { status: 400 })
 
-    const chromium = (await import('@sparticuz/chromium')).default
-    const puppeteer = (await import('puppeteer-core')).default
+    const html = buildHtml(cv, templateId)
 
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: true
-    })
-
-    const page = await browser.newPage()
-    const html = buildHTML(cv, templateId || 'bold-header')
-    await page.setContent(html, { waitUntil: 'networkidle0' })
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '0', right: '0', bottom: '0', left: '0' }
-    })
-
-    await browser.close()
-
-    const fileName = `${cv.fullName.replace(/\s+/g, '_')}_CV.pdf`
-    return new NextResponse(pdfBuffer as unknown as BodyInit, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-      }
-    })
-  } catch (error) {
+    let browser
+    try {
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+      })
+      const page = await browser.newPage()
+      await page.setContent(html, { waitUntil: 'networkidle0' })
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '0', right: '0', bottom: '0', left: '0' },
+      })
+      return new NextResponse(new Uint8Array(pdfBuffer), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${cv.fullName.replace(/\s+/g, '_')}_CV.pdf"`,
+        },
+      })
+    } finally {
+      if (browser) await browser.close()
+    }
+  } catch (error: any) {
     console.error('PDF export error:', error)
-    return NextResponse.json({ error: 'PDF export failed. Please try again.' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 })
   }
 }
 
-// ── Shared data helpers ───────────────────────────────
-function contact(cv: GeneratedCV) {
-  return [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).join(' · ')
+// ── Contact line builder ────────────────────────────
+const contactLine = (cv: GeneratedCV, sep = '  •  ') =>
+  [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).join(sep)
+
+// ── SVG Icons (inline, no library needed) ──────────
+const ICON = {
+  email: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></svg>`,
+  phone: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.11 10.17 19.79 19.79 0 0 1 1.04 1.54 2 2 0 0 1 3 0h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 7.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`,
+  pin:   `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  link:  `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
 }
 
-function experienceHTML(cv: GeneratedCV, bulletColor: string) {
-  if (!cv.experience?.length) return ''
-  return cv.experience.map(exp => `
-    <div style="margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline">
-        <span style="font-size:11pt;font-weight:700;color:#111">${exp.role}</span>
-        <span style="font-size:9pt;color:#9ca3af;font-style:italic">${exp.startDate} – ${exp.endDate}</span>
-      </div>
-      <div style="font-size:10pt;color:${bulletColor};font-weight:600;margin:2px 0 5px">${exp.company}</div>
-      ${exp.bullets.map(b => `
-        <div style="font-size:9.5pt;color:#374151;padding-left:13px;position:relative;margin-bottom:3px;line-height:1.55">
-          <span style="position:absolute;left:0;color:${bulletColor};font-size:7pt;top:2px">▪</span>${b}
-        </div>`).join('')}
-    </div>`).join('')
+function iconContact(cv: GeneratedCV, color = '#555') {
+  const parts: string[] = []
+  if (cv.email) parts.push(`${ICON.email}${cv.email}`)
+  if (cv.phone) parts.push(`${ICON.phone}${cv.phone}`)
+  if (cv.location) parts.push(`${ICON.pin}${cv.location}`)
+  if (cv.linkedin) parts.push(`${ICON.link}${cv.linkedin}`)
+  return parts.map(p => `<span style="color:${color};margin-right:18px;white-space:nowrap">${p}</span>`).join('')
 }
 
-function educationHTML(cv: GeneratedCV) {
-  if (!cv.education?.length) return ''
-  return cv.education.map(edu => `
-    <div style="margin-bottom:10px">
-      <div style="font-size:11pt;font-weight:700;color:#111">${edu.qualification} in ${edu.field}</div>
-      <div style="font-size:9.5pt;color:#6b7280">${edu.institution} · ${edu.startYear}–${edu.endYear}${edu.grade ? ` · ${edu.grade}` : ''}</div>
-    </div>`).join('')
-}
-
-function skillsHTML(cv: GeneratedCV) {
-  if (!cv.skills?.length) return ''
-  return Array.isArray(cv.skills) ? cv.skills.join(' · ') : cv.skills
-}
-
-function languagesHTML(cv: GeneratedCV) {
-  if (!cv.languages?.length) return ''
-  return cv.languages.join(' · ')
-}
-
-function additionalHTML(cv: GeneratedCV) {
-  if (!cv.additionalInfo) return ''
-  return cv.additionalInfo
-}
-
-// ── Shared section header ─────────────────────────────
-function sh(text: string, color: string, style = '') {
-  return `<div style="font-size:7.5pt;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${color};border-bottom:2px solid ${color};padding-bottom:3px;margin-bottom:8px;display:inline-block;${style}">${text}</div>`
-}
-
-// ── Shared body sections ──────────────────────────────
-function sharedBody(cv: GeneratedCV, accentColor: string) {
-  let html = ''
-
-  if (cv.coverLetterBody) {
-    html += `<div style="margin-bottom:16px">${sh('Cover Letter', accentColor)}`
-    html += cv.coverLetterBody.split('\n\n').map(p =>
-      `<p style="font-size:10.5pt;color:#374151;line-height:1.7;margin-bottom:10px">${p}</p>`
-    ).join('')
-    html += '</div>'
-    return html
-  }
-
-  if (cv.summary) {
-    html += `<div style="margin-bottom:16px">${sh('Professional Summary', accentColor)}
-      <p style="font-size:10.5pt;color:#374151;line-height:1.7;margin-top:5px">${cv.summary}</p>
-    </div>`
-  }
-
-  if (cv.experience?.length) {
-    html += `<div style="margin-bottom:16px">${sh('Work Experience', accentColor)}
-      <div style="margin-top:6px">${experienceHTML(cv, accentColor)}</div>
-    </div>`
-  }
-
-  if (cv.education?.length) {
-    html += `<div style="margin-bottom:16px">${sh('Education', accentColor)}
-      <div style="margin-top:6px">${educationHTML(cv)}</div>
-    </div>`
-  }
-
-  if (cv.publications?.length) {
-    html += `<div style="margin-bottom:16px">${sh('Publications', accentColor)}
-      <div style="margin-top:6px">${cv.publications.map(p => `<div style="font-size:9.5pt;color:#333;margin-bottom:4px;padding-left:12px;position:relative"><span style="position:absolute;left:0">•</span>${p}</div>`).join('')}</div>
-    </div>`
-  }
-
-  if (cv.research?.length) {
-    html += `<div style="margin-bottom:16px">${sh('Research Interests', accentColor)}
-      <p style="font-size:10pt;color:#374151;margin-top:5px">${cv.research.join(' · ')}</p>
-    </div>`
-  }
-
-  if (cv.teaching?.length) {
-    html += `<div style="margin-bottom:16px">${sh('Teaching', accentColor)}
-      <div style="margin-top:6px">${cv.teaching.map(t => `<div style="font-size:9.5pt;color:#333;margin-bottom:3px;padding-left:12px;position:relative"><span style="position:absolute;left:0">•</span>${t}</div>`).join('')}</div>
-    </div>`
-  }
-
-  if (cv.skills?.length) {
-    html += `<div style="margin-bottom:14px">${sh('Skills', accentColor)}
-      <p style="font-size:10pt;color:#374151;margin-top:5px;line-height:1.7">${skillsHTML(cv)}</p>
-    </div>`
-  }
-
-  if (cv.languages?.length) {
-    html += `<div style="margin-bottom:14px">${sh('Languages', accentColor)}
-      <p style="font-size:10pt;color:#374151;margin-top:5px">${languagesHTML(cv)}</p>
-    </div>`
-  }
-
-  if (cv.additionalInfo) {
-    html += `<div style="margin-bottom:14px">${sh('Additional Information', accentColor)}
-      <p style="font-size:10pt;color:#374151;margin-top:5px;line-height:1.7">${additionalHTML(cv)}</p>
-    </div>`
-  }
-
-  return html
-}
-
-// ── HTML builder per template ─────────────────────────
-function buildHTML(cv: GeneratedCV, templateId: TemplateId): string {
-  const base = `
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { font-family:'DM Sans',Arial,sans-serif; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  `
-
+// ══════════════════════════════════════════════════════
+// TEMPLATE ROUTER
+// ══════════════════════════════════════════════════════
+function buildHtml(cv: GeneratedCV, templateId: TemplateId): string {
   switch (templateId) {
-
-    // ── 1. BOLD HEADER ──────────────────────────────────
-    case 'bold-header':
-    default:
-      return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>${base}
-        .header { background:#1a56c4; padding:28px 36px 22px; color:white; }
-        .name { font-family:Georgia,serif; font-size:26pt; font-weight:800; letter-spacing:1px; text-transform:uppercase; line-height:1.1; }
-        .role { font-size:12pt; color:rgba(255,255,255,0.85); margin-top:4px; }
-        .contact { font-size:9.5pt; color:rgba(255,255,255,0.55); margin-top:5px; }
-        .body { padding:24px 36px; }
-      </style></head><body>
-        <div class="header">
-          <div class="name">${cv.fullName}</div>
-          <div class="role">${cv.jobTitle}</div>
-          <div class="contact">${contact(cv)}</div>
-        </div>
-        <div class="body">${sharedBody(cv, '#1a56c4')}</div>
-      </body></html>`
-
-    // ── 2. CLASSIC ──────────────────────────────────────
-    case 'classic':
-      return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>${base}
-        body { padding:36px 44px; }
-        .name { font-family:Georgia,serif; font-size:26pt; font-weight:700; text-align:center; letter-spacing:0.3px; color:#111; }
-        .role { font-size:12pt; color:#6b7280; text-align:center; margin-top:4px; }
-        .contact-line { font-size:9.5pt; color:#9ca3af; text-align:center; margin-top:4px; }
-        .rule { height:1px; background:#e5e7eb; margin:14px 0; }
-      </style></head><body>
-        <div class="name">${cv.fullName.toUpperCase()}</div>
-        <div class="role">${cv.jobTitle}</div>
-        <div class="contact-line">${contact(cv)}</div>
-        <div class="rule"></div>
-        ${sharedBody(cv, '#475569')}
-      </body></html>`
-
-    // ── 3. MINIMAL ──────────────────────────────────────
-    case 'minimal':
-      return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>${base}
-        body { padding:36px 40px; }
-        .top { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:1.5px solid #111; padding-bottom:10px; margin-bottom:14px; }
-        .name { font-family:Georgia,serif; font-size:24pt; font-weight:700; color:#111; }
-        .right { text-align:right; }
-        .ci { font-size:8.5pt; color:#9ca3af; display:block; line-height:1.6; }
-        .sec-sh { font-size:9pt; font-weight:700; color:#111; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
-        .sec-sh::after { content:''; flex:1; height:0.5px; background:#d1d5db; }
-        .jr { display:flex; justify-content:space-between; }
-        .jt { font-size:11pt; font-weight:700; color:#111; }
-        .jd { font-size:9pt; color:#9ca3af; }
-        .co { font-size:9.5pt; color:#6b7280; margin-bottom:4px; }
-        .bul { font-size:9.5pt; color:#374151; padding-left:12px; position:relative; margin-bottom:3px; }
-        .bul::before { content:'·'; position:absolute; left:3px; color:#9ca3af; }
-        .tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:5px; }
-        .tag { font-size:8pt; border:0.5px solid #d1d5db; padding:2px 9px; border-radius:2px; color:#6b7280; }
-        .sec { margin-bottom:14px; }
-        .txt { font-size:10pt; color:#374151; line-height:1.7; }
-      </style></head><body>
-        <div class="top">
-          <div class="name">${cv.fullName}</div>
-          <div class="right">
-            ${[cv.email, cv.phone, cv.location].filter(Boolean).map(v => `<span class="ci">${v}</span>`).join('')}
-          </div>
-        </div>
-        ${cv.summary ? `<div class="sec"><div class="sec-sh">Summary</div><p class="txt">${cv.summary}</p></div>` : ''}
-        ${cv.experience?.length ? `<div class="sec"><div class="sec-sh">Experience</div>
-          ${cv.experience.map(exp => `
-            <div style="margin-bottom:12px">
-              <div class="jr"><span class="jt">${exp.role}</span><span class="jd">${exp.startDate} – ${exp.endDate}</span></div>
-              <div class="co">${exp.company}</div>
-              ${exp.bullets.map(b => `<div class="bul">${b}</div>`).join('')}
-            </div>`).join('')}
-        </div>` : ''}
-        ${cv.education?.length ? `<div class="sec"><div class="sec-sh">Education</div>
-          ${cv.education.map(edu => `
-            <div style="margin-bottom:8px">
-              <div class="jr"><span class="jt">${edu.qualification} in ${edu.field}</span><span class="jd">${edu.endYear}</span></div>
-              <div class="co">${edu.institution}${edu.grade ? ` · ${edu.grade}` : ''}</div>
-            </div>`).join('')}
-        </div>` : ''}
-        ${cv.skills?.length ? `<div class="sec"><div class="sec-sh">Skills</div>
-          <div class="tags">${(Array.isArray(cv.skills) ? cv.skills : String(cv.skills).split(',')).map((s: string) => `<span class="tag">${s.trim()}</span>`).join('')}</div>
-        </div>` : ''}
-        ${cv.languages?.length ? `<div class="sec"><div class="sec-sh">Languages</div><p class="txt">${cv.languages.join(' · ')}</p></div>` : ''}
-        ${cv.additionalInfo ? `<div class="sec"><div class="sec-sh">Additional Information</div><p class="txt">${cv.additionalInfo}</p></div>` : ''}
-      </body></html>`
-
-    // ── 4. ACCENT ───────────────────────────────────────
-    case 'accent':
-      return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>${base}
-        body { display:flex; min-height:297mm; }
-        .bar { width:7px; background:#b45309; flex-shrink:0; }
-        .inner { flex:1; padding:28px 32px; }
-        .head { border-bottom:1px solid #e7e5e4; padding-bottom:16px; margin-bottom:16px; }
-        .name { font-family:Georgia,serif; font-size:24pt; font-weight:700; color:#1c1917; }
-        .role { font-size:11pt; color:#78716c; margin-top:3px; }
-        .contact-line { font-size:9pt; color:#aaa; margin-top:5px; }
-        .skill-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:10px; }
-        .skill-tag { font-size:8pt; background:#fef3c7; color:#92400e; padding:2px 9px; border-radius:3px; font-weight:600; }
-        .sec-sh { font-size:7.5pt; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:#b45309; margin-bottom:8px; }
-        .sec { margin-bottom:16px; }
-        .jt { font-size:11pt; font-weight:700; color:#1c1917; }
-        .co { font-size:9.5pt; color:#a8a29e; margin:2px 0 5px; }
-        .bul { font-size:9.5pt; color:#57534e; padding-left:13px; position:relative; margin-bottom:3px; line-height:1.55; }
-        .bul::before { content:'▸'; position:absolute; left:0; color:#b45309; font-size:7pt; top:2px; }
-        .txt { font-size:10pt; color:#57534e; line-height:1.7; }
-      </style></head><body>
-        <div class="bar"></div>
-        <div class="inner">
-          <div class="head">
-            <div class="name">${cv.fullName}</div>
-            <div class="role">${cv.jobTitle} · ${cv.location || ''}</div>
-            <div class="contact-line">${[cv.email, cv.phone].filter(Boolean).join(' · ')}</div>
-            ${cv.skills?.length ? `<div class="skill-tags">${(Array.isArray(cv.skills) ? cv.skills : String(cv.skills).split(',')).map((s: string) => `<span class="skill-tag">${s.trim()}</span>`).join('')}</div>` : ''}
-          </div>
-          ${cv.summary ? `<div class="sec"><div class="sec-sh">Summary</div><p class="txt">${cv.summary}</p></div>` : ''}
-          ${cv.experience?.length ? `<div class="sec"><div class="sec-sh">Experience</div>
-            ${cv.experience.map(exp => `
-              <div style="margin-bottom:14px">
-                <div class="jt">${exp.role} — ${exp.company}</div>
-                <div class="co">${exp.startDate} – ${exp.endDate}</div>
-                ${exp.bullets.map(b => `<div class="bul">${b}</div>`).join('')}
-              </div>`).join('')}
-          </div>` : ''}
-          ${cv.education?.length ? `<div class="sec"><div class="sec-sh">Education</div>
-            ${cv.education.map(edu => `
-              <div style="margin-bottom:8px">
-                <div class="jt">${edu.qualification} in ${edu.field}</div>
-                <div class="co">${edu.institution} · ${edu.endYear}${edu.grade ? ` · ${edu.grade}` : ''}</div>
-              </div>`).join('')}
-          </div>` : ''}
-          ${cv.languages?.length ? `<div class="sec"><div class="sec-sh">Languages</div><p class="txt">${cv.languages.join(' · ')}</p></div>` : ''}
-          ${cv.additionalInfo ? `<div class="sec"><div class="sec-sh">Additional Information</div><p class="txt">${cv.additionalInfo}</p></div>` : ''}
-        </div>
-      </body></html>`
-
-    // ── 5. ACADEMIC ─────────────────────────────────────
-    case 'academic':
-      return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>${base}
-        body { padding:32px 44px; font-family:Georgia,serif; }
-        .name { font-size:22pt; font-weight:700; text-align:center; color:#111; letter-spacing:0.3px; }
-        .role { font-size:11pt; color:#444; text-align:center; margin-top:4px; }
-        .contact-line { font-size:9pt; color:#666; text-align:center; margin-top:4px; }
-        .rule { height:1px; background:#333; margin:12px 0; }
-        .sec-sh { font-size:11pt; font-weight:700; color:#111; border-bottom:1px solid #333; padding-bottom:3px; margin-bottom:8px; font-variant:small-caps; letter-spacing:0.5px; }
-        .sec { margin-bottom:14px; }
-        .txt { font-size:10pt; color:#222; line-height:1.7; }
-        .deg { font-size:11pt; font-weight:700; color:#111; margin-top:6px; }
-        .inst { font-size:10pt; color:#333; font-style:italic; }
-        .yr { font-size:9pt; color:#555; margin-bottom:4px; }
-        .bul { font-size:10pt; color:#222; padding-left:14px; position:relative; margin-bottom:4px; line-height:1.6; }
-        .bul::before { content:'•'; position:absolute; left:3px; }
-        .jt { font-size:11pt; font-weight:700; color:#111; margin-top:6px; }
-        .co { font-size:10pt; color:#444; font-style:italic; margin-bottom:3px; }
-      </style></head><body>
-        <div class="name">${cv.fullName}</div>
-        <div class="role">${cv.jobTitle}</div>
-        <div class="contact-line">${contact(cv)}</div>
-        <div class="rule"></div>
-        ${cv.summary ? `<div class="sec"><div class="sec-sh">Professional Profile</div><p class="txt">${cv.summary}</p></div>` : ''}
-        ${cv.education?.length ? `<div class="sec"><div class="sec-sh">Education</div>
-          ${cv.education.map(edu => `
-            <div style="margin-bottom:8px">
-              <div class="deg">${edu.qualification}, ${edu.field}</div>
-              <div class="inst">${edu.institution}, ${edu.endYear}</div>
-              ${edu.grade ? `<div class="yr">${edu.grade}</div>` : ''}
-            </div>`).join('')}
-        </div>` : ''}
-        ${cv.experience?.length ? `<div class="sec"><div class="sec-sh">Academic & Teaching Experience</div>
-          ${cv.experience.map(exp => `
-            <div style="margin-bottom:10px">
-              <div class="jt">${exp.role}</div>
-              <div class="co">${exp.company} · ${exp.startDate} – ${exp.endDate}</div>
-              ${exp.bullets.map(b => `<div class="bul">${b}</div>`).join('')}
-            </div>`).join('')}
-        </div>` : ''}
-        ${cv.publications?.length ? `<div class="sec"><div class="sec-sh">Publications</div>
-          ${cv.publications.map(p => `<div class="bul">${p}</div>`).join('')}
-        </div>` : ''}
-        ${cv.research?.length ? `<div class="sec"><div class="sec-sh">Research Interests</div>
-          <p class="txt">${cv.research.join(' · ')}</p>
-        </div>` : ''}
-        ${cv.skills?.length ? `<div class="sec"><div class="sec-sh">Skills & Expertise</div>
-          <p class="txt">${skillsHTML(cv)}</p>
-        </div>` : ''}
-        ${cv.languages?.length ? `<div class="sec"><div class="sec-sh">Languages</div>
-          <p class="txt">${languagesHTML(cv)}</p>
-        </div>` : ''}
-        ${cv.additionalInfo ? `<div class="sec"><div class="sec-sh">Additional Information</div>
-          <p class="txt">${additionalHTML(cv)}</p>
-        </div>` : ''}
-      </body></html>`
-
-    // ── 6. CLEAN (Professional, no colors) ───────────────
-    case 'clean':
-      return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>${base}
-        body { padding:32px 40px; }
-        .name { font-size:22pt; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#111; margin-bottom:6px; }
-        .contact { font-size:9.5pt; color:#444; margin-bottom:20px; }
-        .sec { margin-bottom:16px; }
-        .sec-sh { font-size:10pt; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#111; border-bottom:1.5px solid #111; padding-bottom:4px; margin-bottom:10px; }
-        .txt { font-size:10pt; color:#333; line-height:1.7; }
-        .jt { font-size:11pt; font-weight:700; color:#111; margin-top:8px; }
-        .co { font-size:9.5pt; color:#444; margin-bottom:4px; }
-        .dt { font-size:9pt; color:#777; }
-        .bul { font-size:9.5pt; color:#333; padding-left:14px; position:relative; margin-bottom:3px; line-height:1.55; }
-        .bul::before { content:'•'; position:absolute; left:3px; }
-        .deg { font-size:11pt; font-weight:700; color:#111; }
-        .inst { font-size:9.5pt; color:#444; margin-bottom:6px; }
-      </style></head><body>
-        <div class="name">${cv.fullName}</div>
-        <div class="contact">${contact(cv)}</div>
-        ${cv.summary ? `<div class="sec"><div class="sec-sh">Professional Summary</div>
-          <p class="txt">${cv.summary}</p>
-        </div>` : ''}
-        ${cv.experience?.length ? `<div class="sec"><div class="sec-sh">Professional Experience</div>
-          ${cv.experience.map(exp => `
-            <div style="margin-bottom:12px">
-              <div class="jt">${exp.role}</div>
-              <div class="co">${exp.company} <span class="dt">| ${exp.startDate} – ${exp.endDate}</span></div>
-              ${exp.bullets.map(b => `<div class="bul">${b}</div>`).join('')}
-            </div>`).join('')}
-        </div>` : ''}
-        ${cv.education?.length ? `<div class="sec"><div class="sec-sh">Education</div>
-          ${cv.education.map(edu => `
-            <div style="margin-bottom:8px">
-              <div class="deg">${edu.qualification} in ${edu.field}</div>
-              <div class="inst">${edu.institution} <span class="dt">| ${edu.startYear}–${edu.endYear}${edu.grade ? ` | ${edu.grade}` : ''}</span></div>
-            </div>`).join('')}
-        </div>` : ''}
-        ${cv.skills?.length ? `<div class="sec"><div class="sec-sh">Skills & Competencies</div>
-          <p class="txt">${skillsHTML(cv)}</p>
-        </div>` : ''}
-        ${cv.languages?.length ? `<div class="sec"><div class="sec-sh">Languages</div>
-          <p class="txt">${languagesHTML(cv)}</p>
-        </div>` : ''}
-        ${cv.additionalInfo ? `<div class="sec"><div class="sec-sh">Additional Information</div>
-          <p class="txt">${additionalHTML(cv)}</p>
-        </div>` : ''}
-      </body></html>`
-
-    // ── 7. EDITORIAL (Magazine-style, warm cream palette) ───
-    case 'editorial':
-      return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>${base}
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500&display=swap');
-        body { font-family:'Inter','DM Sans',Arial,sans-serif; background:#fefdfb; padding:46px 52px; color:#3a3a3a; }
-        .kicker { font-size:9pt; color:#9a5f2e; letter-spacing:4pt; font-weight:500; margin-bottom:10px; }
-        .name { font-family:'Cormorant Garamond',Georgia,serif; font-size:42pt; font-weight:500; color:#1a1a1a; line-height:1; letter-spacing:-0.5pt; }
-        .subtitle { font-family:'Cormorant Garamond',Georgia,serif; font-size:14pt; color:#6b5742; font-style:italic; margin-top:6px; }
-        .contact { font-size:9.5pt; color:#9a9588; margin-top:18px; letter-spacing:0.3pt; }
-        .rule { height:0.5pt; background:#d9cfbf; margin:24px 0; }
-        .row { display:grid; grid-template-columns:110px 1fr; gap:24px; margin-bottom:22px; }
-        .label { font-size:9pt; color:#9a5f2e; letter-spacing:2pt; font-weight:500; padding-top:4px; }
-        .txt { font-size:11pt; color:#3a3a3a; line-height:1.7; }
-        .exp-item { margin-bottom:18px; }
-        .exp-item:last-child { margin-bottom:0; }
-        .exp-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:2px; }
-        .role { font-family:'Cormorant Garamond',Georgia,serif; font-size:15pt; font-weight:500; color:#1a1a1a; }
-        .dates { font-size:10pt; color:#9a9588; font-style:italic; }
-        .company { font-family:'Cormorant Garamond',Georgia,serif; font-size:12pt; color:#6b5742; font-style:italic; margin-bottom:8px; }
-        .bullets p { font-size:10.5pt; color:#3a3a3a; line-height:1.7; margin-bottom:4px; padding-left:14px; position:relative; }
-        .bullets p::before { content:'—'; position:absolute; left:0; color:#9a5f2e; }
-        .edu-item { margin-bottom:14px; }
-        .edu-item:last-child { margin-bottom:0; }
-        .deg { font-family:'Cormorant Garamond',Georgia,serif; font-size:14pt; font-weight:500; color:#1a1a1a; }
-        .inst { font-family:'Cormorant Garamond',Georgia,serif; font-size:11.5pt; color:#6b5742; font-style:italic; }
-        .skill-line { font-size:10.5pt; color:#3a3a3a; line-height:1.9; }
-      </style></head><body>
-        <div class="kicker">CURRICULUM VITAE</div>
-        <div class="name">${cv.fullName}</div>
-        ${cv.jobTitle ? `<div class="subtitle">${cv.jobTitle}</div>` : ''}
-        <div class="contact">${contact(cv).replace(/ · /g, '&nbsp;&nbsp;&nbsp;')}</div>
-        <div class="rule"></div>
-
-        ${cv.summary ? `<div class="row">
-          <div class="label">SUMMARY</div>
-          <div class="txt">${cv.summary}</div>
-        </div>` : ''}
-
-        ${cv.coverLetterBody ? `<div class="row">
-          <div class="label">LETTER</div>
-          <div>${cv.coverLetterBody.split('\n\n').map(p => `<p class="txt" style="margin-bottom:10pt;">${p}</p>`).join('')}</div>
-        </div>` : ''}
-
-        ${cv.experience?.length ? `<div class="row">
-          <div class="label">EXPERIENCE</div>
-          <div>
-            ${cv.experience.map(exp => `
-              <div class="exp-item">
-                <div class="exp-head">
-                  <div class="role">${exp.role}</div>
-                  <div class="dates">${exp.startDate} — ${exp.endDate}</div>
-                </div>
-                <div class="company">${exp.company}</div>
-                <div class="bullets">${exp.bullets.map(b => `<p>${b}</p>`).join('')}</div>
-              </div>`).join('')}
-          </div>
-        </div>` : ''}
-
-        ${cv.education?.length ? `<div class="row">
-          <div class="label">EDUCATION</div>
-          <div>
-            ${cv.education.map(edu => `
-              <div class="edu-item">
-                <div class="exp-head">
-                  <div class="deg">${edu.qualification} in ${edu.field}</div>
-                  <div class="dates">${edu.startYear} — ${edu.endYear}</div>
-                </div>
-                <div class="inst">${edu.institution}${edu.grade ? ` · <span style="color:#3a3a3a;font-style:normal;">${edu.grade}</span>` : ''}</div>
-              </div>`).join('')}
-          </div>
-        </div>` : ''}
-
-        ${cv.skills?.length ? `<div class="row">
-          <div class="label">SKILLS</div>
-          <div class="skill-line">${(Array.isArray(cv.skills) ? cv.skills : [cv.skills]).join('&nbsp;&nbsp;·&nbsp;&nbsp;')}</div>
-        </div>` : ''}
-
-        ${cv.languages?.length ? `<div class="row">
-          <div class="label">LANGUAGES</div>
-          <div class="skill-line">${cv.languages.join('&nbsp;&nbsp;·&nbsp;&nbsp;')}</div>
-        </div>` : ''}
-
-        ${cv.publications?.length ? `<div class="row">
-          <div class="label">PUBLICATIONS</div>
-          <div class="bullets">${cv.publications.map(p => `<p>${p}</p>`).join('')}</div>
-        </div>` : ''}
-
-        ${cv.additionalInfo ? `<div class="row">
-          <div class="label">ADDITIONAL</div>
-          <div class="txt">${additionalHTML(cv)}</div>
-        </div>` : ''}
-      </body></html>`
-
-    // ── 8. EXECUTIVE (Deep navy + gold, boardroom) ──────────
-    case 'executive':
-      return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-      <style>${base}
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
-        body { font-family:'Inter','DM Sans',Arial,sans-serif; color:#1f1f1f; }
-        .header { background:#0a1a3a; padding:42px 48px 36px; color:white; }
-        .kicker { font-size:9pt; color:#e5c98f; letter-spacing:5pt; font-weight:500; margin-bottom:14px; }
-        .name { font-family:'Playfair Display',Georgia,serif; font-size:36pt; font-weight:500; letter-spacing:-0.3pt; line-height:1; margin-bottom:12px; }
-        .gold-line { width:72px; height:2pt; background:#c9a05a; margin-bottom:16px; }
-        .title { font-family:'Playfair Display',Georgia,serif; font-size:13pt; color:#e5c98f; font-style:italic; margin-bottom:18px; }
-        .contact { font-size:10pt; color:#d0d6e0; letter-spacing:0.3pt; }
-        .body { padding:32px 48px 40px; }
-        .sh { font-family:'Playfair Display',Georgia,serif; font-size:11pt; font-weight:600; text-transform:uppercase; letter-spacing:3pt; color:#0a1a3a; border-bottom:1.5pt solid #c9a05a; padding-bottom:6pt; margin:22px 0 14px; }
-        .sh:first-of-type { margin-top:0; }
-        .txt { font-size:11pt; color:#1f1f1f; line-height:1.7; }
-        .exp-item { margin-bottom:18px; }
-        .exp-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:3px; }
-        .role { font-family:'Playfair Display',Georgia,serif; font-size:13.5pt; font-weight:600; color:#0a1a3a; }
-        .dates { font-size:10pt; color:#6b6b6b; font-style:italic; }
-        .company { font-family:'Playfair Display',Georgia,serif; font-size:11.5pt; color:#c9a05a; font-style:italic; margin-bottom:8px; }
-        .bullets p { font-size:10.5pt; color:#1f1f1f; line-height:1.65; margin-bottom:4px; padding-left:16px; position:relative; }
-        .bullets p::before { content:'•'; position:absolute; left:4px; color:#c9a05a; font-weight:bold; }
-        .edu-item { margin-bottom:14px; }
-        .deg { font-family:'Playfair Display',Georgia,serif; font-size:13pt; font-weight:600; color:#0a1a3a; }
-        .inst { font-family:'Playfair Display',Georgia,serif; font-size:11.5pt; color:#c9a05a; font-style:italic; }
-        .skill-line { font-size:10.5pt; color:#1f1f1f; line-height:1.9; }
-      </style></head><body>
-        <div class="header">
-          <div class="kicker">${cv.coverLetterBody ? 'LETTER OF APPLICATION' : 'EXECUTIVE PROFILE'}</div>
-          <div class="name">${cv.fullName}</div>
-          <div class="gold-line"></div>
-          ${cv.jobTitle ? `<div class="title">${cv.jobTitle}</div>` : ''}
-          <div class="contact">${contact(cv)}</div>
-        </div>
-
-        <div class="body">
-
-          ${cv.summary ? `<div class="sh">Executive Summary</div>
-            <p class="txt">${cv.summary}</p>` : ''}
-
-          ${cv.coverLetterBody ? `<div class="sh">Letter</div>
-            ${cv.coverLetterBody.split('\n\n').map(p => `<p class="txt" style="margin-bottom:10pt;">${p}</p>`).join('')}` : ''}
-
-          ${cv.experience?.length ? `<div class="sh">Professional Experience</div>
-            ${cv.experience.map(exp => `
-              <div class="exp-item">
-                <div class="exp-head">
-                  <div class="role">${exp.role}</div>
-                  <div class="dates">${exp.startDate} — ${exp.endDate}</div>
-                </div>
-                <div class="company">${exp.company}</div>
-                <div class="bullets">${exp.bullets.map(b => `<p>${b}</p>`).join('')}</div>
-              </div>`).join('')}` : ''}
-
-          ${cv.education?.length ? `<div class="sh">Education</div>
-            ${cv.education.map(edu => `
-              <div class="edu-item">
-                <div class="exp-head">
-                  <div class="deg">${edu.qualification} in ${edu.field}</div>
-                  <div class="dates">${edu.startYear} — ${edu.endYear}</div>
-                </div>
-                <div class="inst">${edu.institution}${edu.grade ? ` · <span style="color:#1f1f1f;font-style:normal;">${edu.grade}</span>` : ''}</div>
-              </div>`).join('')}` : ''}
-
-          ${cv.skills?.length ? `<div class="sh">Core Competencies</div>
-            <div class="skill-line">${(Array.isArray(cv.skills) ? cv.skills : [cv.skills]).join('&nbsp;&nbsp;·&nbsp;&nbsp;')}</div>` : ''}
-
-          ${cv.languages?.length ? `<div class="sh">Languages</div>
-            <div class="skill-line">${cv.languages.join('&nbsp;&nbsp;·&nbsp;&nbsp;')}</div>` : ''}
-
-          ${cv.publications?.length ? `<div class="sh">Publications</div>
-            <div class="bullets">${cv.publications.map(p => `<p>${p}</p>`).join('')}</div>` : ''}
-
-          ${cv.additionalInfo ? `<div class="sh">Additional Information</div>
-            <p class="txt">${additionalHTML(cv)}</p>` : ''}
-
-        </div>
-      </body></html>`
+    case 'modern':    return nordicHtml(cv)
+    case 'executive': return londonHtml(cv)
+    case 'academic':  return academicHtml(cv)
+    default:          return londonHtml(cv)
   }
+}
+
+// ══════════════════════════════════════════════════════
+// 1. LONDON — Editorial serif, warm, premium
+// Inspired by jsonresume-theme-london-bureau (MIT)
+// ══════════════════════════════════════════════════════
+function londonHtml(cv: GeneratedCV): string {
+  const isLetter = !!cv.coverLetterBody
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:210mm}
+    body{
+      font-family:'Source Sans 3','Helvetica Neue',sans-serif;
+      font-size:10.5pt;
+      line-height:1.65;
+      color:#2a2a2a;
+      background:#faf8f5;
+      padding:44px 52px;
+    }
+    /* Header */
+    .header{border-bottom:2.5px solid #2a2a2a;padding-bottom:20px;margin-bottom:28px}
+    .name{font-family:'Crimson Text',Georgia,serif;font-size:42px;font-weight:700;color:#1a1a1a;letter-spacing:-0.5px;line-height:1;margin-bottom:6px}
+    .title{font-family:'Crimson Text',Georgia,serif;font-size:16px;font-style:italic;color:#5a5a5a;margin-bottom:14px}
+    .contact{font-size:10pt;color:#5a5a5a;display:flex;flex-wrap:wrap;gap:4px 0}
+    /* Summary */
+    .summary{font-size:10.5pt;line-height:1.7;color:#3a3a3a;margin-bottom:6px;text-align:justify}
+    /* Sections */
+    .sec{margin-bottom:24px;padding-top:18px;border-top:1px solid #d4cfc7}
+    .sec:first-of-type{border-top:none;padding-top:0}
+    .sh{font-family:'Crimson Text',Georgia,serif;font-size:18px;font-weight:700;color:#1a1a1a;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:16px}
+    /* Experience */
+    .exp{margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid #e8e4dd}
+    .exp:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+    .exp-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:3px}
+    .exp-role{font-family:'Crimson Text',Georgia,serif;font-size:16px;font-weight:700;color:#1a1a1a}
+    .exp-dates{font-size:9.5pt;color:#777;white-space:nowrap;font-style:italic}
+    .exp-co{font-size:11pt;font-weight:600;color:#4a4a4a;margin-bottom:6px}
+    .bullets{margin:8px 0 0 0;padding-left:16px}
+    .bullets li{margin-bottom:5px;font-size:10.5pt;line-height:1.55;color:#3a3a3a}
+    .bullets li::marker{color:#888}
+    /* Education */
+    .edu{margin-bottom:14px}
+    .edu-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+    .edu-deg{font-family:'Crimson Text',Georgia,serif;font-size:15px;font-weight:700;color:#1a1a1a}
+    .edu-inst{font-size:10.5pt;color:#5a5a5a;font-style:italic}
+    /* Skills */
+    .skills{font-size:10.5pt;color:#3a3a3a;line-height:1.8}
+    /* Cover letter */
+    .letter-p{font-size:11pt;line-height:1.75;color:#2a2a2a;margin-bottom:14pt;text-align:justify}
+  </style>
+  </head><body>
+    <div class="header">
+      <div class="name">${cv.fullName}</div>
+      ${cv.jobTitle ? `<div class="title">${cv.jobTitle}</div>` : ''}
+      <div class="contact">${iconContact(cv, '#5a5a5a')}</div>
+    </div>
+
+    ${isLetter
+      ? cv.coverLetterBody!.split('\n\n').map(p => `<p class="letter-p">${p}</p>`).join('')
+      : `
+      ${cv.summary ? `<div class="sec"><p class="summary">${cv.summary}</p></div>` : ''}
+
+      ${cv.experience?.length ? `<div class="sec">
+        <div class="sh">Experience</div>
+        ${cv.experience.map(e => `
+          <div class="exp">
+            <div class="exp-head">
+              <span class="exp-role">${e.role}</span>
+              <span class="exp-dates">${e.startDate} – ${e.endDate}</span>
+            </div>
+            <div class="exp-co">${e.company}</div>
+            <ul class="bullets">${e.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+          </div>`).join('')}
+      </div>` : ''}
+
+      ${cv.education?.length ? `<div class="sec">
+        <div class="sh">Education</div>
+        ${cv.education.map(ed => `
+          <div class="edu">
+            <div class="edu-head">
+              <span class="edu-deg">${ed.qualification} in ${ed.field}</span>
+              <span class="exp-dates">${ed.startYear} – ${ed.endYear}</span>
+            </div>
+            <div class="edu-inst">${ed.institution}${ed.grade ? ` — ${ed.grade}` : ''}</div>
+          </div>`).join('')}
+      </div>` : ''}
+
+      ${cv.skills?.length ? `<div class="sec">
+        <div class="sh">Skills</div>
+        <div class="skills">${cv.skills.join('  ·  ')}</div>
+      </div>` : ''}
+
+      ${cv.languages?.length ? `<div class="sec">
+        <div class="sh">Languages</div>
+        <div class="skills">${cv.languages.join('  ·  ')}</div>
+      </div>` : ''}
+
+      ${cv.publications?.length ? `<div class="sec">
+        <div class="sh">Publications</div>
+        <ul class="bullets">${cv.publications.map(p => `<li>${p}</li>`).join('')}</ul>
+      </div>` : ''}
+
+      ${cv.additionalInfo ? `<div class="sec">
+        <div class="sh">Additional Information</div>
+        <div class="skills">${cv.additionalInfo}</div>
+      </div>` : ''}
+    `}
+  </body></html>`
+}
+
+// ══════════════════════════════════════════════════════
+// 2. NORDIC — Clean, light, contemporary
+// Inspired by jsonresume-theme-nordic-minimal (MIT)
+// ══════════════════════════════════════════════════════
+function nordicHtml(cv: GeneratedCV): string {
+  const isLetter = !!cv.coverLetterBody
+  const BLUE = '#2563eb'
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:210mm}
+    body{
+      font-family:'Inter','Helvetica Neue',sans-serif;
+      font-size:10pt;
+      line-height:1.7;
+      color:#1e293b;
+      background:#ffffff;
+      padding:44px 52px;
+    }
+    /* Header */
+    .header{margin-bottom:32px;padding-bottom:28px;border-bottom:1px solid #e2e8f0}
+    .name{font-size:36pt;font-weight:300;color:#0f172a;letter-spacing:-1px;line-height:1;margin-bottom:6px}
+    .title{font-size:12pt;font-weight:400;color:#64748b;margin-bottom:16px;letter-spacing:0.2px}
+    .contact{display:flex;flex-wrap:wrap;gap:4px 0;font-size:9.5pt;color:#475569}
+    .summary{font-size:10pt;line-height:1.75;color:#334155;font-weight:300;margin-bottom:8px}
+    /* Section header */
+    .sh{font-size:8.5pt;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:${BLUE};border-bottom:2px solid ${BLUE};padding-bottom:5px;margin:22px 0 14px}
+    /* Experience */
+    .exp{margin-bottom:20px}
+    .exp-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px}
+    .exp-role{font-size:12pt;font-weight:500;color:#0f172a}
+    .exp-dates{font-size:9pt;color:#94a3b8;white-space:nowrap;font-weight:300}
+    .exp-co{font-size:10pt;color:${BLUE};font-weight:400;margin-bottom:6px}
+    .bullets{margin:6px 0 0 0;padding:0;list-style:none}
+    .bullets li{font-size:10pt;line-height:1.6;color:#334155;padding-left:14px;position:relative;margin-bottom:4px;font-weight:300}
+    .bullets li::before{content:'—';position:absolute;left:0;color:${BLUE};font-weight:600}
+    /* Education */
+    .edu{margin-bottom:12px}
+    .edu-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+    .edu-deg{font-size:11pt;font-weight:500;color:#0f172a}
+    .edu-inst{font-size:10pt;color:${BLUE};font-weight:300}
+    /* Skills */
+    .skills{font-size:10pt;color:#334155;line-height:1.85;font-weight:300}
+    /* Letter */
+    .letter-p{font-size:10.5pt;line-height:1.8;color:#1e293b;margin-bottom:14pt;font-weight:300}
+  </style>
+  </head><body>
+    <div class="header">
+      <div class="name">${cv.fullName}</div>
+      ${cv.jobTitle ? `<div class="title">${cv.jobTitle}</div>` : ''}
+      <div class="contact">${iconContact(cv, '#475569')}</div>
+    </div>
+
+    ${isLetter
+      ? cv.coverLetterBody!.split('\n\n').map(p => `<p class="letter-p">${p}</p>`).join('')
+      : `
+      ${cv.summary ? `<div class="sh">Profile</div><p class="summary">${cv.summary}</p>` : ''}
+
+      ${cv.experience?.length ? `<div class="sh">Experience</div>
+        ${cv.experience.map(e => `
+          <div class="exp">
+            <div class="exp-head">
+              <span class="exp-role">${e.role}</span>
+              <span class="exp-dates">${e.startDate} – ${e.endDate}</span>
+            </div>
+            <div class="exp-co">${e.company}</div>
+            <ul class="bullets">${e.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+          </div>`).join('')}` : ''}
+
+      ${cv.education?.length ? `<div class="sh">Education</div>
+        ${cv.education.map(ed => `
+          <div class="edu">
+            <div class="edu-head">
+              <span class="edu-deg">${ed.qualification} in ${ed.field}</span>
+              <span class="exp-dates">${ed.startYear} – ${ed.endYear}</span>
+            </div>
+            <div class="edu-inst">${ed.institution}${ed.grade ? ` · ${ed.grade}` : ''}</div>
+          </div>`).join('')}` : ''}
+
+      ${cv.skills?.length ? `<div class="sh">Skills</div><div class="skills">${cv.skills.join('  ·  ')}</div>` : ''}
+      ${cv.languages?.length ? `<div class="sh">Languages</div><div class="skills">${cv.languages.join('  ·  ')}</div>` : ''}
+      ${cv.publications?.length ? `<div class="sh">Publications</div><ul class="bullets">${cv.publications.map(p => `<li>${p}</li>`).join('')}</ul>` : ''}
+      ${cv.additionalInfo ? `<div class="sh">Additional</div><div class="skills">${cv.additionalInfo}</div>` : ''}
+    `}
+  </body></html>`
+}
+
+// ══════════════════════════════════════════════════════
+// 3. ACADEMIC — Scholarly, structured
+// ══════════════════════════════════════════════════════
+function academicHtml(cv: GeneratedCV): string {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:210mm}
+    body{
+      font-family:'Source Sans 3','Helvetica Neue',sans-serif;
+      font-size:10.5pt;
+      line-height:1.65;
+      color:#1a1a1a;
+      background:#ffffff;
+      padding:44px 52px;
+    }
+    .header{text-align:center;border-bottom:2px solid #1a1a1a;padding-bottom:20px;margin-bottom:26px}
+    .name{font-family:'Crimson Text',Georgia,serif;font-size:32px;font-weight:700;color:#0a0a0a;margin-bottom:6px}
+    .title{font-family:'Crimson Text',Georgia,serif;font-size:15px;font-style:italic;color:#4a4a4a;margin-bottom:12px}
+    .contact{font-size:9.5pt;color:#555;display:flex;flex-wrap:wrap;justify-content:center;gap:4px 0}
+    .sh{font-family:'Source Sans 3',sans-serif;font-size:10pt;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:#1a1a1a;border-bottom:1px solid #1a1a1a;padding-bottom:3px;margin:20px 0 12px;font-variant:small-caps}
+    .summary{font-size:10.5pt;line-height:1.7;text-align:justify;margin-bottom:6px}
+    .exp{margin-bottom:18px}
+    .exp-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px}
+    .exp-role{font-family:'Crimson Text',Georgia,serif;font-size:15px;font-weight:700;color:#0a0a0a}
+    .exp-dates{font-size:9pt;color:#777;white-space:nowrap;font-style:italic}
+    .exp-co{font-size:10.5pt;font-style:italic;color:#4a4a4a;margin-bottom:6px}
+    .bullets{margin:6px 0 0 0;padding-left:16px}
+    .bullets li{font-size:10.5pt;line-height:1.6;color:#1a1a1a;margin-bottom:4px}
+    .edu{margin-bottom:12px}
+    .edu-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+    .edu-deg{font-family:'Crimson Text',Georgia,serif;font-size:14px;font-weight:700;color:#0a0a0a}
+    .edu-inst{font-size:10.5pt;font-style:italic;color:#5a5a5a}
+    .skills{font-size:10.5pt;color:#1a1a1a;line-height:1.8}
+  </style>
+  </head><body>
+    <div class="header">
+      <div class="name">${cv.fullName}</div>
+      ${cv.jobTitle ? `<div class="title">${cv.jobTitle}</div>` : ''}
+      <div class="contact">${iconContact(cv, '#555')}</div>
+    </div>
+
+    ${cv.summary ? `<div class="sh">Research Profile</div><p class="summary">${cv.summary}</p>` : ''}
+    ${cv.education?.length ? `<div class="sh">Education</div>${cv.education.map(ed => `
+      <div class="edu">
+        <div class="edu-head"><span class="edu-deg">${ed.qualification} in ${ed.field}</span><span class="exp-dates">${ed.startYear} – ${ed.endYear}</span></div>
+        <div class="edu-inst">${ed.institution}${ed.grade ? ` — ${ed.grade}` : ''}</div>
+      </div>`).join('')}` : ''}
+    ${cv.experience?.length ? `<div class="sh">Academic & Professional Experience</div>${cv.experience.map(e => `
+      <div class="exp">
+        <div class="exp-head"><span class="exp-role">${e.role}</span><span class="exp-dates">${e.startDate} – ${e.endDate}</span></div>
+        <div class="exp-co">${e.company}</div>
+        <ul class="bullets">${e.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+      </div>`).join('')}` : ''}
+    ${cv.publications?.length ? `<div class="sh">Publications</div><ul class="bullets">${cv.publications.map(p => `<li>${p}</li>`).join('')}</ul>` : ''}
+    ${cv.research?.length ? `<div class="sh">Research</div><ul class="bullets">${cv.research.map(r => `<li>${r}</li>`).join('')}</ul>` : ''}
+    ${cv.teaching?.length ? `<div class="sh">Teaching</div><ul class="bullets">${cv.teaching.map(t => `<li>${t}</li>`).join('')}</ul>` : ''}
+    ${cv.skills?.length ? `<div class="sh">Research Methods & Skills</div><div class="skills">${cv.skills.join('  ·  ')}</div>` : ''}
+    ${cv.languages?.length ? `<div class="sh">Languages</div><div class="skills">${cv.languages.join('  ·  ')}</div>` : ''}
+    ${cv.additionalInfo ? `<div class="sh">Honours, Awards & Memberships</div><div class="skills">${cv.additionalInfo}</div>` : ''}
+  </body></html>`
 }
