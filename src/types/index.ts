@@ -1,16 +1,5 @@
 export type CVType = 'professional' | 'targeted' | 'academic' | 'cover_letter'
-
-export type TemplateId =
-  | 'bold-header'
-  | 'classic'
-  | 'minimal'
-  | 'accent'
-  | 'academic'
-  | 'clean'
-  | 'editorial'
-  | 'executive'
-  | 'modern'
-
+export type TemplateId = 'classic' | 'modern' | 'executive' | 'academic'
 export type ExportFormat = 'docx' | 'pdf'
 
 export interface CVFormData {
@@ -33,6 +22,25 @@ export interface CVFormData {
   jobDescription?: string
 }
 
+export interface GeneratedExperience {
+  id: string
+  role: string
+  company: string
+  startDate: string
+  endDate: string
+  bullets: string[]
+}
+
+export interface GeneratedEducation {
+  id: string
+  qualification: string
+  field: string
+  institution: string
+  startYear: string
+  endYear: string
+  grade?: string | null
+}
+
 export interface GeneratedCV {
   fullName: string
   jobTitle: string
@@ -50,47 +58,4 @@ export interface GeneratedCV {
   publications?: string[]
   research?: string[]
   teaching?: string[]
-}
-
-export interface GeneratedExperience {
-  id: string
-  company: string
-  role: string
-  startDate: string
-  endDate: string
-  bullets: string[]
-}
-
-export interface GeneratedEducation {
-  id: string
-  institution: string
-  qualification: string
-  field: string
-  startYear: string
-  endYear: string
-  grade?: string
-}
-
-export interface CheckCreditsResponse {
-  hasCredits: boolean
-  credits: number
-  phoneNumber: string
-}
-
-export interface GenerateResponse {
-  success: boolean
-  cv?: GeneratedCV
-  error?: string
-}
-
-export interface RegenerateResponse {
-  success: boolean
-  content?: string | string[]
-  error?: string
-}
-
-export interface ExtractResponse {
-  success: boolean
-  text?: string
-  error?: string
 }
