@@ -357,7 +357,7 @@ function academicHtml(cv: GeneratedCV): string {
 // Merriweather 900 black, crimson red accents, centered
 // Inspired by jsonresume-theme-new-york-editorial (MIT)
 // ══════════════════════════════════════════════════════
-export function newYorkHtml(cv: GeneratedCV): string {
+function newYorkHtml(cv: GeneratedCV): string {
   const isLetter = !!cv.coverLetterBody
   const RED = '#b22222'
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -429,7 +429,7 @@ export function newYorkHtml(cv: GeneratedCV): string {
 // Playfair Display 900, deep purple, timeline dots
 // Inspired by jsonresume-theme-french-atelier (MIT)
 // ══════════════════════════════════════════════════════
-export function atelierHtml(cv: GeneratedCV): string {
+function atelierHtml(cv: GeneratedCV): string {
   const isLetter = !!cv.coverLetterBody
   const PURPLE = '#3b0a45'
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
@@ -504,7 +504,7 @@ export function atelierHtml(cv: GeneratedCV): string {
 // Uppercase bold name, condensed sans, pure black/white
 // Inspired by jsonresume-theme-monochrome-noir (MIT)
 // ══════════════════════════════════════════════════════
-export function noirHtml(cv: GeneratedCV): string {
+function noirHtml(cv: GeneratedCV): string {
   const isLetter = !!cv.coverLetterBody
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
