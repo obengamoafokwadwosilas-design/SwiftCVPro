@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation'
 import { GeneratedCV, TemplateId, ExportFormat } from '@/types'
 
 const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string }[] = [
-  { id: 'classic',   name: 'London',   tag: 'Editorial · Warm Serif',    color: '#8B6F47' },
-  { id: 'modern',    name: 'Nordic',   tag: 'Clean · Light · Modern',    color: '#2563eb' },
-  { id: 'executive', name: 'Executive',tag: 'Bold · Corporate',          color: '#1a1a1a' },
-  { id: 'academic',  name: 'Academic', tag: 'Scholarly · Structured',    color: '#374151' },
+  { id: 'london',   name: 'London',    tag: 'Editorial · Warm Serif',    color: '#6B4F3A' },
+  { id: 'nordic',   name: 'Nordic',    tag: 'Clean · Light · Modern',    color: '#2563eb' },
+  { id: 'newyork',  name: 'New York',  tag: 'Bold Serif · Crimson',      color: '#b22222' },
+  { id: 'atelier',  name: 'Atelier',   tag: 'Playfair · Timeline',       color: '#3b0a45' },
+  { id: 'noir',     name: 'Noir',      tag: 'Condensed · Stark · Black', color: '#111111' },
+  { id: 'academic', name: 'Academic',  tag: 'Scholarly · Structured',    color: '#374151' },
 ]
 
 export default function PreviewPage() {
