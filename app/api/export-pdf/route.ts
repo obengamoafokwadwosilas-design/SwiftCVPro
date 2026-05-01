@@ -69,9 +69,13 @@ function iconContact(cv: GeneratedCV, color = '#555') {
 // ══════════════════════════════════════════════════════
 function buildHtml(cv: GeneratedCV, templateId: TemplateId): string {
   switch (templateId) {
-    case 'modern':    return nordicHtml(cv)
+    case 'nordic':    return nordicHtml(cv)
     case 'executive': return londonHtml(cv)
+    case 'newyork':   return newYorkHtml(cv)
+    case 'atelier':   return atelierHtml(cv)
+    case 'noir':      return noirHtml(cv)
     case 'academic':  return academicHtml(cv)
+    case 'london':
     default:          return londonHtml(cv)
   }
 }
@@ -335,5 +339,231 @@ function academicHtml(cv: GeneratedCV): string {
     ${cv.skills?.length ? `<div class="sh">Research Methods & Skills</div><div class="skills">${cv.skills.join('  ·  ')}</div>` : ''}
     ${cv.languages?.length ? `<div class="sh">Languages</div><div class="skills">${cv.languages.join('  ·  ')}</div>` : ''}
     ${cv.additionalInfo ? `<div class="sh">Honours, Awards & Memberships</div><div class="skills">${cv.additionalInfo}</div>` : ''}
+  </body></html>`
+}
+
+// ══════════════════════════════════════════════════════
+// ADDITIONAL PREMIUM TEMPLATES
+// ══════════════════════════════════════════════════════
+
+// Export the extended build function — replace the existing buildHtml
+// by adding these cases to the switch statement in the main file:
+// case 'newyork':   return newYorkHtml(cv)
+// case 'atelier':  return atelierHtml(cv)
+// case 'noir':     return noirHtml(cv)
+
+// ══════════════════════════════════════════════════════
+// 4. NEW YORK EDITORIAL
+// Merriweather 900 black, crimson red accents, centered
+// Inspired by jsonresume-theme-new-york-editorial (MIT)
+// ══════════════════════════════════════════════════════
+export function newYorkHtml(cv: GeneratedCV): string {
+  const isLetter = !!cv.coverLetterBody
+  const RED = '#b22222'
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Source+Sans+Pro:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:210mm}
+    body{
+      font-family:'Source Sans Pro','Helvetica Neue',sans-serif;
+      font-size:11pt;
+      line-height:1.75;
+      color:#2a2a2a;
+      background:#ffffff;
+      padding:52px 64px;
+    }
+    .header{text-align:center;border-bottom:3px solid #222;padding-bottom:32px;margin-bottom:40px}
+    .name{font-family:'Merriweather',Georgia,serif;font-size:52px;font-weight:900;color:#222;letter-spacing:-1px;line-height:1.05;margin-bottom:12px}
+    .title{font-family:'Merriweather',Georgia,serif;font-size:19px;font-style:italic;color:#555;margin-bottom:20px;letter-spacing:0.3px}
+    .contact{font-size:11pt;color:#666;display:flex;justify-content:center;flex-wrap:wrap;gap:0 20px}
+    .summary{font-size:12pt;line-height:1.8;color:#3a3a3a;border-left:3px solid ${RED};padding-left:18px;margin-bottom:8px;font-style:italic}
+    .sh{font-family:'Merriweather',Georgia,serif;font-size:22px;font-weight:700;color:#222;padding-bottom:10px;border-bottom:2px solid #e0e0e0;margin:32px 0 22px;position:relative}
+    .sh::after{content:'';position:absolute;bottom:-2px;left:0;width:70px;height:2px;background:${RED}}
+    .exp{margin-bottom:32px}
+    .exp-role{font-family:'Merriweather',Georgia,serif;font-size:20px;font-weight:700;color:#222;margin-bottom:6px}
+    .exp-meta{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px}
+    .exp-co{font-size:12pt;font-style:italic;color:#444}
+    .exp-dates{font-size:10pt;color:#777;white-space:nowrap}
+    .bullets{list-style:none;margin:10px 0 0;padding-left:28px}
+    .bullets li{position:relative;margin-bottom:8px;font-size:11pt;line-height:1.75;color:#3a3a3a}
+    .bullets li::before{content:'—';position:absolute;left:-28px;color:${RED};font-weight:700}
+    .edu-item{margin-bottom:16px}
+    .edu-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+    .edu-name{font-family:'Merriweather',Georgia,serif;font-size:17px;font-weight:700;color:#222}
+    .edu-inst{font-size:11pt;font-style:italic;color:#555}
+    .skills-line{font-size:11pt;color:#3a3a3a;line-height:1.9}
+    .letter-p{font-size:11.5pt;line-height:1.8;margin-bottom:14pt;color:#2a2a2a}
+  </style></head><body>
+    <div class="header">
+      <div class="name">${cv.fullName}</div>
+      ${cv.jobTitle ? `<div class="title">${cv.jobTitle}</div>` : ''}
+      <div class="contact">${iconContact(cv, '#666')}</div>
+    </div>
+
+    ${isLetter
+      ? cv.coverLetterBody!.split('\n\n').map(p => `<p class="letter-p">${p}</p>`).join('')
+      : `
+      ${cv.summary ? `<p class="summary">${cv.summary}</p>` : ''}
+      ${cv.experience?.length ? `<div class="sh">Experience</div>${cv.experience.map(e => `
+        <div class="exp">
+          <div class="exp-role">${e.role}</div>
+          <div class="exp-meta"><span class="exp-co">${e.company}</span><span class="exp-dates">${e.startDate} – ${e.endDate}</span></div>
+          <ul class="bullets">${e.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+        </div>`).join('')}` : ''}
+      ${cv.education?.length ? `<div class="sh">Education</div>${cv.education.map(ed => `
+        <div class="edu-item">
+          <div class="edu-head"><span class="edu-name">${ed.qualification} in ${ed.field}</span><span class="exp-dates">${ed.startYear} – ${ed.endYear}</span></div>
+          <div class="edu-inst">${ed.institution}${ed.grade ? ` — ${ed.grade}` : ''}</div>
+        </div>`).join('')}` : ''}
+      ${cv.skills?.length ? `<div class="sh">Skills</div><div class="skills-line">${cv.skills.join('  ·  ')}</div>` : ''}
+      ${cv.languages?.length ? `<div class="sh">Languages</div><div class="skills-line">${cv.languages.join('  ·  ')}</div>` : ''}
+      ${cv.publications?.length ? `<div class="sh">Publications</div><ul class="bullets">${cv.publications.map(p => `<li>${p}</li>`).join('')}</ul>` : ''}
+      ${cv.additionalInfo ? `<div class="sh">Additional Information</div><div class="skills-line">${cv.additionalInfo}</div>` : ''}
+    `}
+  </body></html>`
+}
+
+// ══════════════════════════════════════════════════════
+// 5. FRENCH ATELIER
+// Playfair Display 900, deep purple, timeline dots
+// Inspired by jsonresume-theme-french-atelier (MIT)
+// ══════════════════════════════════════════════════════
+export function atelierHtml(cv: GeneratedCV): string {
+  const isLetter = !!cv.coverLetterBody
+  const PURPLE = '#3b0a45'
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Work+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:210mm}
+    body{
+      font-family:'Work Sans','Helvetica Neue',sans-serif;
+      font-size:10.5pt;
+      line-height:1.75;
+      color:#3a3a3a;
+      background:#fafafa;
+      padding:48px 48px;
+    }
+    .header{margin-bottom:40px;padding-bottom:32px;border-bottom:2px solid ${PURPLE};position:relative}
+    .header::after{content:'';position:absolute;bottom:-1px;left:0;width:100px;height:2px;background:${PURPLE}}
+    .name{font-family:'Playfair Display',Georgia,serif;font-size:52px;font-weight:900;color:#1a1a1a;letter-spacing:-1.5px;line-height:1.05;margin-bottom:6px}
+    .title{font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:${PURPLE};margin-bottom:16px}
+    .contact{font-size:10pt;color:#5a5a5a;display:flex;flex-wrap:wrap;gap:0}
+    .summary{font-size:10.5pt;line-height:1.8;color:#4a4a4a;font-weight:300;max-width:600px;margin-bottom:6px}
+    .sh{font-family:'Playfair Display',Georgia,serif;font-size:26px;font-weight:700;color:#1a1a1a;margin:28px 0 20px;padding-bottom:10px;border-bottom:1px solid #d4d4d4;position:relative;letter-spacing:-0.5px}
+    .sh::after{content:'';position:absolute;bottom:-1px;left:0;width:70px;height:1px;background:${PURPLE}}
+    /* Timeline style for experience */
+    .exp{margin-bottom:28px;padding-left:22px;border-left:1px solid #e0e0e0;position:relative}
+    .exp::before{content:'';position:absolute;left:-5px;top:8px;width:8px;height:8px;border-radius:50%;background:${PURPLE}}
+    .exp-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:4px}
+    .exp-role{font-family:'Playfair Display',Georgia,serif;font-size:20px;font-weight:700;color:#1a1a1a}
+    .exp-dates{font-size:9.5pt;color:#777;white-space:nowrap;font-style:italic}
+    .exp-co{font-size:11pt;color:${PURPLE};font-weight:500;margin-bottom:8px}
+    .bullets{list-style:none;margin:8px 0 0;padding:0}
+    .bullets li{position:relative;padding-left:16px;margin-bottom:5px;font-size:10.5pt;line-height:1.65;color:#3a3a3a;font-weight:300}
+    .bullets li::before{content:'›';position:absolute;left:0;color:${PURPLE};font-weight:700;font-size:13pt}
+    .edu-item{margin-bottom:14px;padding-left:22px;border-left:1px solid #e0e0e0;position:relative}
+    .edu-item::before{content:'';position:absolute;left:-5px;top:8px;width:8px;height:8px;border-radius:50%;background:${PURPLE}}
+    .edu-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+    .edu-name{font-family:'Playfair Display',Georgia,serif;font-size:17px;font-weight:700;color:#1a1a1a}
+    .edu-inst{font-size:10.5pt;color:${PURPLE};font-weight:300;font-style:italic}
+    .skills-line{font-size:10.5pt;color:#3a3a3a;line-height:1.9;font-weight:300}
+    .letter-p{font-size:11pt;line-height:1.8;margin-bottom:14pt;color:#3a3a3a;font-weight:300}
+  </style></head><body>
+    <div class="header">
+      <div class="name">${cv.fullName}</div>
+      ${cv.jobTitle ? `<div class="title">${cv.jobTitle}</div>` : ''}
+      <div class="contact">${iconContact(cv, '#5a5a5a')}</div>
+    </div>
+
+    ${isLetter
+      ? cv.coverLetterBody!.split('\n\n').map(p => `<p class="letter-p">${p}</p>`).join('')
+      : `
+      ${cv.summary ? `<p class="summary">${cv.summary}</p>` : ''}
+      ${cv.experience?.length ? `<div class="sh">Experience</div>${cv.experience.map(e => `
+        <div class="exp">
+          <div class="exp-head"><span class="exp-role">${e.role}</span><span class="exp-dates">${e.startDate} – ${e.endDate}</span></div>
+          <div class="exp-co">${e.company}</div>
+          <ul class="bullets">${e.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+        </div>`).join('')}` : ''}
+      ${cv.education?.length ? `<div class="sh">Education</div>${cv.education.map(ed => `
+        <div class="edu-item">
+          <div class="edu-head"><span class="edu-name">${ed.qualification} in ${ed.field}</span><span class="exp-dates">${ed.startYear} – ${ed.endYear}</span></div>
+          <div class="edu-inst">${ed.institution}${ed.grade ? ` — ${ed.grade}` : ''}</div>
+        </div>`).join('')}` : ''}
+      ${cv.skills?.length ? `<div class="sh">Skills</div><div class="skills-line">${cv.skills.join('  ·  ')}</div>` : ''}
+      ${cv.languages?.length ? `<div class="sh">Languages</div><div class="skills-line">${cv.languages.join('  ·  ')}</div>` : ''}
+      ${cv.additionalInfo ? `<div class="sh">Additional Information</div><div class="skills-line">${cv.additionalInfo}</div>` : ''}
+    `}
+  </body></html>`
+}
+
+// ══════════════════════════════════════════════════════
+// 6. MONOCHROME NOIR
+// Uppercase bold name, condensed sans, pure black/white
+// Inspired by jsonresume-theme-monochrome-noir (MIT)
+// ══════════════════════════════════════════════════════
+export function noirHtml(cv: GeneratedCV): string {
+  const isLetter = !!cv.coverLetterBody
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700;800&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:210mm}
+    body{
+      font-family:'Barlow','Helvetica Neue',sans-serif;
+      font-size:10.5pt;
+      line-height:1.6;
+      color:#111;
+      background:#f5f5f5;
+      padding:48px 56px;
+    }
+    .header{margin-bottom:40px;padding-bottom:28px;border-bottom:3px solid #111}
+    .name{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:56px;font-weight:800;color:#000;letter-spacing:-2px;line-height:0.92;text-transform:uppercase;margin-bottom:10px}
+    .title{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:16px;font-weight:500;color:#333;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px}
+    .contact{font-size:9.5pt;color:#444;letter-spacing:-0.2px;display:flex;flex-wrap:wrap;gap:0}
+    .summary{font-size:10.5pt;line-height:1.7;color:#1a1a1a;font-weight:300;margin-bottom:6px;max-width:640px}
+    .sh{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:13pt;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#000;border-top:2px solid #000;padding-top:10px;margin:28px 0 16px}
+    .exp{margin-bottom:24px}
+    .exp-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px}
+    .exp-role{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:18px;font-weight:700;color:#000;letter-spacing:-0.3px}
+    .exp-dates{font-size:9pt;color:#666;white-space:nowrap;letter-spacing:1px;text-transform:uppercase;font-weight:500}
+    .exp-co{font-size:11pt;font-weight:500;color:#333;margin-bottom:6px;letter-spacing:-0.2px}
+    .bullets{list-style:none;margin:8px 0 0;padding:0}
+    .bullets li{position:relative;padding-left:16px;margin-bottom:5px;font-size:10.5pt;line-height:1.55;color:#1a1a1a;font-weight:300}
+    .bullets li::before{content:'▸';position:absolute;left:0;color:#555;font-size:9pt;top:1px}
+    .edu-item{margin-bottom:12px}
+    .edu-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+    .edu-name{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-size:16px;font-weight:700;color:#000;letter-spacing:-0.2px}
+    .edu-inst{font-size:10pt;color:#444;font-weight:400;margin-top:2px}
+    .skills-line{font-size:10.5pt;color:#1a1a1a;line-height:1.9;font-weight:300;letter-spacing:-0.1px}
+    .letter-p{font-size:11pt;line-height:1.75;margin-bottom:14pt;color:#111;font-weight:300}
+  </style></head><body>
+    <div class="header">
+      <div class="name">${cv.fullName}</div>
+      ${cv.jobTitle ? `<div class="title">${cv.jobTitle}</div>` : ''}
+      <div class="contact">${iconContact(cv, '#444')}</div>
+    </div>
+
+    ${isLetter
+      ? cv.coverLetterBody!.split('\n\n').map(p => `<p class="letter-p">${p}</p>`).join('')
+      : `
+      ${cv.summary ? `<p class="summary">${cv.summary}</p>` : ''}
+      ${cv.experience?.length ? `<div class="sh">Experience</div>${cv.experience.map(e => `
+        <div class="exp">
+          <div class="exp-head"><span class="exp-role">${e.role}</span><span class="exp-dates">${e.startDate} – ${e.endDate}</span></div>
+          <div class="exp-co">${e.company}</div>
+          <ul class="bullets">${e.bullets.map(b => `<li>${b}</li>`).join('')}</ul>
+        </div>`).join('')}` : ''}
+      ${cv.education?.length ? `<div class="sh">Education</div>${cv.education.map(ed => `
+        <div class="edu-item">
+          <div class="edu-head"><span class="edu-name">${ed.qualification} in ${ed.field}</span><span class="exp-dates">${ed.startYear} – ${ed.endYear}</span></div>
+          <div class="edu-inst">${ed.institution}${ed.grade ? ` — ${ed.grade}` : ''}</div>
+        </div>`).join('')}` : ''}
+      ${cv.skills?.length ? `<div class="sh">Skills</div><div class="skills-line">${cv.skills.join('  ·  ')}</div>` : ''}
+      ${cv.languages?.length ? `<div class="sh">Languages</div><div class="skills-line">${cv.languages.join('  ·  ')}</div>` : ''}
+      ${cv.additionalInfo ? `<div class="sh">Additional Information</div><div class="skills-line">${cv.additionalInfo}</div>` : ''}
+    `}
   </body></html>`
 }
