@@ -105,8 +105,26 @@ export default function PreviewPage() {
         <link href="${PRINT_FONTS_HREF}" rel="stylesheet">
         <style>
           @page { size: A4; margin: 0; }
-          html, body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
-          * { box-sizing: border-box; }
+          html, body {
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          *, *::before, *::after {
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          @media print {
+            html, body, *, *::before, *::after {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+          }
           body > div { width: 210mm; min-height: 297mm; }
         </style>
       </head><body>${previewEl.outerHTML}</body></html>`)
