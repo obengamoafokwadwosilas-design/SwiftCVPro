@@ -63,6 +63,7 @@ export interface GeneratedCV {
   phone: string
   location: string
   linkedin?: string
+  dob?: string
   summary: string
   experience: GeneratedExperience[]
   education: GeneratedEducation[]
