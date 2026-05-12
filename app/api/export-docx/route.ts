@@ -83,9 +83,14 @@ export async function POST(req: NextRequest) {
 
 function buildDocument(cv: GeneratedCV, templateId: TemplateId): Document {
   switch (templateId) {
-    case 'modern':    return buildModern(cv)
-    case 'executive': return buildExecutive(cv)
+    case 'nordic':    return buildModern(cv)
+    case 'london':    return buildExecutive(cv)
+    case 'newyork':   return buildExecutive(cv)
+    case 'atelier':   return buildExecutive(cv)
+    case 'noir':      return buildModern(cv)
     case 'academic':  return buildAcademic(cv)
+    case 'modern':    return buildModern(cv)     // legacy
+    case 'executive': return buildExecutive(cv)  // legacy
     default:          return buildClassic(cv)
   }
 }
