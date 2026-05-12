@@ -5,41 +5,55 @@ import { useRouter } from 'next/navigation'
 import { GeneratedCV, TemplateId, ExportFormat } from '@/types'
 
 // ══════════════════════════════════════════════════════
-// TEMPLATE LIBRARY
+// TEMPLATE LIBRARY — Premium first, then ATS, then Academic
 // ══════════════════════════════════════════════════════
 type Formats = 'both' | 'pdf'
 type Category = 'ats' | 'premium' | 'academic'
 
-const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; formats: Formats; category: Category }[] = [
+const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; formats: Formats; category: Category; customizable: boolean }[] = [
+  // 💎 Premium — PDF only, rich design
+  { id: 'meridian', name: 'Meridian',     tag: 'Navy Sidebar · Gold',        color: '#0a1f44', formats: 'pdf',  category: 'premium', customizable: true  },
+  { id: 'newyork',  name: 'New York',     tag: 'Bold Serif · Crimson',       color: '#a01e1e', formats: 'pdf',  category: 'premium', customizable: true  },
+  { id: 'atelier',  name: 'Atelier',      tag: 'Playfair · Timeline',        color: '#3b0a45', formats: 'pdf',  category: 'premium', customizable: true  },
+  { id: 'graduate', name: 'Graduate',     tag: 'Optimistic · Fresh',         color: '#dc6e3a', formats: 'pdf',  category: 'premium', customizable: true  },
+  { id: 'europass', name: 'Europass Pro', tag: 'Two-Column · International', color: '#1e3a8a', formats: 'pdf',  category: 'premium', customizable: true  },
+  { id: 'noir',     name: 'Noir',         tag: 'Refined · Dark',             color: '#111111', formats: 'pdf',  category: 'premium', customizable: false },
+
   // 🔵 ATS — PDF + Word, simple by design, recruiter-safe
-  { id: 'london',   name: 'London',       tag: 'Editorial · Warm Serif',     color: '#6B4F3A', formats: 'both', category: 'ats' },
-  { id: 'nordic',   name: 'Nordic',       tag: 'Clean · Modern · Sans',      color: '#2563eb', formats: 'both', category: 'ats' },
-  { id: 'classic',  name: 'Classic',      tag: 'Traditional · ATS Safe',     color: '#1f2937', formats: 'both', category: 'ats' },
+  { id: 'london',   name: 'London',       tag: 'Editorial · Warm Serif',     color: '#6B4F3A', formats: 'both', category: 'ats',     customizable: false },
+  { id: 'nordic',   name: 'Nordic',       tag: 'Clean · Modern · Sans',      color: '#2563eb', formats: 'both', category: 'ats',     customizable: true  },
+  { id: 'classic',  name: 'Classic',      tag: 'Traditional · ATS Safe',     color: '#1f2937', formats: 'both', category: 'ats',     customizable: false },
 
   // 🎓 Academic — only shows for academic CV type
-  { id: 'academic', name: 'Academic',     tag: 'Scholarly · Structured',     color: '#374151', formats: 'both', category: 'academic' },
-
-  // 💎 Premium — PDF only, rich design
-  { id: 'newyork',  name: 'New York',     tag: 'Bold Serif · Crimson',       color: '#a01e1e', formats: 'pdf',  category: 'premium' },
-  { id: 'atelier',  name: 'Atelier',      tag: 'Playfair · Timeline',        color: '#3b0a45', formats: 'pdf',  category: 'premium' },
-  { id: 'noir',     name: 'Noir',         tag: 'Condensed · Stark · Black',  color: '#111111', formats: 'pdf',  category: 'premium' },
-  { id: 'meridian', name: 'Meridian',     tag: 'Navy Sidebar · Gold',        color: '#0a1f44', formats: 'pdf',  category: 'premium' },
-  { id: 'graduate', name: 'Graduate',     tag: 'Optimistic · Fresh',         color: '#dc6e3a', formats: 'pdf',  category: 'premium' },
-  { id: 'europass', name: 'Europass Pro', tag: 'Two-Column · International', color: '#1e3a8a', formats: 'pdf',  category: 'premium' },
+  { id: 'academic', name: 'Academic',     tag: 'Scholarly · Structured',     color: '#374151', formats: 'both', category: 'academic', customizable: false },
 ]
 
-const PRINT_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Source+Sans+3:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Cormorant+Garamond:wght@400;500;600;700&family=Oswald:wght@300;400;500;600;700&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap'
+// Color swatches for picker
+const COLOR_SWATCHES: { name: string; value: string }[] = [
+  { name: 'Navy',    value: '#0a1f44' },
+  { name: 'Crimson', value: '#a01e1e' },
+  { name: 'Plum',    value: '#3b0a45' },
+  { name: 'Coral',   value: '#dc6e3a' },
+  { name: 'Forest',  value: '#1f5132' },
+  { name: 'Teal',    value: '#0d7d8c' },
+  { name: 'Royal',   value: '#1e3a8a' },
+  { name: 'Bronze',  value: '#8b5e34' },
+]
+
+const PRINT_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Source+Sans+3:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap'
 
 export default function PreviewPage() {
   const router = useRouter()
   const [cv, setCV] = useState<GeneratedCV | null>(null)
   const [phone, setPhone] = useState('')
-  const [template, setTemplate] = useState<TemplateId>('london')
+  const [template, setTemplate] = useState<TemplateId>('meridian')
   const [activeTab, setActiveTab] = useState<'preview' | 'edit'>('preview')
   const [downloading, setDownloading] = useState<ExportFormat | null>(null)
   const [isCoverLetter, setIsCoverLetter] = useState(false)
   const [isAcademicCV, setIsAcademicCV] = useState(false)
   const [pdfOnlyModal, setPdfOnlyModal] = useState(false)
+  const [accentColor, setAccentColor] = useState<string | null>(null)
+  const [showColorPicker, setShowColorPicker] = useState(false)
 
   useEffect(() => {
     const stored = sessionStorage.getItem('swiftcv_cv')
@@ -57,6 +71,12 @@ export default function PreviewPage() {
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [router])
+
+  // Reset accent color when switching templates
+  useEffect(() => {
+    setAccentColor(null)
+    setShowColorPicker(false)
+  }, [template])
 
   function updateCV(patch: Partial<GeneratedCV>) {
     if (!cv) return
@@ -113,15 +133,10 @@ export default function PreviewPage() {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link href="${PRINT_FONTS_HREF}" rel="stylesheet">
         <style>
-          @page {
-            size: A4 portrait;
-            margin: 0;
-          }
+          @page { size: A4 portrait; margin: 0; }
           @page :first { size: A4 portrait; margin: 0; }
           html, body {
-            margin: 0;
-            padding: 0;
-            width: 210mm;
+            margin: 0; padding: 0; width: 210mm;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             color-adjust: exact !important;
@@ -139,10 +154,7 @@ export default function PreviewPage() {
               color-adjust: exact !important;
             }
           }
-          body > div {
-            width: 210mm;
-            min-height: 297mm;
-          }
+          body > div { width: 210mm; min-height: 297mm; }
         </style>
       </head><body>${previewEl.outerHTML}</body></html>`)
       doc.close()
@@ -183,16 +195,13 @@ export default function PreviewPage() {
 
   const currentTpl = TEMPLATES.find(t => t.id === template)
 
-  // Filter templates by user's CV type
-  // Academic CV users: ATS + Academic only (clean focus)
-  // Regular users: ATS + Premium (no Academic clutter)
   const visibleTemplates = isAcademicCV
     ? TEMPLATES.filter(t => t.category === 'ats' || t.category === 'academic')
     : TEMPLATES.filter(t => t.category === 'ats' || t.category === 'premium')
 
+  const premiumTemplates = visibleTemplates.filter(t => t.category === 'premium')
   const atsTemplates = visibleTemplates.filter(t => t.category === 'ats')
   const academicTemplates = visibleTemplates.filter(t => t.category === 'academic')
-  const premiumTemplates = visibleTemplates.filter(t => t.category === 'premium')
 
   return (
     <div style={{ minHeight:'100vh', background:'#f1f5f9' }}>
@@ -204,19 +213,40 @@ export default function PreviewPage() {
           ))}
         </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
+          {currentTpl?.customizable && (
+            <button onClick={() => setShowColorPicker(!showColorPicker)} style={{ padding:'6px 12px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.8)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
+              <span style={{ width:'12px', height:'12px', borderRadius:'50%', background: accentColor || currentTpl.color, border:'1.5px solid rgba(255,255,255,0.3)' }} />
+              Color
+            </button>
+          )}
           <button onClick={handleNewCV} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>+ New CV</button>
           <button onClick={handleDownloadDocx} disabled={!!downloading} style={{ padding:'8px 16px', background: currentTpl?.formats === 'pdf' ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)', color: currentTpl?.formats === 'pdf' ? 'rgba(255,255,255,0.5)' : 'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>{downloading==='docx'?'...':'↓ Word'}</button>
           <button onClick={handleDownloadPdf} disabled={!!downloading} style={{ padding:'8px 16px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', boxShadow:'0 4px 14px rgba(13,148,136,0.3)' }}>{downloading==='pdf'?'...':'↓ PDF'}</button>
         </div>
       </nav>
 
-      <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '240px 1fr', minHeight:'calc(100vh - 57px)' }}>
+      {showColorPicker && currentTpl?.customizable && (
+        <div style={{ background:'white', borderBottom:'1px solid #e2e8f0', padding:'14px 24px', display:'flex', alignItems:'center', gap:'14px', flexWrap:'wrap' }}>
+          <span style={{ fontSize:'11px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#64748b' }}>Accent Color:</span>
+          <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
+            <button onClick={() => setAccentColor(null)} style={{ width:'28px', height:'28px', borderRadius:'50%', background: currentTpl.color, border: accentColor === null ? '3px solid #0d9488' : '2px solid #e2e8f0', cursor:'pointer', position:'relative' }} title="Default">
+              {accentColor === null && <span style={{ position:'absolute', top:'-18px', left:'50%', transform:'translateX(-50%)', fontSize:'9px', color:'#0d9488', fontWeight:700 }}>✓</span>}
+            </button>
+            {COLOR_SWATCHES.map(s => (
+              <button key={s.value} onClick={() => setAccentColor(s.value)} style={{ width:'28px', height:'28px', borderRadius:'50%', background: s.value, border: accentColor === s.value ? '3px solid #0d9488' : '2px solid #e2e8f0', cursor:'pointer' }} title={s.name} />
+            ))}
+          </div>
+          <button onClick={() => setShowColorPicker(false)} style={{ marginLeft:'auto', padding:'6px 12px', background:'#f1f5f9', color:'#64748b', border:'none', borderRadius:'8px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>Done</button>
+        </div>
+      )}
+
+      <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
         {!isCoverLetter && (
           <div style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'20px', overflowY:'auto' }}>
 
-            {/* PREMIUM FIRST — this is the showroom */}
+            {/* PREMIUM SECTION FIRST */}
             {premiumTemplates.length > 0 && (<>
-              <CategoryHeader>Premium Templates</CategoryHeader>
+              <CategoryHeader>Premium</CategoryHeader>
               <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Rich design · PDF download</div>
               {premiumTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
             </>)}
@@ -226,20 +256,20 @@ export default function PreviewPage() {
             <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Recruiter-safe · PDF & Word</div>
             {atsTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
 
-            {/* ACADEMIC */}
+            {/* ACADEMIC SECTION */}
             {academicTemplates.length > 0 && (<>
               <CategoryHeader>Academic</CategoryHeader>
-              <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Scholarly format · PDF & Word</div>
+              <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Scholarly · PDF & Word</div>
               {academicTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
             </>)}
 
             <div style={{ background:'#f8fafc', borderRadius:'10px', border:'1px solid #f1f5f9', padding:'14px', marginTop:'16px' }}>
               <div style={{ fontSize:'11px', fontWeight:600, color:'#0a0f1a', marginBottom:'8px', textTransform:'uppercase', letterSpacing:'1px' }}>Tips</div>
               {[
-                'ATS templates: clean, ATS-safe, both formats',
-                'Premium templates: bold design, PDF only',
-                'Use Edit tab to refine content',
-                'When printing, choose A4 paper size',
+                'Premium: bold design, PDF only',
+                'ATS: recruiter-safe, both formats',
+                'Customize colors on premium templates',
+                'Edit tab: add/remove sections',
               ].map(t => (
                 <div key={t} style={{ fontSize:'11.5px', color:'#64748b', marginBottom:'6px', lineHeight:1.5, fontWeight:300 }}>· {t}</div>
               ))}
@@ -251,7 +281,7 @@ export default function PreviewPage() {
           {activeTab === 'preview' ? (
             <div style={{ background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'hidden', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', maxWidth:'760px', margin:'0 auto' }}>
               <div id="cv-print-area">
-                <CVPreview cv={cv} templateId={template} />
+                <CVPreview cv={cv} templateId={template} accentColor={accentColor} />
               </div>
             </div>
           ) : (
@@ -268,7 +298,7 @@ export default function PreviewPage() {
               <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'22px', fontWeight:600, color:'#0a0f1a' }}>PDF Only Template</div>
             </div>
             <div style={{ fontSize:'14px', color:'#475569', lineHeight:1.65, marginBottom:'22px' }}>
-              <strong style={{ color:'#0a0f1a' }}>{currentTpl?.name}</strong> uses rich visual design that Word can&apos;t reproduce. Download as PDF for the full look, or switch to an ATS template that supports both formats:
+              <strong style={{ color:'#0a0f1a' }}>{currentTpl?.name}</strong> uses rich visual design that Word can&apos;t reproduce. Download as PDF for the full look, or switch to an ATS template:
             </div>
             <div style={{ fontSize:'10.5px', color:'#64748b', textTransform:'uppercase', letterSpacing:'1.5px', fontWeight:700, marginBottom:'8px' }}>ATS Templates (PDF + Word)</div>
             <div style={{ display:'flex', flexWrap:'wrap', gap:'6px', marginBottom:'24px' }}>
@@ -290,24 +320,263 @@ export default function PreviewPage() {
 }
 
 // ══════════════════════════════════════════════════════
+// SVG THUMBNAILS — one per template
+// ══════════════════════════════════════════════════════
+function TemplateThumb({ id }: { id: TemplateId }) {
+  const W = 50, H = 64
+  const wrap: React.CSSProperties = { width: W, height: H, borderRadius: 4, overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.12)', background: 'white' }
+
+  if (id === 'meridian') return (
+    <div style={wrap}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <rect width={W} height={H} fill="#fff"/>
+        <rect x="0" y="0" width="18" height={H} fill="#0a1f44"/>
+        <rect x="0" y="0" width="18" height="2" fill="#c9a449"/>
+        <rect x="3" y="6" width="12" height="2.5" fill="#c9a449"/>
+        <rect x="3" y="11" width="9" height="1.2" fill="rgba(255,255,255,0.6)"/>
+        <rect x="3" y="19" width="6" height="0.8" fill="#c9a449"/>
+        <rect x="3" y="22" width="10" height="0.6" fill="rgba(255,255,255,0.5)"/>
+        <rect x="3" y="24" width="11" height="0.6" fill="rgba(255,255,255,0.5)"/>
+        <rect x="22" y="6" width="3" height="0.8" fill="#c9a449"/>
+        <rect x="26" y="6" width="14" height="1.5" fill="#0a1f44"/>
+        <rect x="22" y="11" width="22" height="0.5" fill="#cbd5e1"/>
+        <rect x="22" y="13" width="20" height="0.5" fill="#cbd5e1"/>
+        <rect x="22" y="15" width="18" height="0.5" fill="#cbd5e1"/>
+        <rect x="22" y="22" width="3" height="0.8" fill="#c9a449"/>
+        <rect x="26" y="22" width="12" height="1.3" fill="#0a1f44"/>
+        <rect x="22" y="26" width="20" height="0.5" fill="#cbd5e1"/>
+        <rect x="22" y="28" width="18" height="0.5" fill="#cbd5e1"/>
+      </svg>
+    </div>
+  )
+
+  if (id === 'newyork') return (
+    <div style={wrap}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <rect width={W} height={H} fill="#fff"/>
+        <text x="25" y="10" textAnchor="middle" fontFamily="serif" fontWeight="900" fontSize="6" fill="#0a0a0a">NAME</text>
+        <text x="25" y="14" textAnchor="middle" fontFamily="serif" fontStyle="italic" fontSize="3" fill="#a01e1e">title</text>
+        <line x1="3" y1="17" x2="47" y2="17" stroke="#a01e1e" strokeWidth="0.8"/>
+        <line x1="3" y1="18.3" x2="47" y2="18.3" stroke="#a01e1e" strokeWidth="0.4"/>
+        <rect x="3" y="22" width="16" height="2.5" fill="#a01e1e"/>
+        <line x1="3" y1="28" x2="3" y2="36" stroke="#a01e1e" strokeWidth="1"/>
+        <rect x="6" y="28" width="14" height="1.2" fill="#0a0a0a"/>
+        <rect x="6" y="31" width="22" height="0.5" fill="#cbd5e1"/>
+        <rect x="6" y="33" width="20" height="0.5" fill="#cbd5e1"/>
+        <rect x="3" y="40" width="14" height="2" fill="#a01e1e"/>
+        <line x1="3" y1="46" x2="3" y2="54" stroke="#a01e1e" strokeWidth="1"/>
+        <rect x="6" y="46" width="14" height="1.2" fill="#0a0a0a"/>
+        <rect x="6" y="49" width="20" height="0.5" fill="#cbd5e1"/>
+      </svg>
+    </div>
+  )
+
+  if (id === 'atelier') return (
+    <div style={wrap}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <rect width={W} height={H} fill="#fdfcf9"/>
+        <text x="3" y="10" fontFamily="serif" fontStyle="italic" fontWeight="700" fontSize="5.5" fill="#3b0a45">Name</text>
+        <text x="3" y="14" fontFamily="serif" fontStyle="italic" fontSize="2.5" fill="#6d3a78">title</text>
+        <text x="3" y="22" fontFamily="serif" fontStyle="italic" fontSize="3.5" fill="#3b0a45">Profile</text>
+        <line x1="14" y1="20.5" x2="46" y2="20.5" stroke="#6d3a78" strokeWidth="0.3" opacity="0.5"/>
+        <rect x="3" y="25" width="40" height="0.5" fill="#cbd5e1"/>
+        <rect x="3" y="27" width="38" height="0.5" fill="#cbd5e1"/>
+        <text x="3" y="35" fontFamily="serif" fontStyle="italic" fontSize="3.5" fill="#3b0a45">Experience</text>
+        <line x1="9" y1="38" x2="9" y2="58" stroke="#6d3a78" strokeWidth="0.3" strokeDasharray="1,1"/>
+        <circle cx="9" cy="40" r="1.2" fill="#fdfcf9" stroke="#3b0a45" strokeWidth="0.5"/>
+        <rect x="13" y="39" width="14" height="0.9" fill="#3b0a45"/>
+        <rect x="13" y="41" width="18" height="0.5" fill="#cbd5e1"/>
+        <circle cx="9" cy="48" r="1.2" fill="#fdfcf9" stroke="#3b0a45" strokeWidth="0.5"/>
+        <rect x="13" y="47" width="14" height="0.9" fill="#3b0a45"/>
+        <rect x="13" y="49" width="18" height="0.5" fill="#cbd5e1"/>
+      </svg>
+    </div>
+  )
+
+  if (id === 'graduate') return (
+    <div style={wrap}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <rect width={W} height={H} fill="#fff"/>
+        <defs>
+          <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#dc6e3a"/>
+            <stop offset="100%" stopColor="#b85b2e"/>
+          </linearGradient>
+        </defs>
+        <rect width={W} height="20" fill="url(#grad1)"/>
+        <rect x="3" y="6" width="18" height="2.5" fill="#fff"/>
+        <rect x="3" y="11" width="12" height="1" fill="rgba(255,255,255,0.85)"/>
+        <rect x="3" y="14" width="20" height="0.6" fill="rgba(255,255,255,0.7)"/>
+        <circle cx="3.5" cy="25" r="0.8" fill="#dc6e3a"/>
+        <rect x="6" y="24.5" width="10" height="1" fill="#dc6e3a"/>
+        <rect x="3" y="29" width={W-6} height="8" rx="2" fill="#fef3eb" stroke="#dc6e3a" strokeWidth="0.3"/>
+        <rect x="3" y="29" width="1.5" height="8" fill="#dc6e3a"/>
+        <rect x="6" y="31" width="10" height="0.8" fill="#1f2937"/>
+        <rect x="6" y="33" width="18" height="0.5" fill="#dc6e3a"/>
+        <rect x="6" y="35" width="14" height="0.4" fill="#374151"/>
+        <circle cx="3.5" cy="42" r="0.8" fill="#dc6e3a"/>
+        <rect x="6" y="41.5" width="8" height="1" fill="#dc6e3a"/>
+        <rect x="3" y="46" width="18" height="3" rx="1.5" fill="#fef3eb"/>
+        <rect x="24" y="46" width="18" height="3" rx="1.5" fill="#fef3eb"/>
+      </svg>
+    </div>
+  )
+
+  if (id === 'europass') return (
+    <div style={wrap}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <rect width={W} height={H} fill="#fff"/>
+        <rect x="0" y="0" width="17" height={H} fill="#1e3a8a"/>
+        <rect x="2" y="4" width="13" height="1.8" fill="#fff"/>
+        <rect x="2" y="7" width="9" height="0.8" fill="rgba(255,255,255,0.6)"/>
+        <rect x="2" y="14" width="9" height="0.6" fill="rgba(255,255,255,0.4)"/>
+        <rect x="2" y="16" width="11" height="0.5" fill="rgba(255,255,255,0.4)"/>
+        <rect x="2" y="23" width="6" height="0.6" fill="#fff"/>
+        <line x1="2" y1="25" x2="14" y2="25" stroke="rgba(255,255,255,0.3)" strokeWidth="0.3"/>
+        <rect x="2" y="27" width="11" height="0.4" fill="rgba(255,255,255,0.5)"/>
+        <rect x="2" y="29" width="10" height="0.4" fill="rgba(255,255,255,0.5)"/>
+        <rect x="2" y="31" width="9" height="0.4" fill="rgba(255,255,255,0.5)"/>
+        <rect x="20" y="5" width="6" height="1" fill="#1e3a8a"/>
+        <line x1="20" y1="7.5" x2="46" y2="7.5" stroke="#1e3a8a" strokeWidth="0.5"/>
+        <rect x="20" y="10" width="22" height="0.5" fill="#cbd5e1"/>
+        <rect x="20" y="12" width="20" height="0.5" fill="#cbd5e1"/>
+        <rect x="20" y="14" width="22" height="0.5" fill="#cbd5e1"/>
+        <rect x="20" y="20" width="8" height="0.8" fill="#1e3a8a"/>
+        <line x1="20" y1="22" x2="46" y2="22" stroke="#1e3a8a" strokeWidth="0.5"/>
+        <rect x="20" y="24.5" width="14" height="0.9" fill="#0f172a"/>
+        <rect x="20" y="27" width="20" height="0.5" fill="#cbd5e1"/>
+        <rect x="20" y="29" width="18" height="0.5" fill="#cbd5e1"/>
+      </svg>
+    </div>
+  )
+
+  if (id === 'noir') return (
+    <div style={wrap}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <rect width={W} height={H} fill="#fff"/>
+        <rect x="0" y="0" width={W} height="20" fill="#0a0a0a"/>
+        <rect x="3" y="6" width="22" height="3" fill="#fff"/>
+        <rect x="3" y="11" width="14" height="1" fill="rgba(255,255,255,0.5)"/>
+        <rect x="3" y="14" width="20" height="0.5" fill="rgba(255,255,255,0.6)"/>
+        <rect x="3" y="24" width="8" height="1.2" fill="#0a0a0a"/>
+        <line x1="3" y1="27" x2="46" y2="27" stroke="#e5e5e5" strokeWidth="0.5"/>
+        <rect x="3" y="30" width="16" height="1" fill="#0a0a0a"/>
+        <rect x="3" y="33" width="22" height="0.4" fill="#999"/>
+        <rect x="3" y="35" width="20" height="0.4" fill="#999"/>
+        <rect x="3" y="37" width="18" height="0.4" fill="#999"/>
+        <rect x="3" y="43" width="8" height="1.2" fill="#0a0a0a"/>
+        <line x1="3" y1="46" x2="46" y2="46" stroke="#e5e5e5" strokeWidth="0.5"/>
+        <rect x="3" y="49" width="16" height="1" fill="#0a0a0a"/>
+        <rect x="3" y="52" width="22" height="0.4" fill="#999"/>
+        <rect x="3" y="54" width="20" height="0.4" fill="#999"/>
+      </svg>
+    </div>
+  )
+
+  if (id === 'london') return (
+    <div style={wrap}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <rect width={W} height={H} fill="#faf8f5"/>
+        <text x="25" y="9" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="5.5" fill="#1a1a1a">Name</text>
+        <text x="25" y="13" textAnchor="middle" fontFamily="serif" fontStyle="italic" fontSize="2.6" fill="#666">title</text>
+        <line x1="3" y1="17" x2="47" y2="17" stroke="#1a1a1a" strokeWidth="0.6"/>
+        <text x="3" y="24" fontFamily="serif" fontWeight="700" fontSize="3.2" fill="#1a1a1a">SUMMARY</text>
+        <line x1="3" y1="25.5" x2="20" y2="25.5" stroke="#1a1a1a" strokeWidth="0.4"/>
+        <rect x="3" y="28" width="42" height="0.5" fill="#cbd5e1"/>
+        <rect x="3" y="30" width="40" height="0.5" fill="#cbd5e1"/>
+        <text x="3" y="38" fontFamily="serif" fontWeight="700" fontSize="3.2" fill="#1a1a1a">EXPERIENCE</text>
+        <line x1="3" y1="39.5" x2="25" y2="39.5" stroke="#1a1a1a" strokeWidth="0.4"/>
+        <rect x="3" y="42" width="14" height="1" fill="#1a1a1a"/>
+        <rect x="3" y="44.5" width="20" height="0.4" fill="#999"/>
+        <rect x="3" y="46.5" width="22" height="0.4" fill="#cbd5e1"/>
+        <rect x="3" y="48.5" width="20" height="0.4" fill="#cbd5e1"/>
+      </svg>
+    </div>
+  )
+
+  if (id === 'nordic') return (
+    <div style={wrap}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <rect width={W} height={H} fill="#fff"/>
+        <rect x="3" y="6" width="22" height="3" fill="#0a0a0a"/>
+        <rect x="3" y="11" width="14" height="1" fill="#2563eb"/>
+        <rect x="3" y="14" width="20" height="0.5" fill="#666"/>
+        <rect x="3" y="20" width="10" height="1" fill="#2563eb"/>
+        <line x1="3" y1="22.5" x2="47" y2="22.5" stroke="#2563eb" strokeWidth="0.6"/>
+        <rect x="3" y="25" width="22" height="0.5" fill="#cbd5e1"/>
+        <rect x="3" y="27" width="20" height="0.5" fill="#cbd5e1"/>
+        <rect x="3" y="33" width="12" height="1" fill="#2563eb"/>
+        <line x1="3" y1="35.5" x2="47" y2="35.5" stroke="#2563eb" strokeWidth="0.6"/>
+        <rect x="3" y="38" width="14" height="1" fill="#0a0a0a"/>
+        <rect x="3" y="40.5" width="10" height="0.5" fill="#2563eb"/>
+        <rect x="4" y="43" width="20" height="0.4" fill="#999"/>
+        <rect x="4" y="45" width="18" height="0.4" fill="#999"/>
+        <rect x="3" y="50" width="14" height="1" fill="#0a0a0a"/>
+        <rect x="4" y="52.5" width="18" height="0.4" fill="#999"/>
+      </svg>
+    </div>
+  )
+
+  if (id === 'classic') return (
+    <div style={wrap}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <rect width={W} height={H} fill="#fff"/>
+        <text x="25" y="9" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="5" fill="#000">NAME</text>
+        <text x="25" y="13" textAnchor="middle" fontFamily="serif" fontStyle="italic" fontSize="2.5" fill="#333">title</text>
+        <line x1="3" y1="16" x2="47" y2="16" stroke="#000" strokeWidth="0.6"/>
+        <text x="3" y="22" fontFamily="sans-serif" fontWeight="700" fontSize="2.8" fill="#000">SUMMARY</text>
+        <line x1="3" y1="23.5" x2="47" y2="23.5" stroke="#000" strokeWidth="0.4"/>
+        <rect x="3" y="26" width="42" height="0.4" fill="#666"/>
+        <rect x="3" y="28" width="40" height="0.4" fill="#666"/>
+        <text x="3" y="36" fontFamily="sans-serif" fontWeight="700" fontSize="2.8" fill="#000">EXPERIENCE</text>
+        <line x1="3" y1="37.5" x2="47" y2="37.5" stroke="#000" strokeWidth="0.4"/>
+        <rect x="3" y="40" width="14" height="0.9" fill="#000"/>
+        <rect x="3" y="42.5" width="20" height="0.4" fill="#666"/>
+        <rect x="3" y="44.5" width="22" height="0.4" fill="#999"/>
+      </svg>
+    </div>
+  )
+
+  if (id === 'academic') return (
+    <div style={wrap}>
+      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+        <rect width={W} height={H} fill="#fff"/>
+        <text x="25" y="9" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="4.5" fill="#0a0a0a">Name</text>
+        <text x="25" y="13" textAnchor="middle" fontFamily="serif" fontStyle="italic" fontSize="2.5" fill="#4a4a4a">title</text>
+        <line x1="3" y1="17" x2="47" y2="17" stroke="#1a1a1a" strokeWidth="0.5"/>
+        <text x="3" y="22" fontFamily="sans-serif" fontWeight="700" fontSize="2.6" fill="#1a1a1a">RESEARCH</text>
+        <line x1="3" y1="23.5" x2="47" y2="23.5" stroke="#1a1a1a" strokeWidth="0.3"/>
+        <rect x="3" y="26" width="42" height="0.4" fill="#666"/>
+        <rect x="3" y="28" width="40" height="0.4" fill="#666"/>
+        <text x="3" y="35" fontFamily="sans-serif" fontWeight="700" fontSize="2.6" fill="#1a1a1a">EDUCATION</text>
+        <line x1="3" y1="36.5" x2="47" y2="36.5" stroke="#1a1a1a" strokeWidth="0.3"/>
+        <rect x="3" y="39" width="16" height="0.9" fill="#0a0a0a"/>
+        <rect x="3" y="41.5" width="20" height="0.4" fill="#666"/>
+        <text x="3" y="48" fontFamily="sans-serif" fontWeight="700" fontSize="2.6" fill="#1a1a1a">PUBLICATIONS</text>
+        <line x1="3" y1="49.5" x2="47" y2="49.5" stroke="#1a1a1a" strokeWidth="0.3"/>
+      </svg>
+    </div>
+  )
+
+  return <div style={wrap}><svg width={W} height={H}><rect width={W} height={H} fill="#eee"/></svg></div>
+}
+
+// ══════════════════════════════════════════════════════
 // SIDEBAR UI
 // ══════════════════════════════════════════════════════
 function CategoryHeader({ children }: { children: string }) {
-  return <div style={{ fontSize:'10px', fontWeight:700, letterSpacing:'1.8px', textTransform:'uppercase', color:'#0d9488', marginBottom:'4px', marginTop:'16px', paddingBottom:'6px', borderBottom:'1px solid #ccfbf1' }}>{children}</div>
+  return <div style={{ fontSize:'10px', fontWeight:700, letterSpacing:'1.8px', textTransform:'uppercase', color:'#0d9488', marginBottom:'4px', marginTop:'12px', paddingBottom:'6px', borderBottom:'1px solid #ccfbf1' }}>{children}</div>
 }
 
 function TemplateCard({ tpl, active, onClick }: { tpl: typeof TEMPLATES[0]; active: boolean; onClick: () => void }) {
   return (
-    <div onClick={onClick} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'10px', borderRadius:'10px', border: active ? '2px solid #0d9488' : '2px solid #f1f5f9', background: active ? '#f0fdf9' : 'white', cursor:'pointer', marginBottom:'6px', transition:'all 0.15s', boxShadow: active ? '0 0 0 3px rgba(13,148,136,0.08)' : 'none' }}>
-      {/* SVG THUMBNAIL */}
-      <div style={{ flexShrink:0, borderRadius:'5px', overflow:'hidden', border:'1px solid #e2e8f0', width:'44px', height:'58px' }}>
-        <TemplateThumbnail id={tpl.id} />
-      </div>
+    <div onClick={onClick} style={{ display:'flex', alignItems:'flex-start', gap:'10px', padding:'12px', borderRadius:'10px', border: active ? '2px solid #0d9488' : '2px solid transparent', background: active ? '#f0fdf9' : 'none', cursor:'pointer', marginBottom:'6px', transition:'all 0.2s' }}>
+      <TemplateThumb id={tpl.id} />
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:'13px', fontWeight:600, color: active ? '#0d9488' : '#0a0f1a', marginBottom:'2px' }}>{tpl.name}</div>
-        <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'5px', lineHeight:1.3 }}>{tpl.tag}</div>
+        <div style={{ fontSize:'13px', fontWeight:600, color: active ? '#0d9488' : '#0a0f1a' }}>{tpl.name}</div>
+        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px', marginBottom:'5px' }}>{tpl.tag}</div>
         <div style={{
-          display:'inline-block', fontSize:'8px', fontWeight:700, letterSpacing:'0.8px',
+          display:'inline-block', fontSize:'8.5px', fontWeight:700, letterSpacing:'0.6px',
           padding:'2px 6px', borderRadius:'4px',
           background: tpl.formats === 'both' ? '#d1fae5' : '#fef3c7',
           color:      tpl.formats === 'both' ? '#065f46' : '#92400e'
@@ -315,306 +584,13 @@ function TemplateCard({ tpl, active, onClick }: { tpl: typeof TEMPLATES[0]; acti
           {tpl.formats === 'both' ? 'PDF + WORD' : 'PDF ONLY'}
         </div>
       </div>
-      {active && <span style={{ color:'#0d9488', fontSize:'13px', fontWeight:700, flexShrink:0 }}>✓</span>}
+      {active && <span style={{ color:'#0d9488', fontSize:'14px', fontWeight:700, marginTop:'2px' }}>✓</span>}
     </div>
   )
 }
 
 // ══════════════════════════════════════════════════════
-// SVG THUMBNAILS — miniature layout previews per template
-// 44×58px, A4 ratio, showing real layout structure
-// ══════════════════════════════════════════════════════
-function TemplateThumbnail({ id }: { id: TemplateId }) {
-  const W = 44, H = 58
-
-  if (id === 'london') return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      <rect width={W} height={H} fill="#faf8f5"/>
-      {/* name centered */}
-      <rect x="8" y="7" width="28" height="4" rx="1" fill="#1a1a1a" opacity="0.85"/>
-      {/* subtitle */}
-      <rect x="13" y="13" width="18" height="2" rx="1" fill="#5a5a5a" opacity="0.5"/>
-      {/* contact line */}
-      <rect x="6" y="17" width="32" height="1.5" rx="0.5" fill="#999" opacity="0.4"/>
-      {/* divider */}
-      <rect x="4" y="21" width="36" height="1" rx="0.5" fill="#1a1a1a" opacity="0.7"/>
-      {/* section heading */}
-      <rect x="4" y="25" width="14" height="2" rx="0.5" fill="#1a1a1a" opacity="0.7"/>
-      {/* body lines */}
-      <rect x="4" y="30" width="36" height="1.5" rx="0.5" fill="#3a3a3a" opacity="0.25"/>
-      <rect x="4" y="33" width="32" height="1.5" rx="0.5" fill="#3a3a3a" opacity="0.25"/>
-      <rect x="4" y="36" width="28" height="1.5" rx="0.5" fill="#3a3a3a" opacity="0.25"/>
-      {/* section 2 */}
-      <rect x="4" y="41" width="12" height="2" rx="0.5" fill="#1a1a1a" opacity="0.7"/>
-      <rect x="4" y="46" width="36" height="1.5" rx="0.5" fill="#3a3a3a" opacity="0.25"/>
-      <rect x="4" y="49" width="30" height="1.5" rx="0.5" fill="#3a3a3a" opacity="0.25"/>
-    </svg>
-  )
-
-  if (id === 'nordic') return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      <rect width={W} height={H} fill="#ffffff"/>
-      {/* large name left-aligned */}
-      <rect x="4" y="6" width="26" height="5" rx="1" fill="#0f172a" opacity="0.9"/>
-      {/* subtitle in blue */}
-      <rect x="4" y="13" width="16" height="2" rx="0.5" fill="#2563eb" opacity="0.7"/>
-      {/* contact */}
-      <rect x="4" y="17" width="36" height="1.5" rx="0.5" fill="#999" opacity="0.35"/>
-      {/* blue section divider */}
-      <rect x="4" y="22" width="36" height="1.5" rx="0.5" fill="#2563eb" opacity="0.8"/>
-      {/* body lines */}
-      <rect x="4" y="26" width="36" height="1.5" rx="0.5" fill="#334155" opacity="0.22"/>
-      <rect x="4" y="29" width="30" height="1.5" rx="0.5" fill="#334155" opacity="0.22"/>
-      {/* blue section divider 2 */}
-      <rect x="4" y="34" width="36" height="1.5" rx="0.5" fill="#2563eb" opacity="0.8"/>
-      <rect x="4" y="38" width="36" height="1.5" rx="0.5" fill="#334155" opacity="0.22"/>
-      <rect x="4" y="41" width="28" height="1.5" rx="0.5" fill="#334155" opacity="0.22"/>
-      <rect x="4" y="46" width="36" height="1.5" rx="0.5" fill="#2563eb" opacity="0.8"/>
-      <rect x="4" y="50" width="32" height="1.5" rx="0.5" fill="#334155" opacity="0.22"/>
-    </svg>
-  )
-
-  if (id === 'classic') return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      <rect width={W} height={H} fill="#ffffff"/>
-      {/* centered name */}
-      <rect x="9" y="7" width="26" height="4" rx="1" fill="#000" opacity="0.8"/>
-      <rect x="13" y="13" width="18" height="2" rx="0.5" fill="#333" opacity="0.45"/>
-      <rect x="7" y="17" width="30" height="1.5" rx="0.5" fill="#888" opacity="0.35"/>
-      {/* divider */}
-      <rect x="4" y="21" width="36" height="1" rx="0.5" fill="#000" opacity="0.6"/>
-      {/* section header */}
-      <rect x="4" y="25" width="16" height="1.5" rx="0.5" fill="#000" opacity="0.7"/>
-      <rect x="4" y="28" width="36" height="1" rx="0.5" fill="#000" opacity="0.5"/>
-      <rect x="4" y="32" width="36" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
-      <rect x="4" y="35" width="30" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
-      <rect x="4" y="38" width="34" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
-      <rect x="4" y="43" width="14" height="1.5" rx="0.5" fill="#000" opacity="0.7"/>
-      <rect x="4" y="46" width="36" height="1" rx="0.5" fill="#000" opacity="0.5"/>
-      <rect x="4" y="50" width="32" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
-    </svg>
-  )
-
-  if (id === 'academic') return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      <rect width={W} height={H} fill="#ffffff"/>
-      <rect x="10" y="6" width="24" height="4" rx="1" fill="#0a0a0a" opacity="0.85"/>
-      <rect x="14" y="12" width="16" height="2" rx="0.5" fill="#4a4a4a" opacity="0.5"/>
-      <rect x="6" y="16" width="32" height="1.5" rx="0.5" fill="#888" opacity="0.35"/>
-      <rect x="4" y="20" width="36" height="1.2" rx="0.3" fill="#000" opacity="0.65"/>
-      <rect x="4" y="24" width="20" height="1.5" rx="0.5" fill="#000" opacity="0.6"/>
-      <rect x="4" y="28" width="36" height="1.5" rx="0.5" fill="#333" opacity="0.2"/>
-      <rect x="4" y="31" width="30" height="1.5" rx="0.5" fill="#333" opacity="0.2"/>
-      <rect x="4" y="36" width="18" height="1.5" rx="0.5" fill="#000" opacity="0.6"/>
-      <rect x="4" y="40" width="36" height="1.5" rx="0.5" fill="#333" opacity="0.2"/>
-      <rect x="4" y="43" width="28" height="1.5" rx="0.5" fill="#333" opacity="0.2"/>
-      <rect x="4" y="48" width="16" height="1.5" rx="0.5" fill="#000" opacity="0.6"/>
-      <rect x="4" y="52" width="36" height="1.5" rx="0.5" fill="#333" opacity="0.2"/>
-    </svg>
-  )
-
-  if (id === 'newyork') return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      <rect width={W} height={H} fill="#ffffff"/>
-      {/* big serif name */}
-      <rect x="4" y="6" width="32" height="6" rx="1" fill="#0a0a0a" opacity="0.9"/>
-      {/* crimson italic subtitle */}
-      <rect x="4" y="14" width="20" height="2.5" rx="0.5" fill="#a01e1e" opacity="0.7"/>
-      <rect x="4" y="18" width="36" height="1.5" rx="0.5" fill="#888" opacity="0.3"/>
-      {/* double crimson rule */}
-      <rect x="4" y="22" width="36" height="1" rx="0" fill="#a01e1e" opacity="0.9"/>
-      <rect x="4" y="24" width="36" height="0.5" rx="0" fill="#a01e1e" opacity="0.5"/>
-      {/* crimson section bar */}
-      <rect x="4" y="28" width="36" height="4" rx="1" fill="#a01e1e"/>
-      <rect x="6" y="29.5" width="14" height="1.5" rx="0.3" fill="white" opacity="0.9"/>
-      {/* left-border entries */}
-      <rect x="4" y="34" width="2" height="12" rx="0.5" fill="#a01e1e" opacity="0.7"/>
-      <rect x="8" y="35" width="22" height="2" rx="0.5" fill="#0a0a0a" opacity="0.7"/>
-      <rect x="8" y="39" width="28" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
-      <rect x="8" y="42" width="24" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
-      {/* section bar 2 */}
-      <rect x="4" y="48" width="36" height="4" rx="1" fill="#a01e1e"/>
-      <rect x="6" y="49.5" width="12" height="1.5" rx="0.3" fill="white" opacity="0.9"/>
-    </svg>
-  )
-
-  if (id === 'atelier') return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      <rect width={W} height={H} fill="#fdfcf9"/>
-      {/* italic large name */}
-      <rect x="4" y="6" width="28" height="5" rx="1" fill="#3b0a45" opacity="0.85"/>
-      <rect x="4" y="13" width="18" height="2" rx="0.5" fill="#6d3a78" opacity="0.5"/>
-      <rect x="4" y="17" width="30" height="1.5" rx="0.5" fill="#5a4a5e" opacity="0.3"/>
-      {/* italic section heading */}
-      <rect x="4" y="23" width="18" height="2.5" rx="0.5" fill="#3b0a45" opacity="0.7"/>
-      {/* timeline vertical dashed line */}
-      <line x1="10" y1="28" x2="10" y2="56" stroke="#6d3a78" strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5"/>
-      {/* timeline dots */}
-      <circle cx="10" cy="29" r="2" fill="none" stroke="#3b0a45" strokeWidth="1"/>
-      <circle cx="10" cy="41" r="2" fill="none" stroke="#3b0a45" strokeWidth="1"/>
-      <circle cx="10" cy="52" r="2" fill="none" stroke="#3b0a45" strokeWidth="1"/>
-      {/* entry lines */}
-      <rect x="14" y="28" width="10" height="1.5" rx="0.5" fill="#3b0a45" opacity="0.5"/>
-      <rect x="14" y="31" width="20" height="2" rx="0.5" fill="#1a0a1e" opacity="0.65"/>
-      <rect x="14" y="35" width="24" height="1.5" rx="0.5" fill="#2a1a2e" opacity="0.2"/>
-      <rect x="14" y="37" width="20" height="1.5" rx="0.5" fill="#2a1a2e" opacity="0.2"/>
-      <rect x="14" y="40" width="10" height="1.5" rx="0.5" fill="#3b0a45" opacity="0.5"/>
-      <rect x="14" y="43" width="20" height="2" rx="0.5" fill="#1a0a1e" opacity="0.65"/>
-      <rect x="14" y="47" width="24" height="1.5" rx="0.5" fill="#2a1a2e" opacity="0.2"/>
-    </svg>
-  )
-
-  if (id === 'noir') return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      <rect width={W} height={H} fill="#ffffff"/>
-      {/* black header band */}
-      <rect x="0" y="0" width={W} height="18" fill="#000"/>
-      {/* white name in header */}
-      <rect x="4" y="5" width="28" height="5" rx="1" fill="white" opacity="0.9"/>
-      <rect x="4" y="12" width="18" height="2" rx="0.5" fill="white" opacity="0.4"/>
-      {/* dark contact strip */}
-      <rect x="0" y="18" width={W} height="6" fill="#111"/>
-      <rect x="4" y="20" width="32" height="1.5" rx="0.5" fill="white" opacity="0.3"/>
-      {/* section box headers */}
-      <rect x="4" y="28" width="18" height="4" rx="0.5" fill="#000"/>
-      <rect x="6" y="29.5" width="10" height="1.5" rx="0.3" fill="white" opacity="0.9"/>
-      <rect x="24" y="29" width="16" height="1" rx="0.5" fill="#000"/>
-      {/* body lines */}
-      <rect x="4" y="35" width="36" height="1.5" rx="0.5" fill="#222" opacity="0.22"/>
-      <rect x="4" y="38" width="30" height="1.5" rx="0.5" fill="#222" opacity="0.22"/>
-      <rect x="4" y="41" width="34" height="1.5" rx="0.5" fill="#222" opacity="0.22"/>
-      {/* section box 2 */}
-      <rect x="4" y="47" width="16" height="4" rx="0.5" fill="#000"/>
-      <rect x="6" y="48.5" width="9" height="1.5" rx="0.3" fill="white" opacity="0.9"/>
-      <rect x="22" y="49" width="18" height="1" rx="0.5" fill="#000"/>
-      <rect x="4" y="54" width="36" height="1.5" rx="0.5" fill="#222" opacity="0.22"/>
-    </svg>
-  )
-
-  if (id === 'meridian') return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      <rect width={W} height={H} fill="#ffffff"/>
-      {/* navy left sidebar */}
-      <rect x="0" y="0" width="16" height={H} fill="#0a1f44"/>
-      {/* gold top stripe */}
-      <rect x="0" y="0" width="16" height="2.5" fill="#c9a449"/>
-      {/* name in sidebar */}
-      <rect x="2" y="7" width="10" height="3" rx="0.5" fill="white" opacity="0.9"/>
-      {/* gold divider */}
-      <rect x="2" y="12" width="8" height="0.8" rx="0.2" fill="#c9a449" opacity="0.8"/>
-      {/* sidebar lines */}
-      <rect x="2" y="16" width="4" height="1" rx="0.3" fill="#c9a449" opacity="0.7"/>
-      <rect x="2" y="19" width="11" height="1" rx="0.3" fill="white" opacity="0.4"/>
-      <rect x="2" y="21" width="9" height="1" rx="0.3" fill="white" opacity="0.4"/>
-      <rect x="2" y="23" width="11" height="1" rx="0.3" fill="white" opacity="0.4"/>
-      <rect x="2" y="28" width="5" height="1" rx="0.3" fill="#c9a449" opacity="0.7"/>
-      <rect x="2" y="31" width="11" height="1" rx="0.3" fill="white" opacity="0.35"/>
-      <rect x="2" y="33" width="9" height="1" rx="0.3" fill="white" opacity="0.35"/>
-      <rect x="2" y="35" width="10" height="1" rx="0.3" fill="white" opacity="0.35"/>
-      <rect x="2" y="37" width="8" height="1" rx="0.3" fill="white" opacity="0.35"/>
-      {/* main content area */}
-      <rect x="19" y="8" width="21" height="3" rx="0.5" fill="#0a1f44" opacity="0.7"/>
-      {/* gold bar section header */}
-      <rect x="19" y="15" width="3" height="2" rx="0.3" fill="#c9a449"/>
-      <rect x="23" y="15" width="16" height="2" rx="0.3" fill="#0a1f44" opacity="0.65"/>
-      {/* body lines */}
-      <rect x="19" y="20" width="22" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
-      <rect x="19" y="23" width="18" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
-      <rect x="19" y="26" width="20" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
-      <rect x="19" y="31" width="3" height="2" rx="0.3" fill="#c9a449"/>
-      <rect x="23" y="31" width="14" height="2" rx="0.3" fill="#0a1f44" opacity="0.65"/>
-      <rect x="19" y="36" width="22" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
-      <rect x="19" y="39" width="16" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
-      <rect x="19" y="42" width="20" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
-    </svg>
-  )
-
-  if (id === 'graduate') return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      <rect width={W} height={H} fill="#ffffff"/>
-      {/* coral gradient header */}
-      <defs>
-        <linearGradient id="grad-g" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#dc6e3a"/>
-          <stop offset="100%" stopColor="#b85b2e"/>
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width={W} height="20" fill="url(#grad-g)"/>
-      {/* white name in header */}
-      <rect x="4" y="5" width="26" height="5" rx="1" fill="white" opacity="0.95"/>
-      <rect x="4" y="12" width="16" height="2" rx="0.5" fill="white" opacity="0.6"/>
-      <rect x="4" y="16" width="28" height="1.5" rx="0.5" fill="white" opacity="0.4"/>
-      {/* section with coral bullet+line */}
-      <circle cx="7" cy="26" r="1.5" fill="#dc6e3a"/>
-      <rect x="10" y="25" width="12" height="2" rx="0.4" fill="#dc6e3a" opacity="0.7"/>
-      <rect x="23" y="26" width="17" height="0.8" rx="0.3" fill="#dc6e3a" opacity="0.4"/>
-      {/* coral card blocks */}
-      <rect x="4" y="29" width="36" height="9" rx="2" fill="#fef3eb"/>
-      <rect x="4" y="29" width="3" height="9" rx="1" fill="#dc6e3a"/>
-      <rect x="9" y="31" width="18" height="2" rx="0.4" fill="#1f2937" opacity="0.7"/>
-      <rect x="9" y="34" width="14" height="1.5" rx="0.4" fill="#dc6e3a" opacity="0.55"/>
-      {/* skills grid pills */}
-      <circle cx="7" cy="44" r="1.5" fill="#dc6e3a"/>
-      <rect x="10" y="43" width="10" height="2" rx="0.4" fill="#dc6e3a" opacity="0.7"/>
-      <rect x="4" y="47" width="17" height="4" rx="2" fill="#fef3eb"/>
-      <rect x="4" y="47" width="2.5" height="4" rx="1" fill="#dc6e3a"/>
-      <rect x="23" y="47" width="17" height="4" rx="2" fill="#fef3eb"/>
-      <rect x="23" y="47" width="2.5" height="4" rx="1" fill="#dc6e3a"/>
-      <rect x="4" y="53" width="17" height="4" rx="2" fill="#fef3eb"/>
-      <rect x="4" y="53" width="2.5" height="4" rx="1" fill="#dc6e3a"/>
-    </svg>
-  )
-
-  if (id === 'europass') return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      <rect width={W} height={H} fill="#ffffff"/>
-      {/* navy sidebar */}
-      <rect x="0" y="0" width="15" height={H} fill="#1e3a8a"/>
-      {/* name in sidebar */}
-      <rect x="2" y="6" width="10" height="3" rx="0.5" fill="white" opacity="0.9"/>
-      <rect x="2" y="11" width="8" height="1.5" rx="0.3" fill="white" opacity="0.5"/>
-      {/* sidebar section headers */}
-      <rect x="2" y="17" width="9" height="1" rx="0.2" fill="white" opacity="0.6"/>
-      <rect x="2" y="19" width="10" height="0.6" rx="0.2" fill="white" opacity="0.25"/>
-      <rect x="2" y="21" width="11" height="1" rx="0.3" fill="white" opacity="0.35"/>
-      <rect x="2" y="23" width="9" height="1" rx="0.3" fill="white" opacity="0.35"/>
-      <rect x="2" y="25" width="10" height="1" rx="0.3" fill="white" opacity="0.35"/>
-      <rect x="2" y="29" width="8" height="1" rx="0.2" fill="white" opacity="0.6"/>
-      <rect x="2" y="31" width="10" height="0.6" rx="0.2" fill="white" opacity="0.25"/>
-      <rect x="3" y="33" width="9" height="1" rx="0.3" fill="white" opacity="0.3"/>
-      <rect x="3" y="35" width="8" height="1" rx="0.3" fill="white" opacity="0.3"/>
-      <rect x="3" y="37" width="9" height="1" rx="0.3" fill="white" opacity="0.3"/>
-      <rect x="3" y="39" width="7" height="1" rx="0.3" fill="white" opacity="0.3"/>
-      {/* main area */}
-      <rect x="18" y="6" width="22" height="3" rx="0.5" fill="#1e3a8a" opacity="0.75"/>
-      {/* navy section headers with underline */}
-      <rect x="18" y="13" width="22" height="1.5" rx="0.3" fill="#1e3a8a" opacity="0.7"/>
-      <rect x="18" y="15" width="22" height="0.6" rx="0" fill="#1e3a8a" opacity="0.7"/>
-      <rect x="18" y="18" width="18" height="2" rx="0.4" fill="#0f172a" opacity="0.65"/>
-      <rect x="18" y="21" width="22" height="1.5" rx="0.4" fill="#334155" opacity="0.2"/>
-      <rect x="18" y="23" width="18" height="1.5" rx="0.4" fill="#334155" opacity="0.2"/>
-      <rect x="18" y="27" width="22" height="1.5" rx="0.3" fill="#1e3a8a" opacity="0.7"/>
-      <rect x="18" y="28.5" width="22" height="0.6" rx="0" fill="#1e3a8a" opacity="0.7"/>
-      <rect x="18" y="31" width="16" height="2" rx="0.4" fill="#0f172a" opacity="0.65"/>
-      <rect x="18" y="34" width="22" height="1.5" rx="0.4" fill="#334155" opacity="0.2"/>
-      <rect x="18" y="37" width="18" height="1.5" rx="0.4" fill="#334155" opacity="0.2"/>
-      <rect x="18" y="40" width="20" height="1.5" rx="0.4" fill="#334155" opacity="0.2"/>
-    </svg>
-  )
-
-  // fallback
-  return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
-      <rect width={W} height={H} fill="#f8fafc"/>
-      <rect x="4" y="8" width="28" height="4" rx="1" fill="#374151" opacity="0.7"/>
-      <rect x="4" y="16" width="36" height="1.5" rx="0.5" fill="#374151" opacity="0.2"/>
-      <rect x="4" y="20" width="30" height="1.5" rx="0.5" fill="#374151" opacity="0.2"/>
-    </svg>
-  )
-}
-
-// ══════════════════════════════════════════════════════
-// CONTACT LINE & helpers
+// SHARED HELPERS
 // ══════════════════════════════════════════════════════
 function ContactLine({ cv, color = '#5a5a5a', sep = 18 }: { cv: GeneratedCV; color?: string; sep?: number }) {
   const items = [
@@ -630,15 +606,13 @@ function ContactLine({ cv, color = '#5a5a5a', sep = 18 }: { cv: GeneratedCV; col
     cv.linkedin && <span key="li" style={{ color, marginRight: sep, fontSize: '10pt', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>{cv.linkedin}
     </span>,
+    cv.dob && <span key="d" style={{ color, marginRight: sep, fontSize: '10pt', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>{cv.dob}
+    </span>,
   ].filter(Boolean)
   return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 0' }}>{items}</div>
 }
 
-function monogram(fullName: string) {
-  return fullName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 3).join('·')
-}
-
-// Full-A4 wrapper helper for sidebar templates (eliminates white at bottom)
 const A4_WRAPPER: React.CSSProperties = {
   minHeight: '297mm',
   width: '100%',
@@ -649,32 +623,50 @@ const A4_WRAPPER: React.CSSProperties = {
 // ══════════════════════════════════════════════════════
 // TEMPLATE DISPATCHER
 // ══════════════════════════════════════════════════════
-function CVPreview({ cv, templateId }: { cv: GeneratedCV; templateId: TemplateId }) {
-  if (templateId === 'nordic')   return <NordicTemplate cv={cv} />
+function CVPreview({ cv, templateId, accentColor }: { cv: GeneratedCV; templateId: TemplateId; accentColor: string | null }) {
+  if (templateId === 'nordic')   return <NordicTemplate cv={cv} accent={accentColor || '#1a56c4'} />
   if (templateId === 'classic')  return <ClassicTemplate cv={cv} />
   if (templateId === 'academic') return <AcademicTemplate cv={cv} />
-  if (templateId === 'europass') return <EuropassTemplate cv={cv} />
-  if (templateId === 'newyork')  return <NewYorkTemplate cv={cv} />
-  if (templateId === 'atelier')  return <AtelierTemplate cv={cv} />
+  if (templateId === 'europass') return <EuropassTemplate cv={cv} accent={accentColor || '#1e3a8a'} />
+  if (templateId === 'newyork')  return <NewYorkTemplate cv={cv} accent={accentColor || '#a01e1e'} />
+  if (templateId === 'atelier')  return <AtelierTemplate cv={cv} accent={accentColor || '#3b0a45'} />
   if (templateId === 'noir')     return <NoirTemplate cv={cv} />
-  if (templateId === 'meridian') return <MeridianTemplate cv={cv} />
-  if (templateId === 'graduate') return <GraduateTemplate cv={cv} />
+  if (templateId === 'meridian') return <MeridianTemplate cv={cv} accent={accentColor || '#0a1f44'} />
+  if (templateId === 'graduate') return <GraduateTemplate cv={cv} accent={accentColor || '#dc6e3a'} />
   return <LondonTemplate cv={cv} />
 }
 
+// helper: derive a slightly darker shade from accent
+function darken(hex: string, amount = 0.18) {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.substring(0, 2), 16)
+  const g = parseInt(h.substring(2, 4), 16)
+  const b = parseInt(h.substring(4, 6), 16)
+  const dr = Math.max(0, Math.floor(r * (1 - amount)))
+  const dg = Math.max(0, Math.floor(g * (1 - amount)))
+  const db = Math.max(0, Math.floor(b * (1 - amount)))
+  return `rgb(${dr}, ${dg}, ${db})`
+}
+function lighten(hex: string, alpha = 0.08) {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.substring(0, 2), 16)
+  const g = parseInt(h.substring(2, 4), 16)
+  const b = parseInt(h.substring(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
 // ══════════════════════════════════════════════════════
-// ATS TEMPLATE 1: LONDON — simplified to match Word exactly
-// Editorial serif on cream, single column, no fancy effects
+// 1. LONDON
 // ══════════════════════════════════════════════════════
 function LondonTemplate({ cv }: { cv: GeneratedCV }) {
   const isLetter = !!cv.coverLetterBody
   const SH = ({ children }: { children: string }) => (
-    <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '15pt', fontWeight: 700, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1.5px solid #1a1a1a', paddingBottom: '4px', margin: '18px 0 10px' }}>{children}</div>
+    <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '14pt', fontWeight: 700, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1.5px solid #1a1a1a', paddingBottom: '4px', margin: '18px 0 10px' }}>{children}</div>
   )
   return (
     <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '11pt', lineHeight: 1.6, color: '#1a1a1a', background: '#faf8f5', padding: '40px 48px', minHeight: '297mm' }}>
       <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: '14px', marginBottom: '18px' }}>
-        <div style={{ fontSize: '28pt', fontWeight: 700, color: '#0a0a0a', lineHeight: 1.1, marginBottom: '4px' }}>{cv.fullName}</div>
+        <div style={{ fontSize: '26pt', fontWeight: 700, color: '#0a0a0a', lineHeight: 1.15, marginBottom: '4px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '13pt', fontStyle: 'italic', color: '#4a4a4a', marginBottom: '8px' }}>{cv.jobTitle}</div>}
         <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}><ContactLine cv={cv} color="#444" /></div>
       </div>
@@ -682,7 +674,6 @@ function LondonTemplate({ cv }: { cv: GeneratedCV }) {
         ? cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ fontSize: '11pt', lineHeight: 1.7, marginBottom: '12px', textAlign: 'justify' }}>{p}</p>)
         : <>
           {cv.summary && <><SH>Professional Summary</SH><p style={{ fontSize: '11pt', lineHeight: 1.65, textAlign: 'justify' }}>{cv.summary}</p></>}
-
           {cv.experience?.length > 0 && <><SH>Professional Experience</SH>{cv.experience.map(e => (
             <div key={e.id} style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
@@ -695,7 +686,6 @@ function LondonTemplate({ cv }: { cv: GeneratedCV }) {
               </ul>
             </div>
           ))}</>}
-
           {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
             <div key={ed.id} style={{ marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
@@ -705,7 +695,6 @@ function LondonTemplate({ cv }: { cv: GeneratedCV }) {
               <div style={{ fontSize: '11pt', fontStyle: 'italic', color: '#444' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
             </div>
           ))}</>}
-
           {cv.skills?.length > 0 && <><SH>Core Skills</SH><div style={{ fontSize: '11pt', lineHeight: 1.75 }}>{cv.skills.join('  •  ')}</div></>}
           {cv.languages && cv.languages.length > 0 && <><SH>Languages</SH><div style={{ fontSize: '11pt', lineHeight: 1.75 }}>{cv.languages!.join('  •  ')}</div></>}
           {cv.additionalInfo && <><SH>Additional Information</SH><div style={{ fontSize: '11pt', lineHeight: 1.75 }}>{cv.additionalInfo}</div></>}
@@ -716,50 +705,45 @@ function LondonTemplate({ cv }: { cv: GeneratedCV }) {
 }
 
 // ══════════════════════════════════════════════════════
-// ATS TEMPLATE 2: NORDIC — simplified, Word-matched
-// Clean sans-serif, blue accent line, single column
+// 2. NORDIC (customizable)
 // ══════════════════════════════════════════════════════
-function NordicTemplate({ cv }: { cv: GeneratedCV }) {
+function NordicTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
   const isLetter = !!cv.coverLetterBody
-  const BLUE = '#1a56c4'
   const SH = ({ children }: { children: string }) => (
-    <div style={{ fontSize: '11pt', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: BLUE, borderBottom: `2px solid ${BLUE}`, paddingBottom: '4px', margin: '18px 0 10px' }}>{children}</div>
+    <div style={{ fontSize: '11pt', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: accent, borderBottom: `2px solid ${accent}`, paddingBottom: '4px', margin: '18px 0 10px' }}>{children}</div>
   )
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.6, color: '#1a1a1a', background: '#ffffff', padding: '40px 48px', minHeight: '297mm' }}>
       <div style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '26pt', fontWeight: 700, color: '#0a0a0a', lineHeight: 1.1, marginBottom: '4px' }}>{cv.fullName}</div>
-        {cv.jobTitle && <div style={{ fontSize: '12pt', color: BLUE, marginBottom: '8px' }}>{cv.jobTitle}</div>}
+        <div style={{ fontSize: '24pt', fontWeight: 700, color: '#0a0a0a', lineHeight: 1.15, marginBottom: '4px' }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ fontSize: '12pt', color: accent, marginBottom: '8px' }}>{cv.jobTitle}</div>}
         <ContactLine cv={cv} color="#444" />
       </div>
       {isLetter
         ? cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ fontSize: '10.5pt', lineHeight: 1.7, marginBottom: '12px' }}>{p}</p>)
         : <>
           {cv.summary && <><SH>Profile</SH><p style={{ fontSize: '10.5pt', lineHeight: 1.7 }}>{cv.summary}</p></>}
-
           {cv.experience?.length > 0 && <><SH>Experience</SH>{cv.experience.map(e => (
             <div key={e.id} style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
                 <span style={{ fontSize: '12pt', fontWeight: 700, color: '#0a0a0a' }}>{e.role}</span>
                 <span style={{ fontSize: '10pt', color: '#666', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span>
               </div>
-              <div style={{ fontSize: '11pt', color: BLUE, fontStyle: 'italic', marginBottom: '4px' }}>{e.company}</div>
+              <div style={{ fontSize: '11pt', color: accent, fontStyle: 'italic', marginBottom: '4px' }}>{e.company}</div>
               <ul style={{ paddingLeft: '18px', margin: 0 }}>
                 {e.bullets.map((b, i) => <li key={i} style={{ fontSize: '10.5pt', lineHeight: 1.55, marginBottom: '2px' }}>{b}</li>)}
               </ul>
             </div>
           ))}</>}
-
           {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
             <div key={ed.id} style={{ marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
                 <span style={{ fontSize: '11pt', fontWeight: 700 }}>{ed.qualification} in {ed.field}</span>
                 <span style={{ fontSize: '10pt', color: '#666', whiteSpace: 'nowrap' }}>{ed.startYear} – {ed.endYear}</span>
               </div>
-              <div style={{ fontSize: '10.5pt', color: BLUE, fontStyle: 'italic' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
+              <div style={{ fontSize: '10.5pt', color: accent, fontStyle: 'italic' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
             </div>
           ))}</>}
-
           {cv.skills?.length > 0 && <><SH>Skills</SH><div style={{ fontSize: '10.5pt', lineHeight: 1.75 }}>{cv.skills.join('  •  ')}</div></>}
           {cv.languages && cv.languages.length > 0 && <><SH>Languages</SH><div style={{ fontSize: '10.5pt', lineHeight: 1.75 }}>{cv.languages!.join('  •  ')}</div></>}
           {cv.additionalInfo && <><SH>Additional Information</SH><div style={{ fontSize: '10.5pt', lineHeight: 1.75 }}>{cv.additionalInfo}</div></>}
@@ -770,8 +754,7 @@ function NordicTemplate({ cv }: { cv: GeneratedCV }) {
 }
 
 // ══════════════════════════════════════════════════════
-// ATS TEMPLATE 3: CLASSIC — Pure black & white, ATS-safe
-// Cambria-style serif, centered name, line dividers
+// 3. CLASSIC
 // ══════════════════════════════════════════════════════
 function ClassicTemplate({ cv }: { cv: GeneratedCV }) {
   const isLetter = !!cv.coverLetterBody
@@ -781,7 +764,7 @@ function ClassicTemplate({ cv }: { cv: GeneratedCV }) {
   return (
     <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '11pt', lineHeight: 1.6, color: '#000', background: '#ffffff', padding: '40px 48px', minHeight: '297mm' }}>
       <div style={{ textAlign: 'center', marginBottom: '18px', paddingBottom: '12px', borderBottom: '1.5px solid #000' }}>
-        <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '26pt', fontWeight: 700, color: '#000', lineHeight: 1.1, marginBottom: '4px', letterSpacing: '0.5px' }}>{cv.fullName}</div>
+        <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '24pt', fontWeight: 700, color: '#000', lineHeight: 1.15, marginBottom: '4px', letterSpacing: '0.5px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '12pt', fontStyle: 'italic', color: '#333', marginBottom: '6px' }}>{cv.jobTitle}</div>}
         <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}><ContactLine cv={cv} color="#333" /></div>
       </div>
@@ -789,7 +772,6 @@ function ClassicTemplate({ cv }: { cv: GeneratedCV }) {
         ? cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ fontSize: '11pt', lineHeight: 1.7, marginBottom: '12px', textAlign: 'justify' }}>{p}</p>)
         : <>
           {cv.summary && <><SH>Professional Summary</SH><p style={{ fontSize: '11pt', lineHeight: 1.7, textAlign: 'justify' }}>{cv.summary}</p></>}
-
           {cv.experience?.length > 0 && <><SH>Professional Experience</SH>{cv.experience.map(e => (
             <div key={e.id} style={{ marginBottom: '14px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
@@ -802,7 +784,6 @@ function ClassicTemplate({ cv }: { cv: GeneratedCV }) {
               </ul>
             </div>
           ))}</>}
-
           {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
             <div key={ed.id} style={{ marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
@@ -812,7 +793,6 @@ function ClassicTemplate({ cv }: { cv: GeneratedCV }) {
               <div style={{ fontSize: '11pt', fontStyle: 'italic', color: '#333' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
             </div>
           ))}</>}
-
           {cv.skills?.length > 0 && <><SH>Core Skills</SH><div style={{ fontSize: '11pt', lineHeight: 1.75 }}>{cv.skills.join('  •  ')}</div></>}
           {cv.languages && cv.languages.length > 0 && <><SH>Languages</SH><div style={{ fontSize: '11pt', lineHeight: 1.75 }}>{cv.languages!.join('  •  ')}</div></>}
           {cv.additionalInfo && <><SH>Additional Information</SH><div style={{ fontSize: '11pt', lineHeight: 1.75 }}>{cv.additionalInfo}</div></>}
@@ -823,7 +803,7 @@ function ClassicTemplate({ cv }: { cv: GeneratedCV }) {
 }
 
 // ══════════════════════════════════════════════════════
-// ACADEMIC
+// 4. ACADEMIC
 // ══════════════════════════════════════════════════════
 function AcademicTemplate({ cv }: { cv: GeneratedCV }) {
   const SH = ({ children }: { children: string }) => (
@@ -832,15 +812,15 @@ function AcademicTemplate({ cv }: { cv: GeneratedCV }) {
   return (
     <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.65, color: '#1a1a1a', background: '#ffffff', padding: '40px 48px', minHeight: '297mm' }}>
       <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: '18px', marginBottom: '22px' }}>
-        <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '30px', fontWeight: 700, color: '#0a0a0a', marginBottom: '5px' }}>{cv.fullName}</div>
-        {cv.jobTitle && <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '14px', fontStyle: 'italic', color: '#4a4a4a', marginBottom: '10px' }}>{cv.jobTitle}</div>}
+        <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '26pt', fontWeight: 700, color: '#0a0a0a', marginBottom: '5px', lineHeight: 1.15 }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '13pt', fontStyle: 'italic', color: '#4a4a4a', marginBottom: '10px' }}>{cv.jobTitle}</div>}
         <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}><ContactLine cv={cv} color="#555" /></div>
       </div>
       {cv.summary && <><SH>Research Profile</SH><p style={{ fontSize: '10.5pt', lineHeight: 1.7, textAlign: 'justify' }}>{cv.summary}</p></>}
       {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
         <div key={ed.id} style={{ marginBottom: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-            <span style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '14px', fontWeight: 700 }}>{ed.qualification} in {ed.field}</span>
+            <span style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '13pt', fontWeight: 700 }}>{ed.qualification} in {ed.field}</span>
             <span style={{ fontSize: '9pt', color: '#777', whiteSpace: 'nowrap', fontStyle: 'italic' }}>{ed.startYear} – {ed.endYear}</span>
           </div>
           <div style={{ fontSize: '10.5pt', fontStyle: 'italic', color: '#5a5a5a' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
@@ -849,7 +829,7 @@ function AcademicTemplate({ cv }: { cv: GeneratedCV }) {
       {cv.experience?.length > 0 && <><SH>Academic & Professional Experience</SH>{cv.experience.map(e => (
         <div key={e.id} style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-            <span style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '14px', fontWeight: 700 }}>{e.role}</span>
+            <span style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '13pt', fontWeight: 700 }}>{e.role}</span>
             <span style={{ fontSize: '9pt', color: '#777', whiteSpace: 'nowrap', fontStyle: 'italic' }}>{e.startDate} – {e.endDate}</span>
           </div>
           <div style={{ fontSize: '10.5pt', fontStyle: 'italic', color: '#4a4a4a', marginBottom: '5px' }}>{e.company}</div>
@@ -867,17 +847,17 @@ function AcademicTemplate({ cv }: { cv: GeneratedCV }) {
 }
 
 // ══════════════════════════════════════════════════════
-// PREMIUM 1: EUROPASS PRO — Two-column, full height
+// 5. EUROPASS PRO (customizable, no monogram)
 // ══════════════════════════════════════════════════════
-function EuropassTemplate({ cv }: { cv: GeneratedCV }) {
+function EuropassTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
   const isLetter = !!cv.coverLetterBody
-  const NAVY = '#1e3a8a'
+  const NAVY = accent
 
   if (isLetter) {
     return (
       <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.7, color: '#1e293b', padding: '40px 48px', background: 'white', minHeight: '297mm' }}>
         <div style={{ marginBottom: '24px', borderBottom: `3px solid ${NAVY}`, paddingBottom: '16px' }}>
-          <div style={{ fontSize: '30pt', fontWeight: 700, color: NAVY }}>{cv.fullName}</div>
+          <div style={{ fontSize: '26pt', fontWeight: 700, color: NAVY, lineHeight: 1.15 }}>{cv.fullName}</div>
           {cv.jobTitle && <div style={{ fontSize: '13pt', color: '#475569', marginTop: '4px' }}>{cv.jobTitle}</div>}
           <div style={{ marginTop: '10px' }}><ContactLine cv={cv} color="#475569" /></div>
         </div>
@@ -896,7 +876,7 @@ function EuropassTemplate({ cv }: { cv: GeneratedCV }) {
   return (
     <div style={{ ...A4_WRAPPER, gridTemplateColumns: '34% 66%' }}>
       <div style={{ background: NAVY, color: 'white', padding: '40px 24px' }}>
-        <div style={{ fontSize: '22pt', fontWeight: 700, lineHeight: 1.1, marginBottom: '6px' }}>{cv.fullName}</div>
+        <div style={{ fontSize: '20pt', fontWeight: 700, lineHeight: 1.15, marginBottom: '6px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '11pt', color: 'rgba(255,255,255,0.85)', fontStyle: 'italic', marginBottom: '6px' }}>{cv.jobTitle}</div>}
 
         <SidebarH>Contact</SidebarH>
@@ -905,6 +885,7 @@ function EuropassTemplate({ cv }: { cv: GeneratedCV }) {
           {cv.phone && <div style={{ marginBottom: '5px' }}>{cv.phone}</div>}
           {cv.location && <div style={{ marginBottom: '5px' }}>{cv.location}</div>}
           {cv.linkedin && <div style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{cv.linkedin}</div>}
+          {cv.dob && <div style={{ marginBottom: '5px' }}>DOB: {cv.dob}</div>}
         </div>
 
         {cv.skills?.length > 0 && (<>
@@ -968,11 +949,11 @@ function EuropassTemplate({ cv }: { cv: GeneratedCV }) {
 }
 
 // ══════════════════════════════════════════════════════
-// PREMIUM 2: NEW YORK
+// 6. NEW YORK (customizable)
 // ══════════════════════════════════════════════════════
-function NewYorkTemplate({ cv }: { cv: GeneratedCV }) {
+function NewYorkTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
   const isLetter = !!cv.coverLetterBody
-  const CRIMSON = '#a01e1e'
+  const CRIMSON = accent
   const INK = '#0a0a0a'
   const SH = ({ children }: { children: string }) => (
     <div style={{ background: CRIMSON, color: 'white', fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: '11pt', textTransform: 'uppercase', letterSpacing: '3px', padding: '6px 14px', margin: '22px 0 14px' }}>{children}</div>
@@ -980,8 +961,8 @@ function NewYorkTemplate({ cv }: { cv: GeneratedCV }) {
   return (
     <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.6, color: INK, background: '#ffffff', minHeight: '297mm' }}>
       <div style={{ padding: '40px 48px 20px', borderBottom: `4px double ${CRIMSON}` }}>
-        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '28px', fontWeight: 900, color: INK, letterSpacing: '-0.5px', lineHeight: 1, marginBottom: '6px' }}>{cv.fullName}</div>
-        {cv.jobTitle && <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontStyle: 'italic', fontSize: '15pt', color: CRIMSON, marginBottom: '14px', fontWeight: 500 }}>{cv.jobTitle}</div>}
+        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '30pt', fontWeight: 900, color: INK, letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '6px' }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontStyle: 'italic', fontSize: '14pt', color: CRIMSON, marginBottom: '14px', fontWeight: 500 }}>{cv.jobTitle}</div>}
         <ContactLine cv={cv} color="#444" />
       </div>
       <div style={{ padding: '6px 48px 40px' }}>
@@ -992,7 +973,7 @@ function NewYorkTemplate({ cv }: { cv: GeneratedCV }) {
             {cv.experience?.length > 0 && <><SH>Experience</SH>{cv.experience.map(e => (
               <div key={e.id} style={{ marginBottom: '18px', paddingLeft: '14px', borderLeft: `3px solid ${CRIMSON}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '14pt', fontWeight: 700, color: INK }}>{e.role}</span>
+                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '13pt', fontWeight: 700, color: INK }}>{e.role}</span>
                   <span style={{ fontSize: '9.5pt', color: CRIMSON, whiteSpace: 'nowrap', fontWeight: 600, letterSpacing: '0.5px' }}>{e.startDate} – {e.endDate}</span>
                 </div>
                 <div style={{ fontSize: '11pt', fontWeight: 600, color: '#444', fontStyle: 'italic', marginBottom: '6px' }}>{e.company}</div>
@@ -1004,7 +985,7 @@ function NewYorkTemplate({ cv }: { cv: GeneratedCV }) {
             {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
               <div key={ed.id} style={{ marginBottom: '12px', paddingLeft: '14px', borderLeft: `3px solid ${CRIMSON}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '12.5pt', fontWeight: 700, color: INK }}>{ed.qualification} in {ed.field}</span>
+                  <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '12pt', fontWeight: 700, color: INK }}>{ed.qualification} in {ed.field}</span>
                   <span style={{ fontSize: '9pt', color: CRIMSON, whiteSpace: 'nowrap', fontWeight: 600 }}>{ed.startYear} – {ed.endYear}</span>
                 </div>
                 <div style={{ fontSize: '10.5pt', color: '#444', fontStyle: 'italic' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
@@ -1021,23 +1002,23 @@ function NewYorkTemplate({ cv }: { cv: GeneratedCV }) {
 }
 
 // ══════════════════════════════════════════════════════
-// PREMIUM 3: ATELIER
+// 7. ATELIER (customizable, no monogram)
 // ══════════════════════════════════════════════════════
-function AtelierTemplate({ cv }: { cv: GeneratedCV }) {
+function AtelierTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
   const isLetter = !!cv.coverLetterBody
-  const PLUM = '#3b0a45'
-  const PLUM_SOFT = '#6d3a78'
+  const PLUM = accent
+  const PLUM_SOFT = darken(accent, -0.3) // lighter version
   const SH = ({ children }: { children: string }) => (
-    <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontStyle: 'italic', fontSize: '16pt', fontWeight: 600, color: PLUM, margin: '24px 0 14px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontStyle: 'italic', fontSize: '15pt', fontWeight: 600, color: PLUM, margin: '22px 0 12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
       <span>{children}</span>
       <span style={{ flex: 1, height: '1px', background: `linear-gradient(to right, ${PLUM_SOFT}, transparent)` }} />
     </div>
   )
   return (
     <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '11pt', lineHeight: 1.65, color: '#2a1a2e', background: '#fdfcf9', padding: '40px 48px', minHeight: '297mm' }}>
-      <div style={{ marginBottom: '26px' }}>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', fontWeight: 700, fontStyle: 'italic', color: PLUM, letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '4px' }}>{cv.fullName}</div>
-        {cv.jobTitle && <div style={{ fontSize: '13pt', color: PLUM_SOFT, marginBottom: '12px', fontStyle: 'italic' }}>{cv.jobTitle}</div>}
+      <div style={{ marginBottom: '22px' }}>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '30pt', fontWeight: 700, fontStyle: 'italic', color: PLUM, letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '4px' }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ fontSize: '12pt', color: PLUM_SOFT, marginBottom: '10px', fontStyle: 'italic' }}>{cv.jobTitle}</div>}
         <ContactLine cv={cv} color="#5a4a5e" />
       </div>
       {isLetter
@@ -1051,7 +1032,7 @@ function AtelierTemplate({ cv }: { cv: GeneratedCV }) {
                 <div key={e.id} style={{ marginBottom: '20px', position: 'relative' }}>
                   <div style={{ position: 'absolute', left: '-24px', top: '6px', width: '14px', height: '14px', borderRadius: '50%', background: '#fdfcf9', border: `2px solid ${PLUM}`, boxSizing: 'border-box' }} />
                   <div style={{ fontSize: '9.5pt', color: PLUM, fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '2px' }}>{e.startDate} – {e.endDate}</div>
-                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '14pt', fontWeight: 700, color: '#1a0a1e', marginBottom: '2px' }}>{e.role}</div>
+                  <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '13pt', fontWeight: 700, color: '#1a0a1e', marginBottom: '2px' }}>{e.role}</div>
                   <div style={{ fontSize: '11pt', color: PLUM_SOFT, fontStyle: 'italic', marginBottom: '6px' }}>{e.company}</div>
                   <ul style={{ margin: 0, paddingLeft: '16px' }}>
                     {e.bullets.map((b, i) => <li key={i} style={{ fontSize: '10.5pt', lineHeight: 1.65, color: '#2a1a2e', marginBottom: '3px' }}>{b}</li>)}
@@ -1063,7 +1044,7 @@ function AtelierTemplate({ cv }: { cv: GeneratedCV }) {
           {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
             <div key={ed.id} style={{ marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '13pt', fontWeight: 700, color: '#1a0a1e' }}>{ed.qualification} in {ed.field}</span>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '12pt', fontWeight: 700, color: '#1a0a1e' }}>{ed.qualification} in {ed.field}</span>
                 <span style={{ fontSize: '9.5pt', color: PLUM, fontWeight: 600, whiteSpace: 'nowrap', letterSpacing: '1px' }}>{ed.startYear} – {ed.endYear}</span>
               </div>
               <div style={{ fontSize: '11pt', color: PLUM_SOFT, fontStyle: 'italic' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
@@ -1071,7 +1052,7 @@ function AtelierTemplate({ cv }: { cv: GeneratedCV }) {
           ))}</>}
           {cv.skills?.length > 0 && <><SH>Skills</SH>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 8px' }}>
-              {cv.skills.map((s, i) => <span key={i} style={{ fontSize: '10pt', color: PLUM, border: `1px solid ${PLUM_SOFT}`, padding: '3px 10px', borderRadius: '14px', background: 'rgba(59,10,69,0.04)' }}>{s}</span>)}
+              {cv.skills.map((s, i) => <span key={i} style={{ fontSize: '10pt', color: PLUM, border: `1px solid ${PLUM_SOFT}`, padding: '3px 10px', borderRadius: '14px', background: lighten(PLUM, 0.04) }}>{s}</span>)}
             </div>
           </>}
           {cv.languages && cv.languages.length > 0 && <><SH>Languages</SH><div style={{ fontSize: '11pt', color: '#3a2a3e', lineHeight: 1.8, fontStyle: 'italic' }}>{cv.languages!.join('  ·  ')}</div></>}
@@ -1083,62 +1064,62 @@ function AtelierTemplate({ cv }: { cv: GeneratedCV }) {
 }
 
 // ══════════════════════════════════════════════════════
-// PREMIUM 4: NOIR
+// 8. NOIR — REDESIGNED: elegant, refined, dark (not harsh)
+// Clean Inter typography, black header band, NO ugly Oswald
 // ══════════════════════════════════════════════════════
 function NoirTemplate({ cv }: { cv: GeneratedCV }) {
   const isLetter = !!cv.coverLetterBody
   const SH = ({ children }: { children: string }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', margin: '24px 0 14px' }}>
-      <div style={{ background: '#000', color: 'white', fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '9pt', letterSpacing: '3px', textTransform: 'uppercase', padding: '5px 14px' }}>{children}</div>
-      <div style={{ flex: 1, height: '2px', background: '#000' }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '22px 0 12px' }}>
+      <span style={{ width: '4px', height: '14px', background: '#0a0a0a' }} />
+      <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '11pt', letterSpacing: '2px', textTransform: 'uppercase', color: '#0a0a0a' }}>{children}</div>
+      <div style={{ flex: 1, height: '1px', background: '#e5e5e5' }} />
     </div>
   )
   return (
-    <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", fontSize: '10pt', lineHeight: 1.65, color: '#111', background: '#ffffff', minHeight: '297mm' }}>
-      <div style={{ background: '#000', color: 'white', padding: '32px 48px 26px' }}>
-        <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", fontSize: '28pt', fontWeight: 800, color: 'white', letterSpacing: '-0.5px', lineHeight: 1.05, marginBottom: '5px' }}>{cv.fullName}</div>
-        {cv.jobTitle && <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '11pt', color: 'rgba(255,255,255,0.65)', letterSpacing: '3px', fontWeight: 300, textTransform: 'uppercase' }}>{cv.jobTitle}</div>}
+    <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.6, color: '#1a1a1a', background: '#ffffff', minHeight: '297mm' }}>
+      <div style={{ background: '#0a0a0a', color: 'white', padding: '36px 48px 28px' }}>
+        <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '28pt', fontWeight: 800, color: 'white', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '6px' }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12pt', color: '#a3a3a3', fontWeight: 400, letterSpacing: '0.5px', marginBottom: '12px' }}>{cv.jobTitle}</div>}
+        <ContactLine cv={cv} color="#d4d4d4" />
       </div>
-      <div style={{ background: '#111', color: '#ddd', padding: '10px 48px', fontSize: '9.5pt', borderBottom: '6px solid #000' }}>
-        <ContactLine cv={cv} color="#ddd" />
-      </div>
-      <div style={{ padding: '14px 48px 40px' }}>
+
+      <div style={{ padding: '24px 48px 40px' }}>
         {isLetter
-          ? cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ fontSize: '10pt', lineHeight: 1.8, color: '#222', marginBottom: '14px' }}>{p}</p>)
+          ? cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ fontSize: '10.5pt', lineHeight: 1.75, color: '#1a1a1a', marginBottom: '14px', textAlign: 'justify' }}>{p}</p>)
           : <>
-            {cv.summary && <><SH>Profile</SH><p style={{ fontSize: '10pt', lineHeight: 1.75, color: '#222' }}>{cv.summary}</p></>}
+            {cv.summary && <><SH>Profile</SH><p style={{ fontSize: '10.5pt', lineHeight: 1.75, color: '#1a1a1a', textAlign: 'justify' }}>{cv.summary}</p></>}
+
             {cv.experience?.length > 0 && <><SH>Experience</SH>{cv.experience.map(e => (
-              <div key={e.id} style={{ marginBottom: '18px', paddingBottom: '14px', borderBottom: '1px solid #e5e5e5' }}>
+              <div key={e.id} style={{ marginBottom: '18px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', marginBottom: '2px' }}>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12pt', fontWeight: 700, color: '#000' }}>{e.role}</span>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '9.5pt', color: '#555', whiteSpace: 'nowrap', fontWeight: 400 }}>{e.startDate} – {e.endDate}</span>
+                  <span style={{ fontSize: '12pt', fontWeight: 700, color: '#0a0a0a' }}>{e.role}</span>
+                  <span style={{ fontSize: '9.5pt', color: '#666', whiteSpace: 'nowrap', fontWeight: 500 }}>{e.startDate} – {e.endDate}</span>
                 </div>
-                <div style={{ fontSize: '10pt', fontWeight: 600, color: '#555', fontStyle: 'italic', marginBottom: '6px' }}>{e.company}</div>
-                <ul style={{ margin: '6px 0 0', paddingLeft: '16px', listStyle: 'none' }}>
-                  {e.bullets.map((b, i) => (
-                    <li key={i} style={{ fontSize: '10pt', lineHeight: 1.6, color: '#222', marginBottom: '3px', paddingLeft: '12px', position: 'relative' }}>
-                      <span style={{ position: 'absolute', left: 0, top: 0, color: '#000', fontWeight: 700 }}>▸</span>{b}
-                    </li>
-                  ))}
+                <div style={{ fontSize: '11pt', fontWeight: 500, color: '#404040', marginBottom: '6px' }}>{e.company}</div>
+                <ul style={{ margin: 0, paddingLeft: '18px' }}>
+                  {e.bullets.map((b, i) => <li key={i} style={{ fontSize: '10.5pt', lineHeight: 1.6, color: '#1a1a1a', marginBottom: '3px' }}>{b}</li>)}
                 </ul>
               </div>
             ))}</>}
+
             {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
               <div key={ed.id} style={{ marginBottom: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11pt', fontWeight: 700, color: '#000' }}>{ed.qualification} in {ed.field}</span>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '9.5pt', color: '#555', fontWeight: 400, whiteSpace: 'nowrap' }}>{ed.startYear} – {ed.endYear}</span>
+                  <span style={{ fontSize: '11.5pt', fontWeight: 700, color: '#0a0a0a' }}>{ed.qualification} in {ed.field}</span>
+                  <span style={{ fontSize: '9.5pt', color: '#666', whiteSpace: 'nowrap', fontWeight: 500 }}>{ed.startYear} – {ed.endYear}</span>
                 </div>
-                <div style={{ fontSize: '10pt', color: '#555', fontStyle: 'italic' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
+                <div style={{ fontSize: '10.5pt', color: '#404040', fontWeight: 500 }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
               </div>
             ))}</>}
+
             {cv.skills?.length > 0 && <><SH>Skills</SH>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {cv.skills.map((s, i) => <span key={i} style={{ fontFamily: "'Inter', sans-serif", fontSize: '9pt', color: '#fff', background: '#000', padding: '4px 10px', borderRadius: '3px', fontWeight: 500 }}>{s}</span>)}
+                {cv.skills.map((s, i) => <span key={i} style={{ fontSize: '9.5pt', color: '#0a0a0a', background: '#f5f5f5', padding: '4px 10px', borderRadius: '4px', fontWeight: 500, border: '1px solid #e5e5e5' }}>{s}</span>)}
               </div>
             </>}
-            {cv.languages && cv.languages.length > 0 && <><SH>Languages</SH><div style={{ fontSize: '10pt', color: '#222', lineHeight: 1.8 }}>{cv.languages!.join('  ·  ')}</div></>}
-            {cv.additionalInfo && <><SH>Additional</SH><div style={{ fontSize: '10pt', color: '#222', lineHeight: 1.8 }}>{cv.additionalInfo}</div></>}
+            {cv.languages && cv.languages.length > 0 && <><SH>Languages</SH><div style={{ fontSize: '10.5pt', color: '#1a1a1a', lineHeight: 1.8 }}>{cv.languages!.join('  ·  ')}</div></>}
+            {cv.additionalInfo && <><SH>Additional</SH><div style={{ fontSize: '10.5pt', color: '#1a1a1a', lineHeight: 1.8 }}>{cv.additionalInfo}</div></>}
           </>
         }
       </div>
@@ -1147,18 +1128,18 @@ function NoirTemplate({ cv }: { cv: GeneratedCV }) {
 }
 
 // ══════════════════════════════════════════════════════
-// PREMIUM 5: MERIDIAN — full-height navy sidebar (fixed)
+// 9. MERIDIAN (customizable, no monogram)
 // ══════════════════════════════════════════════════════
-function MeridianTemplate({ cv }: { cv: GeneratedCV }) {
+function MeridianTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
   const isLetter = !!cv.coverLetterBody
-  const NAVY = '#0a1f44'
+  const NAVY = accent
   const GOLD = '#c9a449'
 
   if (isLetter) {
     return (
       <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: '10.5pt', lineHeight: 1.7, color: '#1e293b', padding: '40px 48px', background: 'white', borderTop: `6px solid ${GOLD}`, minHeight: '297mm' }}>
         <div style={{ marginBottom: '24px', paddingBottom: '14px', borderBottom: `1px solid ${GOLD}` }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '30pt', fontWeight: 700, color: NAVY }}>{cv.fullName}</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '26pt', fontWeight: 700, color: NAVY, lineHeight: 1.15 }}>{cv.fullName}</div>
           {cv.jobTitle && <div style={{ fontSize: '13pt', color: GOLD, marginTop: '4px', fontStyle: 'italic' }}>{cv.jobTitle}</div>}
           <div style={{ marginTop: '10px' }}><ContactLine cv={cv} color="#475569" /></div>
         </div>
@@ -1171,7 +1152,7 @@ function MeridianTemplate({ cv }: { cv: GeneratedCV }) {
     <div style={{ fontSize: '9pt', fontWeight: 700, color: GOLD, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '8px', marginTop: '22px' }}>{children}</div>
   )
   const MainH = ({ children }: { children: string }) => (
-    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '14pt', fontWeight: 700, color: NAVY, marginBottom: '12px', marginTop: '22px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '13pt', fontWeight: 700, color: NAVY, marginBottom: '12px', marginTop: '22px', display: 'flex', alignItems: 'center', gap: '12px' }}>
       <span style={{ width: '24px', height: '2px', background: GOLD }} />
       <span>{children}</span>
     </div>
@@ -1182,7 +1163,7 @@ function MeridianTemplate({ cv }: { cv: GeneratedCV }) {
       <div style={{ background: NAVY, color: 'white', padding: '40px 26px', position: 'relative' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: GOLD }} />
         <div style={{ marginTop: '8px', marginBottom: '20px' }}>
-          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '24pt', fontWeight: 700, lineHeight: 1.1, marginBottom: '4px' }}>{cv.fullName}</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '22pt', fontWeight: 700, lineHeight: 1.15, marginBottom: '4px' }}>{cv.fullName}</div>
           <div style={{ width: '40px', height: '2px', background: GOLD, marginTop: '8px', marginBottom: '8px' }} />
           {cv.jobTitle && <div style={{ fontSize: '11pt', color: 'rgba(255,255,255,0.85)', fontStyle: 'italic', letterSpacing: '0.5px' }}>{cv.jobTitle}</div>}
         </div>
@@ -1193,6 +1174,7 @@ function MeridianTemplate({ cv }: { cv: GeneratedCV }) {
           {cv.phone && <div style={{ marginBottom: '4px' }}>{cv.phone}</div>}
           {cv.location && <div style={{ marginBottom: '4px' }}>{cv.location}</div>}
           {cv.linkedin && <div style={{ marginBottom: '4px', wordBreak: 'break-word' }}>{cv.linkedin}</div>}
+          {cv.dob && <div style={{ marginBottom: '4px' }}>DOB: {cv.dob}</div>}
         </div>
 
         {cv.skills?.length > 0 && (<>
@@ -1231,7 +1213,7 @@ function MeridianTemplate({ cv }: { cv: GeneratedCV }) {
           {cv.experience.map(e => (
             <div key={e.id} style={{ marginBottom: '18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '13pt', fontWeight: 700, color: NAVY }}>{e.role}</span>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '12pt', fontWeight: 700, color: NAVY }}>{e.role}</span>
                 <span style={{ fontSize: '9.5pt', color: GOLD, fontWeight: 600, letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span>
               </div>
               <div style={{ fontSize: '10.5pt', color: '#475569', fontStyle: 'italic', marginBottom: '6px' }}>{e.company}</div>
@@ -1250,7 +1232,7 @@ function MeridianTemplate({ cv }: { cv: GeneratedCV }) {
           {cv.education.map(ed => (
             <div key={ed.id} style={{ marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '12pt', fontWeight: 700, color: NAVY }}>{ed.qualification} in {ed.field}</span>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '11.5pt', fontWeight: 700, color: NAVY }}>{ed.qualification} in {ed.field}</span>
                 <span style={{ fontSize: '9.5pt', color: GOLD, fontWeight: 600, letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{ed.startYear} – {ed.endYear}</span>
               </div>
               <div style={{ fontSize: '10.5pt', color: '#475569', fontStyle: 'italic' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
@@ -1263,13 +1245,13 @@ function MeridianTemplate({ cv }: { cv: GeneratedCV }) {
 }
 
 // ══════════════════════════════════════════════════════
-// PREMIUM 6: GRADUATE
+// 10. GRADUATE (customizable, no monogram)
 // ══════════════════════════════════════════════════════
-function GraduateTemplate({ cv }: { cv: GeneratedCV }) {
+function GraduateTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
   const isLetter = !!cv.coverLetterBody
-  const CORAL = '#dc6e3a'
-  const CORAL_DARK = '#b85b2e'
-  const CORAL_SOFT = '#fef3eb'
+  const CORAL = accent
+  const CORAL_DARK = darken(accent, 0.15)
+  const CORAL_SOFT = lighten(accent, 0.1)
   const INK = '#1f2937'
   const SH = ({ children }: { children: string }) => (
     <div style={{ fontSize: '11pt', fontWeight: 700, color: CORAL, textTransform: 'uppercase', letterSpacing: '2.5px', marginBottom: '12px', marginTop: '22px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1282,7 +1264,7 @@ function GraduateTemplate({ cv }: { cv: GeneratedCV }) {
   return (
     <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.65, color: INK, background: '#ffffff', minHeight: '297mm' }}>
       <div style={{ background: `linear-gradient(135deg, ${CORAL} 0%, ${CORAL_DARK} 100%)`, color: 'white', padding: '36px 48px' }}>
-        <div style={{ fontSize: '26pt', fontWeight: 700, lineHeight: 1.05, marginBottom: '6px', letterSpacing: '-0.3px' }}>{cv.fullName}</div>
+        <div style={{ fontSize: '28pt', fontWeight: 800, lineHeight: 1.1, marginBottom: '6px', letterSpacing: '-0.5px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '13pt', color: 'rgba(255,255,255,0.95)', marginBottom: '14px', fontWeight: 500 }}>{cv.jobTitle}</div>}
         <ContactLine cv={cv} color="rgba(255,255,255,0.95)" />
       </div>
@@ -1307,7 +1289,7 @@ function GraduateTemplate({ cv }: { cv: GeneratedCV }) {
             {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
               <div key={ed.id} style={{ marginBottom: '10px', paddingLeft: '14px', borderLeft: `4px solid ${CORAL}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-                  <span style={{ fontSize: '11.5pt', fontWeight: 700, color: INK }}>{ed.qualification} in {ed.field}</span>
+                  <span style={{ fontSize: '11pt', fontWeight: 700, color: INK }}>{ed.qualification} in {ed.field}</span>
                   <span style={{ fontSize: '9.5pt', color: CORAL_DARK, fontWeight: 700, whiteSpace: 'nowrap' }}>{ed.startYear} – {ed.endYear}</span>
                 </div>
                 <div style={{ fontSize: '10.5pt', color: '#6b7280', fontWeight: 500 }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
@@ -1334,9 +1316,45 @@ function GraduateTemplate({ cv }: { cv: GeneratedCV }) {
 }
 
 // ══════════════════════════════════════════════════════
-// EDITOR
+// EDITOR — with Add/Remove buttons + DOB
 // ══════════════════════════════════════════════════════
 function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<GeneratedCV>) => void }) {
+
+  function addExperience() {
+    const newExp = {
+      id: `exp_${Date.now()}`,
+      role: '',
+      company: '',
+      startDate: '',
+      endDate: '',
+      bullets: ['']
+    }
+    updateCV({ experience: [...(cv.experience || []), newExp] })
+  }
+
+  function removeExperience(idx: number) {
+    if (!confirm('Remove this experience entry?')) return
+    updateCV({ experience: cv.experience.filter((_, i) => i !== idx) })
+  }
+
+  function addEducation() {
+    const newEd = {
+      id: `ed_${Date.now()}`,
+      qualification: '',
+      field: '',
+      institution: '',
+      grade: '',
+      startYear: '',
+      endYear: ''
+    }
+    updateCV({ education: [...(cv.education || []), newEd] })
+  }
+
+  function removeEducation(idx: number) {
+    if (!confirm('Remove this education entry?')) return
+    updateCV({ education: cv.education.filter((_, i) => i !== idx) })
+  }
+
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <Sec title="Personal Details">
@@ -1347,18 +1365,24 @@ function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<Gen
           <Inp label="Phone" value={cv.phone} onChange={v => updateCV({ phone: v })} />
           <Inp label="Location" value={cv.location} onChange={v => updateCV({ location: v })} />
           <Inp label="LinkedIn" value={cv.linkedin || ''} onChange={v => updateCV({ linkedin: v })} />
+          <Inp label="Date of Birth (optional)" value={cv.dob || ''} onChange={v => updateCV({ dob: v })} />
         </Grid>
       </Sec>
+
       {(cv.summary !== undefined || cv.coverLetterBody) && (
         <Sec title={cv.coverLetterBody ? 'Cover Letter' : 'Summary'}>
           <TA value={cv.coverLetterBody || cv.summary} rows={cv.coverLetterBody ? 12 : 5}
             onChange={v => cv.coverLetterBody ? updateCV({ coverLetterBody: v }) : updateCV({ summary: v })} />
         </Sec>
       )}
-      {cv.experience?.length > 0 && (
-        <Sec title="Experience">
-          {cv.experience.map((exp, idx) => (
-            <div key={exp.id} style={{ background: '#f8fafc', borderRadius: '10px', padding: '14px', marginBottom: '10px' }}>
+
+      {!cv.coverLetterBody && (
+        <Sec title="Experience" action={<AddBtn onClick={addExperience}>+ Add Experience</AddBtn>}>
+          {cv.experience?.length === 0 || !cv.experience ? (
+            <div style={{ fontSize:'13px', color:'#94a3b8', fontStyle:'italic', padding:'8px 0' }}>No experience yet. Click + to add one.</div>
+          ) : cv.experience.map((exp, idx) => (
+            <div key={exp.id} style={{ background: '#f8fafc', borderRadius: '10px', padding: '14px', marginBottom: '10px', position:'relative' }}>
+              <RemoveBtn onClick={() => removeExperience(idx)} />
               <Grid>
                 <Inp label="Role" value={exp.role} onChange={v => { const ne=[...cv.experience]; ne[idx]={...exp,role:v}; updateCV({experience:ne}) }} />
                 <Inp label="Company" value={exp.company} onChange={v => { const ne=[...cv.experience]; ne[idx]={...exp,company:v}; updateCV({experience:ne}) }} />
@@ -1374,10 +1398,14 @@ function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<Gen
           ))}
         </Sec>
       )}
-      {cv.education?.length > 0 && (
-        <Sec title="Education">
-          {cv.education.map((ed, idx) => (
-            <div key={ed.id} style={{ background: '#f8fafc', borderRadius: '10px', padding: '14px', marginBottom: '10px' }}>
+
+      {!cv.coverLetterBody && (
+        <Sec title="Education" action={<AddBtn onClick={addEducation}>+ Add Education</AddBtn>}>
+          {cv.education?.length === 0 || !cv.education ? (
+            <div style={{ fontSize:'13px', color:'#94a3b8', fontStyle:'italic', padding:'8px 0' }}>No education yet. Click + to add one.</div>
+          ) : cv.education.map((ed, idx) => (
+            <div key={ed.id} style={{ background: '#f8fafc', borderRadius: '10px', padding: '14px', marginBottom: '10px', position:'relative' }}>
+              <RemoveBtn onClick={() => removeEducation(idx)} />
               <Grid>
                 <Inp label="Qualification" value={ed.qualification} onChange={v => { const ne=[...cv.education]; ne[idx]={...ed,qualification:v}; updateCV({education:ne}) }} />
                 <Inp label="Field" value={ed.field} onChange={v => { const ne=[...cv.education]; ne[idx]={...ed,field:v}; updateCV({education:ne}) }} />
@@ -1390,18 +1418,48 @@ function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<Gen
           ))}
         </Sec>
       )}
-      {cv.skills?.length > 0 && (
+
+      {cv.skills && (
         <Sec title="Skills">
           <TA value={cv.skills.join(', ')} rows={3}
             onChange={v => updateCV({ skills: v.split(',').map(s=>s.trim()).filter(Boolean) })} />
+          <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'6px' }}>Separate skills with commas</div>
         </Sec>
       )}
+
+      {cv.languages !== undefined && (
+        <Sec title="Languages">
+          <TA value={(cv.languages || []).join(', ')} rows={2}
+            onChange={v => updateCV({ languages: v.split(',').map(s=>s.trim()).filter(Boolean) })} />
+          <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'6px' }}>Separate languages with commas</div>
+        </Sec>
+      )}
+
+      <Sec title="Additional Information (optional)">
+        <TA value={cv.additionalInfo || ''} rows={3}
+          onChange={v => updateCV({ additionalInfo: v })} />
+        <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'6px' }}>Certifications, NSS, awards, hobbies, references, etc.</div>
+      </Sec>
     </div>
   )
 }
 
-function Sec({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div style={{ background:'white', border:'1px solid #e2e8f0', borderRadius:'14px', padding:'20px' }}><div style={{ fontSize:'12px', fontWeight:600, letterSpacing:'1.5px', textTransform:'uppercase', color:'#0d9488', marginBottom:'12px' }}>{title}</div>{children}</div>
+function Sec({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div style={{ background:'white', border:'1px solid #e2e8f0', borderRadius:'14px', padding:'20px' }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px' }}>
+        <div style={{ fontSize:'12px', fontWeight:600, letterSpacing:'1.5px', textTransform:'uppercase', color:'#0d9488' }}>{title}</div>
+        {action}
+      </div>
+      {children}
+    </div>
+  )
+}
+function AddBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+  return <button onClick={onClick} style={{ padding:'6px 12px', background:'#f0fdf9', color:'#0d9488', border:'1px solid #5eead4', borderRadius:'8px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>{children}</button>
+}
+function RemoveBtn({ onClick }: { onClick: () => void }) {
+  return <button onClick={onClick} style={{ position:'absolute', top:'10px', right:'10px', width:'24px', height:'24px', borderRadius:'50%', background:'#fee2e2', color:'#dc2626', border:'none', cursor:'pointer', fontSize:'14px', fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }} title="Remove">×</button>
 }
 function Grid({ children }: { children: React.ReactNode }) {
   return <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:'12px' }}>{children}</div>
