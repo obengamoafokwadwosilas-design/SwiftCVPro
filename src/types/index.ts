@@ -11,6 +11,9 @@ export type TemplateId =
   | 'newyork'
   | 'atelier'
   | 'noir'
+  | 'europass'
+  | 'meridian'
+  | 'graduate'
 
 export type ExportFormat = 'docx' | 'pdf'
 
