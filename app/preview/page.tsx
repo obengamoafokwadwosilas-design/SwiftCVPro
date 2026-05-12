@@ -4,17 +4,23 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { GeneratedCV, TemplateId, ExportFormat } from '@/types'
 
-const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string }[] = [
-  { id: 'london',   name: 'London',    tag: 'Editorial · Warm Serif',    color: '#6B4F3A' },
-  { id: 'nordic',   name: 'Nordic',    tag: 'Clean · Light · Modern',    color: '#2563eb' },
-  { id: 'newyork',  name: 'New York',  tag: 'Bold Serif · Crimson',      color: '#b22222' },
-  { id: 'atelier',  name: 'Atelier',   tag: 'Playfair · Timeline',       color: '#3b0a45' },
-  { id: 'noir',     name: 'Noir',      tag: 'Condensed · Stark · Black', color: '#111111' },
-  { id: 'academic', name: 'Academic',  tag: 'Scholarly · Structured',    color: '#374151' },
+// ══════════════════════════════════════════════════════
+// TEMPLATE LIBRARY — 9 templates, 2 format tiers
+// ══════════════════════════════════════════════════════
+type Formats = 'both' | 'pdf'
+const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; formats: Formats }[] = [
+  { id: 'london',   name: 'London',       tag: 'Editorial · Warm Serif',     color: '#6B4F3A', formats: 'both' },
+  { id: 'nordic',   name: 'Nordic',       tag: 'Clean · Light · Modern',     color: '#2563eb', formats: 'both' },
+  { id: 'academic', name: 'Academic',     tag: 'Scholarly · Structured',     color: '#374151', formats: 'both' },
+  { id: 'europass', name: 'Europass Pro', tag: 'Two-Column · International', color: '#1e3a8a', formats: 'both' },
+  { id: 'newyork',  name: 'New York',     tag: 'Bold Serif · Crimson',       color: '#a01e1e', formats: 'pdf'  },
+  { id: 'atelier',  name: 'Atelier',      tag: 'Playfair · Timeline',        color: '#3b0a45', formats: 'pdf'  },
+  { id: 'noir',     name: 'Noir',         tag: 'Condensed · Stark · Black',  color: '#111111', formats: 'pdf'  },
+  { id: 'meridian', name: 'Meridian',     tag: 'Navy Sidebar · Gold',        color: '#0a1f44', formats: 'pdf'  },
+  { id: 'graduate', name: 'Graduate',     tag: 'Optimistic · Fresh',         color: '#dc6e3a', formats: 'pdf'  },
 ]
 
-// Google Fonts used across templates — loaded in print iframe
-const PRINT_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Source+Sans+3:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400;1,700&family=Cormorant+Garamond:wght@400;500;600;700&family=Oswald:wght@300;400;500;600;700&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap'
+const PRINT_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Source+Sans+3:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Cormorant+Garamond:wght@400;500;600;700&family=Oswald:wght@300;400;500;600;700&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap'
 
 export default function PreviewPage() {
   const router = useRouter()
@@ -24,6 +30,7 @@ export default function PreviewPage() {
   const [activeTab, setActiveTab] = useState<'preview' | 'edit'>('preview')
   const [downloading, setDownloading] = useState<ExportFormat | null>(null)
   const [isCoverLetter, setIsCoverLetter] = useState(false)
+  const [pdfOnlyModal, setPdfOnlyModal] = useState(false)
 
   useEffect(() => {
     const stored = sessionStorage.getItem('swiftcv_cv')
@@ -49,11 +56,13 @@ export default function PreviewPage() {
     sessionStorage.setItem('swiftcv_cv', JSON.stringify(updated))
   }
 
-  // ─────────────────────────────────────────────
-  // DOWNLOAD — Word still goes to API; PDF is now client-side print
-  // ─────────────────────────────────────────────
   async function handleDownloadDocx() {
     if (!cv) return
+    const tpl = TEMPLATES.find(t => t.id === template)
+    if (tpl?.formats === 'pdf') {
+      setPdfOnlyModal(true)
+      return
+    }
     setDownloading('docx')
     try {
       const res = await fetch('/api/export-docx', {
@@ -103,16 +112,13 @@ export default function PreviewPage() {
       </head><body>${previewEl.outerHTML}</body></html>`)
       doc.close()
 
-      // Wait for fonts to be ready, then a short paint pause
       const w = iframe.contentWindow
-      try {
-        await (doc as any).fonts?.ready
-      } catch {}
-      await new Promise(r => setTimeout(r, 400))
+      try { await (doc as any).fonts?.ready } catch {}
+      await new Promise(r => setTimeout(r, 500))
 
       const cleanup = () => { try { document.body.removeChild(iframe) } catch {} }
       w?.addEventListener('afterprint', cleanup)
-      setTimeout(cleanup, 60000) // safety net
+      setTimeout(cleanup, 60000)
 
       w?.focus()
       w?.print()
@@ -140,9 +146,10 @@ export default function PreviewPage() {
     </div>
   )
 
+  const currentTpl = TEMPLATES.find(t => t.id === template)
+
   return (
     <div style={{ minHeight:'100vh', background:'#f1f5f9' }}>
-      {/* NAV */}
       <nav style={{ background:'#0a0f1a', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap:'wrap', gap:'10px' }}>
         <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', fontWeight:600, color:'white' }}>Swift<span style={{ color:'#5eead4' }}>CV</span>Pro</div>
         <div style={{ display:'flex', background:'rgba(255,255,255,0.08)', borderRadius:'50px', padding:'3px', gap:'2px' }}>
@@ -152,38 +159,53 @@ export default function PreviewPage() {
         </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
           <button onClick={handleNewCV} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>+ New CV</button>
-          <button onClick={handleDownloadDocx} disabled={!!downloading} style={{ padding:'8px 16px', background:'rgba(255,255,255,0.1)', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>{downloading==='docx'?'...':'↓ Word'}</button>
+          <button onClick={handleDownloadDocx} disabled={!!downloading} style={{ padding:'8px 16px', background: currentTpl?.formats === 'pdf' ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)', color: currentTpl?.formats === 'pdf' ? 'rgba(255,255,255,0.5)' : 'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>{downloading==='docx'?'...':'↓ Word'}</button>
           <button onClick={handleDownloadPdf} disabled={!!downloading} style={{ padding:'8px 16px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', boxShadow:'0 4px 14px rgba(13,148,136,0.3)' }}>{downloading==='pdf'?'...':'↓ PDF'}</button>
         </div>
       </nav>
 
-      <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '220px 1fr', minHeight:'calc(100vh - 57px)' }}>
-        {/* SIDEBAR */}
+      <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '240px 1fr', minHeight:'calc(100vh - 57px)' }}>
         {!isCoverLetter && (
           <div style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'20px', overflowY:'auto' }}>
             <div style={{ fontSize:'10px', fontWeight:600, letterSpacing:'1.5px', textTransform:'uppercase', color:'#94a3b8', marginBottom:'14px' }}>Choose Template</div>
             {TEMPLATES.map(tpl => (
-              <div key={tpl.id} onClick={() => setTemplate(tpl.id)} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'12px', borderRadius:'10px', border:template===tpl.id?'2px solid #0d9488':'2px solid transparent', background:template===tpl.id?'#f0fdf9':'none', cursor:'pointer', marginBottom:'6px', transition:'all 0.2s' }}>
-                <div style={{ width:'32px', height:'42px', borderRadius:'6px', background:tpl.color, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div key={tpl.id} onClick={() => setTemplate(tpl.id)} style={{ display:'flex', alignItems:'flex-start', gap:'10px', padding:'12px', borderRadius:'10px', border:template===tpl.id?'2px solid #0d9488':'2px solid transparent', background:template===tpl.id?'#f0fdf9':'none', cursor:'pointer', marginBottom:'6px', transition:'all 0.2s' }}>
+                <div style={{ width:'32px', height:'42px', borderRadius:'6px', background:tpl.color, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', marginTop:'2px' }}>
                   <div style={{ width:'20px', height:'2px', background:'rgba(255,255,255,0.6)', borderRadius:'1px', boxShadow:'0 3px 0 rgba(255,255,255,0.4), 0 6px 0 rgba(255,255,255,0.2)' }} />
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:'13px', fontWeight:600, color:template===tpl.id?'#0d9488':'#0a0f1a' }}>{tpl.name}</div>
-                  <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>{tpl.tag}</div>
+                  <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px', marginBottom:'5px' }}>{tpl.tag}</div>
+                  <div style={{
+                    display:'inline-block',
+                    fontSize:'8.5px',
+                    fontWeight:700,
+                    letterSpacing:'0.6px',
+                    padding:'2px 6px',
+                    borderRadius:'4px',
+                    background: tpl.formats === 'both' ? '#d1fae5' : '#fef3c7',
+                    color:      tpl.formats === 'both' ? '#065f46' : '#92400e'
+                  }}>
+                    {tpl.formats === 'both' ? 'PDF + WORD' : 'PDF ONLY'}
+                  </div>
                 </div>
-                {template===tpl.id && <span style={{ color:'#0d9488', fontSize:'14px', fontWeight:700 }}>✓</span>}
+                {template===tpl.id && <span style={{ color:'#0d9488', fontSize:'14px', fontWeight:700, marginTop:'2px' }}>✓</span>}
               </div>
             ))}
             <div style={{ background:'#f8fafc', borderRadius:'10px', border:'1px solid #f1f5f9', padding:'14px', marginTop:'14px' }}>
               <div style={{ fontSize:'11px', fontWeight:600, color:'#0a0f1a', marginBottom:'8px', textTransform:'uppercase', letterSpacing:'1px' }}>Tips</div>
-              {['Click each template to compare','Edit tab to change content','PDF is highest quality','Word compatible with all systems'].map(t => (
+              {[
+                'Click any template to compare',
+                'PDF + Word: download in either format',
+                'PDF only: rich design, PDF download',
+                'Edit tab to refine your content',
+              ].map(t => (
                 <div key={t} style={{ fontSize:'11.5px', color:'#64748b', marginBottom:'6px', lineHeight:1.5, fontWeight:300 }}>· {t}</div>
               ))}
             </div>
           </div>
         )}
 
-        {/* MAIN */}
         <div style={{ padding:'24px', overflowY:'auto', background:'#f1f5f9' }}>
           {activeTab === 'preview' ? (
             <div style={{ background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'hidden', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', maxWidth:'760px', margin:'0 auto' }}>
@@ -196,13 +218,36 @@ export default function PreviewPage() {
           )}
         </div>
       </div>
+
+      {pdfOnlyModal && (
+        <div onClick={() => setPdfOnlyModal(false)} style={{ position:'fixed', inset:0, background:'rgba(10,15,26,0.7)', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', backdropFilter:'blur(4px)' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'18px', maxWidth:'460px', width:'100%', padding:'30px', boxShadow:'0 25px 80px rgba(0,0,0,0.4)', fontFamily:"'DM Sans', sans-serif" }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'14px' }}>
+              <div style={{ width:'40px', height:'40px', borderRadius:'10px', background:'#fef3c7', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'20px' }}>📄</div>
+              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'22px', fontWeight:600, color:'#0a0f1a' }}>PDF Only Template</div>
+            </div>
+            <div style={{ fontSize:'14px', color:'#475569', lineHeight:1.65, marginBottom:'22px' }}>
+              <strong style={{ color:'#0a0f1a' }}>{currentTpl?.name}</strong> uses rich visual design that Word can&apos;t reproduce. Download as PDF for the full look, or switch to a template that supports both formats:
+            </div>
+            <div style={{ fontSize:'10.5px', color:'#64748b', textTransform:'uppercase', letterSpacing:'1.5px', fontWeight:700, marginBottom:'8px' }}>Templates with PDF + Word</div>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:'6px', marginBottom:'24px' }}>
+              {TEMPLATES.filter(t => t.formats === 'both').map(t => (
+                <button key={t.id} onClick={() => { setTemplate(t.id); setPdfOnlyModal(false) }} style={{ padding:'7px 14px', borderRadius:'50px', border:'1.5px solid #e2e8f0', background:'white', cursor:'pointer', fontSize:'12px', fontWeight:600, color:'#0a0f1a', display:'flex', alignItems:'center', gap:'6px' }}>
+                  <span style={{ width:'8px', height:'8px', borderRadius:'2px', background:t.color }} />{t.name}
+                </button>
+              ))}
+            </div>
+            <div style={{ display:'flex', gap:'8px' }}>
+              <button onClick={() => setPdfOnlyModal(false)} style={{ flex:1, padding:'12px', background:'#f1f5f9', color:'#0a0f1a', border:'none', borderRadius:'10px', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>Cancel</button>
+              <button onClick={() => { setPdfOnlyModal(false); handleDownloadPdf() }} style={{ flex:1, padding:'12px', background:'#0d9488', color:'white', border:'none', borderRadius:'10px', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>↓ Download PDF</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-// ══════════════════════════════════════════════════════
-// CONTACT LINE — shared across templates
-// ══════════════════════════════════════════════════════
 function ContactLine({ cv, color = '#5a5a5a', sep = 18 }: { cv: GeneratedCV; color?: string; sep?: number }) {
   const items = [
     cv.email && <span key="e" style={{ color, marginRight: sep, fontSize: '10pt', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
@@ -221,21 +266,23 @@ function ContactLine({ cv, color = '#5a5a5a', sep = 18 }: { cv: GeneratedCV; col
   return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 0' }}>{items}</div>
 }
 
-// ══════════════════════════════════════════════════════
-// TEMPLATE DISPATCHER
-// ══════════════════════════════════════════════════════
+function monogram(fullName: string) {
+  return fullName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 3).join('·')
+}
+
 function CVPreview({ cv, templateId }: { cv: GeneratedCV; templateId: TemplateId }) {
   if (templateId === 'nordic')   return <NordicTemplate cv={cv} />
+  if (templateId === 'academic') return <AcademicTemplate cv={cv} />
+  if (templateId === 'europass') return <EuropassTemplate cv={cv} />
   if (templateId === 'newyork')  return <NewYorkTemplate cv={cv} />
   if (templateId === 'atelier')  return <AtelierTemplate cv={cv} />
   if (templateId === 'noir')     return <NoirTemplate cv={cv} />
-  if (templateId === 'academic') return <AcademicTemplate cv={cv} />
-  return <LondonTemplate cv={cv} />  // default
+  if (templateId === 'meridian') return <MeridianTemplate cv={cv} />
+  if (templateId === 'graduate') return <GraduateTemplate cv={cv} />
+  return <LondonTemplate cv={cv} />
 }
 
-// ══════════════════════════════════════════════════════
-// 1. LONDON — Editorial · Warm Serif (Crimson Text on cream)
-// ══════════════════════════════════════════════════════
+// 1. LONDON
 function LondonTemplate({ cv }: { cv: GeneratedCV }) {
   const isLetter = !!cv.coverLetterBody
   return (
@@ -245,12 +292,10 @@ function LondonTemplate({ cv }: { cv: GeneratedCV }) {
         {cv.jobTitle && <div style={{ fontSize: '16px', fontStyle: 'italic', color: '#5a5a5a', marginBottom: '12px' }}>{cv.jobTitle}</div>}
         <ContactLine cv={cv} color="#5a5a5a" />
       </div>
-
       {isLetter
         ? cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ fontSize: '10.5pt', lineHeight: 1.75, color: '#2a2a2a', marginBottom: '14px', textAlign: 'justify', fontFamily: "'Source Sans 3', sans-serif" }}>{p}</p>)
         : <>
           {cv.summary && <div style={{ marginBottom: '20px' }}><p style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: '10.5pt', lineHeight: 1.7, color: '#3a3a3a', textAlign: 'justify' }}>{cv.summary}</p></div>}
-
           {cv.experience?.length > 0 && (
             <div style={{ marginBottom: '20px', paddingTop: '16px', borderTop: '1px solid #d4cfc7' }}>
               <div style={{ fontSize: '18px', fontWeight: 700, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>Experience</div>
@@ -268,7 +313,6 @@ function LondonTemplate({ cv }: { cv: GeneratedCV }) {
               ))}
             </div>
           )}
-
           {cv.education?.length > 0 && (
             <div style={{ marginBottom: '20px', paddingTop: '16px', borderTop: '1px solid #d4cfc7' }}>
               <div style={{ fontSize: '18px', fontWeight: 700, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '14px' }}>Education</div>
@@ -283,21 +327,18 @@ function LondonTemplate({ cv }: { cv: GeneratedCV }) {
               ))}
             </div>
           )}
-
           {cv.skills?.length > 0 && (
             <div style={{ paddingTop: '16px', borderTop: '1px solid #d4cfc7', marginBottom: '20px' }}>
               <div style={{ fontSize: '18px', fontWeight: 700, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Skills</div>
               <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: '10.5pt', color: '#3a3a3a', lineHeight: 1.8 }}>{cv.skills.join('  ·  ')}</div>
             </div>
           )}
-
           {cv.languages && cv.languages.length > 0 && (
             <div style={{ paddingTop: '16px', borderTop: '1px solid #d4cfc7', marginBottom: '20px' }}>
               <div style={{ fontSize: '18px', fontWeight: 700, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Languages</div>
               <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: '10.5pt', color: '#3a3a3a', lineHeight: 1.8 }}>{cv.languages!.join('  ·  ')}</div>
             </div>
           )}
-
           {cv.additionalInfo && (
             <div style={{ paddingTop: '16px', borderTop: '1px solid #d4cfc7' }}>
               <div style={{ fontSize: '18px', fontWeight: 700, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>Additional Information</div>
@@ -310,9 +351,7 @@ function LondonTemplate({ cv }: { cv: GeneratedCV }) {
   )
 }
 
-// ══════════════════════════════════════════════════════
-// 2. NORDIC — Clean · Light · Modern (Inter 300, blue accent)
-// ══════════════════════════════════════════════════════
+// 2. NORDIC
 function NordicTemplate({ cv }: { cv: GeneratedCV }) {
   const isLetter = !!cv.coverLetterBody
   const BLUE = '#2563eb'
@@ -326,12 +365,10 @@ function NordicTemplate({ cv }: { cv: GeneratedCV }) {
         {cv.jobTitle && <div style={{ fontSize: '12pt', fontWeight: 400, color: '#64748b', marginBottom: '14px' }}>{cv.jobTitle}</div>}
         <ContactLine cv={cv} color="#475569" />
       </div>
-
       {isLetter
         ? cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ fontSize: '10pt', lineHeight: 1.8, color: '#1e293b', fontWeight: 300, marginBottom: '14px' }}>{p}</p>)
         : <>
           {cv.summary && <><SH>Profile</SH><p style={{ fontSize: '10pt', lineHeight: 1.75, color: '#334155', fontWeight: 300 }}>{cv.summary}</p></>}
-
           {cv.experience?.length > 0 && <><SH>Experience</SH>{cv.experience.map(e => (
             <div key={e.id} style={{ marginBottom: '18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', marginBottom: '2px' }}>
@@ -348,7 +385,6 @@ function NordicTemplate({ cv }: { cv: GeneratedCV }) {
               </ul>
             </div>
           ))}</>}
-
           {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
             <div key={ed.id} style={{ marginBottom: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
@@ -358,7 +394,6 @@ function NordicTemplate({ cv }: { cv: GeneratedCV }) {
               <div style={{ fontSize: '10pt', color: BLUE, fontWeight: 300 }}>{ed.institution}{ed.grade ? ` · ${ed.grade}` : ''}</div>
             </div>
           ))}</>}
-
           {cv.skills?.length > 0 && <><SH>Skills</SH><div style={{ fontSize: '10pt', color: '#334155', lineHeight: 1.85, fontWeight: 300 }}>{cv.skills.join('  ·  ')}</div></>}
           {cv.languages && cv.languages.length > 0 && <><SH>Languages</SH><div style={{ fontSize: '10pt', color: '#334155', lineHeight: 1.85, fontWeight: 300 }}>{cv.languages!.join('  ·  ')}</div></>}
           {cv.additionalInfo && <><SH>Additional</SH><div style={{ fontSize: '10pt', color: '#334155', lineHeight: 1.85, fontWeight: 300 }}>{cv.additionalInfo}</div></>}
@@ -368,9 +403,151 @@ function NordicTemplate({ cv }: { cv: GeneratedCV }) {
   )
 }
 
-// ══════════════════════════════════════════════════════
-// 3. NEW YORK — Bold Serif · Crimson (WSJ-style authority)
-// ══════════════════════════════════════════════════════
+// 3. ACADEMIC
+function AcademicTemplate({ cv }: { cv: GeneratedCV }) {
+  const SH = ({ children }: { children: string }) => (
+    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: '10pt', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '2px', color: '#1a1a1a', borderBottom: '1px solid #1a1a1a', paddingBottom: '3px', margin: '18px 0 10px' }}>{children}</div>
+  )
+  return (
+    <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.65, color: '#1a1a1a', background: '#ffffff', padding: '40px 48px' }}>
+      <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: '18px', marginBottom: '22px' }}>
+        <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '30px', fontWeight: 700, color: '#0a0a0a', marginBottom: '5px' }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '14px', fontStyle: 'italic', color: '#4a4a4a', marginBottom: '10px' }}>{cv.jobTitle}</div>}
+        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}><ContactLine cv={cv} color="#555" /></div>
+      </div>
+      {cv.summary && <><SH>Research Profile</SH><p style={{ fontSize: '10.5pt', lineHeight: 1.7, textAlign: 'justify' }}>{cv.summary}</p></>}
+      {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
+        <div key={ed.id} style={{ marginBottom: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
+            <span style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '14px', fontWeight: 700 }}>{ed.qualification} in {ed.field}</span>
+            <span style={{ fontSize: '9pt', color: '#777', whiteSpace: 'nowrap', fontStyle: 'italic' }}>{ed.startYear} – {ed.endYear}</span>
+          </div>
+          <div style={{ fontSize: '10.5pt', fontStyle: 'italic', color: '#5a5a5a' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
+        </div>
+      ))}</>}
+      {cv.experience?.length > 0 && <><SH>Academic & Professional Experience</SH>{cv.experience.map(e => (
+        <div key={e.id} style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
+            <span style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '14px', fontWeight: 700 }}>{e.role}</span>
+            <span style={{ fontSize: '9pt', color: '#777', whiteSpace: 'nowrap', fontStyle: 'italic' }}>{e.startDate} – {e.endDate}</span>
+          </div>
+          <div style={{ fontSize: '10.5pt', fontStyle: 'italic', color: '#4a4a4a', marginBottom: '5px' }}>{e.company}</div>
+          <ul style={{ paddingLeft: '16px', margin: 0 }}>
+            {e.bullets.map((b, i) => <li key={i} style={{ fontSize: '10.5pt', lineHeight: 1.6, marginBottom: '3px' }}>{b}</li>)}
+          </ul>
+        </div>
+      ))}</>}
+      {cv.publications && cv.publications.length > 0 && <><SH>Publications</SH><ul style={{ paddingLeft: '16px', margin: 0 }}>{cv.publications.map((p, i) => <li key={i} style={{ fontSize: '10.5pt', lineHeight: 1.6, marginBottom: '4px' }}>{p}</li>)}</ul></>}
+      {cv.skills?.length > 0 && <><SH>Research Methods & Skills</SH><div style={{ fontSize: '10.5pt', lineHeight: 1.8 }}>{cv.skills.join('  ·  ')}</div></>}
+      {cv.languages && cv.languages.length > 0 && <><SH>Languages</SH><div style={{ fontSize: '10.5pt', lineHeight: 1.8 }}>{cv.languages!.join('  ·  ')}</div></>}
+      {cv.additionalInfo && <><SH>Honours, Awards & Memberships</SH><div style={{ fontSize: '10.5pt', lineHeight: 1.8 }}>{cv.additionalInfo}</div></>}
+    </div>
+  )
+}
+
+// 4. EUROPASS PRO
+function EuropassTemplate({ cv }: { cv: GeneratedCV }) {
+  const isLetter = !!cv.coverLetterBody
+  const NAVY = '#1e3a8a'
+
+  if (isLetter) {
+    return (
+      <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.7, color: '#1e293b', padding: '40px 48px', background: 'white' }}>
+        <div style={{ marginBottom: '24px', borderBottom: `3px solid ${NAVY}`, paddingBottom: '16px' }}>
+          <div style={{ fontSize: '30pt', fontWeight: 700, color: NAVY }}>{cv.fullName}</div>
+          {cv.jobTitle && <div style={{ fontSize: '13pt', color: '#475569', marginTop: '4px' }}>{cv.jobTitle}</div>}
+          <div style={{ marginTop: '10px' }}><ContactLine cv={cv} color="#475569" /></div>
+        </div>
+        {cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ marginBottom: '14px', textAlign: 'justify' }}>{p}</p>)}
+      </div>
+    )
+  }
+
+  const SidebarH = ({ children }: { children: string }) => (
+    <div style={{ fontSize: '9pt', fontWeight: 700, color: 'white', textTransform: 'uppercase', letterSpacing: '2.5px', borderBottom: '1px solid rgba(255,255,255,0.3)', paddingBottom: '5px', marginBottom: '10px', marginTop: '22px' }}>{children}</div>
+  )
+  const MainH = ({ children }: { children: string }) => (
+    <div style={{ fontSize: '11pt', fontWeight: 700, color: NAVY, textTransform: 'uppercase', letterSpacing: '2.5px', borderBottom: `2px solid ${NAVY}`, paddingBottom: '4px', marginBottom: '12px', marginTop: '22px' }}>{children}</div>
+  )
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '34% 66%', minHeight: '297mm', fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif" }}>
+      <div style={{ background: NAVY, color: 'white', padding: '40px 24px' }}>
+        <div style={{ display: 'inline-block', border: '1.5px solid rgba(255,255,255,0.5)', padding: '5px 12px', fontSize: '10pt', letterSpacing: '4px', fontWeight: 600, marginBottom: '18px' }}>
+          {monogram(cv.fullName)}
+        </div>
+        <div style={{ fontSize: '22pt', fontWeight: 700, lineHeight: 1.1, marginBottom: '6px' }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ fontSize: '11pt', color: 'rgba(255,255,255,0.85)', fontStyle: 'italic', marginBottom: '6px' }}>{cv.jobTitle}</div>}
+
+        <SidebarH>Contact</SidebarH>
+        <div style={{ fontSize: '9.5pt', lineHeight: 1.65 }}>
+          {cv.email && <div style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{cv.email}</div>}
+          {cv.phone && <div style={{ marginBottom: '5px' }}>{cv.phone}</div>}
+          {cv.location && <div style={{ marginBottom: '5px' }}>{cv.location}</div>}
+          {cv.linkedin && <div style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{cv.linkedin}</div>}
+        </div>
+
+        {cv.skills?.length > 0 && (<>
+          <SidebarH>Skills</SidebarH>
+          <div style={{ fontSize: '9.5pt', lineHeight: 1.7 }}>
+            {cv.skills.map((s, i) => <div key={i} style={{ paddingLeft: '12px', position: 'relative', marginBottom: '4px' }}>
+              <span style={{ position: 'absolute', left: 0, color: 'rgba(255,255,255,0.6)' }}>▪</span>{s}
+            </div>)}
+          </div>
+        </>)}
+
+        {cv.languages && cv.languages.length > 0 && (<>
+          <SidebarH>Languages</SidebarH>
+          <div style={{ fontSize: '9.5pt', lineHeight: 1.7 }}>
+            {cv.languages!.map((l, i) => <div key={i} style={{ paddingLeft: '12px', position: 'relative', marginBottom: '4px' }}>
+              <span style={{ position: 'absolute', left: 0, color: 'rgba(255,255,255,0.6)' }}>▪</span>{l}
+            </div>)}
+          </div>
+        </>)}
+      </div>
+
+      <div style={{ padding: '40px 36px', background: 'white' }}>
+        {cv.summary && (<>
+          <MainH>Profile</MainH>
+          <p style={{ fontSize: '10.5pt', lineHeight: 1.7, color: '#1e293b', textAlign: 'justify' }}>{cv.summary}</p>
+        </>)}
+        {cv.experience?.length > 0 && (<>
+          <MainH>Work Experience</MainH>
+          {cv.experience.map(e => (
+            <div key={e.id} style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
+                <span style={{ fontSize: '12pt', fontWeight: 700, color: '#0f172a' }}>{e.role}</span>
+                <span style={{ fontSize: '9pt', color: NAVY, fontWeight: 600, whiteSpace: 'nowrap', letterSpacing: '0.5px' }}>{e.startDate} – {e.endDate}</span>
+              </div>
+              <div style={{ fontSize: '10.5pt', color: NAVY, fontStyle: 'italic', marginBottom: '6px' }}>{e.company}</div>
+              <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                {e.bullets.map((b, i) => <li key={i} style={{ fontSize: '10pt', lineHeight: 1.6, color: '#334155', marginBottom: '3px' }}>{b}</li>)}
+              </ul>
+            </div>
+          ))}
+        </>)}
+        {cv.education?.length > 0 && (<>
+          <MainH>Education</MainH>
+          {cv.education.map(ed => (
+            <div key={ed.id} style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
+                <span style={{ fontSize: '11pt', fontWeight: 700, color: '#0f172a' }}>{ed.qualification} in {ed.field}</span>
+                <span style={{ fontSize: '9pt', color: NAVY, fontWeight: 600, whiteSpace: 'nowrap', letterSpacing: '0.5px' }}>{ed.startYear} – {ed.endYear}</span>
+              </div>
+              <div style={{ fontSize: '10.5pt', color: '#475569', fontStyle: 'italic' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
+            </div>
+          ))}
+        </>)}
+        {cv.additionalInfo && (<>
+          <MainH>Additional</MainH>
+          <div style={{ fontSize: '10pt', color: '#334155', lineHeight: 1.7 }}>{cv.additionalInfo}</div>
+        </>)}
+      </div>
+    </div>
+  )
+}
+
+// 5. NEW YORK
 function NewYorkTemplate({ cv }: { cv: GeneratedCV }) {
   const isLetter = !!cv.coverLetterBody
   const CRIMSON = '#a01e1e'
@@ -380,19 +557,16 @@ function NewYorkTemplate({ cv }: { cv: GeneratedCV }) {
   )
   return (
     <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.6, color: INK, background: '#ffffff', padding: '0' }}>
-      {/* Header with crimson rule */}
       <div style={{ padding: '40px 48px 20px', borderBottom: `4px double ${CRIMSON}` }}>
         <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '40px', fontWeight: 900, color: INK, letterSpacing: '-1px', lineHeight: 1, marginBottom: '6px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontStyle: 'italic', fontSize: '15pt', color: CRIMSON, marginBottom: '14px', fontWeight: 500 }}>{cv.jobTitle}</div>}
         <ContactLine cv={cv} color="#444" />
       </div>
-
       <div style={{ padding: '6px 48px 40px' }}>
         {isLetter
           ? cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ fontSize: '10.5pt', lineHeight: 1.75, color: INK, marginBottom: '14px', textAlign: 'justify' }}>{p}</p>)
           : <>
             {cv.summary && <><SH>Profile</SH><p style={{ fontSize: '10.5pt', lineHeight: 1.7, color: '#222', textAlign: 'justify' }}>{cv.summary}</p></>}
-
             {cv.experience?.length > 0 && <><SH>Experience</SH>{cv.experience.map(e => (
               <div key={e.id} style={{ marginBottom: '18px', paddingLeft: '14px', borderLeft: `3px solid ${CRIMSON}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
@@ -405,7 +579,6 @@ function NewYorkTemplate({ cv }: { cv: GeneratedCV }) {
                 </ul>
               </div>
             ))}</>}
-
             {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
               <div key={ed.id} style={{ marginBottom: '12px', paddingLeft: '14px', borderLeft: `3px solid ${CRIMSON}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
@@ -415,7 +588,6 @@ function NewYorkTemplate({ cv }: { cv: GeneratedCV }) {
                 <div style={{ fontSize: '10.5pt', color: '#444', fontStyle: 'italic' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
               </div>
             ))}</>}
-
             {cv.skills?.length > 0 && <><SH>Skills</SH><div style={{ fontSize: '10.5pt', color: '#222', lineHeight: 1.8 }}>{cv.skills.join('  ·  ')}</div></>}
             {cv.languages && cv.languages.length > 0 && <><SH>Languages</SH><div style={{ fontSize: '10.5pt', color: '#222', lineHeight: 1.8 }}>{cv.languages!.join('  ·  ')}</div></>}
             {cv.additionalInfo && <><SH>Additional</SH><div style={{ fontSize: '10.5pt', color: '#222', lineHeight: 1.8 }}>{cv.additionalInfo}</div></>}
@@ -426,9 +598,7 @@ function NewYorkTemplate({ cv }: { cv: GeneratedCV }) {
   )
 }
 
-// ══════════════════════════════════════════════════════
-// 4. ATELIER — Playfair · Timeline (plum + dotted timeline)
-// ══════════════════════════════════════════════════════
+// 6. ATELIER
 function AtelierTemplate({ cv }: { cv: GeneratedCV }) {
   const isLetter = !!cv.coverLetterBody
   const PLUM = '#3b0a45'
@@ -441,24 +611,21 @@ function AtelierTemplate({ cv }: { cv: GeneratedCV }) {
   )
   return (
     <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '11pt', lineHeight: 1.65, color: '#2a1a2e', background: '#fdfcf9', padding: '40px 48px' }}>
-      {/* Monogram + name */}
       <div style={{ marginBottom: '26px' }}>
         <div style={{ display: 'inline-block', border: `1.5px solid ${PLUM}`, padding: '4px 10px', fontFamily: "'Playfair Display', serif", fontSize: '10pt', color: PLUM, letterSpacing: '4px', fontWeight: 600, marginBottom: '14px' }}>
-          {cv.fullName.split(' ').map(n => n[0]).filter(Boolean).slice(0, 3).join('·')}
+          {monogram(cv.fullName)}
         </div>
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '40px', fontWeight: 700, fontStyle: 'italic', color: PLUM, letterSpacing: '-0.5px', lineHeight: 1.05, marginBottom: '4px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '13pt', color: PLUM_SOFT, marginBottom: '12px', fontStyle: 'italic' }}>{cv.jobTitle}</div>}
         <ContactLine cv={cv} color="#5a4a5e" />
       </div>
-
       {isLetter
         ? cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ fontSize: '11pt', lineHeight: 1.85, color: '#2a1a2e', marginBottom: '14px', textAlign: 'justify' }}>{p}</p>)
         : <>
           {cv.summary && <><SH>Profile</SH><p style={{ fontSize: '11pt', lineHeight: 1.8, color: '#3a2a3e', textAlign: 'justify', fontStyle: 'italic' }}>{cv.summary}</p></>}
-
           {cv.experience?.length > 0 && <><SH>Experience</SH>
             <div style={{ position: 'relative', paddingLeft: '24px' }}>
-              <div style={{ position: 'absolute', left: '7px', top: '6px', bottom: '6px', width: '1px', background: PLUM_SOFT, borderLeft: `1px dashed ${PLUM_SOFT}` }} />
+              <div style={{ position: 'absolute', left: '7px', top: '6px', bottom: '6px', width: '0', borderLeft: `1px dashed ${PLUM_SOFT}` }} />
               {cv.experience.map(e => (
                 <div key={e.id} style={{ marginBottom: '20px', position: 'relative' }}>
                   <div style={{ position: 'absolute', left: '-24px', top: '6px', width: '14px', height: '14px', borderRadius: '50%', background: '#fdfcf9', border: `2px solid ${PLUM}`, boxSizing: 'border-box' }} />
@@ -472,7 +639,6 @@ function AtelierTemplate({ cv }: { cv: GeneratedCV }) {
               ))}
             </div>
           </>}
-
           {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
             <div key={ed.id} style={{ marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
@@ -482,7 +648,6 @@ function AtelierTemplate({ cv }: { cv: GeneratedCV }) {
               <div style={{ fontSize: '11pt', color: PLUM_SOFT, fontStyle: 'italic' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
             </div>
           ))}</>}
-
           {cv.skills?.length > 0 && <><SH>Skills</SH>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 8px' }}>
               {cv.skills.map((s, i) => <span key={i} style={{ fontSize: '10pt', color: PLUM, border: `1px solid ${PLUM_SOFT}`, padding: '3px 10px', borderRadius: '14px', background: 'rgba(59,10,69,0.04)' }}>{s}</span>)}
@@ -496,9 +661,7 @@ function AtelierTemplate({ cv }: { cv: GeneratedCV }) {
   )
 }
 
-// ══════════════════════════════════════════════════════
-// 5. NOIR — Condensed · Stark · Black (black header band, Oswald)
-// ══════════════════════════════════════════════════════
+// 7. NOIR
 function NoirTemplate({ cv }: { cv: GeneratedCV }) {
   const isLetter = !!cv.coverLetterBody
   const SH = ({ children }: { children: string }) => (
@@ -509,22 +672,18 @@ function NoirTemplate({ cv }: { cv: GeneratedCV }) {
   )
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", fontSize: '10pt', lineHeight: 1.65, color: '#111', background: '#ffffff', padding: 0 }}>
-      {/* Black band header */}
       <div style={{ background: '#000', color: 'white', padding: '32px 48px 26px' }}>
         <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: '44pt', fontWeight: 600, color: 'white', textTransform: 'uppercase', letterSpacing: '2px', lineHeight: 1, marginBottom: '6px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontFamily: "'Barlow Condensed', 'Oswald', sans-serif", fontSize: '14pt', color: '#bbb', textTransform: 'uppercase', letterSpacing: '6px', fontWeight: 300 }}>{cv.jobTitle}</div>}
       </div>
-      {/* Contact strip */}
       <div style={{ background: '#111', color: '#ddd', padding: '10px 48px', fontSize: '9.5pt', borderBottom: '6px solid #000' }}>
         <ContactLine cv={cv} color="#ddd" />
       </div>
-
       <div style={{ padding: '14px 48px 40px' }}>
         {isLetter
           ? cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ fontSize: '10pt', lineHeight: 1.8, color: '#222', marginBottom: '14px' }}>{p}</p>)
           : <>
             {cv.summary && <><SH>Profile</SH><p style={{ fontSize: '10pt', lineHeight: 1.75, color: '#222' }}>{cv.summary}</p></>}
-
             {cv.experience?.length > 0 && <><SH>Experience</SH>{cv.experience.map(e => (
               <div key={e.id} style={{ marginBottom: '18px', paddingBottom: '14px', borderBottom: '1px solid #e5e5e5' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', marginBottom: '2px' }}>
@@ -541,7 +700,6 @@ function NoirTemplate({ cv }: { cv: GeneratedCV }) {
                 </ul>
               </div>
             ))}</>}
-
             {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
               <div key={ed.id} style={{ marginBottom: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
@@ -551,7 +709,6 @@ function NoirTemplate({ cv }: { cv: GeneratedCV }) {
                 <div style={{ fontSize: '10pt', color: '#555', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
               </div>
             ))}</>}
-
             {cv.skills?.length > 0 && <><SH>Skills</SH>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {cv.skills.map((s, i) => <span key={i} style={{ fontFamily: "'Oswald', sans-serif", fontSize: '9pt', color: '#fff', background: '#000', padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 400 }}>{s}</span>)}
@@ -566,53 +723,196 @@ function NoirTemplate({ cv }: { cv: GeneratedCV }) {
   )
 }
 
-// ══════════════════════════════════════════════════════
-// 6. ACADEMIC — Scholarly · Structured (centred, classical)
-// ══════════════════════════════════════════════════════
-function AcademicTemplate({ cv }: { cv: GeneratedCV }) {
-  const SH_AC = ({ children }: { children: string }) => (
-    <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: '10pt', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '2px', color: '#1a1a1a', borderBottom: '1px solid #1a1a1a', paddingBottom: '3px', margin: '18px 0 10px' }}>{children}</div>
-  )
-  return (
-    <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.65, color: '#1a1a1a', background: '#ffffff', padding: '40px 48px' }}>
-      <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: '18px', marginBottom: '22px' }}>
-        <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '30px', fontWeight: 700, color: '#0a0a0a', marginBottom: '5px' }}>{cv.fullName}</div>
-        {cv.jobTitle && <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '14px', fontStyle: 'italic', color: '#4a4a4a', marginBottom: '10px' }}>{cv.jobTitle}</div>}
-        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}><ContactLine cv={cv} color="#555" /></div>
+// 8. MERIDIAN
+function MeridianTemplate({ cv }: { cv: GeneratedCV }) {
+  const isLetter = !!cv.coverLetterBody
+  const NAVY = '#0a1f44'
+  const GOLD = '#c9a449'
+
+  if (isLetter) {
+    return (
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: '10.5pt', lineHeight: 1.7, color: '#1e293b', padding: '40px 48px', background: 'white', borderTop: `6px solid ${GOLD}` }}>
+        <div style={{ marginBottom: '24px', paddingBottom: '14px', borderBottom: `1px solid ${GOLD}` }}>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '30pt', fontWeight: 700, color: NAVY }}>{cv.fullName}</div>
+          {cv.jobTitle && <div style={{ fontSize: '13pt', color: GOLD, marginTop: '4px', fontStyle: 'italic' }}>{cv.jobTitle}</div>}
+          <div style={{ marginTop: '10px' }}><ContactLine cv={cv} color="#475569" /></div>
+        </div>
+        {cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ marginBottom: '14px', textAlign: 'justify' }}>{p}</p>)}
       </div>
-      {cv.summary && <><SH_AC>Research Profile</SH_AC><p style={{ fontSize: '10.5pt', lineHeight: 1.7, textAlign: 'justify', marginBottom: '4px' }}>{cv.summary}</p></>}
-      {cv.education?.length > 0 && <><SH_AC>Education</SH_AC>{cv.education.map(ed => (
-        <div key={ed.id} style={{ marginBottom: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-            <span style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '14px', fontWeight: 700 }}>{ed.qualification} in {ed.field}</span>
-            <span style={{ fontSize: '9pt', color: '#777', whiteSpace: 'nowrap', fontStyle: 'italic' }}>{ed.startYear} – {ed.endYear}</span>
+    )
+  }
+
+  const SidebarH = ({ children }: { children: string }) => (
+    <div style={{ fontSize: '9pt', fontWeight: 700, color: GOLD, textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '8px', marginTop: '22px' }}>{children}</div>
+  )
+  const MainH = ({ children }: { children: string }) => (
+    <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '14pt', fontWeight: 700, color: NAVY, marginBottom: '12px', marginTop: '22px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <span style={{ width: '24px', height: '2px', background: GOLD }} />
+      <span>{children}</span>
+    </div>
+  )
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '36% 64%', minHeight: '297mm', fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif" }}>
+      <div style={{ background: NAVY, color: 'white', padding: '40px 26px', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: GOLD }} />
+        <div style={{ marginTop: '8px', marginBottom: '20px' }}>
+          <div style={{ display: 'inline-block', border: `1.5px solid ${GOLD}`, padding: '4px 10px', fontSize: '9.5pt', color: GOLD, letterSpacing: '4px', fontWeight: 700, marginBottom: '12px' }}>
+            {monogram(cv.fullName)}
           </div>
-          <div style={{ fontSize: '10.5pt', fontStyle: 'italic', color: '#5a5a5a' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
+          <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '24pt', fontWeight: 700, lineHeight: 1.1, marginBottom: '4px' }}>{cv.fullName}</div>
+          <div style={{ width: '40px', height: '2px', background: GOLD, marginTop: '8px', marginBottom: '8px' }} />
+          {cv.jobTitle && <div style={{ fontSize: '11pt', color: 'rgba(255,255,255,0.85)', fontStyle: 'italic', letterSpacing: '0.5px' }}>{cv.jobTitle}</div>}
         </div>
-      ))}</>}
-      {cv.experience?.length > 0 && <><SH_AC>Academic & Professional Experience</SH_AC>{cv.experience.map(e => (
-        <div key={e.id} style={{ marginBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-            <span style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '14px', fontWeight: 700 }}>{e.role}</span>
-            <span style={{ fontSize: '9pt', color: '#777', whiteSpace: 'nowrap', fontStyle: 'italic' }}>{e.startDate} – {e.endDate}</span>
+
+        <SidebarH>Contact</SidebarH>
+        <div style={{ fontSize: '9.5pt', lineHeight: 1.7, color: 'rgba(255,255,255,0.92)' }}>
+          {cv.email && <div style={{ marginBottom: '4px', wordBreak: 'break-word' }}>{cv.email}</div>}
+          {cv.phone && <div style={{ marginBottom: '4px' }}>{cv.phone}</div>}
+          {cv.location && <div style={{ marginBottom: '4px' }}>{cv.location}</div>}
+          {cv.linkedin && <div style={{ marginBottom: '4px', wordBreak: 'break-word' }}>{cv.linkedin}</div>}
+        </div>
+
+        {cv.skills?.length > 0 && (<>
+          <SidebarH>Core Competencies</SidebarH>
+          <div style={{ fontSize: '9.5pt', lineHeight: 1.7, color: 'rgba(255,255,255,0.92)' }}>
+            {cv.skills.map((s, i) => (
+              <div key={i} style={{ paddingLeft: '14px', position: 'relative', marginBottom: '4px' }}>
+                <span style={{ position: 'absolute', left: 0, color: GOLD, fontSize: '8pt', top: '3px' }}>◆</span>{s}
+              </div>
+            ))}
           </div>
-          <div style={{ fontSize: '10.5pt', fontStyle: 'italic', color: '#4a4a4a', marginBottom: '5px' }}>{e.company}</div>
-          <ul style={{ paddingLeft: '16px', margin: 0 }}>
-            {e.bullets.map((b, i) => <li key={i} style={{ fontSize: '10.5pt', lineHeight: 1.6, marginBottom: '3px' }}>{b}</li>)}
-          </ul>
-        </div>
-      ))}</>}
-      {cv.publications && cv.publications.length > 0 && <><SH_AC>Publications</SH_AC><ul style={{ paddingLeft: '16px', margin: 0 }}>{cv.publications.map((p, i) => <li key={i} style={{ fontSize: '10.5pt', lineHeight: 1.6, marginBottom: '4px' }}>{p}</li>)}</ul></>}
-      {cv.skills?.length > 0 && <><SH_AC>Research Methods & Skills</SH_AC><div style={{ fontSize: '10.5pt', lineHeight: 1.8 }}>{cv.skills.join('  ·  ')}</div></>}
-      {cv.languages && cv.languages.length > 0 && <><SH_AC>Languages</SH_AC><div style={{ fontSize: '10.5pt', lineHeight: 1.8 }}>{cv.languages!.join('  ·  ')}</div></>}
-      {cv.additionalInfo && <><SH_AC>Honours, Awards & Memberships</SH_AC><div style={{ fontSize: '10.5pt', lineHeight: 1.8 }}>{cv.additionalInfo}</div></>}
+        </>)}
+
+        {cv.languages && cv.languages.length > 0 && (<>
+          <SidebarH>Languages</SidebarH>
+          <div style={{ fontSize: '9.5pt', lineHeight: 1.7, color: 'rgba(255,255,255,0.92)' }}>
+            {cv.languages!.map((l, i) => <div key={i} style={{ paddingLeft: '14px', position: 'relative', marginBottom: '4px' }}>
+              <span style={{ position: 'absolute', left: 0, color: GOLD, fontSize: '8pt', top: '3px' }}>◆</span>{l}
+            </div>)}
+          </div>
+        </>)}
+
+        {cv.additionalInfo && (<>
+          <SidebarH>Additional</SidebarH>
+          <div style={{ fontSize: '9.5pt', lineHeight: 1.7, color: 'rgba(255,255,255,0.92)' }}>{cv.additionalInfo}</div>
+        </>)}
+      </div>
+
+      <div style={{ padding: '40px 36px', background: 'white' }}>
+        {cv.summary && (<>
+          <MainH>Executive Summary</MainH>
+          <p style={{ fontSize: '10.5pt', lineHeight: 1.75, color: '#1e293b', textAlign: 'justify' }}>{cv.summary}</p>
+        </>)}
+        {cv.experience?.length > 0 && (<>
+          <MainH>Professional Experience</MainH>
+          {cv.experience.map(e => (
+            <div key={e.id} style={{ marginBottom: '18px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '13pt', fontWeight: 700, color: NAVY }}>{e.role}</span>
+                <span style={{ fontSize: '9.5pt', color: GOLD, fontWeight: 600, letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span>
+              </div>
+              <div style={{ fontSize: '10.5pt', color: '#475569', fontStyle: 'italic', marginBottom: '6px' }}>{e.company}</div>
+              <ul style={{ margin: 0, paddingLeft: '16px', listStyle: 'none' }}>
+                {e.bullets.map((b, i) => (
+                  <li key={i} style={{ fontSize: '10pt', lineHeight: 1.6, color: '#334155', marginBottom: '3px', paddingLeft: '14px', position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: 0, color: GOLD, fontSize: '8pt', top: '3px' }}>◆</span>{b}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </>)}
+        {cv.education?.length > 0 && (<>
+          <MainH>Education</MainH>
+          {cv.education.map(ed => (
+            <div key={ed.id} style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontSize: '12pt', fontWeight: 700, color: NAVY }}>{ed.qualification} in {ed.field}</span>
+                <span style={{ fontSize: '9.5pt', color: GOLD, fontWeight: 600, letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{ed.startYear} – {ed.endYear}</span>
+              </div>
+              <div style={{ fontSize: '10.5pt', color: '#475569', fontStyle: 'italic' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
+            </div>
+          ))}
+        </>)}
+      </div>
     </div>
   )
 }
 
-// ══════════════════════════════════════════════════════
-// EDITOR (unchanged)
-// ══════════════════════════════════════════════════════
+// 9. GRADUATE
+function GraduateTemplate({ cv }: { cv: GeneratedCV }) {
+  const isLetter = !!cv.coverLetterBody
+  const CORAL = '#dc6e3a'
+  const CORAL_DARK = '#b85b2e'
+  const CORAL_SOFT = '#fef3eb'
+  const INK = '#1f2937'
+  const SH = ({ children }: { children: string }) => (
+    <div style={{ fontSize: '11pt', fontWeight: 700, color: CORAL, textTransform: 'uppercase', letterSpacing: '2.5px', marginBottom: '12px', marginTop: '22px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: CORAL }} />
+      <span>{children}</span>
+      <span style={{ flex: 1, height: '2px', background: `linear-gradient(to right, ${CORAL}, transparent)` }} />
+    </div>
+  )
+
+  return (
+    <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.65, color: INK, background: '#ffffff' }}>
+      <div style={{ background: `linear-gradient(135deg, ${CORAL} 0%, ${CORAL_DARK} 100%)`, color: 'white', padding: '36px 48px' }}>
+        <div style={{ display: 'inline-block', border: '2px solid rgba(255,255,255,0.4)', padding: '4px 10px', fontSize: '10pt', letterSpacing: '4px', fontWeight: 700, marginBottom: '14px' }}>
+          {monogram(cv.fullName)}
+        </div>
+        <div style={{ fontSize: '32pt', fontWeight: 800, lineHeight: 1, marginBottom: '6px', letterSpacing: '-0.5px' }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ fontSize: '13pt', color: 'rgba(255,255,255,0.95)', marginBottom: '14px', fontWeight: 500 }}>{cv.jobTitle}</div>}
+        <ContactLine cv={cv} color="rgba(255,255,255,0.95)" />
+      </div>
+
+      <div style={{ padding: '20px 48px 40px' }}>
+        {isLetter
+          ? cv.coverLetterBody!.split('\n\n').map((p, i) => <p key={i} style={{ marginBottom: '14px', color: '#374151', lineHeight: 1.75 }}>{p}</p>)
+          : <>
+            {cv.summary && <><SH>About Me</SH><p style={{ fontSize: '10.5pt', lineHeight: 1.75, color: '#374151' }}>{cv.summary}</p></>}
+            {cv.experience?.length > 0 && <><SH>Experience</SH>{cv.experience.map(e => (
+              <div key={e.id} style={{ marginBottom: '14px', padding: '14px 16px', background: CORAL_SOFT, borderRadius: '10px', borderLeft: `4px solid ${CORAL}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', marginBottom: '2px' }}>
+                  <span style={{ fontSize: '12pt', fontWeight: 700, color: INK }}>{e.role}</span>
+                  <span style={{ fontSize: '9.5pt', color: CORAL_DARK, fontWeight: 700, whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span>
+                </div>
+                <div style={{ fontSize: '10.5pt', color: CORAL_DARK, fontWeight: 600, marginBottom: '6px' }}>{e.company}</div>
+                <ul style={{ margin: 0, paddingLeft: '16px' }}>
+                  {e.bullets.map((b, i) => <li key={i} style={{ fontSize: '10pt', lineHeight: 1.6, color: '#374151', marginBottom: '3px' }}>{b}</li>)}
+                </ul>
+              </div>
+            ))}</>}
+            {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
+              <div key={ed.id} style={{ marginBottom: '10px', paddingLeft: '14px', borderLeft: `4px solid ${CORAL}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
+                  <span style={{ fontSize: '11.5pt', fontWeight: 700, color: INK }}>{ed.qualification} in {ed.field}</span>
+                  <span style={{ fontSize: '9.5pt', color: CORAL_DARK, fontWeight: 700, whiteSpace: 'nowrap' }}>{ed.startYear} – {ed.endYear}</span>
+                </div>
+                <div style={{ fontSize: '10.5pt', color: '#6b7280', fontWeight: 500 }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
+              </div>
+            ))}</>}
+            {cv.skills?.length > 0 && <><SH>Skills</SH>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                {cv.skills.map((s, i) => (
+                  <div key={i} style={{ fontSize: '10pt', color: INK, padding: '6px 12px', background: CORAL_SOFT, borderRadius: '20px', borderLeft: `3px solid ${CORAL}`, fontWeight: 500 }}>{s}</div>
+                ))}
+              </div>
+            </>}
+            {cv.languages && cv.languages.length > 0 && <><SH>Languages</SH>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {cv.languages!.map((l, i) => <span key={i} style={{ fontSize: '10pt', color: 'white', background: CORAL, padding: '4px 14px', borderRadius: '20px', fontWeight: 600 }}>{l}</span>)}
+              </div>
+            </>}
+            {cv.additionalInfo && <><SH>Additional</SH><div style={{ fontSize: '10pt', color: '#374151', lineHeight: 1.7 }}>{cv.additionalInfo}</div></>}
+          </>
+        }
+      </div>
+    </div>
+  )
+}
+
+// EDITOR
 function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<GeneratedCV>) => void }) {
   return (
     <div style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
