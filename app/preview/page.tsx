@@ -214,23 +214,23 @@ export default function PreviewPage() {
         {!isCoverLetter && (
           <div style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'20px', overflowY:'auto' }}>
 
-            {/* ATS SECTION */}
-            <CategoryHeader>ATS Templates</CategoryHeader>
-            <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Recruiter-safe · same look in PDF & Word</div>
-            {atsTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
-
-            {/* ACADEMIC SECTION */}
-            {academicTemplates.length > 0 && (<>
-              <CategoryHeader>Academic</CategoryHeader>
-              <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Scholarly format · PDF & Word</div>
-              {academicTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
-            </>)}
-
-            {/* PREMIUM SECTION */}
+            {/* PREMIUM FIRST — this is the showroom */}
             {premiumTemplates.length > 0 && (<>
               <CategoryHeader>Premium Templates</CategoryHeader>
               <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Rich design · PDF download</div>
               {premiumTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
+            </>)}
+
+            {/* ATS SECTION */}
+            <CategoryHeader>ATS Templates</CategoryHeader>
+            <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Recruiter-safe · PDF & Word</div>
+            {atsTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
+
+            {/* ACADEMIC */}
+            {academicTemplates.length > 0 && (<>
+              <CategoryHeader>Academic</CategoryHeader>
+              <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Scholarly format · PDF & Word</div>
+              {academicTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
             </>)}
 
             <div style={{ background:'#f8fafc', borderRadius:'10px', border:'1px solid #f1f5f9', padding:'14px', marginTop:'16px' }}>
@@ -293,20 +293,21 @@ export default function PreviewPage() {
 // SIDEBAR UI
 // ══════════════════════════════════════════════════════
 function CategoryHeader({ children }: { children: string }) {
-  return <div style={{ fontSize:'10px', fontWeight:700, letterSpacing:'1.8px', textTransform:'uppercase', color:'#0d9488', marginBottom:'4px', marginTop:'12px', paddingBottom:'6px', borderBottom:'1px solid #ccfbf1' }}>{children}</div>
+  return <div style={{ fontSize:'10px', fontWeight:700, letterSpacing:'1.8px', textTransform:'uppercase', color:'#0d9488', marginBottom:'4px', marginTop:'16px', paddingBottom:'6px', borderBottom:'1px solid #ccfbf1' }}>{children}</div>
 }
 
 function TemplateCard({ tpl, active, onClick }: { tpl: typeof TEMPLATES[0]; active: boolean; onClick: () => void }) {
   return (
-    <div onClick={onClick} style={{ display:'flex', alignItems:'flex-start', gap:'10px', padding:'12px', borderRadius:'10px', border: active ? '2px solid #0d9488' : '2px solid transparent', background: active ? '#f0fdf9' : 'none', cursor:'pointer', marginBottom:'6px', transition:'all 0.2s' }}>
-      <div style={{ width:'32px', height:'42px', borderRadius:'6px', background:tpl.color, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', marginTop:'2px' }}>
-        <div style={{ width:'20px', height:'2px', background:'rgba(255,255,255,0.6)', borderRadius:'1px', boxShadow:'0 3px 0 rgba(255,255,255,0.4), 0 6px 0 rgba(255,255,255,0.2)' }} />
+    <div onClick={onClick} style={{ display:'flex', alignItems:'center', gap:'12px', padding:'10px', borderRadius:'10px', border: active ? '2px solid #0d9488' : '2px solid #f1f5f9', background: active ? '#f0fdf9' : 'white', cursor:'pointer', marginBottom:'6px', transition:'all 0.15s', boxShadow: active ? '0 0 0 3px rgba(13,148,136,0.08)' : 'none' }}>
+      {/* SVG THUMBNAIL */}
+      <div style={{ flexShrink:0, borderRadius:'5px', overflow:'hidden', border:'1px solid #e2e8f0', width:'44px', height:'58px' }}>
+        <TemplateThumbnail id={tpl.id} />
       </div>
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:'13px', fontWeight:600, color: active ? '#0d9488' : '#0a0f1a' }}>{tpl.name}</div>
-        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px', marginBottom:'5px' }}>{tpl.tag}</div>
+        <div style={{ fontSize:'13px', fontWeight:600, color: active ? '#0d9488' : '#0a0f1a', marginBottom:'2px' }}>{tpl.name}</div>
+        <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'5px', lineHeight:1.3 }}>{tpl.tag}</div>
         <div style={{
-          display:'inline-block', fontSize:'8.5px', fontWeight:700, letterSpacing:'0.6px',
+          display:'inline-block', fontSize:'8px', fontWeight:700, letterSpacing:'0.8px',
           padding:'2px 6px', borderRadius:'4px',
           background: tpl.formats === 'both' ? '#d1fae5' : '#fef3c7',
           color:      tpl.formats === 'both' ? '#065f46' : '#92400e'
@@ -314,8 +315,301 @@ function TemplateCard({ tpl, active, onClick }: { tpl: typeof TEMPLATES[0]; acti
           {tpl.formats === 'both' ? 'PDF + WORD' : 'PDF ONLY'}
         </div>
       </div>
-      {active && <span style={{ color:'#0d9488', fontSize:'14px', fontWeight:700, marginTop:'2px' }}>✓</span>}
+      {active && <span style={{ color:'#0d9488', fontSize:'13px', fontWeight:700, flexShrink:0 }}>✓</span>}
     </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════
+// SVG THUMBNAILS — miniature layout previews per template
+// 44×58px, A4 ratio, showing real layout structure
+// ══════════════════════════════════════════════════════
+function TemplateThumbnail({ id }: { id: TemplateId }) {
+  const W = 44, H = 58
+
+  if (id === 'london') return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={W} height={H} fill="#faf8f5"/>
+      {/* name centered */}
+      <rect x="8" y="7" width="28" height="4" rx="1" fill="#1a1a1a" opacity="0.85"/>
+      {/* subtitle */}
+      <rect x="13" y="13" width="18" height="2" rx="1" fill="#5a5a5a" opacity="0.5"/>
+      {/* contact line */}
+      <rect x="6" y="17" width="32" height="1.5" rx="0.5" fill="#999" opacity="0.4"/>
+      {/* divider */}
+      <rect x="4" y="21" width="36" height="1" rx="0.5" fill="#1a1a1a" opacity="0.7"/>
+      {/* section heading */}
+      <rect x="4" y="25" width="14" height="2" rx="0.5" fill="#1a1a1a" opacity="0.7"/>
+      {/* body lines */}
+      <rect x="4" y="30" width="36" height="1.5" rx="0.5" fill="#3a3a3a" opacity="0.25"/>
+      <rect x="4" y="33" width="32" height="1.5" rx="0.5" fill="#3a3a3a" opacity="0.25"/>
+      <rect x="4" y="36" width="28" height="1.5" rx="0.5" fill="#3a3a3a" opacity="0.25"/>
+      {/* section 2 */}
+      <rect x="4" y="41" width="12" height="2" rx="0.5" fill="#1a1a1a" opacity="0.7"/>
+      <rect x="4" y="46" width="36" height="1.5" rx="0.5" fill="#3a3a3a" opacity="0.25"/>
+      <rect x="4" y="49" width="30" height="1.5" rx="0.5" fill="#3a3a3a" opacity="0.25"/>
+    </svg>
+  )
+
+  if (id === 'nordic') return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={W} height={H} fill="#ffffff"/>
+      {/* large name left-aligned */}
+      <rect x="4" y="6" width="26" height="5" rx="1" fill="#0f172a" opacity="0.9"/>
+      {/* subtitle in blue */}
+      <rect x="4" y="13" width="16" height="2" rx="0.5" fill="#2563eb" opacity="0.7"/>
+      {/* contact */}
+      <rect x="4" y="17" width="36" height="1.5" rx="0.5" fill="#999" opacity="0.35"/>
+      {/* blue section divider */}
+      <rect x="4" y="22" width="36" height="1.5" rx="0.5" fill="#2563eb" opacity="0.8"/>
+      {/* body lines */}
+      <rect x="4" y="26" width="36" height="1.5" rx="0.5" fill="#334155" opacity="0.22"/>
+      <rect x="4" y="29" width="30" height="1.5" rx="0.5" fill="#334155" opacity="0.22"/>
+      {/* blue section divider 2 */}
+      <rect x="4" y="34" width="36" height="1.5" rx="0.5" fill="#2563eb" opacity="0.8"/>
+      <rect x="4" y="38" width="36" height="1.5" rx="0.5" fill="#334155" opacity="0.22"/>
+      <rect x="4" y="41" width="28" height="1.5" rx="0.5" fill="#334155" opacity="0.22"/>
+      <rect x="4" y="46" width="36" height="1.5" rx="0.5" fill="#2563eb" opacity="0.8"/>
+      <rect x="4" y="50" width="32" height="1.5" rx="0.5" fill="#334155" opacity="0.22"/>
+    </svg>
+  )
+
+  if (id === 'classic') return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={W} height={H} fill="#ffffff"/>
+      {/* centered name */}
+      <rect x="9" y="7" width="26" height="4" rx="1" fill="#000" opacity="0.8"/>
+      <rect x="13" y="13" width="18" height="2" rx="0.5" fill="#333" opacity="0.45"/>
+      <rect x="7" y="17" width="30" height="1.5" rx="0.5" fill="#888" opacity="0.35"/>
+      {/* divider */}
+      <rect x="4" y="21" width="36" height="1" rx="0.5" fill="#000" opacity="0.6"/>
+      {/* section header */}
+      <rect x="4" y="25" width="16" height="1.5" rx="0.5" fill="#000" opacity="0.7"/>
+      <rect x="4" y="28" width="36" height="1" rx="0.5" fill="#000" opacity="0.5"/>
+      <rect x="4" y="32" width="36" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
+      <rect x="4" y="35" width="30" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
+      <rect x="4" y="38" width="34" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
+      <rect x="4" y="43" width="14" height="1.5" rx="0.5" fill="#000" opacity="0.7"/>
+      <rect x="4" y="46" width="36" height="1" rx="0.5" fill="#000" opacity="0.5"/>
+      <rect x="4" y="50" width="32" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
+    </svg>
+  )
+
+  if (id === 'academic') return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={W} height={H} fill="#ffffff"/>
+      <rect x="10" y="6" width="24" height="4" rx="1" fill="#0a0a0a" opacity="0.85"/>
+      <rect x="14" y="12" width="16" height="2" rx="0.5" fill="#4a4a4a" opacity="0.5"/>
+      <rect x="6" y="16" width="32" height="1.5" rx="0.5" fill="#888" opacity="0.35"/>
+      <rect x="4" y="20" width="36" height="1.2" rx="0.3" fill="#000" opacity="0.65"/>
+      <rect x="4" y="24" width="20" height="1.5" rx="0.5" fill="#000" opacity="0.6"/>
+      <rect x="4" y="28" width="36" height="1.5" rx="0.5" fill="#333" opacity="0.2"/>
+      <rect x="4" y="31" width="30" height="1.5" rx="0.5" fill="#333" opacity="0.2"/>
+      <rect x="4" y="36" width="18" height="1.5" rx="0.5" fill="#000" opacity="0.6"/>
+      <rect x="4" y="40" width="36" height="1.5" rx="0.5" fill="#333" opacity="0.2"/>
+      <rect x="4" y="43" width="28" height="1.5" rx="0.5" fill="#333" opacity="0.2"/>
+      <rect x="4" y="48" width="16" height="1.5" rx="0.5" fill="#000" opacity="0.6"/>
+      <rect x="4" y="52" width="36" height="1.5" rx="0.5" fill="#333" opacity="0.2"/>
+    </svg>
+  )
+
+  if (id === 'newyork') return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={W} height={H} fill="#ffffff"/>
+      {/* big serif name */}
+      <rect x="4" y="6" width="32" height="6" rx="1" fill="#0a0a0a" opacity="0.9"/>
+      {/* crimson italic subtitle */}
+      <rect x="4" y="14" width="20" height="2.5" rx="0.5" fill="#a01e1e" opacity="0.7"/>
+      <rect x="4" y="18" width="36" height="1.5" rx="0.5" fill="#888" opacity="0.3"/>
+      {/* double crimson rule */}
+      <rect x="4" y="22" width="36" height="1" rx="0" fill="#a01e1e" opacity="0.9"/>
+      <rect x="4" y="24" width="36" height="0.5" rx="0" fill="#a01e1e" opacity="0.5"/>
+      {/* crimson section bar */}
+      <rect x="4" y="28" width="36" height="4" rx="1" fill="#a01e1e"/>
+      <rect x="6" y="29.5" width="14" height="1.5" rx="0.3" fill="white" opacity="0.9"/>
+      {/* left-border entries */}
+      <rect x="4" y="34" width="2" height="12" rx="0.5" fill="#a01e1e" opacity="0.7"/>
+      <rect x="8" y="35" width="22" height="2" rx="0.5" fill="#0a0a0a" opacity="0.7"/>
+      <rect x="8" y="39" width="28" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
+      <rect x="8" y="42" width="24" height="1.5" rx="0.5" fill="#333" opacity="0.22"/>
+      {/* section bar 2 */}
+      <rect x="4" y="48" width="36" height="4" rx="1" fill="#a01e1e"/>
+      <rect x="6" y="49.5" width="12" height="1.5" rx="0.3" fill="white" opacity="0.9"/>
+    </svg>
+  )
+
+  if (id === 'atelier') return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={W} height={H} fill="#fdfcf9"/>
+      {/* italic large name */}
+      <rect x="4" y="6" width="28" height="5" rx="1" fill="#3b0a45" opacity="0.85"/>
+      <rect x="4" y="13" width="18" height="2" rx="0.5" fill="#6d3a78" opacity="0.5"/>
+      <rect x="4" y="17" width="30" height="1.5" rx="0.5" fill="#5a4a5e" opacity="0.3"/>
+      {/* italic section heading */}
+      <rect x="4" y="23" width="18" height="2.5" rx="0.5" fill="#3b0a45" opacity="0.7"/>
+      {/* timeline vertical dashed line */}
+      <line x1="10" y1="28" x2="10" y2="56" stroke="#6d3a78" strokeWidth="0.8" strokeDasharray="2,2" opacity="0.5"/>
+      {/* timeline dots */}
+      <circle cx="10" cy="29" r="2" fill="none" stroke="#3b0a45" strokeWidth="1"/>
+      <circle cx="10" cy="41" r="2" fill="none" stroke="#3b0a45" strokeWidth="1"/>
+      <circle cx="10" cy="52" r="2" fill="none" stroke="#3b0a45" strokeWidth="1"/>
+      {/* entry lines */}
+      <rect x="14" y="28" width="10" height="1.5" rx="0.5" fill="#3b0a45" opacity="0.5"/>
+      <rect x="14" y="31" width="20" height="2" rx="0.5" fill="#1a0a1e" opacity="0.65"/>
+      <rect x="14" y="35" width="24" height="1.5" rx="0.5" fill="#2a1a2e" opacity="0.2"/>
+      <rect x="14" y="37" width="20" height="1.5" rx="0.5" fill="#2a1a2e" opacity="0.2"/>
+      <rect x="14" y="40" width="10" height="1.5" rx="0.5" fill="#3b0a45" opacity="0.5"/>
+      <rect x="14" y="43" width="20" height="2" rx="0.5" fill="#1a0a1e" opacity="0.65"/>
+      <rect x="14" y="47" width="24" height="1.5" rx="0.5" fill="#2a1a2e" opacity="0.2"/>
+    </svg>
+  )
+
+  if (id === 'noir') return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={W} height={H} fill="#ffffff"/>
+      {/* black header band */}
+      <rect x="0" y="0" width={W} height="18" fill="#000"/>
+      {/* white name in header */}
+      <rect x="4" y="5" width="28" height="5" rx="1" fill="white" opacity="0.9"/>
+      <rect x="4" y="12" width="18" height="2" rx="0.5" fill="white" opacity="0.4"/>
+      {/* dark contact strip */}
+      <rect x="0" y="18" width={W} height="6" fill="#111"/>
+      <rect x="4" y="20" width="32" height="1.5" rx="0.5" fill="white" opacity="0.3"/>
+      {/* section box headers */}
+      <rect x="4" y="28" width="18" height="4" rx="0.5" fill="#000"/>
+      <rect x="6" y="29.5" width="10" height="1.5" rx="0.3" fill="white" opacity="0.9"/>
+      <rect x="24" y="29" width="16" height="1" rx="0.5" fill="#000"/>
+      {/* body lines */}
+      <rect x="4" y="35" width="36" height="1.5" rx="0.5" fill="#222" opacity="0.22"/>
+      <rect x="4" y="38" width="30" height="1.5" rx="0.5" fill="#222" opacity="0.22"/>
+      <rect x="4" y="41" width="34" height="1.5" rx="0.5" fill="#222" opacity="0.22"/>
+      {/* section box 2 */}
+      <rect x="4" y="47" width="16" height="4" rx="0.5" fill="#000"/>
+      <rect x="6" y="48.5" width="9" height="1.5" rx="0.3" fill="white" opacity="0.9"/>
+      <rect x="22" y="49" width="18" height="1" rx="0.5" fill="#000"/>
+      <rect x="4" y="54" width="36" height="1.5" rx="0.5" fill="#222" opacity="0.22"/>
+    </svg>
+  )
+
+  if (id === 'meridian') return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={W} height={H} fill="#ffffff"/>
+      {/* navy left sidebar */}
+      <rect x="0" y="0" width="16" height={H} fill="#0a1f44"/>
+      {/* gold top stripe */}
+      <rect x="0" y="0" width="16" height="2.5" fill="#c9a449"/>
+      {/* name in sidebar */}
+      <rect x="2" y="7" width="10" height="3" rx="0.5" fill="white" opacity="0.9"/>
+      {/* gold divider */}
+      <rect x="2" y="12" width="8" height="0.8" rx="0.2" fill="#c9a449" opacity="0.8"/>
+      {/* sidebar lines */}
+      <rect x="2" y="16" width="4" height="1" rx="0.3" fill="#c9a449" opacity="0.7"/>
+      <rect x="2" y="19" width="11" height="1" rx="0.3" fill="white" opacity="0.4"/>
+      <rect x="2" y="21" width="9" height="1" rx="0.3" fill="white" opacity="0.4"/>
+      <rect x="2" y="23" width="11" height="1" rx="0.3" fill="white" opacity="0.4"/>
+      <rect x="2" y="28" width="5" height="1" rx="0.3" fill="#c9a449" opacity="0.7"/>
+      <rect x="2" y="31" width="11" height="1" rx="0.3" fill="white" opacity="0.35"/>
+      <rect x="2" y="33" width="9" height="1" rx="0.3" fill="white" opacity="0.35"/>
+      <rect x="2" y="35" width="10" height="1" rx="0.3" fill="white" opacity="0.35"/>
+      <rect x="2" y="37" width="8" height="1" rx="0.3" fill="white" opacity="0.35"/>
+      {/* main content area */}
+      <rect x="19" y="8" width="21" height="3" rx="0.5" fill="#0a1f44" opacity="0.7"/>
+      {/* gold bar section header */}
+      <rect x="19" y="15" width="3" height="2" rx="0.3" fill="#c9a449"/>
+      <rect x="23" y="15" width="16" height="2" rx="0.3" fill="#0a1f44" opacity="0.65"/>
+      {/* body lines */}
+      <rect x="19" y="20" width="22" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
+      <rect x="19" y="23" width="18" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
+      <rect x="19" y="26" width="20" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
+      <rect x="19" y="31" width="3" height="2" rx="0.3" fill="#c9a449"/>
+      <rect x="23" y="31" width="14" height="2" rx="0.3" fill="#0a1f44" opacity="0.65"/>
+      <rect x="19" y="36" width="22" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
+      <rect x="19" y="39" width="16" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
+      <rect x="19" y="42" width="20" height="1.5" rx="0.4" fill="#334155" opacity="0.22"/>
+    </svg>
+  )
+
+  if (id === 'graduate') return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={W} height={H} fill="#ffffff"/>
+      {/* coral gradient header */}
+      <defs>
+        <linearGradient id="grad-g" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#dc6e3a"/>
+          <stop offset="100%" stopColor="#b85b2e"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width={W} height="20" fill="url(#grad-g)"/>
+      {/* white name in header */}
+      <rect x="4" y="5" width="26" height="5" rx="1" fill="white" opacity="0.95"/>
+      <rect x="4" y="12" width="16" height="2" rx="0.5" fill="white" opacity="0.6"/>
+      <rect x="4" y="16" width="28" height="1.5" rx="0.5" fill="white" opacity="0.4"/>
+      {/* section with coral bullet+line */}
+      <circle cx="7" cy="26" r="1.5" fill="#dc6e3a"/>
+      <rect x="10" y="25" width="12" height="2" rx="0.4" fill="#dc6e3a" opacity="0.7"/>
+      <rect x="23" y="26" width="17" height="0.8" rx="0.3" fill="#dc6e3a" opacity="0.4"/>
+      {/* coral card blocks */}
+      <rect x="4" y="29" width="36" height="9" rx="2" fill="#fef3eb"/>
+      <rect x="4" y="29" width="3" height="9" rx="1" fill="#dc6e3a"/>
+      <rect x="9" y="31" width="18" height="2" rx="0.4" fill="#1f2937" opacity="0.7"/>
+      <rect x="9" y="34" width="14" height="1.5" rx="0.4" fill="#dc6e3a" opacity="0.55"/>
+      {/* skills grid pills */}
+      <circle cx="7" cy="44" r="1.5" fill="#dc6e3a"/>
+      <rect x="10" y="43" width="10" height="2" rx="0.4" fill="#dc6e3a" opacity="0.7"/>
+      <rect x="4" y="47" width="17" height="4" rx="2" fill="#fef3eb"/>
+      <rect x="4" y="47" width="2.5" height="4" rx="1" fill="#dc6e3a"/>
+      <rect x="23" y="47" width="17" height="4" rx="2" fill="#fef3eb"/>
+      <rect x="23" y="47" width="2.5" height="4" rx="1" fill="#dc6e3a"/>
+      <rect x="4" y="53" width="17" height="4" rx="2" fill="#fef3eb"/>
+      <rect x="4" y="53" width="2.5" height="4" rx="1" fill="#dc6e3a"/>
+    </svg>
+  )
+
+  if (id === 'europass') return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={W} height={H} fill="#ffffff"/>
+      {/* navy sidebar */}
+      <rect x="0" y="0" width="15" height={H} fill="#1e3a8a"/>
+      {/* name in sidebar */}
+      <rect x="2" y="6" width="10" height="3" rx="0.5" fill="white" opacity="0.9"/>
+      <rect x="2" y="11" width="8" height="1.5" rx="0.3" fill="white" opacity="0.5"/>
+      {/* sidebar section headers */}
+      <rect x="2" y="17" width="9" height="1" rx="0.2" fill="white" opacity="0.6"/>
+      <rect x="2" y="19" width="10" height="0.6" rx="0.2" fill="white" opacity="0.25"/>
+      <rect x="2" y="21" width="11" height="1" rx="0.3" fill="white" opacity="0.35"/>
+      <rect x="2" y="23" width="9" height="1" rx="0.3" fill="white" opacity="0.35"/>
+      <rect x="2" y="25" width="10" height="1" rx="0.3" fill="white" opacity="0.35"/>
+      <rect x="2" y="29" width="8" height="1" rx="0.2" fill="white" opacity="0.6"/>
+      <rect x="2" y="31" width="10" height="0.6" rx="0.2" fill="white" opacity="0.25"/>
+      <rect x="3" y="33" width="9" height="1" rx="0.3" fill="white" opacity="0.3"/>
+      <rect x="3" y="35" width="8" height="1" rx="0.3" fill="white" opacity="0.3"/>
+      <rect x="3" y="37" width="9" height="1" rx="0.3" fill="white" opacity="0.3"/>
+      <rect x="3" y="39" width="7" height="1" rx="0.3" fill="white" opacity="0.3"/>
+      {/* main area */}
+      <rect x="18" y="6" width="22" height="3" rx="0.5" fill="#1e3a8a" opacity="0.75"/>
+      {/* navy section headers with underline */}
+      <rect x="18" y="13" width="22" height="1.5" rx="0.3" fill="#1e3a8a" opacity="0.7"/>
+      <rect x="18" y="15" width="22" height="0.6" rx="0" fill="#1e3a8a" opacity="0.7"/>
+      <rect x="18" y="18" width="18" height="2" rx="0.4" fill="#0f172a" opacity="0.65"/>
+      <rect x="18" y="21" width="22" height="1.5" rx="0.4" fill="#334155" opacity="0.2"/>
+      <rect x="18" y="23" width="18" height="1.5" rx="0.4" fill="#334155" opacity="0.2"/>
+      <rect x="18" y="27" width="22" height="1.5" rx="0.3" fill="#1e3a8a" opacity="0.7"/>
+      <rect x="18" y="28.5" width="22" height="0.6" rx="0" fill="#1e3a8a" opacity="0.7"/>
+      <rect x="18" y="31" width="16" height="2" rx="0.4" fill="#0f172a" opacity="0.65"/>
+      <rect x="18" y="34" width="22" height="1.5" rx="0.4" fill="#334155" opacity="0.2"/>
+      <rect x="18" y="37" width="18" height="1.5" rx="0.4" fill="#334155" opacity="0.2"/>
+      <rect x="18" y="40" width="20" height="1.5" rx="0.4" fill="#334155" opacity="0.2"/>
+    </svg>
+  )
+
+  // fallback
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={W} height={H} fill="#f8fafc"/>
+      <rect x="4" y="8" width="28" height="4" rx="1" fill="#374151" opacity="0.7"/>
+      <rect x="4" y="16" width="36" height="1.5" rx="0.5" fill="#374151" opacity="0.2"/>
+      <rect x="4" y="20" width="30" height="1.5" rx="0.5" fill="#374151" opacity="0.2"/>
+    </svg>
   )
 }
 
@@ -602,9 +896,6 @@ function EuropassTemplate({ cv }: { cv: GeneratedCV }) {
   return (
     <div style={{ ...A4_WRAPPER, gridTemplateColumns: '34% 66%' }}>
       <div style={{ background: NAVY, color: 'white', padding: '40px 24px' }}>
-        <div style={{ display: 'inline-block', border: '1.5px solid rgba(255,255,255,0.5)', padding: '5px 12px', fontSize: '10pt', letterSpacing: '4px', fontWeight: 600, marginBottom: '18px' }}>
-          {monogram(cv.fullName)}
-        </div>
         <div style={{ fontSize: '22pt', fontWeight: 700, lineHeight: 1.1, marginBottom: '6px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '11pt', color: 'rgba(255,255,255,0.85)', fontStyle: 'italic', marginBottom: '6px' }}>{cv.jobTitle}</div>}
 
@@ -689,7 +980,7 @@ function NewYorkTemplate({ cv }: { cv: GeneratedCV }) {
   return (
     <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.6, color: INK, background: '#ffffff', minHeight: '297mm' }}>
       <div style={{ padding: '40px 48px 20px', borderBottom: `4px double ${CRIMSON}` }}>
-        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '40px', fontWeight: 900, color: INK, letterSpacing: '-1px', lineHeight: 1, marginBottom: '6px' }}>{cv.fullName}</div>
+        <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '28px', fontWeight: 900, color: INK, letterSpacing: '-0.5px', lineHeight: 1, marginBottom: '6px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontStyle: 'italic', fontSize: '15pt', color: CRIMSON, marginBottom: '14px', fontWeight: 500 }}>{cv.jobTitle}</div>}
         <ContactLine cv={cv} color="#444" />
       </div>
@@ -745,10 +1036,7 @@ function AtelierTemplate({ cv }: { cv: GeneratedCV }) {
   return (
     <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '11pt', lineHeight: 1.65, color: '#2a1a2e', background: '#fdfcf9', padding: '40px 48px', minHeight: '297mm' }}>
       <div style={{ marginBottom: '26px' }}>
-        <div style={{ display: 'inline-block', border: `1.5px solid ${PLUM}`, padding: '4px 10px', fontFamily: "'Playfair Display', serif", fontSize: '10pt', color: PLUM, letterSpacing: '4px', fontWeight: 600, marginBottom: '14px' }}>
-          {monogram(cv.fullName)}
-        </div>
-        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '40px', fontWeight: 700, fontStyle: 'italic', color: PLUM, letterSpacing: '-0.5px', lineHeight: 1.05, marginBottom: '4px' }}>{cv.fullName}</div>
+        <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '28px', fontWeight: 700, fontStyle: 'italic', color: PLUM, letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '4px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '13pt', color: PLUM_SOFT, marginBottom: '12px', fontStyle: 'italic' }}>{cv.jobTitle}</div>}
         <ContactLine cv={cv} color="#5a4a5e" />
       </div>
@@ -801,15 +1089,15 @@ function NoirTemplate({ cv }: { cv: GeneratedCV }) {
   const isLetter = !!cv.coverLetterBody
   const SH = ({ children }: { children: string }) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '14px', margin: '24px 0 14px' }}>
-      <div style={{ background: '#000', color: 'white', fontFamily: "'Oswald', sans-serif", fontWeight: 600, fontSize: '11pt', letterSpacing: '4px', textTransform: 'uppercase', padding: '5px 14px' }}>{children}</div>
+      <div style={{ background: '#000', color: 'white', fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '9pt', letterSpacing: '3px', textTransform: 'uppercase', padding: '5px 14px' }}>{children}</div>
       <div style={{ flex: 1, height: '2px', background: '#000' }} />
     </div>
   )
   return (
     <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", fontSize: '10pt', lineHeight: 1.65, color: '#111', background: '#ffffff', minHeight: '297mm' }}>
       <div style={{ background: '#000', color: 'white', padding: '32px 48px 26px' }}>
-        <div style={{ fontFamily: "'Oswald', sans-serif", fontSize: '44pt', fontWeight: 600, color: 'white', textTransform: 'uppercase', letterSpacing: '2px', lineHeight: 1, marginBottom: '6px' }}>{cv.fullName}</div>
-        {cv.jobTitle && <div style={{ fontFamily: "'Barlow Condensed', 'Oswald', sans-serif", fontSize: '14pt', color: '#bbb', textTransform: 'uppercase', letterSpacing: '6px', fontWeight: 300 }}>{cv.jobTitle}</div>}
+        <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", fontSize: '28pt', fontWeight: 800, color: 'white', letterSpacing: '-0.5px', lineHeight: 1.05, marginBottom: '5px' }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '11pt', color: 'rgba(255,255,255,0.65)', letterSpacing: '3px', fontWeight: 300, textTransform: 'uppercase' }}>{cv.jobTitle}</div>}
       </div>
       <div style={{ background: '#111', color: '#ddd', padding: '10px 48px', fontSize: '9.5pt', borderBottom: '6px solid #000' }}>
         <ContactLine cv={cv} color="#ddd" />
@@ -822,10 +1110,10 @@ function NoirTemplate({ cv }: { cv: GeneratedCV }) {
             {cv.experience?.length > 0 && <><SH>Experience</SH>{cv.experience.map(e => (
               <div key={e.id} style={{ marginBottom: '18px', paddingBottom: '14px', borderBottom: '1px solid #e5e5e5' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', marginBottom: '2px' }}>
-                  <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: '13pt', fontWeight: 500, color: '#000', textTransform: 'uppercase', letterSpacing: '1.5px' }}>{e.role}</span>
-                  <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: '9.5pt', color: '#000', whiteSpace: 'nowrap', fontWeight: 500, letterSpacing: '1px' }}>{e.startDate} – {e.endDate}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12pt', fontWeight: 700, color: '#000' }}>{e.role}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '9.5pt', color: '#555', whiteSpace: 'nowrap', fontWeight: 400 }}>{e.startDate} – {e.endDate}</span>
                 </div>
-                <div style={{ fontSize: '10pt', fontWeight: 600, color: '#555', letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: '6px' }}>{e.company}</div>
+                <div style={{ fontSize: '10pt', fontWeight: 600, color: '#555', fontStyle: 'italic', marginBottom: '6px' }}>{e.company}</div>
                 <ul style={{ margin: '6px 0 0', paddingLeft: '16px', listStyle: 'none' }}>
                   {e.bullets.map((b, i) => (
                     <li key={i} style={{ fontSize: '10pt', lineHeight: 1.6, color: '#222', marginBottom: '3px', paddingLeft: '12px', position: 'relative' }}>
@@ -838,15 +1126,15 @@ function NoirTemplate({ cv }: { cv: GeneratedCV }) {
             {cv.education?.length > 0 && <><SH>Education</SH>{cv.education.map(ed => (
               <div key={ed.id} style={{ marginBottom: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px' }}>
-                  <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: '12pt', fontWeight: 500, color: '#000', textTransform: 'uppercase', letterSpacing: '1px' }}>{ed.qualification} in {ed.field}</span>
-                  <span style={{ fontFamily: "'Oswald', sans-serif", fontSize: '9.5pt', color: '#000', fontWeight: 500, whiteSpace: 'nowrap', letterSpacing: '1px' }}>{ed.startYear} – {ed.endYear}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '11pt', fontWeight: 700, color: '#000' }}>{ed.qualification} in {ed.field}</span>
+                  <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '9.5pt', color: '#555', fontWeight: 400, whiteSpace: 'nowrap' }}>{ed.startYear} – {ed.endYear}</span>
                 </div>
-                <div style={{ fontSize: '10pt', color: '#555', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
+                <div style={{ fontSize: '10pt', color: '#555', fontStyle: 'italic' }}>{ed.institution}{ed.grade ? ` — ${ed.grade}` : ''}</div>
               </div>
             ))}</>}
             {cv.skills?.length > 0 && <><SH>Skills</SH>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {cv.skills.map((s, i) => <span key={i} style={{ fontFamily: "'Oswald', sans-serif", fontSize: '9pt', color: '#fff', background: '#000', padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 400 }}>{s}</span>)}
+                {cv.skills.map((s, i) => <span key={i} style={{ fontFamily: "'Inter', sans-serif", fontSize: '9pt', color: '#fff', background: '#000', padding: '4px 10px', borderRadius: '3px', fontWeight: 500 }}>{s}</span>)}
               </div>
             </>}
             {cv.languages && cv.languages.length > 0 && <><SH>Languages</SH><div style={{ fontSize: '10pt', color: '#222', lineHeight: 1.8 }}>{cv.languages!.join('  ·  ')}</div></>}
@@ -894,9 +1182,6 @@ function MeridianTemplate({ cv }: { cv: GeneratedCV }) {
       <div style={{ background: NAVY, color: 'white', padding: '40px 26px', position: 'relative' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: GOLD }} />
         <div style={{ marginTop: '8px', marginBottom: '20px' }}>
-          <div style={{ display: 'inline-block', border: `1.5px solid ${GOLD}`, padding: '4px 10px', fontSize: '9.5pt', color: GOLD, letterSpacing: '4px', fontWeight: 700, marginBottom: '12px' }}>
-            {monogram(cv.fullName)}
-          </div>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '24pt', fontWeight: 700, lineHeight: 1.1, marginBottom: '4px' }}>{cv.fullName}</div>
           <div style={{ width: '40px', height: '2px', background: GOLD, marginTop: '8px', marginBottom: '8px' }} />
           {cv.jobTitle && <div style={{ fontSize: '11pt', color: 'rgba(255,255,255,0.85)', fontStyle: 'italic', letterSpacing: '0.5px' }}>{cv.jobTitle}</div>}
@@ -997,10 +1282,7 @@ function GraduateTemplate({ cv }: { cv: GeneratedCV }) {
   return (
     <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.65, color: INK, background: '#ffffff', minHeight: '297mm' }}>
       <div style={{ background: `linear-gradient(135deg, ${CORAL} 0%, ${CORAL_DARK} 100%)`, color: 'white', padding: '36px 48px' }}>
-        <div style={{ display: 'inline-block', border: '2px solid rgba(255,255,255,0.4)', padding: '4px 10px', fontSize: '10pt', letterSpacing: '4px', fontWeight: 700, marginBottom: '14px' }}>
-          {monogram(cv.fullName)}
-        </div>
-        <div style={{ fontSize: '32pt', fontWeight: 800, lineHeight: 1, marginBottom: '6px', letterSpacing: '-0.5px' }}>{cv.fullName}</div>
+        <div style={{ fontSize: '26pt', fontWeight: 700, lineHeight: 1.05, marginBottom: '6px', letterSpacing: '-0.3px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '13pt', color: 'rgba(255,255,255,0.95)', marginBottom: '14px', fontWeight: 500 }}>{cv.jobTitle}</div>}
         <ContactLine cv={cv} color="rgba(255,255,255,0.95)" />
       </div>
