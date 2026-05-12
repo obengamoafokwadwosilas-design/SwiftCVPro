@@ -83,14 +83,20 @@ export async function POST(req: NextRequest) {
 
 function buildDocument(cv: GeneratedCV, templateId: TemplateId): Document {
   switch (templateId) {
+    // PDF + Word templates
     case 'nordic':    return buildModern(cv)
     case 'london':    return buildExecutive(cv)
+    case 'academic':  return buildAcademic(cv)
+    case 'europass':  return buildExecutive(cv)
+    // PDF-only templates — Word fallback (in case user bypasses popup)
     case 'newyork':   return buildExecutive(cv)
     case 'atelier':   return buildExecutive(cv)
     case 'noir':      return buildModern(cv)
-    case 'academic':  return buildAcademic(cv)
-    case 'modern':    return buildModern(cv)     // legacy
-    case 'executive': return buildExecutive(cv)  // legacy
+    case 'meridian':  return buildExecutive(cv)
+    case 'graduate':  return buildModern(cv)
+    // Legacy aliases
+    case 'modern':    return buildModern(cv)
+    case 'executive': return buildExecutive(cv)
     default:          return buildClassic(cv)
   }
 }
