@@ -108,3 +108,18 @@ body {
     display: none !important;
   }
 }
+
+/* Force all CV print/download previews to use A4 instead of browser Letter defaults */
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  html, body {
+    width: 210mm;
+    min-height: 297mm;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
