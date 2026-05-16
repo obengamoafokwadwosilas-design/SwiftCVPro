@@ -111,50 +111,8 @@ export default function PreviewPage() {
     finally { setDownloading(null) }
   }
 
-  async function handleDownloadPdf() {
-    if (!cv) return
-    setDownloading('pdf')
-
-    try {
-      const previewEl = document.getElementById('cv-print-area')
-      if (!previewEl) throw new Error('CV preview area not found')
-
-      const safeName = (cv.fullName || 'CV')
-        .replace(/[<>:\"/\\|?*]+/g, '')
-        .replace(/\s+/g, '_')
-        .trim() || 'CV'
-
-      const response = await fetch('/api/export-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cv,
-          templateId: template,
-          html: previewEl.outerHTML,
-          filename: `${safeName}_CV.pdf`,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '')
-        throw new Error(errorText || 'PDF export failed')
-      }
-
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `${safeName}_CV.pdf`
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      window.URL.revokeObjectURL(url)
-    } catch (e) {
-      console.error(e)
-      alert('PDF download failed. Please try again.')
-    } finally {
-      setDownloading(null)
-    }
+  function handleDownloadPdf() {
+    window.print()
   }
 
   function handleNewCV() {
@@ -1044,8 +1002,7 @@ function AtelierTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
 }
 
 // ══════════════════════════════════════════════════════
-// 8. NOIR — REDESIGNED: elegant, refined, dark (not harsh)
-// Clean Inter typography, black header band, NO ugly Oswald
+// 8. NOIR
 // ══════════════════════════════════════════════════════
 function NoirTemplate({ cv }: { cv: GeneratedCV }) {
   const isLetter = !!cv.coverLetterBody
