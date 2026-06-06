@@ -97,7 +97,7 @@ export default function PreviewPage() {
       const res = await fetch('/api/export-docx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv, templateId: template })
+        body: JSON.stringify({ cv, templateId: template, accentColor })
       })
       if (!res.ok) throw new Error('failed')
       const blob = await res.blob()
