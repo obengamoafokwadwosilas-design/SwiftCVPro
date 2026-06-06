@@ -111,35 +111,13 @@ export default function PreviewPage() {
     finally { setDownloading(null) }
   }
 
-  async function handleDownloadPdf() {
-    if (!cv) return
+  function handleDownloadPdf() {
     setDownloading('pdf')
-    try {
-      // Grab the exact CV markup currently on screen (inline-styled), so the
-      // PDF is a pixel match for the preview — for every template.
-      const node = document.getElementById('cv-print-area')
-      const html = node ? node.innerHTML : ''
-      if (!html) throw new Error('nothing to export')
-
-      const res = await fetch('/api/export-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html, fullName: cv.fullName }),
-      })
-      if (!res.ok) throw new Error('failed')
-
-      const blob = await res.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.pdf`
-      document.body.appendChild(a); a.click(); a.remove()
-      window.URL.revokeObjectURL(url)
-    } catch {
-      alert('PDF download failed. Please try again.')
-    } finally {
+    // Give the browser a tick to apply print styles, then open the dialog
+    setTimeout(() => {
+      window.print()
       setDownloading(null)
-    }
+    }, 150)
   }
 
   function handleNewCV() {
@@ -173,23 +151,8 @@ export default function PreviewPage() {
       {/* Load premium fonts for screen + print */}
       <link rel="stylesheet" href={PRINT_FONTS_HREF} />
 
-      {/* CV layout + print CSS.
-          - box-sizing:border-box keeps each template's padding INSIDE its 297mm
-            height, so a one-page CV stays one page (no phantom overflow page).
-          - break-inside:avoid stops an experience block being split across pages.
-          PDF downloads use the server route (/api/export-pdf); this @media print
-          block is only a clean fallback for Ctrl+P. */}
+      {/* CRITICAL print CSS — hides everything except the CV, sizes to A4 */}
       <style>{`
-        #cv-print-area, #cv-print-area * { box-sizing: border-box; }
-        /* Long emails / links / locations wrap instead of spilling out of the page */
-        #cv-print-area { overflow-wrap: break-word; }
-        /* Title-left / date-right rows: let the title shrink & wrap so it can never
-           collide with the date (covers every template, no per-file edits) */
-        #cv-print-area [style*="space-between"] { gap: 12px; }
-        #cv-print-area [style*="space-between"] > :first-child { min-width: 0; overflow-wrap: anywhere; }
-        #cv-print-area .exp-block,
-        #cv-print-area li,
-        #cv-print-area p { break-inside: avoid; page-break-inside: avoid; }
         @media screen {
           #cv-print-area { width: 210mm; }
         }
@@ -202,19 +165,30 @@ export default function PreviewPage() {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          .no-print { display: none !important; }
-          /* Strip the on-screen card wrapper so the CV prints edge-to-edge */
+          /* Hide everything by default */
+          body * { visibility: hidden !important; }
+          /* Show only the CV print area and its children */
+          #cv-print-area, #cv-print-area * { visibility: visible !important; }
+          /* Pin the CV to the top-left, full A4 width, no decoration */
           #cv-print-area {
-            width: 210mm !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
             margin: 0 !important;
+            padding: 0 !important;
+            width: 210mm !important;
+            max-width: 210mm !important;
             border: none !important;
             border-radius: 0 !important;
             box-shadow: none !important;
+            background: white !important;
           }
+          /* Kill the wrapping card's styling on print */
           #cv-print-area * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
+          .no-print { display: none !important; }
         }
       `}</style>
 
@@ -627,9 +601,9 @@ function ContactLine({ cv, color = '#5a5a5a', sep = 18 }: { cv: GeneratedCV; col
 }
 
 const A4_WRAPPER: React.CSSProperties = {
-  minHeight: '297mm',
   width: '100%',
   display: 'grid',
+  alignItems: 'start',
   fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif",
 }
 
@@ -677,7 +651,7 @@ function LondonTemplate({ cv }: { cv: GeneratedCV }) {
     <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '14pt', fontWeight: 700, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1.5px solid #1a1a1a', paddingBottom: '4px', margin: '18px 0 10px' }}>{children}</div>
   )
   return (
-    <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '11pt', lineHeight: 1.6, color: '#1a1a1a', background: '#faf8f5', padding: '40px 48px', minHeight: '297mm' }}>
+    <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '11pt', lineHeight: 1.6, color: '#1a1a1a', background: '#faf8f5', padding: '40px 48px' }}>
       <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: '14px', marginBottom: '18px' }}>
         <div style={{ fontSize: '26pt', fontWeight: 700, color: '#0a0a0a', lineHeight: 1.15, marginBottom: '4px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '13pt', fontStyle: 'italic', color: '#4a4a4a', marginBottom: '8px' }}>{cv.jobTitle}</div>}
@@ -726,7 +700,7 @@ function NordicTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
     <div style={{ fontSize: '11pt', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: accent, borderBottom: `2px solid ${accent}`, paddingBottom: '4px', margin: '18px 0 10px' }}>{children}</div>
   )
   return (
-    <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.6, color: '#1a1a1a', background: '#ffffff', padding: '40px 48px', minHeight: '297mm' }}>
+    <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.6, color: '#1a1a1a', background: '#ffffff', padding: '40px 48px' }}>
       <div style={{ marginBottom: '20px' }}>
         <div style={{ fontSize: '24pt', fontWeight: 700, color: '#0a0a0a', lineHeight: 1.15, marginBottom: '4px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '12pt', color: accent, marginBottom: '8px' }}>{cv.jobTitle}</div>}
@@ -775,7 +749,7 @@ function ClassicTemplate({ cv }: { cv: GeneratedCV }) {
     <div style={{ fontSize: '11pt', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '2px', color: '#000', borderBottom: '1.5px solid #000', paddingBottom: '3px', margin: '18px 0 10px' }}>{children}</div>
   )
   return (
-    <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '11pt', lineHeight: 1.6, color: '#000', background: '#ffffff', padding: '40px 48px', minHeight: '297mm' }}>
+    <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '11pt', lineHeight: 1.6, color: '#000', background: '#ffffff', padding: '40px 48px' }}>
       <div style={{ textAlign: 'center', marginBottom: '18px', paddingBottom: '12px', borderBottom: '1.5px solid #000' }}>
         <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '24pt', fontWeight: 700, color: '#000', lineHeight: 1.15, marginBottom: '4px', letterSpacing: '0.5px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '12pt', fontStyle: 'italic', color: '#333', marginBottom: '6px' }}>{cv.jobTitle}</div>}
@@ -823,7 +797,7 @@ function AcademicTemplate({ cv }: { cv: GeneratedCV }) {
     <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: '10pt', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '2px', color: '#1a1a1a', borderBottom: '1px solid #1a1a1a', paddingBottom: '3px', margin: '18px 0 10px' }}>{children}</div>
   )
   return (
-    <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.65, color: '#1a1a1a', background: '#ffffff', padding: '40px 48px', minHeight: '297mm' }}>
+    <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.65, color: '#1a1a1a', background: '#ffffff', padding: '40px 48px' }}>
       <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: '18px', marginBottom: '22px' }}>
         <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '26pt', fontWeight: 700, color: '#0a0a0a', marginBottom: '5px', lineHeight: 1.15 }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontFamily: "'Crimson Text', Georgia, serif", fontSize: '13pt', fontStyle: 'italic', color: '#4a4a4a', marginBottom: '10px' }}>{cv.jobTitle}</div>}
@@ -868,7 +842,7 @@ function EuropassTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
 
   if (isLetter) {
     return (
-      <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.7, color: '#1e293b', padding: '40px 48px', background: 'white', minHeight: '297mm' }}>
+      <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.7, color: '#1e293b', padding: '40px 48px', background: 'white' }}>
         <div style={{ marginBottom: '24px', borderBottom: `3px solid ${NAVY}`, paddingBottom: '16px' }}>
           <div style={{ fontSize: '26pt', fontWeight: 700, color: NAVY, lineHeight: 1.15 }}>{cv.fullName}</div>
           {cv.jobTitle && <div style={{ fontSize: '13pt', color: '#475569', marginTop: '4px' }}>{cv.jobTitle}</div>}
@@ -887,7 +861,7 @@ function EuropassTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
   )
 
   return (
-    <div style={{ ...A4_WRAPPER, gridTemplateColumns: '34% 66%' }}>
+    <div style={{ ...A4_WRAPPER, gridTemplateColumns: '34% 66%', alignItems: 'start' }}>
       <div style={{ background: NAVY, color: 'white', padding: '40px 24px' }}>
         <div style={{ fontSize: '20pt', fontWeight: 700, lineHeight: 1.15, marginBottom: '6px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '11pt', color: 'rgba(255,255,255,0.85)', fontStyle: 'italic', marginBottom: '6px' }}>{cv.jobTitle}</div>}
@@ -972,7 +946,7 @@ function NewYorkTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
     <div style={{ background: CRIMSON, color: 'white', fontFamily: "'Playfair Display', Georgia, serif", fontWeight: 700, fontSize: '11pt', textTransform: 'uppercase', letterSpacing: '3px', padding: '6px 14px', margin: '22px 0 14px' }}>{children}</div>
   )
   return (
-    <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.6, color: INK, background: '#ffffff', minHeight: '297mm' }}>
+    <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.6, color: INK, background: '#ffffff' }}>
       <div style={{ padding: '40px 48px 20px', borderBottom: `4px double ${CRIMSON}` }}>
         <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontSize: '30pt', fontWeight: 900, color: INK, letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '6px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontFamily: "'Playfair Display', Georgia, serif", fontStyle: 'italic', fontSize: '14pt', color: CRIMSON, marginBottom: '14px', fontWeight: 500 }}>{cv.jobTitle}</div>}
@@ -1028,7 +1002,7 @@ function AtelierTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
     </div>
   )
   return (
-    <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '11pt', lineHeight: 1.65, color: '#2a1a2e', background: '#fdfcf9', padding: '40px 48px', minHeight: '297mm' }}>
+    <div style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '11pt', lineHeight: 1.65, color: '#2a1a2e', background: '#fdfcf9', padding: '40px 48px' }}>
       <div style={{ marginBottom: '22px' }}>
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '30pt', fontWeight: 700, fontStyle: 'italic', color: PLUM, letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '4px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '12pt', color: PLUM_SOFT, marginBottom: '10px', fontStyle: 'italic' }}>{cv.jobTitle}</div>}
@@ -1089,7 +1063,7 @@ function NoirTemplate({ cv }: { cv: GeneratedCV }) {
     </div>
   )
   return (
-    <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.6, color: '#1a1a1a', background: '#ffffff', minHeight: '297mm' }}>
+    <div style={{ fontFamily: "'Inter', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.6, color: '#1a1a1a', background: '#ffffff' }}>
       <div style={{ background: '#0a0a0a', color: 'white', padding: '36px 48px 28px' }}>
         <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '28pt', fontWeight: 800, color: 'white', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '6px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontFamily: "'Inter', sans-serif", fontSize: '12pt', color: '#a3a3a3', fontWeight: 400, letterSpacing: '0.5px', marginBottom: '12px' }}>{cv.jobTitle}</div>}
@@ -1149,7 +1123,7 @@ function MeridianTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
 
   if (isLetter) {
     return (
-      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: '10.5pt', lineHeight: 1.7, color: '#1e293b', padding: '40px 48px', background: 'white', borderTop: `6px solid ${GOLD}`, minHeight: '297mm' }}>
+      <div style={{ fontFamily: "'Source Sans 3', sans-serif", fontSize: '10.5pt', lineHeight: 1.7, color: '#1e293b', padding: '40px 48px', background: 'white', borderTop: `6px solid ${GOLD}` }}>
         <div style={{ marginBottom: '24px', paddingBottom: '14px', borderBottom: `1px solid ${GOLD}` }}>
           <div style={{ fontFamily: "'Playfair Display', serif", fontSize: '26pt', fontWeight: 700, color: NAVY, lineHeight: 1.15 }}>{cv.fullName}</div>
           {cv.jobTitle && <div style={{ fontSize: '13pt', color: GOLD, marginTop: '4px', fontStyle: 'italic' }}>{cv.jobTitle}</div>}
@@ -1171,7 +1145,7 @@ function MeridianTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
   )
 
   return (
-    <div style={{ ...A4_WRAPPER, gridTemplateColumns: '36% 64%' }}>
+    <div style={{ ...A4_WRAPPER, gridTemplateColumns: '36% 64%', alignItems: 'start' }}>
       <div style={{ background: NAVY, color: 'white', padding: '40px 26px', position: 'relative' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: GOLD }} />
         <div style={{ marginTop: '8px', marginBottom: '20px' }}>
@@ -1274,7 +1248,7 @@ function GraduateTemplate({ cv, accent }: { cv: GeneratedCV; accent: string }) {
   )
 
   return (
-    <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.65, color: INK, background: '#ffffff', minHeight: '297mm' }}>
+    <div style={{ fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif", fontSize: '10.5pt', lineHeight: 1.65, color: INK, background: '#ffffff' }}>
       <div style={{ background: `linear-gradient(135deg, ${CORAL} 0%, ${CORAL_DARK} 100%)`, color: 'white', padding: '36px 48px' }}>
         <div style={{ fontSize: '28pt', fontWeight: 800, lineHeight: 1.1, marginBottom: '6px', letterSpacing: '-0.5px' }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: '13pt', color: 'rgba(255,255,255,0.95)', marginBottom: '14px', fontWeight: 500 }}>{cv.jobTitle}</div>}
