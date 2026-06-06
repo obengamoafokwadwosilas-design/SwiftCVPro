@@ -7,6 +7,7 @@ import {
   LevelFormat, convertInchesToTwip, TabStopType, TabStopPosition
 } from 'docx'
 import { GeneratedCV, TemplateId } from '@/types'
+import { buildMeridian } from './meridian'
 
 // ═══════════════════════════════════════════════════════
 // PREMIUM TYPOGRAPHY SYSTEM
@@ -63,10 +64,10 @@ const contactStr = (cv: GeneratedCV): string => {
 // ═══════════════════════════════════════════════════════
 export async function POST(req: NextRequest) {
   try {
-    const { cv, templateId } = await req.json() as { cv: GeneratedCV; templateId: TemplateId }
+    const { cv, templateId, accentColor } = await req.json() as { cv: GeneratedCV; templateId: TemplateId; accentColor?: string | null }
     if (!cv) return NextResponse.json({ error: 'No CV data' }, { status: 400 })
 
-    const doc = buildDocument(cv, templateId)
+    const doc = buildDocument(cv, templateId, accentColor)
     const buffer = await Packer.toBuffer(doc)
 
     return new NextResponse(new Uint8Array(buffer), {
@@ -81,20 +82,34 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function buildDocument(cv: GeneratedCV, templateId: TemplateId): Document {
+function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: string | null): Document {
+  // Map each premium template to its signature accent for the flagship builder
+  const accentFor: Partial<Record<TemplateId, string>> = {
+    meridian: '0a1f44',
+    newyork:  'a01e1e',
+    atelier:  '3b0a45',
+    graduate: 'dc6e3a',
+    europass: '1e3a8a',
+  }
+
   switch (templateId) {
-    // ATS templates — proper builders that match preview
+    // ATS templates — clean single-column builders that match preview
     case 'london':    return buildExecutive(cv)
     case 'nordic':    return buildModern(cv)
     case 'classic':   return buildClassic(cv)
     case 'academic':  return buildAcademic(cv)
-    // Premium PDF-only — Word fallback to classic (safe, ATS-friendly)
-    case 'newyork':   return buildClassic(cv)
-    case 'atelier':   return buildClassic(cv)
+
+    // Premium — now use the FLAGSHIP shaded/table builder (real design in Word)
+    case 'meridian':
+    case 'newyork':
+    case 'atelier':
+    case 'graduate':
+    case 'europass':
+      return buildMeridian(cv, accentColor || accentFor[templateId])
+
+    // Noir kept as a refined dark mono — classic structure is fine for it
     case 'noir':      return buildClassic(cv)
-    case 'meridian':  return buildClassic(cv)
-    case 'graduate':  return buildClassic(cv)
-    case 'europass':  return buildClassic(cv)
+
     // Legacy aliases
     case 'modern':    return buildModern(cv)
     case 'executive': return buildExecutive(cv)
