@@ -112,7 +112,12 @@ export default function PreviewPage() {
   }
 
   function handleDownloadPdf() {
-    window.print()
+    setDownloading('pdf')
+    // Give the browser a tick to apply print styles, then open the dialog
+    setTimeout(() => {
+      window.print()
+      setDownloading(null)
+    }, 150)
   }
 
   function handleNewCV() {
@@ -143,7 +148,51 @@ export default function PreviewPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'#f1f5f9' }}>
-      <nav style={{ background:'#0a0f1a', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap:'wrap', gap:'10px' }}>
+      {/* Load premium fonts for screen + print */}
+      <link rel="stylesheet" href={PRINT_FONTS_HREF} />
+
+      {/* CRITICAL print CSS — hides everything except the CV, sizes to A4 */}
+      <style>{`
+        @media screen {
+          #cv-print-area { width: 210mm; }
+        }
+        @media print {
+          @page { size: A4; margin: 0; }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          /* Hide everything by default */
+          body * { visibility: hidden !important; }
+          /* Show only the CV print area and its children */
+          #cv-print-area, #cv-print-area * { visibility: visible !important; }
+          /* Pin the CV to the top-left, full A4 width, no decoration */
+          #cv-print-area {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 210mm !important;
+            max-width: 210mm !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            background: white !important;
+          }
+          /* Kill the wrapping card's styling on print */
+          #cv-print-area * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+
+      <nav className="no-print" style={{ background:'#0a0f1a', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap:'wrap', gap:'10px' }}>
         <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', fontWeight:600, color:'white' }}>Swift<span style={{ color:'#5eead4' }}>CV</span>Pro</div>
         <div style={{ display:'flex', background:'rgba(255,255,255,0.08)', borderRadius:'50px', padding:'3px', gap:'2px' }}>
           {(['preview','edit'] as const).map(tab => (
@@ -180,7 +229,7 @@ export default function PreviewPage() {
 
       <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
         {!isCoverLetter && (
-          <div style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'20px', overflowY:'auto' }}>
+          <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'20px', overflowY:'auto' }}>
 
             {/* PREMIUM SECTION FIRST */}
             {premiumTemplates.length > 0 && (<>
