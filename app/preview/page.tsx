@@ -111,13 +111,35 @@ export default function PreviewPage() {
     finally { setDownloading(null) }
   }
 
-  function handleDownloadPdf() {
+  async function handleDownloadPdf() {
+    if (!cv) return
     setDownloading('pdf')
-    // Give the browser a tick to apply print styles, then open the dialog
-    setTimeout(() => {
-      window.print()
+    try {
+      // Grab the exact CV markup currently on screen (inline-styled), so the
+      // PDF is a pixel match for the preview — for every template.
+      const node = document.getElementById('cv-print-area')
+      const html = node ? node.innerHTML : ''
+      if (!html) throw new Error('nothing to export')
+
+      const res = await fetch('/api/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html, fullName: cv.fullName }),
+      })
+      if (!res.ok) throw new Error('failed')
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.pdf`
+      document.body.appendChild(a); a.click(); a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch {
+      alert('PDF download failed. Please try again.')
+    } finally {
       setDownloading(null)
-    }, 150)
+    }
   }
 
   function handleNewCV() {
@@ -151,8 +173,17 @@ export default function PreviewPage() {
       {/* Load premium fonts for screen + print */}
       <link rel="stylesheet" href={PRINT_FONTS_HREF} />
 
-      {/* CRITICAL print CSS — hides everything except the CV, sizes to A4 */}
+      {/* CV layout + print CSS.
+          - box-sizing:border-box keeps each template's padding INSIDE its 297mm
+            height, so a one-page CV stays one page (no phantom overflow page).
+          - break-inside:avoid stops an experience block being split across pages.
+          PDF downloads use the server route (/api/export-pdf); this @media print
+          block is only a clean fallback for Ctrl+P. */}
       <style>{`
+        #cv-print-area, #cv-print-area * { box-sizing: border-box; }
+        #cv-print-area .exp-block,
+        #cv-print-area li,
+        #cv-print-area p { break-inside: avoid; page-break-inside: avoid; }
         @media screen {
           #cv-print-area { width: 210mm; }
         }
@@ -165,30 +196,19 @@ export default function PreviewPage() {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          /* Hide everything by default */
-          body * { visibility: hidden !important; }
-          /* Show only the CV print area and its children */
-          #cv-print-area, #cv-print-area * { visibility: visible !important; }
-          /* Pin the CV to the top-left, full A4 width, no decoration */
+          .no-print { display: none !important; }
+          /* Strip the on-screen card wrapper so the CV prints edge-to-edge */
           #cv-print-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
             width: 210mm !important;
-            max-width: 210mm !important;
+            margin: 0 !important;
             border: none !important;
             border-radius: 0 !important;
             box-shadow: none !important;
-            background: white !important;
           }
-          /* Kill the wrapping card's styling on print */
           #cv-print-area * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          .no-print { display: none !important; }
         }
       `}</style>
 
