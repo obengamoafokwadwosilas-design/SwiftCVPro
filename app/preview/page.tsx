@@ -181,6 +181,12 @@ export default function PreviewPage() {
           block is only a clean fallback for Ctrl+P. */}
       <style>{`
         #cv-print-area, #cv-print-area * { box-sizing: border-box; }
+        /* Long emails / links / locations wrap instead of spilling out of the page */
+        #cv-print-area { overflow-wrap: break-word; }
+        /* Title-left / date-right rows: let the title shrink & wrap so it can never
+           collide with the date (covers every template, no per-file edits) */
+        #cv-print-area [style*="space-between"] { gap: 12px; }
+        #cv-print-area [style*="space-between"] > :first-child { min-width: 0; overflow-wrap: anywhere; }
         #cv-print-area .exp-block,
         #cv-print-area li,
         #cv-print-area p { break-inside: avoid; page-break-inside: avoid; }
