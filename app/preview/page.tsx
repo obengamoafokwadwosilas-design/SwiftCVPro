@@ -157,38 +157,57 @@ export default function PreviewPage() {
           #cv-print-area { width: 210mm; }
         }
         @media print {
-          @page { size: A4; margin: 0; }
+          /* Professional printed pages: A4 + real white space at the top of EVERY page */
+          @page { size: A4; margin: 12mm 0 12mm 0; }
+
           html, body {
             margin: 0 !important;
             padding: 0 !important;
+            width: 210mm !important;
             background: white !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          /* Hide everything by default */
-          body * { visibility: hidden !important; }
-          /* Show only the CV print area and its children */
-          #cv-print-area, #cv-print-area * { visibility: visible !important; }
-          /* Pin the CV to the top-left, full A4 width, no decoration */
-          #cv-print-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
+
+          .no-print { display: none !important; }
+
+          /* Remove preview UI layout so the CV prints alone, not inside the app grid/card */
+          .print-shell,
+          .print-stage,
+          .print-card {
+            display: block !important;
             margin: 0 !important;
             padding: 0 !important;
             width: 210mm !important;
             max-width: 210mm !important;
+            min-height: auto !important;
+            overflow: visible !important;
+            background: white !important;
             border: none !important;
             border-radius: 0 !important;
             box-shadow: none !important;
-            background: white !important;
           }
-          /* Kill the wrapping card's styling on print */
+
+          body * { visibility: hidden !important; }
+          #cv-print-area, #cv-print-area * { visibility: visible !important; }
+
+          #cv-print-area {
+            position: static !important;
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 210mm !important;
+            max-width: 210mm !important;
+            background: white !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+          }
+
           #cv-print-area * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          .no-print { display: none !important; }
         }
       `}</style>
 
@@ -227,7 +246,7 @@ export default function PreviewPage() {
         </div>
       )}
 
-      <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
+      <div className="print-shell" style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
         {!isCoverLetter && (
           <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'20px', overflowY:'auto' }}>
 
@@ -264,9 +283,9 @@ export default function PreviewPage() {
           </div>
         )}
 
-        <div style={{ padding:'24px', overflowY:'auto', overflowX:'auto', background:'#f1f5f9' }}>
+        <div className="print-stage" style={{ padding:'24px', overflow:'auto', background:'#f1f5f9' }}>
           {activeTab === 'preview' ? (
-            <div style={{ background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'visible', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', width:'210mm', maxWidth:'210mm', margin:'0 auto' }}>
+            <div className="print-card" style={{ background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'visible', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', width:'210mm', maxWidth:'210mm', margin:'0 auto' }}>
               <div id="cv-print-area">
                 <CVPreview cv={cv} templateId={template} accentColor={accentColor} />
               </div>
@@ -603,8 +622,6 @@ function ContactLine({ cv, color = '#5a5a5a', sep = 18 }: { cv: GeneratedCV; col
 const A4_WRAPPER: React.CSSProperties = {
   minHeight: '297mm',
   width: '100%',
-  boxSizing: 'border-box',
-  overflowWrap: 'break-word',
   display: 'grid',
   fontFamily: "'Source Sans 3', 'Helvetica Neue', sans-serif",
 }
