@@ -111,13 +111,84 @@ export default function PreviewPage() {
     finally { setDownloading(null) }
   }
 
-  function handleDownloadPdf() {
+  async function handleDownloadPdf() {
+    if (!cv) return
+
+    const printArea = document.getElementById('cv-print-area')
+    if (!printArea) {
+      alert('CV preview not found. Please try again.')
+      return
+    }
+
     setDownloading('pdf')
-    // Give the browser a tick to apply print styles, then open the dialog
-    setTimeout(() => {
-      window.print()
+
+    try {
+      const html = buildPdfHtml(printArea.outerHTML)
+
+      const res = await fetch('/api/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ html, fullName: cv.fullName }),
+      })
+
+      if (!res.ok) {
+        const message = await res.text().catch(() => '')
+        throw new Error(message || 'PDF download failed')
+      }
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.pdf`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('PDF download failed:', error)
+      alert('PDF download failed. Please try again.')
+    } finally {
       setDownloading(null)
-    }, 150)
+    }
+  }
+
+  function buildPdfHtml(cvMarkup: string) {
+    return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="${PRINT_FONTS_HREF}" />
+  <style>
+    @page { size: A4; margin: 0; }
+    html, body {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0;
+      padding: 0;
+      background: white;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    #cv-print-area {
+      width: 210mm;
+      max-width: 210mm;
+      margin: 0;
+      padding: 0;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  ${cvMarkup}
+</body>
+</html>`
   }
 
   function handleNewCV() {
