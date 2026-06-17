@@ -183,10 +183,17 @@ nav.scrolled {
   color: rgba(255,255,255,0.55);
 }
 
-/* ATS badge floating above after frame */
+/* ATS badge floating above after frame - outside overflow */
+.transform-outer {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  padding-top: 36px;
+}
 .ats-badge-outside {
   position: absolute;
-  top: -18px; right: -10px;
+  top: 0;
+  right: 0;
   background: var(--teal);
   color: white;
   font-size: 0.72rem; font-weight: 700;
@@ -221,7 +228,7 @@ nav.scrolled {
 
 /* ── HERO RIGHT: TRANSFORMATION ── */
 .hero-right { display:flex; justify-content:center; align-items:center; opacity:0; animation:fadeUp 1s var(--ease) 0.4s forwards; }
-.transform-wrap { position:relative; width:100%; max-width:480px; display:grid; grid-template-columns:1fr 56px 1fr; align-items:center; }
+.transform-wrap { position:relative; width:100%; display:grid; grid-template-columns:1fr 56px 1fr; align-items:center; }
 
 .cv-frame { border-radius:14px; overflow:hidden; position:relative; aspect-ratio:3/4; box-shadow:0 24px 80px rgba(0,0,0,0.5); }
 .cv-frame img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
@@ -523,7 +530,8 @@ body.light-hero .arrow-label { color: var(--teal-dark); }
 body.light-hero .cv-frame.before-frame {
   border: 2px solid rgba(239,68,68,0.35);
   position: relative;
-  filter: grayscale(0.4) brightness(0.97) contrast(0.98);
+  filter: grayscale(0.15) brightness(1.02) contrast(0.96);
+  background: #ffffff;
 }
 body.light-hero .cv-frame.before-frame::after {
   content: '';
@@ -610,7 +618,7 @@ body.light-hero .hero {
           <span class="line-small bottom"><svg style="display:inline-block;vertical-align:middle;margin-right:6px;margin-top:-2px;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>in less than a minute.</span>
         </h1>
         <p class="hero-sub">SwiftCVPro creates professional, ATS-friendly CVs tailored for today's job market — helping you pass ATS, stand out to recruiters, and position yourself for better opportunities.</p>
-        <p class="hero-invest"><svg style="display:inline-block;vertical-align:middle;margin-right:7px;margin-top:-2px;color:var(--teal-dark);" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2l2-2-5-1zM12 2C6.5 2 2 6.5 2 12l10 10c5.5 0 10-4.5 10-10S17.5 2 12 2z"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>Invest 60 Seconds. Land More Interviews.</p>
+        <p class="hero-invest">Invest 60 Seconds. Land More Interviews.</p>
         <div class="hero-ctas">
           <a href="/build" class="btn-primary">Build My CV <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
           <a href="#templates" class="btn-ghost">View Templates</a>
@@ -618,42 +626,45 @@ body.light-hero .hero {
         <div class="hero-trust-row">
           <div class="hero-trust-divider"></div>
           <div class="hero-trust-items">
-            <span class="hero-trust-item"><svg class="hero-trust-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>HR Expertise</span>
+            <span class="hero-trust-item">HR Expertise</span>
             <span class="hero-trust-sep">|</span>
-            <span class="hero-trust-item"><svg class="hero-trust-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>AI Speed</span>
+            <span class="hero-trust-item">AI Speed</span>
             <span class="hero-trust-sep">|</span>
-            <span class="hero-trust-item"><svg class="hero-trust-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>ATS Optimised</span>
+            <span class="hero-trust-item">ATS Optimised</span>
             <span class="hero-trust-sep">|</span>
-            <span class="hero-trust-item"><svg class="hero-trust-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Recruiter-Ready</span>
+            <span class="hero-trust-item">Recruiter-Ready</span>
           </div>
           <div class="hero-trust-divider"></div>
         </div>
       </div>
 
       <div class="hero-right">
-        <div class="transform-wrap">
-          <!-- BEFORE -->
-          <div class="cv-frame before-frame">
-            <img src="before-cv.webp" alt="Basic CV before SwiftCVPro">
-            <div class="cv-label bad">✕ Before</div>
-          </div>
-          <!-- ARROW -->
-          <div class="arrow-col">
-            <div class="arrow-circle">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        <div class="transform-outer">
+          <!-- ATS badge sitting above the after frame -->
+          <div class="ats-badge-outside">✓ ATS Optimised</div>
+          <div class="transform-wrap">
+            <!-- BEFORE -->
+            <div class="cv-frame before-frame">
+              <img src="before-cv.webp" alt="Basic CV before SwiftCVPro">
+              <div class="cv-label bad">✕ Before</div>
             </div>
-            <div class="arrow-label">Swift<br>CVPro</div>
-          </div>
-          <!-- AFTER: cycling real CVs -->
-          <div class="cv-frame after-frame" style="position:relative;">
-            <div class="ats-badge-outside">✓ ATS Optimised</div>
-            <img class="after-img active" src="real-cv-2.webp" alt="Professional CV">
-            <img class="after-img" src="real-cv-3.webp" alt="Professional CV">
-            <img class="after-img" src="real-cv-4.webp" alt="Professional CV">
-            <img class="after-img" src="real-cv-5.webp" alt="Professional CV">
-            <img class="after-img" src="real-cv-6.webp" alt="Professional CV">
-            <img class="after-img" src="real-cv-7.webp" alt="Professional CV">
-            <div class="cv-label good">✓ After</div>
+            <!-- ARROW -->
+            <div class="arrow-col">
+              <div class="arrow-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </div>
+              <div class="arrow-label">Swift<br>CVPro</div>
+            </div>
+            <!-- AFTER: cycling real CVs -->
+            <div class="cv-frame after-frame">
+              <img class="after-img active" src="real-cv-2.webp" alt="Professional CV">
+              <img class="after-img" src="real-cv-3.webp" alt="Professional CV">
+              <img class="after-img" src="real-cv-4.webp" alt="Professional CV">
+              <img class="after-img" src="real-cv-5.webp" alt="Professional CV">
+              <img class="after-img" src="real-cv-6.webp" alt="Professional CV">
+              <img class="after-img" src="real-cv-7.webp" alt="Professional CV">
+              <div class="cv-label good">✓ After</div>
+            </div>
           </div>
         </div>
       </div>
