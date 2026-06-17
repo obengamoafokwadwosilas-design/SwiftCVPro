@@ -1,84 +1,966 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SwiftCVPro — Professional CVs That Get You Shortlisted</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    :root{--navy:#070b14;--navy2:#0d1424;--card:#111a2d;--teal:#14b8a6;--teal2:#5eead4;--gold:#f6c76b;--white:#fff;--muted:#94a3b8;--line:rgba(255,255,255,.1);--darkText:#101828;--bg:#f8fafc;--serif:'DM Serif Display',Georgia,serif;--sans:'Plus Jakarta Sans',system-ui,sans-serif;--ease:cubic-bezier(.16,1,.3,1)}
-    *{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{font-family:var(--sans);background:#fff;color:var(--darkText);overflow-x:hidden}a{text-decoration:none;color:inherit}.container{max-width:1180px;margin:0 auto;padding:0 24px}.section{padding:92px 0}.center{text-align:center}.kicker{display:inline-flex;align-items:center;gap:10px;padding:10px 18px;border:1px solid rgba(94,234,212,.25);border-radius:999px;background:rgba(94,234,212,.08);color:var(--teal2);font-size:.82rem;font-weight:700;letter-spacing:.02em}.kicker:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--teal2);box-shadow:0 0 22px var(--teal2)}h1,h2{font-family:var(--serif);font-weight:400;letter-spacing:-.035em}h1{font-size:clamp(3rem,7vw,6.4rem);line-height:.93;color:#fff;margin:28px 0 24px;text-transform:uppercase}h1 span{color:var(--teal2)}h2{font-size:clamp(2.1rem,4vw,4rem);line-height:1.02}.muted{color:var(--muted)}.btns{display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:center;margin-top:32px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:17px 28px;border-radius:999px;font-weight:800;transition:all .35s var(--ease);border:1px solid transparent}.btn-primary{background:linear-gradient(135deg,var(--teal),var(--teal2));color:#06131f;box-shadow:0 20px 60px rgba(20,184,166,.28)}.btn-primary:hover{transform:translateY(-4px);box-shadow:0 28px 70px rgba(20,184,166,.38)}.btn-secondary{border-color:rgba(255,255,255,.16);color:#fff;background:rgba(255,255,255,.04)}.btn-secondary:hover{background:rgba(255,255,255,.08);transform:translateY(-3px)}
-    nav{position:fixed;top:0;left:0;right:0;z-index:50;padding:18px 0;background:linear-gradient(to bottom,rgba(7,11,20,.9),rgba(7,11,20,0));backdrop-filter:blur(8px)}.navin{display:flex;align-items:center;justify-content:space-between}.brand{line-height:1}.brand .name{font-family:var(--serif);font-size:1.55rem;color:#fff}.brand .name b{color:var(--teal2);font-weight:400}.brand small{display:block;margin-top:4px;color:rgba(255,255,255,.45);font-size:.56rem;letter-spacing:2.4px;text-transform:uppercase}.navlinks{display:flex;gap:26px;color:rgba(255,255,255,.72);font-size:.88rem;font-weight:700}.navlinks a:hover{color:#fff}@media(max-width:760px){.navlinks{display:none}}
-    .hero{min-height:100vh;padding:132px 0 80px;background:radial-gradient(circle at 15% 20%,rgba(20,184,166,.2),transparent 32%),radial-gradient(circle at 85% 8%,rgba(246,199,107,.14),transparent 26%),linear-gradient(135deg,var(--navy),var(--navy2));position:relative;overflow:hidden}.hero:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:64px 64px;mask-image:linear-gradient(to bottom,#000,transparent 85%)}.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center}.lead{font-size:1.15rem;line-height:1.8;color:rgba(255,255,255,.74);max-width:610px}.pills{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}.pill{padding:10px 15px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:999px;color:rgba(255,255,255,.74);font-size:.84rem;font-weight:700}.hero-note{margin-top:18px;color:rgba(255,255,255,.55);font-size:.9rem}.showcase{height:640px;position:relative;perspective:1200px}.cv-stack{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}.cv-slide{position:absolute;width:330px;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 40px 100px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.12);opacity:0;transform:translateX(0) rotateY(0) scale(.8);animation:cover 21s infinite}.cv-slide img{width:100%;display:block}.cv-slide:nth-child(1){animation-delay:0s}.cv-slide:nth-child(2){animation-delay:3s}.cv-slide:nth-child(3){animation-delay:6s}.cv-slide:nth-child(4){animation-delay:9s}.cv-slide:nth-child(5){animation-delay:12s}.cv-slide:nth-child(6){animation-delay:15s}.cv-slide:nth-child(7){animation-delay:18s}@keyframes cover{0%,100%{opacity:0;transform:translateX(145px) rotateY(-18deg) scale(.78)}5%,14%{opacity:.38;transform:translateX(105px) rotateY(-13deg) scale(.86)}19%,28%{opacity:1;transform:translateX(0) rotateY(0) scale(1)}33%,42%{opacity:.38;transform:translateX(-105px) rotateY(13deg) scale(.86)}47%{opacity:0;transform:translateX(-145px) rotateY(18deg) scale(.78)}}.float{position:absolute;z-index:5;padding:12px 16px;border-radius:15px;background:rgba(255,255,255,.88);backdrop-filter:blur(18px);box-shadow:0 18px 60px rgba(0,0,0,.25);font-size:.84rem;font-weight:800;color:#0f172a;border:1px solid rgba(255,255,255,.7)}.f1{top:78px;right:18px}.f2{bottom:128px;left:8px}.f3{bottom:54px;right:54px}@media(max-width:980px){.hero-grid{grid-template-columns:1fr;text-align:center}.lead{margin:auto}.pills{justify-content:center}.showcase{height:520px}.cv-slide{width:270px}}@media(max-width:560px){h1{font-size:2.7rem}.hero{padding-top:120px}.showcase{height:450px}.cv-slide{width:235px}.float{font-size:.72rem}.f1{right:0}.f2{left:0}}
-    .logos{background:#fff;border-bottom:1px solid #e5e7eb;padding:50px 0}.logos h3{font-size:.78rem;text-align:center;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:28px}.logo-grid{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}.logo-chip{padding:13px 20px;border-radius:999px;border:1px solid #e2e8f0;background:#f8fafc;font-family:var(--serif);font-size:1.04rem;color:#64748b}.disclaimer{max-width:820px;text-align:center;margin:24px auto 0;color:#94a3b8;font-size:.78rem;line-height:1.7}
-    .templates{background:var(--bg)}.tabs{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin:26px 0 38px}.tab{border:1px solid #dbe4ee;background:#fff;border-radius:999px;padding:11px 20px;font-weight:800;color:#475569}.tab:first-child{background:#0f172a;color:#fff}.tplgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}.tpl{background:#fff;border:1px solid #e2e8f0;border-radius:22px;overflow:hidden;box-shadow:0 15px 45px rgba(15,23,42,.08);transition:.35s var(--ease)}.tpl:hover{transform:translateY(-8px);box-shadow:0 25px 70px rgba(15,23,42,.14)}.tpl-img{height:350px;background:#eef2f7;overflow:hidden}.tpl-img img{width:100%;height:100%;object-fit:cover;object-position:top}.tpl-body{padding:20px}.tpl-name{font-weight:900;font-size:1.12rem}.tpl-meta{color:#64748b;font-size:.86rem;margin:7px 0 14px}.preview{display:inline-flex;padding:9px 14px;border-radius:999px;background:#ecfeff;color:#0f766e;font-weight:900;font-size:.76rem}@media(max-width:900px){.tplgrid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.tplgrid{grid-template-columns:1fr}.tpl-img{height:410px}}
-    .pricing{background:linear-gradient(135deg,#08111f,#101b2d);color:#fff}.pricebox{max-width:680px;margin:42px auto 0;border:1px solid rgba(255,255,255,.12);border-radius:28px;background:rgba(255,255,255,.05);padding:16px;box-shadow:0 40px 90px rgba(0,0,0,.28)}.price-row{display:flex;justify-content:space-between;gap:20px;padding:22px 24px;border-bottom:1px solid rgba(255,255,255,.1);font-weight:800}.price-row:last-child{border-bottom:0}.bundle{background:linear-gradient(135deg,rgba(20,184,166,.18),rgba(246,199,107,.12));border-radius:20px}.amount{color:var(--gold);white-space:nowrap}
-    .steps{background:#fff}.stepgrid,.typegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:42px}.step,.type,.why-card,.quote{border:1px solid #e2e8f0;border-radius:24px;background:#fff;padding:28px;box-shadow:0 15px 45px rgba(15,23,42,.06)}.step-num{font-size:.76rem;font-weight:900;color:var(--teal);letter-spacing:2px}.step h3,.type h3{font-size:1.3rem;margin:12px 0 12px}.step p,.type p{color:#64748b;line-height:1.7}.typegrid{grid-template-columns:repeat(2,1fr)}@media(max-width:800px){.stepgrid,.typegrid{grid-template-columns:1fr}}
-    .before{background:var(--bg)}.beforebox{max-width:800px;margin:0 auto;border:1px solid #e2e8f0;border-radius:28px;background:#fff;padding:48px;text-align:center;box-shadow:0 25px 70px rgba(15,23,42,.08);font-family:var(--serif);font-size:clamp(1.7rem,4vw,3rem);color:#0f172a}.beforebox span{color:var(--teal)}
-    .why{background:#fff}.whygrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:38px}.why-card{padding:20px;font-weight:900;color:#0f172a}.why-card:before{content:'✓';color:var(--teal);margin-right:8px}@media(max-width:900px){.whygrid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.whygrid{grid-template-columns:1fr}}
-    .faq{background:var(--bg)}.faqbox{max-width:860px;margin:40px auto 0}.faqitem{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:20px 24px;margin-bottom:12px}.faqitem h3{font-size:1rem;margin-bottom:8px}.faqitem p{color:#64748b;line-height:1.65}.testimonials{background:#fff}.quotes{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:42px}.quote p{font-size:1.04rem;color:#334155;line-height:1.8}.quote strong{display:block;margin-top:16px;color:#0f172a}@media(max-width:800px){.quotes{grid-template-columns:1fr}}
-    .final{background:radial-gradient(circle at 50% 0,rgba(94,234,212,.18),transparent 40%),var(--navy);color:#fff;text-align:center}.final p{color:rgba(255,255,255,.65);margin-top:14px}.footer{background:#050811;color:rgba(255,255,255,.5);padding:30px 0;text-align:center;font-weight:700}.wa{position:fixed;right:24px;bottom:24px;width:60px;height:60px;border-radius:50%;background:#25d366;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 55px rgba(37,211,102,.38);z-index:30;font-weight:900}.reveal{opacity:0;transform:translateY(28px);transition:.8s var(--ease)}.reveal.show{opacity:1;transform:none}
-  </style>
-</head>
-<body>
-  <nav><div class="container navin"><a class="brand" href="#"><span class="name"><b>Swift</b>CVPro</span><small>Expertly Crafted. Instantly Delivered.</small></a><div class="navlinks"><a href="#templates">Templates</a><a href="#pricing">Pricing</a><a href="#how">How It Works</a><a href="#faq">FAQs</a></div></div></nav>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwiftCVPro — Professional CVs That Get You Shortlisted</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --teal: #0d9488;
+  --teal-dark: #0f766e;
+  --teal-light: #14b8a6;
+  --navy: #0a0f1a;
+  --navy-2: #111827;
+  --white: #ffffff;
+  --off-white: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-400: #94a3b8;
+  --gray-500: #64748b;
+  --gray-600: #475569;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--white);
+  color: var(--navy);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+.container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+a { text-decoration: none; }
 
-  <section class="hero">
-    <div class="container hero-grid">
-      <div>
-        <div class="kicker">HR Expertise. AI Speed. One Perfect CV.</div>
-        <h1>Turn Your Experience Into a CV That Gets <span>Noticed</span></h1>
-        <p class="lead">SwiftCVPro writes, structures, and tailors your CV for today's job market in less than a minute. Download instantly in PDF or Word.</p>
-        <div class="btns"><a href="/build?type=professional" class="btn btn-primary">Build My CV →</a><a href="#templates" class="btn btn-secondary">View Templates</a></div>
-        <div class="pills"><span class="pill">Professional CV</span><span class="pill">Targeted CV</span><span class="pill">Academic CV</span><span class="pill">Cover Letter</span></div>
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 18px 0; transition: all 0.5s var(--ease);
+}
+nav.scrolled {
+  background: rgba(10,15,26,0.96);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  padding: 12px 0;
+}
+.nav-inner { display:flex; justify-content:space-between; align-items:center; }
+.logo { display:flex; flex-direction:column; gap:2px; }
+.logo-name { font-family:var(--font-display); font-size:1.7rem; font-weight:600; color:var(--white); line-height:1; }
+.logo-name span { color:var(--teal-light); }
+.logo-sub { font-family:var(--font-body); font-size:0.55rem; font-weight:500; letter-spacing:2.5px; text-transform:uppercase; color:var(--gray-400); }
+.nav-links { display:none; gap:36px; list-style:none; }
+@media(min-width:900px){ .nav-links{display:flex;} }
+.nav-links a { font-size:0.875rem; font-weight:500; color:rgba(255,255,255,0.65); transition:color 0.3s; }
+.nav-links a:hover { color:var(--white); }
+.nav-cta { display:none; background:var(--teal); color:var(--white); padding:11px 26px; border-radius:100px; font-weight:600; font-size:0.875rem; transition:all 0.4s var(--ease); }
+@media(min-width:900px){ .nav-cta{display:inline-block;} }
+.nav-cta:hover { background:var(--teal-dark); transform:translateY(-1px); box-shadow:0 8px 32px rgba(13,148,136,0.35); }
+.hamburger { display:flex; flex-direction:column; gap:5px; cursor:pointer; background:none; border:none; padding:6px; }
+.hamburger span { width:22px; height:2px; background:var(--white); border-radius:2px; display:block; transition:all 0.3s; }
+.hamburger.open span:nth-child(1){ transform:rotate(45deg) translate(5px,5px); }
+.hamburger.open span:nth-child(2){ opacity:0; }
+.hamburger.open span:nth-child(3){ transform:rotate(-45deg) translate(5px,-5px); }
+@media(min-width:900px){ .hamburger{display:none;} }
+.mobile-menu { display:none; position:fixed; inset:0; background:var(--navy); z-index:99; padding:100px 28px 40px; flex-direction:column; }
+.mobile-menu.open { display:flex; }
+.mobile-menu a { color:var(--white); font-size:1.5rem; font-weight:600; padding:18px 0; border-bottom:1px solid rgba(255,255,255,0.08); transition:color 0.3s; }
+.mobile-menu a:hover { color:var(--teal-light); }
+.mobile-menu .mob-cta { margin-top:24px; background:var(--teal); text-align:center; border-radius:12px; border:none !important; padding:18px !important; color:white; }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh; background:var(--off-white);
+  display:flex; align-items:center;
+  padding:120px 0 80px; position:relative; overflow:hidden;
+}
+.hero-grid-bg {
+  position:absolute; inset:0;
+  background-image: linear-gradient(rgba(10,15,26,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(10,15,26,0.025) 1px, transparent 1px);
+  background-size:64px 64px; pointer-events:none;
+}
+.hero-glow-1 { position:absolute; width:700px; height:700px; background:radial-gradient(circle, rgba(20,184,166,0.14) 0%, transparent 65%); top:-15%; right:-15%; pointer-events:none; animation:gFloat 20s ease-in-out infinite; }
+.hero-glow-2 { position:absolute; width:500px; height:500px; background:radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 65%); bottom:-10%; left:-10%; pointer-events:none; animation:gFloat 28s ease-in-out infinite reverse; }
+@keyframes gFloat { 0%,100%{transform:translate(0,0);} 50%{transform:translate(25px,-25px);} }
+
+.hero-inner { display:grid; grid-template-columns:1fr; gap:60px; align-items:center; position:relative; z-index:2; }
+@media(min-width:1024px){ .hero-inner{grid-template-columns:1fr 1fr; gap:80px;} }
+.hero-left { text-align:center; }
+@media(min-width:1024px){ .hero-left{text-align:left;} }
+
+.hero-left > * { opacity:0; transform:translateY(28px); animation:fadeUp 0.8s var(--ease) forwards; }
+.hero-left > *:nth-child(1){ animation-delay:0.1s; }
+.hero-left > *:nth-child(2){ animation-delay:0.2s; }
+.hero-left > *:nth-child(3){ animation-delay:0.35s; }
+.hero-left > *:nth-child(4){ animation-delay:0.45s; }
+.hero-left > *:nth-child(5){ animation-delay:0.55s; }
+@keyframes fadeUp { to{opacity:1;transform:translateY(0);} }
+
+.hero-badge {
+  display:inline-flex; align-items:center; gap:8px;
+  background:rgba(20,184,166,0.08); border:1px solid rgba(20,184,166,0.2);
+  padding:8px 18px; border-radius:100px;
+  font-size:0.8rem; font-weight:600; color:var(--teal-light);
+  letter-spacing:0.5px; margin-bottom:32px;
+}
+.hero-badge::before { content:''; width:7px; height:7px; background:var(--teal-light); border-radius:50%; animation:blink 3s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* ── HERO HEADLINE — clear size contrast ── */
+.hero-h1 { margin-bottom: 28px; line-height: 1; }
+
+.hero-h1 .line-small {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(1.4rem, 3vw, 2.2rem);
+  font-weight: 500;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: -0.5px;
+  text-transform: none;
+  margin-bottom: 0;
+  margin-top: 4px;
+  line-height: 1.1;
+}
+.hero-h1 .line-small:first-child { margin-top: 0; }
+
+.hero-h1 .line-large {
+  display: block;
+  font-family: var(--font-display);
+  font-size: clamp(3.8rem, 8.5vw, 6.5rem);
+  font-weight: 600;
+  line-height: 0.92;
+  color: var(--white);
+  letter-spacing: -2px;
+}
+.hero-h1 .line-large.teal { color: var(--teal-light); }
+.hero-h1 .line-large.italic { font-style: italic; }
+/* JOB-WINNING CV gets the hero treatment — one unbroken phrase */
+.hero-h1 .line-large.biggest {
+  font-size: clamp(2.6rem, 7.5vw, 5.6rem);
+  letter-spacing: -2px;
+  line-height: 1;
+  white-space: nowrap;
+}
+@media(max-width:480px){
+  .hero-h1 .line-large.biggest { font-size: clamp(2.2rem, 11vw, 3.4rem); white-space: normal; }
+}
+.hero-h1 .line-small.bottom {
+  margin-top: 16px;
+  margin-bottom: 0;
+  font-family: var(--font-body);
+  font-size: clamp(0.75rem, 1.3vw, 0.9rem);
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-transform: none;
+  color: rgba(255,255,255,0.78);
+}
+
+.hero-sub { font-size:1rem; color:rgba(255,255,255,0.5); margin-bottom:36px; line-height:1.75; max-width:480px; }
+@media(max-width:1023px){ .hero-sub{margin:0 auto 36px;} }
+
+.hero-ctas { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-bottom:28px; }
+@media(min-width:1024px){ .hero-ctas{justify-content:flex-start;} }
+.btn-primary { background:var(--teal); color:var(--white); padding:15px 32px; border-radius:100px; font-weight:700; font-size:0.95rem; transition:all 0.4s var(--ease); border:none; cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+.btn-primary:hover { background:var(--teal-dark); transform:translateY(-2px); box-shadow:0 12px 40px rgba(13,148,136,0.4); }
+.btn-ghost { background:transparent; color:rgba(255,255,255,0.8); padding:15px 32px; border-radius:100px; font-weight:600; font-size:0.95rem; border:1px solid rgba(255,255,255,0.15); transition:all 0.3s var(--ease); cursor:pointer; display:inline-flex; align-items:center; gap:8px; }
+.btn-ghost:hover { border-color:rgba(255,255,255,0.35); color:var(--white); }
+
+.hero-pills { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+@media(min-width:1024px){ .hero-pills{justify-content:flex-start;} }
+.hero-pill { font-size:0.8rem; font-weight:500; color:rgba(255,255,255,0.38); display:flex; align-items:center; gap:6px; }
+.hero-pill::before { content:'✓'; color:var(--teal-light); font-weight:700; }
+
+/* invest line */
+.hero-invest {
+  font-size: 0.85rem; font-weight: 700;
+  letter-spacing: 0.3px;
+  margin-bottom: 20px; display: block;
+  color: rgba(255,255,255,0.55);
+}
+
+/* trust row */
+.hero-trust-row { margin-top: 28px; width: 100%; }
+.hero-trust-divider { height: 1px; background: currentColor; opacity: 0.1; width: 100%; }
+.hero-trust-items {
+  display: flex; align-items: center;
+  justify-content: center; gap: 14px;
+  padding: 13px 0;
+}
+@media(min-width:1024px){ .hero-trust-items{ justify-content:flex-start; } }
+.hero-trust-item {
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 1.2px; text-transform: uppercase;
+  color: rgba(255,255,255,0.82);
+}
+.hero-trust-sep { font-size: 0.55rem; opacity: 0.5; color: currentColor; }
+
+/* ── HERO RIGHT: TRANSFORMATION ── */
+.hero-right { display:flex; justify-content:center; align-items:center; opacity:0; animation:fadeUp 1s var(--ease) 0.4s forwards; }
+.transform-wrap { position:relative; width:100%; max-width:480px; display:grid; grid-template-columns:1fr 56px 1fr; align-items:center; }
+
+.cv-frame { border-radius:14px; overflow:hidden; position:relative; aspect-ratio:3/4; box-shadow:0 24px 80px rgba(0,0,0,0.5); }
+.cv-frame img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
+.cv-frame.before-frame { filter:saturate(0.25) brightness(0.8); border:2px solid rgba(255,255,255,0.07); animation:floatA 6s ease-in-out infinite; }
+.cv-frame.after-frame { border:2px solid rgba(20,184,166,0.5); animation:floatB 6s ease-in-out infinite 0.8s; }
+@keyframes floatA { 0%,100%{transform:translateY(0) rotate(-1.5deg);} 50%{transform:translateY(-10px) rotate(-1.5deg);} }
+@keyframes floatB { 0%,100%{transform:translateY(0) rotate(1.5deg);} 50%{transform:translateY(-8px) rotate(1.5deg);} }
+
+.cv-label { position:absolute; bottom:10px; left:50%; transform:translateX(-50%); padding:5px 13px; border-radius:100px; font-size:0.7rem; font-weight:700; letter-spacing:0.5px; white-space:nowrap; backdrop-filter:blur(10px); }
+.cv-label.bad { background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); color:#fca5a5; }
+.cv-label.good { background:rgba(20,184,166,0.15); border:1px solid rgba(20,184,166,0.4); color:var(--teal-light); }
+
+.after-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top; opacity:0; transition:opacity 0.9s ease; }
+.after-img.active { opacity:1; }
+
+.float-badge { position:absolute; z-index:20; padding:7px 14px; border-radius:100px; font-size:0.72rem; font-weight:700; background:rgba(20,184,166,0.12); border:1px solid rgba(20,184,166,0.3); color:var(--teal-light); white-space:nowrap; backdrop-filter:blur(10px); animation:badgeFloat 4s ease-in-out infinite; }
+.float-badge:nth-child(1){ top:-14px; right:6%; animation-delay:0s; }
+.float-badge:nth-child(2){ bottom:-14px; left:6%; animation-delay:1.5s; }
+@keyframes badgeFloat { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
+
+.arrow-col { display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px; z-index:10; }
+.arrow-circle { width:48px; height:48px; background:var(--teal); border-radius:50%; display:flex; align-items:center; justify-content:center; animation:arrowPulse 3s ease-in-out infinite; }
+@keyframes arrowPulse { 0%,100%{box-shadow:0 0 0 8px rgba(20,184,166,0.1),0 0 0 16px rgba(20,184,166,0.05);} 50%{box-shadow:0 0 0 12px rgba(20,184,166,0.15),0 0 0 24px rgba(20,184,166,0.07);} }
+.arrow-circle svg { width:18px; height:18px; color:white; }
+.arrow-label { font-size:0.58rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--teal-light); text-align:center; line-height:1.3; }
+
+/* ── COMPANY TICKER — WHITE BACKGROUND ── */
+.ticker-section {
+  background: var(--white);
+  border-top: 1px solid var(--gray-200);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 28px 0; overflow: hidden;
+}
+.ticker-label { text-align:center; font-size:0.68rem; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:var(--gray-400); margin-bottom:18px; }
+.ticker-track { overflow:hidden; position:relative; }
+.ticker-track::before, .ticker-track::after { content:''; position:absolute; top:0; bottom:0; width:100px; z-index:2; pointer-events:none; }
+.ticker-track::before { left:0; background:linear-gradient(90deg,var(--white),transparent); }
+.ticker-track::after { right:0; background:linear-gradient(-90deg,var(--white),transparent); }
+.ticker-inner { display:flex; white-space:nowrap; animation:tickerRoll 32s linear infinite; }
+.ticker-inner:hover { animation-play-state:paused; }
+@keyframes tickerRoll { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
+.ticker-item { display:inline-flex; align-items:center; gap:14px; padding:0 20px; font-size:0.9rem; font-weight:600; letter-spacing:0.3px; color:var(--gray-700); }
+.ticker-dot { color:var(--teal); font-size:0.5rem; }
+
+/* ── SHARED SECTION ── */
+section { padding:100px 0; }
+.section-eyebrow { display:block; font-size:0.7rem; font-weight:700; letter-spacing:2.5px; text-transform:uppercase; color:var(--teal); margin-bottom:14px; }
+.section-title { font-family:var(--font-display); font-size:clamp(2rem,4vw,3rem); font-weight:600; color:var(--navy); line-height:1.15; margin-bottom:14px; }
+.section-title.light { color:var(--white); }
+.section-sub { font-size:1rem; color:var(--gray-500); max-width:560px; line-height:1.75; }
+.section-head { text-align:center; margin-bottom:56px; }
+.section-head .section-sub { margin:0 auto; }
+
+/* ── TEMPLATES TICKER ── */
+.templates-section { background:var(--off-white); overflow:hidden; padding-bottom:80px; }
+.template-ticker-outer { overflow:hidden; position:relative; margin-top:48px; }
+.template-ticker-outer::before, .template-ticker-outer::after { content:''; position:absolute; top:0; bottom:0; width:120px; z-index:2; pointer-events:none; }
+.template-ticker-outer::before { left:0; background:linear-gradient(90deg,var(--off-white),transparent); }
+.template-ticker-outer::after { right:0; background:linear-gradient(-90deg,var(--off-white),transparent); }
+.template-ticker { display:flex; gap:20px; white-space:nowrap; animation:tmplRoll 30s linear infinite; padding:4px 0 24px; }
+.template-ticker:hover { animation-play-state:paused; }
+@keyframes tmplRoll { 0%{transform:translateX(-50%);} 100%{transform:translateX(0);} }
+
+.tmpl-chip { display:inline-flex; flex-direction:column; align-items:center; flex-shrink:0; cursor:pointer; }
+.tmpl-img-wrap {
+  width:200px; height:266px;
+  border-radius:14px; overflow:hidden;
+  border:2px solid var(--gray-200);
+  background:var(--white);
+  transition:all 0.4s var(--ease);
+  position:relative;
+  box-shadow:0 8px 32px rgba(0,0,0,0.08);
+}
+.tmpl-chip:hover .tmpl-img-wrap {
+  border-color:var(--teal-light);
+  transform:translateY(-10px);
+  box-shadow:0 28px 72px rgba(13,148,136,0.2);
+}
+.tmpl-img-wrap img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
+.tmpl-name { margin-top:12px; font-size:0.85rem; font-weight:700; color:var(--navy); }
+.tmpl-tag { font-size:0.72rem; color:var(--gray-400); margin-top:2px; }
+
+/* ── PRICING ── */
+.pricing-section { background:var(--white); }
+.pricing-grid { display:grid; grid-template-columns:1fr; gap:20px; max-width:680px; margin:0 auto; }
+@media(min-width:600px){ .pricing-grid{grid-template-columns:1fr 1fr;} }
+.price-card { background:var(--off-white); border:1px solid var(--gray-200); border-radius:24px; padding:36px 30px; transition:all 0.4s var(--ease); }
+.price-card:hover { box-shadow:0 24px 80px rgba(0,0,0,0.08); transform:translateY(-4px); }
+.price-card.featured { background:var(--navy); border-color:var(--teal); }
+.price-type { display:block; font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--gray-400); margin-bottom:20px; }
+.price-card.featured .price-type { color:var(--teal-light); }
+.price-amount { display:flex; align-items:baseline; gap:4px; font-family:var(--font-display); font-size:3.2rem; font-weight:600; color:var(--navy); line-height:1; margin-bottom:6px; }
+.price-card.featured .price-amount { color:var(--white); }
+.price-currency { font-size:1.1rem; font-weight:500; align-self:flex-start; margin-top:8px; }
+.price-per { font-size:0.85rem; font-weight:400; color:var(--gray-400); }
+.price-card.featured .price-per { color:rgba(255,255,255,0.35); }
+.price-desc { font-size:0.85rem; color:var(--gray-400); margin-bottom:28px; margin-top:6px; }
+.price-card.featured .price-desc { color:rgba(255,255,255,0.4); }
+.price-features { list-style:none; display:flex; flex-direction:column; gap:11px; margin-bottom:30px; }
+.price-features li { display:flex; align-items:center; gap:10px; font-size:0.875rem; color:var(--gray-600); }
+.price-card.featured .price-features li { color:rgba(255,255,255,0.72); }
+.price-features li::before { content:'✓'; color:var(--teal); font-weight:700; font-size:0.85rem; flex-shrink:0; }
+.price-btn { width:100%; padding:14px; border-radius:100px; font-weight:700; font-size:0.9rem; cursor:pointer; border:none; transition:all 0.3s var(--ease); display:block; text-align:center; }
+.price-btn.outline { background:transparent; color:var(--teal); border:2px solid var(--teal); }
+.price-btn.outline:hover { background:var(--teal); color:var(--white); }
+.price-btn.solid { background:var(--teal); color:var(--white); }
+.price-btn.solid:hover { background:var(--teal-dark); box-shadow:0 8px 32px rgba(13,148,136,0.4); }
+
+/* ── HOW IT WORKS ── */
+.how-section { background:var(--off-white); }
+.how-flow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: wrap;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 20px;
+  padding: 40px 32px;
+  margin-bottom: 32px;
+}
+.how-step {
+  display: flex; flex-direction: column;
+  align-items: center; text-align: center;
+  gap: 10px; padding: 0 16px;
+  flex: 1; min-width: 120px;
+}
+.how-step-num {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--gray-200);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 700;
+  color: var(--gray-400);
+}
+.how-step.magic .how-step-num {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: white;
+  box-shadow: 0 0 0 6px rgba(20,184,166,0.1);
+  animation: arrowPulse 3s ease-in-out infinite;
+}
+.how-step-label {
+  font-size: 0.88rem; font-weight: 700;
+  color: var(--navy); line-height: 1.3;
+}
+.how-step.magic .how-step-label {
+  color: var(--teal);
+}
+.how-step-sub {
+  font-size: 0.75rem; color: var(--gray-400);
+  line-height: 1.4;
+}
+.how-arrow {
+  font-size: 1rem; color: var(--gray-300);
+  padding: 0 4px; flex-shrink: 0;
+  align-self: center;
+}
+@media(max-width:640px){
+  .how-flow { flex-direction: column; gap: 20px; padding: 32px 24px; }
+  .how-arrow { transform: rotate(90deg); }
+  .how-step { padding: 0; }
+}
+.how-pills {
+  display: flex; flex-wrap: wrap;
+  justify-content: center; gap: 10px;
+  margin-bottom: 36px;
+}
+.how-pill {
+  font-size: 0.78rem; font-weight: 600;
+  color: var(--gray-500);
+  padding: 7px 16px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 100px;
+  display: flex; align-items: center; gap: 6px;
+}
+.how-pill::before { content: '✓'; color: var(--teal); font-weight: 700; }
+
+/* ── CV TYPES ── */
+.cv-types-section { background:var(--white); }
+.cv-types-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(min-width:900px){ .cv-types-grid{grid-template-columns:repeat(4,1fr);} }
+.cv-type-card { border:1px solid var(--gray-200); border-radius:20px; padding:28px 22px; transition:all 0.4s var(--ease); cursor:default; }
+.cv-type-card:hover { border-color:var(--teal-light); transform:translateY(-5px); box-shadow:0 20px 60px rgba(13,148,136,0.1); }
+.cv-type-emoji { font-size:1.8rem; margin-bottom:16px; display:block; }
+.cv-type-name { font-family:var(--font-display); font-size:1.25rem; font-weight:600; color:var(--navy); margin-bottom:8px; }
+.cv-type-desc { font-size:0.84rem; color:var(--gray-500); line-height:1.65; margin-bottom:16px; }
+.cv-type-link { font-size:0.82rem; font-weight:700; color:var(--teal); display:inline-flex; align-items:center; gap:4px; transition:gap 0.25s; }
+.cv-type-card:hover .cv-type-link { gap:8px; }
+
+/* ── WHY ── */
+.why-section { background:var(--navy); }
+.why-grid { display:grid; grid-template-columns:1fr; gap:1px; border:1px solid rgba(255,255,255,0.06); border-radius:20px; overflow:hidden; margin-top:52px; }
+@media(min-width:640px){ .why-grid{grid-template-columns:repeat(2,1fr);} }
+@media(min-width:1024px){ .why-grid{grid-template-columns:repeat(4,1fr);} }
+.why-item { padding:32px 26px; background:rgba(255,255,255,0.02); border-right:1px solid rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.06); transition:background 0.3s; }
+.why-item:hover { background:rgba(20,184,166,0.05); }
+.why-icon { width:42px; height:42px; background:rgba(20,184,166,0.1); border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; }
+.why-icon svg { width:19px; height:19px; color:var(--teal-light); }
+.why-title { font-family:var(--font-display); font-size:1.1rem; font-weight:600; color:var(--white); margin-bottom:7px; }
+.why-desc { font-size:0.85rem; color:rgba(255,255,255,0.4); line-height:1.7; }
+
+/* ── FAQS ── */
+.faq-section { background:var(--off-white); }
+.faq-list { max-width:700px; margin:0 auto; display:flex; flex-direction:column; gap:4px; }
+.faq-item { background:var(--white); border:1px solid var(--gray-200); border-radius:12px; overflow:hidden; }
+.faq-q { width:100%; background:none; border:none; cursor:pointer; display:flex; justify-content:space-between; align-items:center; padding:20px 22px; text-align:left; gap:16px; transition:background 0.2s; }
+.faq-q:hover { background:var(--off-white); }
+.faq-q-text { font-weight:600; font-size:0.9rem; color:var(--navy); }
+.faq-icon { width:22px; height:22px; border-radius:50%; flex-shrink:0; border:1.5px solid var(--gray-300); display:flex; align-items:center; justify-content:center; transition:all 0.3s var(--ease); }
+.faq-icon svg { width:11px; height:11px; color:var(--gray-500); transition:transform 0.3s var(--ease); }
+.faq-item.open .faq-icon { background:var(--teal); border-color:var(--teal); }
+.faq-item.open .faq-icon svg { color:white; transform:rotate(180deg); }
+.faq-a { max-height:0; overflow:hidden; transition:max-height 0.4s var(--ease); }
+.faq-item.open .faq-a { max-height:250px; }
+.faq-a p { padding:0 22px 20px; font-size:0.875rem; color:var(--gray-500); line-height:1.75; }
+
+/* ── TESTIMONIALS ── */
+.testi-section { background:var(--white); }
+.testi-grid { display:grid; grid-template-columns:1fr; gap:18px; }
+@media(min-width:768px){ .testi-grid{grid-template-columns:1fr 1fr;} }
+.testi-card { border:1px solid var(--gray-200); border-radius:20px; padding:30px 26px; transition:all 0.4s var(--ease); }
+.testi-card:hover { border-color:var(--teal-light); box-shadow:0 16px 60px rgba(13,148,136,0.08); }
+.testi-stars { color:var(--teal-light); font-size:0.9rem; letter-spacing:2px; margin-bottom:14px; }
+.testi-text { font-size:0.93rem; color:var(--gray-600); line-height:1.8; margin-bottom:20px; font-style:italic; }
+.testi-author { display:flex; align-items:center; gap:12px; }
+.testi-avatar { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--teal-dark)); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.82rem; color:white; flex-shrink:0; }
+.testi-name { font-weight:700; font-size:0.875rem; color:var(--navy); }
+.testi-loc { font-size:0.78rem; color:var(--gray-400); }
+
+/* ── FINAL CTA ── */
+.cta-section { background:var(--navy); padding:120px 0; position:relative; overflow:hidden; text-align:center; }
+.cta-bg { position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size:64px 64px; pointer-events:none; }
+.cta-glow { position:absolute; width:600px; height:600px; background:radial-gradient(circle,rgba(20,184,166,0.1) 0%,transparent 65%); top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; }
+.cta-section .container { position:relative; z-index:2; }
+.cta-title { font-family:var(--font-display); font-size:clamp(2.4rem,5vw,4rem); font-weight:600; color:var(--white); line-height:1.15; margin-bottom:14px; }
+.cta-title em { font-style:italic; color:var(--teal-light); }
+.cta-sub { font-size:0.95rem; color:rgba(255,255,255,0.45); margin-bottom:40px; }
+.cta-btn { display:inline-flex; align-items:center; gap:10px; background:var(--teal); color:var(--white); padding:17px 40px; border-radius:100px; font-weight:700; font-size:1rem; transition:all 0.4s var(--ease); }
+.cta-btn:hover { background:var(--teal-dark); transform:translateY(-3px); box-shadow:0 16px 60px rgba(13,148,136,0.45); }
+.cta-note { margin-top:14px; font-size:0.8rem; color:rgba(255,255,255,0.25); }
+
+/* ── FOOTER ── */
+footer { background:var(--navy); border-top:1px solid rgba(255,255,255,0.06); padding:44px 0; }
+.footer-inner { display:flex; flex-direction:column; gap:20px; align-items:center; text-align:center; }
+@media(min-width:768px){ .footer-inner{flex-direction:row; justify-content:space-between; text-align:left;} }
+.footer-logo-name { font-family:var(--font-display); font-size:1.35rem; font-weight:600; color:var(--white); }
+.footer-logo-name span { color:var(--teal-light); }
+.footer-tagline { font-size:0.75rem; color:var(--gray-600); margin-top:4px; }
+.footer-links { display:flex; gap:20px; flex-wrap:wrap; justify-content:center; }
+.footer-links a { font-size:0.82rem; color:var(--gray-500); transition:color 0.3s; }
+.footer-links a:hover { color:var(--teal-light); }
+.footer-copy { font-size:0.78rem; color:var(--gray-600); }
+
+/* ── SCROLL REVEAL ── */
+.reveal { opacity:0; transform:translateY(28px); transition:opacity 0.7s var(--ease),transform 0.7s var(--ease); }
+.reveal.visible { opacity:1; transform:translateY(0); }
+.rd1{transition-delay:0.1s;} .rd2{transition-delay:0.2s;} .rd3{transition-delay:0.3s;} .rd4{transition-delay:0.4s;}
+
+@media(max-width:480px){ .cv-types-grid{grid-template-columns:1fr;} .pricing-grid{grid-template-columns:1fr;} }
+@media(prefers-reduced-motion:reduce){ .ticker-inner,.template-ticker,.cv-frame,.float-badge,.hero-glow-1,.hero-glow-2{animation:none;} }
+
+/* ════════ LIGHT HERO OVERRIDE ════════ */
+body.light-hero nav:not(.scrolled) .logo-name { color: var(--navy); }
+body.light-hero nav:not(.scrolled) .logo-sub { color: var(--gray-500); }
+body.light-hero nav:not(.scrolled) .nav-links a { color: rgba(10,15,26,0.6); }
+body.light-hero nav:not(.scrolled) .nav-links a:hover { color: var(--navy); }
+body.light-hero nav:not(.scrolled) .hamburger span { background: var(--navy); }
+
+body.light-hero .hero-badge {
+  background: rgba(13,148,136,0.08);
+  border-color: rgba(13,148,136,0.25);
+  color: var(--teal-dark);
+}
+body.light-hero .hero-h1 .line-small { color: rgba(10,15,26,0.82); }
+body.light-hero .hero-h1 .line-small.bottom { color: rgba(10,15,26,0.82); }
+body.light-hero .hero-trust-item { color: var(--gray-600); }
+body.light-hero .hero-trust-sep { color: var(--gray-400); opacity: 0.6; }
+body.light-hero .hero-h1 .line-large { color: var(--navy); }
+body.light-hero .hero-h1 .line-large.teal { color: var(--teal); }
+body.light-hero .hero-sub { color: var(--gray-600); }
+body.light-hero .hero-pill { color: var(--gray-500); }
+body.light-hero .hero-invest { color: var(--teal-dark); font-weight: 700; }
+body.light-hero .hero-trust-row { color: var(--navy); }
+body.light-hero .hero-trust-item { color: var(--gray-600); }
+body.light-hero .hero-trust-divider { opacity: 0.12; }
+body.light-hero .btn-ghost {
+  color: var(--navy);
+  border-color: var(--gray-300);
+}
+body.light-hero .btn-ghost:hover {
+  border-color: var(--navy);
+  color: var(--navy);
+}
+body.light-hero .arrow-label { color: var(--teal-dark); }
+body.light-hero .cv-frame.before-frame {
+  border: 2px solid rgba(239,68,68,0.3);
+  position: relative;
+  filter: grayscale(0.85) brightness(0.92) contrast(0.95);
+}
+body.light-hero .cv-frame.before-frame::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: rgba(239,68,68,0.1);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+body.light-hero .cv-frame.after-frame {
+  border: 2px solid rgba(13,148,136,0.45);
+  box-shadow: 0 24px 80px rgba(13,148,136,0.18);
+}
+body.light-hero .cv-label.bad {
+  background: #dc2626;
+  border: none;
+  color: white;
+  font-weight: 800;
+}
+body.light-hero .cv-label.good {
+  background: rgba(13,148,136,0.95);
+  border: none;
+  color: white;
+  font-weight: 800;
+}
+body.light-hero .float-badge {
+  background: rgba(13,148,136,0.1);
+  border-color: rgba(13,148,136,0.25);
+  color: var(--teal-dark);
+}
+/* Ticker section was already white -> needs separation now hero is also light */
+body.light-hero .ticker-section {
+  border-top: none;
+}
+body.light-hero .hero {
+  border-bottom: 1px solid var(--gray-200);
+}
+</style>
+</head>
+<body class="light-hero">
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="#" class="logo">
+        <div class="logo-name"><span>Swift</span>CVPro</div>
+        <div class="logo-sub">CV Writing, Simplified.</div>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#templates">Templates</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#how">How It Works</a></li>
+        <li><a href="#faq">FAQs</a></li>
+      </ul>
+      <a href="/build" class="nav-cta">Build My CV</a>
+      <button class="hamburger" id="hamburger" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#templates" onclick="closeMob()">Templates</a>
+  <a href="#pricing" onclick="closeMob()">Pricing</a>
+  <a href="#how" onclick="closeMob()">How It Works</a>
+  <a href="#faq" onclick="closeMob()">FAQs</a>
+  <a href="/build" class="mob-cta">Build My CV →</a>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="hero-glow-1"></div>
+  <div class="hero-glow-2"></div>
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <h1 class="hero-h1">
+          <span class="line-small">Build your perfect</span>
+          <span class="line-large teal italic biggest">Job-Winning CV</span>
+          <span class="line-small bottom">in less than a minute.</span>
+        </h1>
+        <p class="hero-sub">Build a professional, ATS-friendly CV in less than a minute. SwiftCVPro creates professional, ATS-friendly CVs tailored for today's job market — helping you pass ATS, stand out to recruiters, and position yourself for better opportunities.</p>
+        <p class="hero-invest">Invest 60 Seconds. Land More Interviews.</p>
+        <div class="hero-ctas">
+          <a href="/build" class="btn-primary">Build My CV <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+          <a href="#templates" class="btn-ghost">View Templates</a>
+        </div>
+        <div class="hero-trust-row">
+          <div class="hero-trust-divider"></div>
+          <div class="hero-trust-items">
+            <span class="hero-trust-item">HR Expertise</span>
+            <span class="hero-trust-sep">|</span>
+            <span class="hero-trust-item">AI Speed</span>
+            <span class="hero-trust-sep">|</span>
+            <span class="hero-trust-item">ATS Optimised</span>
+            <span class="hero-trust-sep">|</span>
+            <span class="hero-trust-item">Recruiter-Ready</span>
+          </div>
+          <div class="hero-trust-divider"></div>
+        </div>
       </div>
-      <div class="showcase" aria-label="Auto Rotating Premium CV Showcase">
-        <div class="float f1">NOIR</div><div class="float f2">MERIDIAN</div><div class="float f3">GRADUATE</div>
-        <div class="cv-stack">
-          <div class="cv-slide"><img src="/real-cv-2.webp" alt="Meridian CV template"></div>
-          <div class="cv-slide"><img src="/real-cv-3.webp" alt="Noir CV template"></div>
-          <div class="cv-slide"><img src="/real-cv-4.webp" alt="Graduate CV template"></div>
-          <div class="cv-slide"><img src="/real-cv-5.webp" alt="London CV template"></div>
-          <div class="cv-slide"><img src="/real-cv-6.webp" alt="Nordic CV template"></div>
-          <div class="cv-slide"><img src="/real-cv-7.webp" alt="New York CV template"></div>
-          <div class="cv-slide"><img src="/real-cv-7.webp" alt="Atelier CV template"></div>
+
+      <div class="hero-right">
+        <div class="transform-wrap">
+          <div class="float-badge">ATS Optimised ✓</div>
+          <!-- BEFORE -->
+          <div class="cv-frame before-frame">
+            <img src="before-cv.webp" alt="Basic CV before SwiftCVPro">
+            <div class="cv-label bad">❌ Before</div>
+          </div>
+          <!-- ARROW -->
+          <div class="arrow-col">
+            <div class="arrow-circle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </div>
+            <div class="arrow-label">Swift<br>CVPro</div>
+          </div>
+          <!-- AFTER: cycling real CVs -->
+          <div class="cv-frame after-frame">
+            <img class="after-img active" src="real-cv-2.webp" alt="Professional CV">
+            <img class="after-img" src="real-cv-3.webp" alt="Professional CV">
+            <img class="after-img" src="real-cv-4.webp" alt="Professional CV">
+            <img class="after-img" src="real-cv-5.webp" alt="Professional CV">
+            <img class="after-img" src="real-cv-6.webp" alt="Professional CV">
+            <img class="after-img" src="real-cv-7.webp" alt="Professional CV">
+            <div class="cv-label good">✓ After</div>
+          </div>
         </div>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section class="logos">
-    <div class="container"><h3>Users of SwiftCVPro have landed roles at:</h3><div class="logo-grid"><span class="logo-chip">MTN</span><span class="logo-chip">TELECEL</span><span class="logo-chip">ECOBANK</span><span class="logo-chip">STANBIC</span><span class="logo-chip">ABSA</span><span class="logo-chip">GOOGLE</span><span class="logo-chip">MICROSOFT</span><span class="logo-chip">AMAZON</span><span class="logo-chip">META</span><span class="logo-chip">DELOITTE</span></div><p class="disclaimer">Logos and trademarks are the property of their respective owners. Displayed solely to illustrate employers where users have secured roles. No endorsement, sponsorship, partnership, or affiliation is implied.</p></div>
-  </section>
+<!-- COMPANY TICKER — WHITE -->
+<div class="ticker-section">
+  <div class="ticker-label">Users of SwiftCVPro have landed roles at</div>
+  <div class="ticker-track">
+    <div class="ticker-inner">
+      <span class="ticker-item">MTN Ghana <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Google <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Ecobank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">University of Ghana <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Deloitte <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Telecel Ghana <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Stanbic Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Microsoft <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">KNUST <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">ABSA Ghana <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Amazon <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">GCB Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">KPMG <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Access Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Meta <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Ghana Ports Authority <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Fidelity Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Calbank <span class="ticker-dot">◆</span></span>
+      <!-- duplicate -->
+      <span class="ticker-item">MTN Ghana <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Google <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Ecobank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">University of Ghana <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Deloitte <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Telecel Ghana <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Stanbic Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Microsoft <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">KNUST <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">ABSA Ghana <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Amazon <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">GCB Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">KPMG <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Access Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Meta <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Ghana Ports Authority <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Fidelity Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Calbank <span class="ticker-dot">◆</span></span>
+    </div>
+  </div>
+</div>
 
-  <section class="section templates" id="templates"><div class="container center reveal"><h2>Explore Our Templates</h2><div class="tabs"><span class="tab">ALL</span><span class="tab">ATS</span><span class="tab">PREMIUM</span><span class="tab">ACADEMIC</span></div></div><div class="container tplgrid">
-    <div class="tpl reveal"><div class="tpl-img"><img src="/real-cv-2.webp"></div><div class="tpl-body"><div class="tpl-name">Meridian</div><div class="tpl-meta">ATS + PDF</div><span class="preview">PREVIEW</span></div></div>
-    <div class="tpl reveal"><div class="tpl-img"><img src="/real-cv-3.webp"></div><div class="tpl-body"><div class="tpl-name">Noir</div><div class="tpl-meta">Premium PDF</div><span class="preview">PREVIEW</span></div></div>
-    <div class="tpl reveal"><div class="tpl-img"><img src="/real-cv-4.webp"></div><div class="tpl-body"><div class="tpl-name">London</div><div class="tpl-meta">Premium PDF</div><span class="preview">PREVIEW</span></div></div>
-    <div class="tpl reveal"><div class="tpl-img"><img src="/real-cv-5.webp"></div><div class="tpl-body"><div class="tpl-name">Graduate</div><div class="tpl-meta">Academic</div><span class="preview">PREVIEW</span></div></div>
-    <div class="tpl reveal"><div class="tpl-img"><img src="/real-cv-6.webp"></div><div class="tpl-body"><div class="tpl-name">Nordic</div><div class="tpl-meta">Premium PDF</div><span class="preview">PREVIEW</span></div></div>
-    <div class="tpl reveal"><div class="tpl-img"><img src="/real-cv-7.webp"></div><div class="tpl-body"><div class="tpl-name">New York</div><div class="tpl-meta">Premium PDF</div><span class="preview">PREVIEW</span></div></div>
-  </div></section>
+<!-- TEMPLATES -->
+<section class="templates-section" id="templates">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-eyebrow">Premium Designs</span>
+      <h2 class="section-title">Our Templates</h2>
+      <p class="section-sub">ATS-safe and premium designs — built to look sharp on screen and clean on download.</p>
+    </div>
+  </div>
+  <div class="template-ticker-outer">
+    <div class="template-ticker">
+      <!-- set 1: real images -->
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-2.webp" alt="Meridian template"></div><div class="tmpl-name">Meridian</div><div class="tmpl-tag">Clean · Recruiter-Safe</div></div>
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-3.webp" alt="Noir template"></div><div class="tmpl-name">Noir</div><div class="tmpl-tag">Refined · Dark</div></div>
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-4.webp" alt="London template"></div><div class="tmpl-name">London</div><div class="tmpl-tag">Editorial · Warm Serif</div></div>
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-5.webp" alt="Nordic template"></div><div class="tmpl-name">Nordic</div><div class="tmpl-tag">Clean · Modern</div></div>
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-6.webp" alt="New York template"></div><div class="tmpl-name">New York</div><div class="tmpl-tag">Bold Serif · Crimson</div></div>
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-7.webp" alt="Graduate template"></div><div class="tmpl-name">Graduate</div><div class="tmpl-tag">Optimistic · Fresh</div></div>
+      <!-- set 2: duplicate for seamless loop -->
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-2.webp" alt="Meridian template"></div><div class="tmpl-name">Meridian</div><div class="tmpl-tag">Clean · Recruiter-Safe</div></div>
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-3.webp" alt="Noir template"></div><div class="tmpl-name">Noir</div><div class="tmpl-tag">Refined · Dark</div></div>
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-4.webp" alt="London template"></div><div class="tmpl-name">London</div><div class="tmpl-tag">Editorial · Warm Serif</div></div>
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-5.webp" alt="Nordic template"></div><div class="tmpl-name">Nordic</div><div class="tmpl-tag">Clean · Modern</div></div>
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-6.webp" alt="New York template"></div><div class="tmpl-name">New York</div><div class="tmpl-tag">Bold Serif · Crimson</div></div>
+      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-7.webp" alt="Graduate template"></div><div class="tmpl-name">Graduate</div><div class="tmpl-tag">Optimistic · Fresh</div></div>
+    </div>
+  </div>
+</section>
 
-  <section class="section pricing" id="pricing"><div class="container center reveal"><h2>Pricing</h2><div class="pricebox"><div class="price-row"><span>Single CV</span><span class="amount">GHS 20</span></div><div class="price-row"><span>Cover Letter</span><span class="amount">GHS 10</span></div><div class="price-row bundle"><span>BUNDLE<br><small>6 CV Downloads + 10 Cover Letters</small></span><span class="amount">GHS 100</span></div></div></div></section>
+<!-- PRICING -->
+<section class="pricing-section" id="pricing">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-eyebrow">Pricing</span>
+      <h2 class="section-title">Simple Pricing. No Subscription.</h2>
+      <p class="section-sub">Pay once. Download instantly. No hidden fees, no monthly charges.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card reveal rd1">
+        <span class="price-type">Single CV</span>
+        <div class="price-amount"><span class="price-currency">GH₵</span><span>20</span><span class="price-per">/ CV</span></div>
+        <p class="price-desc">Everything you need for one professional CV.</p>
+        <ul class="price-features">
+          <li>ATS Optimized</li>
+          <li>Professionally Structured</li>
+          <li>PDF Download</li>
+          <li>Word Download</li>
+          <li>Instant Delivery</li>
+          <li>Premium Template Selection</li>
+        </ul>
+        <a href="/build" class="price-btn outline">Build My CV →</a>
+      </div>
+      <div class="price-card featured reveal rd2">
+        <span class="price-type">Cover Letter</span>
+        <div class="price-amount"><span class="price-currency">GH₵</span><span>10</span><span class="price-per">/ letter</span></div>
+        <p class="price-desc">A compelling letter written for the job you want.</p>
+        <ul class="price-features">
+          <li>Tailored To Job Role</li>
+          <li>Professional Format</li>
+          <li>Recruiter Friendly</li>
+          <li>Instant Download</li>
+          <li>Written In Your Voice</li>
+          <li>Perfect Add-On To Your CV</li>
+        </ul>
+        <a href="/build?type=cover_letter" class="price-btn solid">Build My Letter →</a>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <section class="section steps" id="how"><div class="container center reveal"><h2>Here's How It Works</h2></div><div class="container stepgrid"><div class="step reveal"><div class="step-num">STEP 1</div><h3>Share Your Info</h3><p>Upload file. Paste old CV. Type details.</p></div><div class="step reveal"><div class="step-num">STEP 2</div><h3>Select CV Type</h3><p>Professional. Targeted. Academic. Cover Letter.</p></div><div class="step reveal"><div class="step-num">STEP 3</div><h3>Download Your CV</h3><p>PDF or Word Doc. In seconds.</p></div></div></section>
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-eyebrow">Simple Process</span>
+      <h2 class="section-title">Here's How It Works</h2>
+    </div>
 
-  <section class="section"><div class="container center reveal"><h2>CV Types</h2></div><div class="container typegrid"><div class="type reveal"><h3>💼 Professional</h3><p>Great general CV for any job.</p></div><div class="type reveal"><h3>🎯 Targeted</h3><p>Paste the job ad. AI matches your CV to it.</p></div><div class="type reveal"><h3>🎓 Academic</h3><p>For postgrad, research, and lecturers.</p></div><div class="type reveal"><h3>✉️ Cover Letter</h3><p>A powerful letter that sells you first.</p></div></div></section>
+    <!-- FLOW ROW -->
+    <div class="how-flow reveal rd1">
+      <!-- Step 1 -->
+      <div class="how-step">
+        <div class="how-step-num">1</div>
+        <div class="how-step-label">Share Your Info</div>
+        <div class="how-step-sub">Upload File · Paste text · Type details</div>
+      </div>
 
-  <section class="section before"><div class="container reveal"><div class="beforebox">Raw text going in <span>→</span> Polished CV out</div></div></section>
+      <div class="how-arrow">→</div>
 
-  <section class="section why"><div class="container center reveal"><h2>Why SwiftCVPro?</h2></div><div class="container whygrid"><div class="why-card reveal">ATS Optimized</div><div class="why-card reveal">Premium Templates</div><div class="why-card reveal">PDF & Word Downloads</div><div class="why-card reveal">Upload Existing CV</div><div class="why-card reveal">Tailor To Job Descriptions</div><div class="why-card reveal">AI-Powered Improvements</div><div class="why-card reveal">Instant Downloads</div></div></section>
+      <!-- Step 2 -->
+      <div class="how-step">
+        <div class="how-step-num">2</div>
+        <div class="how-step-label">Choose CV Type</div>
+        <div class="how-step-sub">Professional · Targeted · Academic · Cover Letter</div>
+      </div>
 
-  <section class="section faq" id="faq"><div class="container center reveal"><h2>FAQs</h2></div><div class="container faqbox"><div class="faqitem reveal"><h3>Can I download instantly?</h3><p>Yes. Once your CV is ready, you can download immediately.</p></div><div class="faqitem reveal"><h3>Can I use an old CV?</h3><p>Yes. Upload or paste your old CV and SwiftCVPro turns it into a polished CV.</p></div><div class="faqitem reveal"><h3>Can I tailor it to a job description?</h3><p>Yes. Paste the job description or poster and SwiftCVPro can match your CV to it.</p></div></div></section>
+      <div class="how-arrow">→</div>
 
-  <section class="section testimonials"><div class="container center reveal"><h2>What People Say</h2></div><div class="container quotes"><div class="quote reveal"><p>"I just pasted my old CV and it came back completely transformed. Got called for an interview the same week."</p><strong>— Ama, Accra</strong></div><div class="quote reveal"><p>"I had no idea how to write a CV. This just did it for me. Looks like a professional wrote it. Cost me 30 cedis."</p><strong>— Kofi, Kumasi</strong></div></div></section>
+      <!-- Magic Step -->
+      <div class="how-step magic">
+        <div class="how-step-label">✦ SwiftCVPro writes it</div>
+        <div class="how-step-sub">Our AI writes, structures &amp; tailors your CV</div>
+      </div>
 
-  <section class="section final"><div class="container reveal"><h2>Ready to Land Your Next Role?</h2><div class="btns"><a href="/build?type=professional" class="btn btn-primary">Build My CV Now →</a></div></div></section>
-  <footer class="footer"><div class="container">SwiftCVPro ·· © 2026</div></footer>
-  <a class="wa" href="https://wa.me/233559519783" aria-label="Chat with us">↗</a>
-  <script>const io=new IntersectionObserver(e=>e.forEach(x=>x.isIntersecting&&x.target.classList.add('show')),{threshold:.12});document.querySelectorAll('.reveal').forEach(el=>io.observe(el));</script>
+      <div class="how-arrow">→</div>
+
+      <!-- Step 3 -->
+      <div class="how-step">
+        <div class="how-step-num">3</div>
+        <div class="how-step-label">Download Your CV</div>
+        <div class="how-step-sub">PDF or Word · Instant</div>
+      </div>
+    </div>
+
+    <!-- PILLS -->
+    <div class="how-pills reveal rd2">
+      <span class="how-pill">ATS-Safe</span>
+      <span class="how-pill">Premium Design</span>
+      <span class="how-pill">Job Tailoring</span>
+      <span class="how-pill">Professional Wording</span>
+    </div>
+
+    <!-- CTA -->
+    <div style="text-align:center;" class="reveal rd3">
+      <a href="/build" class="btn-primary" style="display:inline-flex;">
+        Build My CV
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+  </div>
+</section>
+
+<!-- CV TYPES -->
+<section class="cv-types-section" id="cvtypes">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-eyebrow">What We Offer</span>
+      <h2 class="section-title">CV Types</h2>
+      <p class="section-sub">One platform. Every type of CV you'll ever need.</p>
+    </div>
+    <div class="cv-types-grid">
+      <div class="cv-type-card reveal rd1"><span class="cv-type-emoji">💼</span><div class="cv-type-name">Professional CV</div><p class="cv-type-desc">A complete, polished CV for any employer and any job. Built to pass ATS and impress human recruiters.</p><a href="/build?type=professional" class="cv-type-link">Build now →</a></div>
+      <div class="cv-type-card reveal rd2"><span class="cv-type-emoji">🎯</span><div class="cv-type-name">Targeted CV</div><p class="cv-type-desc">Paste the job description. Our AI reads it and tailors your CV to match exactly what the employer wants.</p><a href="/build?type=targeted" class="cv-type-link">Build now →</a></div>
+      <div class="cv-type-card reveal rd3"><span class="cv-type-emoji">🎓</span><div class="cv-type-name">Academic CV</div><p class="cv-type-desc">Structured for researchers, lecturers, and postgraduate applicants. Highlights research, publications, and teaching.</p><a href="/build?type=academic" class="cv-type-link">Build now →</a></div>
+      <div class="cv-type-card reveal rd4"><span class="cv-type-emoji">✉️</span><div class="cv-type-name">Cover Letter</div><p class="cv-type-desc">A compelling application letter tailored to the role. Makes the case for why you're the right person — in your voice.</p><a href="/build?type=cover_letter" class="cv-type-link">Build now →</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section class="why-section">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-eyebrow" style="color:var(--teal-light);">Why SwiftCVPro</span>
+      <h2 class="section-title light">Everything You Need to Get Hired</h2>
+    </div>
+    <div class="why-grid">
+      <div class="why-item reveal rd1"><div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div class="why-title">ATS Optimised</div><p class="why-desc">Written to pass Applicant Tracking Systems before a human ever reads it.</p></div>
+      <div class="why-item reveal rd2"><div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></div><div class="why-title">PDF &amp; Word</div><p class="why-desc">Download both formats instantly. PDF for applications, Word for editing.</p></div>
+      <div class="why-item reveal rd3"><div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg></div><div class="why-title">Upload Existing CV</div><p class="why-desc">Already have a CV? Upload it. We rewrite and upgrade it professionally.</p></div>
+      <div class="why-item reveal rd4"><div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div><div class="why-title">Job Description Match</div><p class="why-desc">Paste a job ad and we tailor your CV to match the exact keywords.</p></div>
+      <div class="why-item reveal rd1"><div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div><div class="why-title">Instant Generation</div><p class="why-desc">Under 60 seconds from input to polished CV. No waiting. No back-and-forth.</p></div>
+      <div class="why-item reveal rd2"><div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div><div class="why-title">AI-Powered Writing</div><p class="why-desc">Professional-grade AI writing — now available to everyone for GH₵20.</p></div>
+      <div class="why-item reveal rd3"><div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg></div><div class="why-title">Built for Tough Job Markets</div><p class="why-desc">Understands competitive hiring environments, industry expectations, and what recruiters actually look for.</p></div>
+      <div class="why-item reveal rd4"><div class="why-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div class="why-title">Premium Templates</div><p class="why-desc">Seven professionally designed templates — ATS-safe to bold premium designs.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQs -->
+<section class="faq-section" id="faq">
+  <div class="container">
+    <div class="section-head reveal"><span class="section-eyebrow">Questions</span><h2 class="section-title">FAQs</h2></div>
+    <div class="faq-list">
+      <div class="faq-item reveal rd1"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I upload my old CV?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Upload your existing CV as a PDF or Word document, paste raw text, or type your details from scratch. All three methods work equally well.</p></div></div>
+      <div class="faq-item reveal rd2"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">How long does it take?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Most CVs are generated in under 60 seconds. From submitting your details to downloading a polished PDF or Word document — less than a minute.</p></div></div>
+      <div class="faq-item reveal rd3"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I download in both PDF and Word?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Every CV comes with both PDF and Word download options. Use PDF for applications, Word if you want to edit further.</p></div></div>
+      <div class="faq-item reveal rd4"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">What payment methods are accepted?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>We accept MTN MoMo, Telecel Cash, AirtelTigo Money, and all major debit and credit cards via Paystack. Payment is secure and instant.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Is my information safe?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Your CV data is stored only in your browser session and deleted automatically when you close the tab. We do not store your personal information on our servers.</p></div></div>
+      <div class="faq-item reveal"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">What if I'm not happy with the result?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>You can regenerate any section directly on the preview page using our AI rewrite tool. If you're still not satisfied, contact us and we'll make it right.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testi-section">
+  <div class="container">
+    <div class="section-head reveal"><span class="section-eyebrow">Social Proof</span><h2 class="section-title">What People Say</h2></div>
+    <div class="testi-grid">
+      <div class="testi-card reveal rd1">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"I just pasted my old CV and it came back completely transformed. Got called for an interview the same week. I couldn't believe how professional it looked."</p>
+        <div class="testi-author"><div class="testi-avatar">AA</div><div><div class="testi-name">Ama Asante</div><div class="testi-loc">Accra, Ghana</div></div></div>
+      </div>
+      <div class="testi-card reveal rd2">
+        <div class="testi-stars">★★★★★</div>
+        <p class="testi-text">"I had no idea how to write a CV. This just did it for me. Looks like a professional wrote it. Cost me 20 cedis. Best money I've spent this year."</p>
+        <div class="testi-author"><div class="testi-avatar">KO</div><div><div class="testi-name">Kofi Owusu</div><div class="testi-loc">Kumasi, Ghana</div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-section">
+  <div class="cta-bg"></div>
+  <div class="cta-glow"></div>
+  <div class="container">
+    <span class="section-eyebrow" style="color:var(--teal-light);text-align:center;display:block;margin-bottom:20px;">Ready?</span>
+    <h2 class="cta-title reveal">Your Next Job Starts With<br>the <em>Right CV.</em></h2>
+    <p class="cta-sub reveal rd1">Paste your details. We write it. You download it. In under a minute.</p>
+    <a href="/build" class="cta-btn reveal rd2">Build My CV Now <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+    <p class="cta-note reveal rd3">GH₵20 · No subscription · Instant download</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div><div class="footer-logo-name"><span>Swift</span>CVPro</div><div class="footer-tagline">Professional CVs in seconds. Built with ♥ in Ghana.</div></div>
+      <div class="footer-links">
+        <a href="/build?type=professional">Professional CV</a>
+        <a href="/build?type=targeted">Targeted CV</a>
+        <a href="/build?type=academic">Academic CV</a>
+        <a href="/build?type=cover_letter">Cover Letter</a>
+        <a href="#pricing">Pricing</a>
+        <a href="/terms">Terms</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/refund-policy">Refund Policy</a>
+      </div>
+      <div class="footer-copy">© 2026 SwiftCVPro. All rights reserved.</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 40), {passive:true});
+
+const ham = document.getElementById('hamburger');
+const mob = document.getElementById('mobileMenu');
+ham.addEventListener('click', () => {
+  ham.classList.toggle('open');
+  mob.classList.toggle('open');
+  document.body.style.overflow = mob.classList.contains('open') ? 'hidden' : '';
+});
+function closeMob() {
+  ham.classList.remove('open');
+  mob.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// Cycle after-CVs
+const imgs = document.querySelectorAll('.after-img');
+let cur = 0;
+if (imgs.length > 1) {
+  setInterval(() => {
+    imgs[cur].classList.remove('active');
+    cur = (cur + 1) % imgs.length;
+    imgs[cur].classList.add('active');
+  }, 3000);
+}
+</script>
 </body>
 </html>
