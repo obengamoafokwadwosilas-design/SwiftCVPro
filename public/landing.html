@@ -317,19 +317,22 @@ section { padding:100px 0; }
 @media(min-width:600px){ .pricing-grid{grid-template-columns:1fr 1fr;} }
 .price-card { background:var(--off-white); border:1px solid var(--gray-200); border-radius:24px; padding:36px 30px; transition:all 0.4s var(--ease); }
 .price-card:hover { box-shadow:0 24px 80px rgba(0,0,0,0.08); transform:translateY(-4px); }
-.price-card.featured { background:var(--navy); border-color:var(--teal); }
+.price-card-hero { border-color:var(--teal); border-width:2px; }
+.price-card-hero:hover { box-shadow:0 24px 80px rgba(13,148,136,0.15); }
+.price-card-hero .price-type { color:var(--teal) !important; }
+.price-card.featured { background:var(--off-white); border-color:var(--gray-200); }
 .price-type { display:block; font-size:0.7rem; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--gray-400); margin-bottom:20px; }
-.price-card.featured .price-type { color:var(--teal-light); }
+.price-card.featured .price-type { color:var(--gray-400); }
 .price-amount { display:flex; align-items:baseline; gap:4px; font-family:var(--font-display); font-size:3.2rem; font-weight:600; color:var(--navy); line-height:1; margin-bottom:6px; }
-.price-card.featured .price-amount { color:var(--white); }
+.price-card.featured .price-amount { color:var(--navy); }
 .price-currency { font-size:1.1rem; font-weight:500; align-self:flex-start; margin-top:8px; }
 .price-per { font-size:0.85rem; font-weight:400; color:var(--gray-400); }
-.price-card.featured .price-per { color:rgba(255,255,255,0.35); }
+.price-card.featured .price-per { color:var(--gray-400); }
 .price-desc { font-size:0.85rem; color:var(--gray-400); margin-bottom:28px; margin-top:6px; }
-.price-card.featured .price-desc { color:rgba(255,255,255,0.4); }
+.price-card.featured .price-desc { color:var(--gray-400); }
 .price-features { list-style:none; display:flex; flex-direction:column; gap:11px; margin-bottom:30px; }
 .price-features li { display:flex; align-items:center; gap:10px; font-size:0.875rem; color:var(--gray-600); }
-.price-card.featured .price-features li { color:rgba(255,255,255,0.72); }
+.price-card.featured .price-features li { color:var(--gray-600); }
 .price-features li::before { content:'✓'; color:var(--teal); font-weight:700; font-size:0.85rem; flex-shrink:0; }
 .price-btn { width:100%; padding:14px; border-radius:100px; font-weight:700; font-size:0.9rem; cursor:pointer; border:none; transition:all 0.3s var(--ease); display:block; text-align:center; }
 .price-btn.outline { background:transparent; color:var(--teal); border:2px solid var(--teal); }
@@ -415,7 +418,9 @@ section { padding:100px 0; }
 @media(min-width:900px){ .cv-types-grid{grid-template-columns:repeat(4,1fr);} }
 .cv-type-card { border:1px solid var(--gray-200); border-radius:20px; padding:28px 22px; transition:all 0.4s var(--ease); cursor:default; }
 .cv-type-card:hover { border-color:var(--teal-light); transform:translateY(-5px); box-shadow:0 20px 60px rgba(13,148,136,0.1); }
-.cv-type-emoji { font-size:1.8rem; margin-bottom:16px; display:block; }
+.cv-type-icon { width:44px; height:44px; background:rgba(13,148,136,0.08); border-radius:12px; display:flex; align-items:center; justify-content:center; margin-bottom:18px; transition:background 0.3s; }
+.cv-type-card:hover .cv-type-icon { background:rgba(13,148,136,0.14); }
+.cv-type-icon svg { width:22px; height:22px; color:var(--teal); }
 .cv-type-name { font-family:var(--font-display); font-size:1.25rem; font-weight:600; color:var(--navy); margin-bottom:8px; }
 .cv-type-desc { font-size:0.84rem; color:var(--gray-500); line-height:1.65; margin-bottom:16px; }
 .cv-type-link { font-size:0.82rem; font-weight:700; color:var(--teal); display:inline-flex; align-items:center; gap:4px; transition:gap 0.25s; }
@@ -626,13 +631,13 @@ body.light-hero .hero {
         <div class="hero-trust-row">
           <div class="hero-trust-divider"></div>
           <div class="hero-trust-items">
-            <span class="hero-trust-item">HR Expertise</span>
+            <span class="hero-trust-item"><svg class="hero-trust-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>HR Expertise</span>
             <span class="hero-trust-sep">|</span>
-            <span class="hero-trust-item">AI Speed</span>
+            <span class="hero-trust-item"><svg class="hero-trust-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>AI Speed</span>
             <span class="hero-trust-sep">|</span>
-            <span class="hero-trust-item">ATS Optimised</span>
+            <span class="hero-trust-item"><svg class="hero-trust-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>ATS Optimised</span>
             <span class="hero-trust-sep">|</span>
-            <span class="hero-trust-item">Recruiter-Ready</span>
+            <span class="hero-trust-item"><svg class="hero-trust-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Recruiter-Ready</span>
           </div>
           <div class="hero-trust-divider"></div>
         </div>
@@ -752,11 +757,11 @@ body.light-hero .hero {
   <div class="container">
     <div class="section-head reveal">
       <span class="section-eyebrow">Pricing</span>
-      <h2 class="section-title">Simple Pricing. No Subscription.</h2>
+      <h2 class="section-title">Affordable Pricing. No Subscription.</h2>
       <p class="section-sub">Pay once. Download instantly. No hidden fees, no monthly charges.</p>
     </div>
     <div class="pricing-grid">
-      <div class="price-card reveal rd1">
+      <div class="price-card price-card-hero reveal rd1">
         <span class="price-type">Single CV</span>
         <div class="price-amount"><span class="price-currency">GH₵</span><span>20</span><span class="price-per">/ CV</span></div>
         <p class="price-desc">Everything you need for one professional CV.</p>
@@ -768,9 +773,9 @@ body.light-hero .hero {
           <li>Instant Delivery</li>
           <li>Premium Template Selection</li>
         </ul>
-        <a href="/build" class="price-btn outline">Build My CV →</a>
+        <a href="/build" class="price-btn solid">Build My CV →</a>
       </div>
-      <div class="price-card featured reveal rd2">
+      <div class="price-card reveal rd2">
         <span class="price-type">Cover Letter</span>
         <div class="price-amount"><span class="price-currency">GH₵</span><span>10</span><span class="price-per">/ letter</span></div>
         <p class="price-desc">A compelling letter written for the job you want.</p>
@@ -782,7 +787,7 @@ body.light-hero .hero {
           <li>Written In Your Voice</li>
           <li>Perfect Add-On To Your CV</li>
         </ul>
-        <a href="/build?type=cover_letter" class="price-btn solid">Build My Letter →</a>
+        <a href="/build?type=cover_letter" class="price-btn outline">Build My Letter →</a>
       </div>
     </div>
   </div>
@@ -860,10 +865,10 @@ body.light-hero .hero {
       <p class="section-sub">One platform. Every type of CV you'll ever need.</p>
     </div>
     <div class="cv-types-grid">
-      <div class="cv-type-card reveal rd1"><span class="cv-type-emoji">💼</span><div class="cv-type-name">Professional CV</div><p class="cv-type-desc">A complete, polished CV for any employer and any job. Built to pass ATS and impress human recruiters.</p><a href="/build?type=professional" class="cv-type-link">Build now →</a></div>
-      <div class="cv-type-card reveal rd2"><span class="cv-type-emoji">🎯</span><div class="cv-type-name">Targeted CV</div><p class="cv-type-desc">Paste the job description. Our AI reads it and tailors your CV to match exactly what the employer wants.</p><a href="/build?type=targeted" class="cv-type-link">Build now →</a></div>
-      <div class="cv-type-card reveal rd3"><span class="cv-type-emoji">🎓</span><div class="cv-type-name">Academic CV</div><p class="cv-type-desc">Structured for researchers, lecturers, and postgraduate applicants. Highlights research, publications, and teaching.</p><a href="/build?type=academic" class="cv-type-link">Build now →</a></div>
-      <div class="cv-type-card reveal rd4"><span class="cv-type-emoji">✉️</span><div class="cv-type-name">Cover Letter</div><p class="cv-type-desc">A compelling application letter tailored to the role. Makes the case for why you're the right person — in your voice.</p><a href="/build?type=cover_letter" class="cv-type-link">Build now →</a></div>
+      <div class="cv-type-card reveal rd1"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="12"/><path d="M2 12h20"/></svg></div><div class="cv-type-name">Professional CV</div><p class="cv-type-desc">A complete, polished CV for any employer and any job. Built to pass ATS and impress human recruiters.</p><a href="/build?type=professional" class="cv-type-link">Build now →</a></div>
+      <div class="cv-type-card reveal rd2"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg></div><div class="cv-type-name">Targeted CV</div><p class="cv-type-desc">Paste the job description. Our AI reads it and tailors your CV to match exactly what the employer wants.</p><a href="/build?type=targeted" class="cv-type-link">Build now →</a></div>
+      <div class="cv-type-card reveal rd3"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div><div class="cv-type-name">Academic CV</div><p class="cv-type-desc">Structured for researchers, lecturers, and postgraduate applicants. Highlights research, publications, and teaching.</p><a href="/build?type=academic" class="cv-type-link">Build now →</a></div>
+      <div class="cv-type-card reveal rd4"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="cv-type-name">Cover Letter</div><p class="cv-type-desc">A compelling application letter tailored to the role. Makes the case for why you're the right person — in your voice.</p><a href="/build?type=cover_letter" class="cv-type-link">Build now →</a></div>
     </div>
   </div>
 </section>
