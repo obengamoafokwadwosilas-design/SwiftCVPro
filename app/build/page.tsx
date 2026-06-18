@@ -297,67 +297,103 @@ export default function BuildPage() {
 
       {/* ══ STEP 1 — CHOOSE CV TYPE ══════════════════════════ */}
       {step === 1 && (
-        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '64px 28px 80px' }}>
-          <div style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ width: '28px', height: '2px', background: '#0d9488' }} />
+        <div style={{ maxWidth: '760px', margin: '0 auto', padding: '52px 24px 80px' }}>
+
+          {/* Step label */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+            <div style={{ width: '20px', height: '2px', background: '#0d9488' }} />
             <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '3px', textTransform: 'uppercase', color: '#0d9488' }}>Step 1 of 3</span>
           </div>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(2rem, 5vw, 3rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '10px', lineHeight: 1.05, letterSpacing: '-0.5px' }}>
-            What do you need today?
+
+          {/* Heading */}
+          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '8px', lineHeight: 1.1, letterSpacing: '-0.5px' }}>
+            What <span style={{ color: '#0d9488' }}>CV Type</span> Are We Building Today?
           </h1>
-          <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '48px', fontWeight: 300, lineHeight: 1.7 }}>
-            Choose the document type below. One click and we guide you through the rest.
+          <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '36px', fontWeight: 300, lineHeight: 1.7 }}>
+            Choose the option that best fits your goals.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '36px' }}>
-            {CV_TYPES.map((t, idx) => (
+          {/* HERO CARD — Professional CV */}
+          <div
+            onClick={() => { setCvType('professional'); go(2) }}
+            style={{ background: 'white', border: '2px solid #0d9488', borderRadius: '20px', padding: '24px', marginBottom: '12px', cursor: 'pointer', position: 'relative', transition: 'box-shadow 0.2s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
+          >
+            {/* Most popular badge */}
+            <div style={{ position: 'absolute', top: '-13px', left: '20px', background: '#0d9488', color: 'white', fontSize: '11px', fontWeight: 600, padding: '4px 14px', borderRadius: '100px', display: 'flex', alignItems: 'center', gap: '5px', letterSpacing: '0.3px' }}>
+              ★ Recommended for most people
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+              {/* Icon */}
+              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '5px' }}>Professional CV</div>
+                <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, fontWeight: 300, marginBottom: '10px' }}>A complete CV for any employer and any job. Built to impress and pass ATS screening on the first pass.</div>
+                <div style={{ fontSize: '12px', color: '#0d9488', fontWeight: 500, marginBottom: '2px' }}>Best for:</div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px' }}>Graduates, professionals, and anyone updating their CV.</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#0d9488' }}>
+                  ⚡ ~ 20 seconds
+                </div>
+              </div>
+            </div>
+
+            <button style={{ marginTop: '16px', background: '#0d9488', color: 'white', border: 'none', padding: '11px 22px', borderRadius: '100px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '7px' }}>
+              Choose Professional CV →
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '18px 0 14px' }}>
+            <div style={{ flex: 1, height: '0.5px', background: '#e2e8f0' }} />
+            <span style={{ fontSize: '12px', color: '#94a3b8' }}>Or choose something more specific</span>
+            <div style={{ flex: 1, height: '0.5px', background: '#e2e8f0' }} />
+          </div>
+
+          {/* THREE SMALL CARDS */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
+            {/* Targeted CV */}
+            {([
+              { id: 'targeted' as CVType, icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
+              ), iconBg: '#e6f1fb', name: 'Targeted CV', desc: 'Tailored to one specific job posting to match the employer exactly.', time: '~ 25 seconds' },
+              { id: 'academic' as CVType, icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              ), iconBg: '#eeedfe', name: 'Academic CV', desc: 'For researchers, lecturers and postgraduate applicants.', time: '~ 20 seconds' },
+              { id: 'cover_letter' as CVType, icon: (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#854f0b" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              ), iconBg: '#faeeda', name: 'Cover Letter', desc: 'A compelling letter that makes the case for why you are the right person.', time: '~ 15 seconds' },
+            ] as { id: CVType; icon: React.ReactNode; iconBg: string; name: string; desc: string; time: string }[]).map(card => (
               <div
-                key={t.id}
-                onClick={() => { setCvType(t.id); go(2) }}
-                style={{
-                  background: 'white',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '20px',
-                  padding: '28px 24px',
-                  cursor: 'pointer',
-                  transition: 'all 0.25s',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.04)',
-                }}
-                onMouseEnter={e => {
-                  const el = e.currentTarget as HTMLDivElement
-                  el.style.transform = 'translateY(-3px)'
-                  el.style.boxShadow = '0 12px 40px rgba(13,148,136,0.15)'
-                  el.style.borderColor = '#0d9488'
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget as HTMLDivElement
-                  el.style.transform = 'translateY(0)'
-                  el.style.boxShadow = '0 2px 12px rgba(0,0,0,0.04)'
-                  el.style.borderColor = '#e2e8f0'
-                }}
+                key={card.id}
+                onClick={() => { setCvType(card.id); go(2) }}
+                style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px', cursor: 'pointer', transition: 'border-color 0.2s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#0d9488' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#e2e8f0' }}
               >
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: `linear-gradient(90deg, transparent, ${['#0d9488','#1a56c4','#6b21a8','#b45309'][idx]}, transparent)` }} />
-                <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '2px', color: '#cbd5e1', marginBottom: '18px' }}>{t.num}</div>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.55rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '10px', lineHeight: 1.15 }}>{t.name}</div>
-                <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, fontWeight: 300, marginBottom: '20px' }}>{t.desc}</div>
-                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
-                  <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '14px' }}>
-                    <span style={{ fontWeight: 500, color: '#475569' }}>Best for: </span>{t.best}
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '11px', color: '#0d9488', fontWeight: 500 }}>⚡ {t.time}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#0d9488', background: '#f0fdf9', padding: '7px 16px', borderRadius: '50px', border: '1.5px solid #0d9488' }}>Choose →</span>
-                  </div>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: card.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
+                  {card.icon}
+                </div>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.1rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '5px' }}>{card.name}</div>
+                <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.6, fontWeight: 300, marginBottom: '10px' }}>{card.desc}</div>
+                <div style={{ fontSize: '11px', color: '#0d9488', marginBottom: '10px' }}>⚡ {card.time}</div>
+                <div style={{ width: '100%', background: 'transparent', border: '0.5px solid #e2e8f0', borderRadius: '100px', padding: '7px 0', fontSize: '12px', fontWeight: 500, color: '#0a0f1a', textAlign: 'center' as const, cursor: 'pointer' }}>
+                  Choose →
                 </div>
               </div>
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', padding: '16px 20px', background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '14px', alignItems: 'flex-start' }}>
-            <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#0d9488', flexShrink: 0, marginTop: '5px' }} />
-            <p style={{ fontSize: '13.5px', color: '#475569', lineHeight: 1.65, fontWeight: 300 }}>
+          {/* Helper tip */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', background: '#f8fafc', border: '0.5px solid #e2e8f0', borderRadius: '14px', padding: '14px 16px' }}>
+            <div style={{ width: '28px', height: '28px', background: '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </div>
+            <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.65, fontWeight: 300 }}>
               <strong style={{ fontWeight: 600, color: '#0a0f1a' }}>Not sure which to pick?</strong> Choose Professional CV — it works for most job applications and can be used anywhere.
             </p>
           </div>
