@@ -51,6 +51,7 @@ export default function PreviewPage() {
   const [downloading, setDownloading] = useState<ExportFormat | null>(null)
   const [isCoverLetter, setIsCoverLetter] = useState(false)
   const [isAcademicCV, setIsAcademicCV] = useState(false)
+  const [cvType, setCvType] = useState<string>('professional')
   const [pdfOnlyModal, setPdfOnlyModal] = useState(false)
   const [accentColor, setAccentColor] = useState<string | null>(null)
   const [showColorPicker, setShowColorPicker] = useState(false)
@@ -63,9 +64,11 @@ export default function PreviewPage() {
       const parsed = JSON.parse(stored)
       setCV(parsed)
       setPhone(ph || '')
-      const cvType = sessionStorage.getItem('swiftcv_type')
-      if (cvType === 'cover_letter' || parsed.coverLetterBody) setIsCoverLetter(true)
-      if (cvType === 'academic') { setIsAcademicCV(true); setTemplate('academic') }
+      const storedCvType = sessionStorage.getItem('swiftcv_type') || 'professional'
+      setCvType(storedCvType)
+      if (storedCvType === 'cover_letter' || parsed.coverLetterBody) setIsCoverLetter(true)
+      if (storedCvType === 'academic') { setIsAcademicCV(true); setTemplate('academic') }
+      if (storedCvType === 'cover_letter') setTemplate('classic')
     } catch { router.push('/build') }
     const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
     window.addEventListener('beforeunload', warn)
@@ -209,12 +212,18 @@ export default function PreviewPage() {
 
   const currentTpl = TEMPLATES.find(t => t.id === template)
 
-  const visibleTemplates = isAcademicCV
-    ? TEMPLATES.filter(t => t.category === 'ats' || t.category === 'academic')
-    : TEMPLATES.filter(t => t.category === 'ats' || t.category === 'premium')
+  // ── Template filtering by CV type ──────────────────────
+  const ACADEMIC_ALLOWED: TemplateId[] = ['classic', 'academic', 'nordic', 'london']
+  const COVER_LETTER_ALLOWED: TemplateId[] = ['classic', 'nordic', 'london']
+
+  const visibleTemplates = isCoverLetter
+    ? TEMPLATES.filter(t => COVER_LETTER_ALLOWED.includes(t.id))
+    : isAcademicCV
+      ? TEMPLATES.filter(t => ACADEMIC_ALLOWED.includes(t.id))
+      : TEMPLATES.filter(t => t.category === 'ats' || t.category === 'premium')
 
   const premiumTemplates = visibleTemplates.filter(t => t.category === 'premium')
-  const atsTemplates = visibleTemplates.filter(t => t.category === 'ats')
+  const atsTemplates = visibleTemplates.filter(t => t.category === 'ats' || t.category === 'academic')
   const academicTemplates = visibleTemplates.filter(t => t.category === 'academic')
 
   return (
