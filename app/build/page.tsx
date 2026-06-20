@@ -379,7 +379,7 @@ export default function BuildPage() {
                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: card.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>{card.icon}</div>
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.05rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '5px' }}>{card.name}</div>
                 <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.6, fontWeight: 300, marginBottom: '10px' }}>{card.desc}</div>
-                <div style={{ width: '100%', background: '#eff6ff', border: '1.5px solid #185fa5', borderRadius: '100px', padding: '7px 0', fontSize: '12px', fontWeight: 600, color: '#185fa5', textAlign: 'center' as const }}>Choose →</div>
+                <div style={{ width: '100%', background: 'transparent', border: '0.5px solid #e2e8f0', borderRadius: '100px', padding: '7px 0', fontSize: '12px', fontWeight: 500, color: '#0a0f1a', textAlign: 'center' as const }}>Choose →</div>
               </div>
             ))}
           </div>
@@ -392,6 +392,10 @@ export default function BuildPage() {
             <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.65, fontWeight: 300 }}>
               <strong style={{ fontWeight: 600, color: '#0a0f1a' }}>Not sure which to pick?</strong> Choose Professional CV — it works for most job applications and can be used anywhere.
             </p>
+          </div>
+
+          <div style={{ marginTop: '24px' }}>
+            <a href="/build" onClick={(e) => { e.preventDefault(); window.history.back() }} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '11px 20px', background: 'white', border: '2px solid #185fa5', borderRadius: '50px', fontSize: '13px', fontWeight: 600, color: '#185fa5', cursor: 'pointer', textDecoration: 'none', fontFamily: "'DM Sans', sans-serif" }}>← Back</a>
           </div>
         </div>
       )}
@@ -410,12 +414,12 @@ export default function BuildPage() {
               { id: 'form' as const,  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>, iconBg: '#e6f1fb', title: 'Chat with Swift', desc: 'Answer guided questions. Perfect if starting from scratch.' },
             ] as any[]).map((opt: any) => (
               <div key={opt.id} onClick={() => { setInputMethod(opt.id as 'paste' | 'form'); goFromMethod(opt.id as 'paste' | 'form') }}
-                style={{ background: 'white', border: `${inputMethod === opt.id ? '2px solid #0d9488' : '1px solid #e2e8f0'}`, borderRadius: '16px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column', gap: '10px' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#0d9488' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = inputMethod === opt.id ? '#0d9488' : '#e2e8f0' }}
+                style={{ background: opt.id === 'form' ? '#f0f7ff' : 'white', border: opt.id === 'form' ? '2px solid #185fa5' : `${inputMethod === 'paste' ? '2px solid #0d9488' : '1px solid #e2e8f0'}`, borderRadius: '16px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column', gap: '10px' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? '#185fa5' : '#0d9488' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? '#185fa5' : inputMethod === 'paste' ? '#0d9488' : '#e2e8f0' }}
               >
                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: opt.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{opt.icon}</div>
-                <div style={{ fontSize: '14px', fontWeight: 500, color: '#0a0f1a' }}>{opt.title}</div>
+                <div style={{ fontSize: '14px', fontWeight: 500, color: opt.id === 'form' ? '#185fa5' : '#0a0f1a' }}>{opt.title}</div>
                 <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>{opt.desc}</div>
               </div>
             ))}
