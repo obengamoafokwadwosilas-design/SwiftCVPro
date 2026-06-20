@@ -142,8 +142,9 @@ export default function BuildPage() {
   // ── Navigation ────────────────────────────────
   const go = (s: Screen) => { setScreen(s); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
-  function goFromMethod() {
-    if (inputMethod === 'paste') go('paste')
+  function goFromMethod(m?: 'paste' | 'form') {
+    const method = m || inputMethod
+    if (method === 'paste') go('paste')
     else go('form-1')
   }
 
@@ -378,7 +379,7 @@ export default function BuildPage() {
                 <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: card.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>{card.icon}</div>
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.05rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '5px' }}>{card.name}</div>
                 <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.6, fontWeight: 300, marginBottom: '10px' }}>{card.desc}</div>
-                <div style={{ width: '100%', background: 'transparent', border: '0.5px solid #e2e8f0', borderRadius: '100px', padding: '7px 0', fontSize: '12px', fontWeight: 500, color: '#0a0f1a', textAlign: 'center' as const }}>Choose →</div>
+                <div style={{ width: '100%', background: '#eff6ff', border: '1.5px solid #185fa5', borderRadius: '100px', padding: '7px 0', fontSize: '12px', fontWeight: 600, color: '#185fa5', textAlign: 'center' as const }}>Choose →</div>
               </div>
             ))}
           </div>
@@ -408,7 +409,7 @@ export default function BuildPage() {
               { id: 'paste' as const, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, iconBg: '#e1f5ee', title: 'Upload or paste old CV', desc: 'Copy from your old CV or upload a file directly.' },
               { id: 'form' as const,  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>, iconBg: '#e6f1fb', title: 'Chat with Swift', desc: 'Answer guided questions. Perfect if starting from scratch.' },
             ] as any[]).map((opt: any) => (
-              <div key={opt.id} onClick={() => { setInputMethod(opt.id); goFromMethod() }}
+              <div key={opt.id} onClick={() => { setInputMethod(opt.id as 'paste' | 'form'); goFromMethod(opt.id as 'paste' | 'form') }}
                 style={{ background: 'white', border: `${inputMethod === opt.id ? '2px solid #0d9488' : '1px solid #e2e8f0'}`, borderRadius: '16px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column', gap: '10px' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#0d9488' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = inputMethod === opt.id ? '#0d9488' : '#e2e8f0' }}
@@ -434,7 +435,7 @@ export default function BuildPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
             {[{id:'paste',label:'✎ Paste text'},{id:'upload',label:'↑ Upload file'}].map(opt => (
               <button key={opt.id} onClick={() => setPasteInputMode(opt.id as any)}
-                style={{ padding: '12px', border: `2px solid ${pasteInputMode === opt.id ? (opt.id === 'upload' ? '#185fa5' : '#0d9488') : '#e2e8f0'}`, borderRadius: '12px', background: pasteInputMode === opt.id ? (opt.id === 'upload' ? '#eff6ff' : '#f0fdf9') : 'white', color: pasteInputMode === opt.id ? (opt.id === 'upload' ? '#185fa5' : '#0f766e') : '#64748b', fontWeight: pasteInputMode === opt.id ? 700 : 500, fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                style={{ padding: '12px', border: `2px solid ${opt.id === 'upload' ? '#185fa5' : pasteInputMode === 'paste' ? '#0d9488' : '#e2e8f0'}`, borderRadius: '12px', background: opt.id === 'upload' ? '#eff6ff' : pasteInputMode === 'paste' ? '#f0fdf9' : 'white', color: opt.id === 'upload' ? '#185fa5' : pasteInputMode === 'paste' ? '#0f766e' : '#64748b', fontWeight: pasteInputMode === opt.id ? 700 : 500, fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
                 {opt.label} {pasteInputMode === opt.id ? '✓' : ''}
               </button>
             ))}
@@ -813,7 +814,7 @@ export default function BuildPage() {
 function SwiftGreeting({ label }: { label: string }) {
   const [displayed, setDisplayed] = useState('')
   const [done, setDone] = useState(false)
-  const fullText = `Hi, I'm Swift 👋\nI'll help you build your ${label} today.`
+  const fullText = `Hi, I'm Swift 👋\nI'll help you build your ${label} today.\nKindly provide the following information.`
 
   useEffect(() => {
     setDisplayed('')
@@ -872,7 +873,7 @@ const tipToggleStyle: React.CSSProperties = { fontSize: '12px', color: '#64748b'
 const btnSkip: React.CSSProperties = { fontSize: '12px', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textDecoration: 'underline', textUnderlineOffset: '2px', display: 'block', textAlign: 'right', width: '100%', marginBottom: '8px', padding: '4px 0' }
 const TA = (minH: number): React.CSSProperties => ({ width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', resize: 'none', lineHeight: 1.65, minHeight: minH ? `${minH}px` : undefined, transition: 'border-color 0.2s' })
 const btnPrimary: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '14px 36px', background: 'linear-gradient(135deg, #0d9488, #0f766e)', border: 'none', borderRadius: '50px', fontSize: '14px', fontWeight: 600, color: 'white', cursor: 'pointer', letterSpacing: '0.3px', boxShadow: '0 8px 28px rgba(13,148,136,0.35)', transition: 'all 0.2s' }
-const btnBack: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '13px 22px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '50px', fontSize: '13px', fontWeight: 500, color: '#475569', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
+const btnBack: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '13px 22px', background: 'white', border: '2px solid #185fa5', borderRadius: '50px', fontSize: '13px', fontWeight: 600, color: '#185fa5', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
 
 // ─────────────────────────────────────────────────────────────
 // SUB-COMPONENTS
