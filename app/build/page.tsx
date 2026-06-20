@@ -240,35 +240,59 @@ export default function BuildPage() {
       }
 
       if (inputMethod === 'form') {
-        const parts: string[] = []
         const r = refs
-        if (r.fullName.current?.value)    parts.push(`FULL NAME: ${r.fullName.current.value}`)
-        if (r.phone.current?.value)        parts.push(`PHONE: ${r.phone.current.value}`)
-        if (r.email.current?.value)        parts.push(`EMAIL: ${r.email.current.value}`)
-        if (r.location.current?.value)     parts.push(`LOCATION: ${r.location.current.value}`)
-        if (r.nationality.current?.value)  parts.push(`NATIONALITY: ${r.nationality.current.value}`)
-        if (r.dob.current?.value)          parts.push(`DATE OF BIRTH: ${r.dob.current.value}`)
-        if (r.linkedin.current?.value)     parts.push(`LINKEDIN: ${r.linkedin.current.value}`)
-        if (r.education.current?.value)    parts.push(`\nEDUCATION:\n${r.education.current.value}`)
-        if (r.gpa.current?.value)          parts.push(`GPA / CLASS OF DEGREE: ${r.gpa.current.value}`)
-        if (r.thesis.current?.value)       parts.push(`THESIS TITLE: ${r.thesis.current.value}`)
-        if (r.research.current?.value)     parts.push(`RESEARCH UNDERTAKEN: ${r.research.current.value}`)
-        if (r.experience.current?.value)   parts.push(`\nWORK EXPERIENCE:\n${r.experience.current.value}`)
-        if (r.publications.current?.value) parts.push(`PUBLICATIONS: ${r.publications.current.value}`)
-        if (r.teaching.current?.value)     parts.push(`TEACHING EXPERIENCE: ${r.teaching.current.value}`)
-        if (r.conferences.current?.value)  parts.push(`CONFERENCES: ${r.conferences.current.value}`)
-        if (r.extras.current?.value)       parts.push(`\nSKILLS & EXTRAS:\n${r.extras.current.value}`)
-        if (r.grants.current?.value)       parts.push(`GRANTS & FELLOWSHIPS: ${r.grants.current.value}`)
-        if (r.supervision.current?.value)  parts.push(`STUDENT SUPERVISION: ${r.supervision.current.value}`)
-        if (r.orcid.current?.value)        parts.push(`ORCID ID: ${r.orcid.current.value}`)
-        rawContent = parts.join('\n')
-        if (needsJD) {
-          const jt = refs.jobTitle.current?.value || ''
-          const co = refs.company.current?.value || ''
-          const jd = refs.jobDesc.current?.value || ''
-          const why = refs.whyRole.current?.value || ''
-          jobDescription = [jt && `JOB TITLE: ${jt}`, co && `COMPANY: ${co}`, jd, why].filter(Boolean).join('\n')
+        // Build structured CVFormData for the prompt builder
+        const formData = {
+          cvType,
+          fullName: r.fullName.current?.value || '',
+          jobTitle: r.jobTitle.current?.value || '',
+          email: r.email.current?.value || '',
+          phone: r.phone.current?.value || phoneNumber,
+          location: r.location.current?.value || '',
+          nationality: r.nationality.current?.value || undefined,
+          dob: r.dob.current?.value || undefined,
+          linkedin: r.linkedin.current?.value || undefined,
+          education: r.education.current?.value || undefined,
+          experience: r.experience.current?.value || undefined,
+          extras: r.extras.current?.value || undefined,
+          // Academic extras
+          gpa: r.gpa.current?.value || undefined,
+          thesis: r.thesis.current?.value || undefined,
+          research: r.research.current?.value || undefined,
+          publications: r.publications.current?.value || undefined,
+          teaching: r.teaching.current?.value || undefined,
+          conferences: r.conferences.current?.value || undefined,
+          grants: r.grants.current?.value || undefined,
+          supervision: r.supervision.current?.value || undefined,
+          orcid: r.orcid.current?.value || undefined,
+          // Job targeting
+          company: r.company.current?.value || undefined,
+          jobDescription: needsJD ? (r.jobDesc.current?.value || undefined) : undefined,
+          whyRole: cvType === 'cover_letter' ? (r.whyRole.current?.value || undefined) : undefined,
         }
+        // Pass as formData to the API — it will use buildGenerationPrompt
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cvType, formData, phoneNumber: normalizedPhone })
+        })
+        const data = await res.json()
+        if (!data.success) {
+          setIsGenerating(false)
+          if (data.error === 'NO_CREDITS') {
+            setError({ title: 'No credits', msg: 'No credits found for this number. Please complete payment to generate your CV.', type: 'payment' })
+          } else if (res.status === 503) {
+            setError({ title: 'Service busy', msg: data.error || 'The AI is handling many requests right now. Please wait 30 seconds and try again.', type: 'server' })
+          } else {
+            setError({ title: 'Generation failed', msg: data.error || 'Something went wrong. Please try again.', type: 'server' })
+          }
+          return
+        }
+        sessionStorage.setItem('swiftcv_cv', JSON.stringify(data.cv))
+        sessionStorage.setItem('swiftcv_type', cvType)
+        sessionStorage.setItem('swiftcv_phone', normalizedPhone)
+        router.push('/preview')
+        return
       }
 
       const res = await fetch('/api/generate', {
