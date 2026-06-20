@@ -31,10 +31,27 @@ export interface CVFormData {
   rawContent?: string
   education?: string
   experience?: string
+  extras?: string
   references?: string
   additionalInfo?: string
   specialRequests?: string
   jobDescription?: string
+  whyRole?: string
+
+  // Academic optional fields
+  gpa?: string
+  thesis?: string
+  research?: string
+  publications?: string
+  teaching?: string
+  conferences?: string
+  grants?: string
+  supervision?: string
+  orcid?: string
+
+  // Job targeting fields
+  jobTitle_target?: string
+  company?: string
 }
 
 export interface GeneratedExperience {
