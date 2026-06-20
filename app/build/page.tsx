@@ -349,9 +349,8 @@ export default function BuildPage() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '5px' }}>Professional CV</div>
-                <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, fontWeight: 300, marginBottom: '8px' }}>A complete CV for any employer and any job. Built to impress and pass ATS screening on the first pass.</div>
-                <div style={{ fontSize: '12px', color: '#0d9488', fontWeight: 500, marginBottom: '2px' }}>Best for:</div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>Graduates, professionals, and anyone updating their CV.</div>
+                <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, fontWeight: 300, marginBottom: '8px' }}>For most job applications and any industry.</div>
+
               </div>
             </div>
             <button style={{ marginTop: '16px', background: '#0d9488', color: 'white', border: 'none', padding: '11px 22px', borderRadius: '100px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Choose Professional CV →</button>
@@ -367,9 +366,9 @@ export default function BuildPage() {
           {/* Three small cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
             {([
-              { id: 'targeted' as CVType, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>, iconBg: '#e6f1fb', name: 'Targeted CV', desc: 'Tailored to one specific job posting to match the employer exactly.' },
-              { id: 'academic' as CVType, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>, iconBg: '#eeedfe', name: 'Academic CV', desc: 'For researchers, lecturers and postgraduate applicants.' },
-              { id: 'cover_letter' as CVType, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>, iconBg: '#fbeaf0', name: 'Cover Letter', desc: 'A compelling letter that makes the case for why you are the right person.' },
+              { id: 'targeted' as CVType, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>, iconBg: '#e6f1fb', name: 'Targeted CV', desc: 'For a specific vacancy — we match your CV to the job posting exactly.' },
+              { id: 'academic' as CVType, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>, iconBg: '#eeedfe', name: 'Academic CV', desc: 'For research roles, postgraduate applications, and lecturing positions.' },
+              { id: 'cover_letter' as CVType, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>, iconBg: '#fbeaf0', name: 'Cover Letter', desc: 'A personalised letter that introduces you and makes the case for you.' },
             ] as any[]).map((card: any) => (
               <div key={card.id} onClick={() => { setCvType(card.id); go('method') }}
                 style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px', cursor: 'pointer', transition: 'border-color 0.2s' }}
@@ -430,12 +429,12 @@ export default function BuildPage() {
         <div style={{ maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <StepLabel label="Step 1 of 1" />
           <h1 style={h1Style}>Share Your CV Content</h1>
-          <p style={subStyle}>Paste your old CV or upload a file — any format works.</p>
+          <p style={subStyle}>Paste your information below. Don't worry about formatting. Swift will organise everything for you.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
             {[{id:'paste',label:'✎ Paste text'},{id:'upload',label:'↑ Upload file'}].map(opt => (
               <button key={opt.id} onClick={() => setPasteInputMode(opt.id as any)}
-                style={{ padding: '12px', border: `2px solid ${pasteInputMode === opt.id ? '#0d9488' : '#e2e8f0'}`, borderRadius: '12px', background: pasteInputMode === opt.id ? '#f0fdf9' : 'white', color: pasteInputMode === opt.id ? '#0f766e' : '#64748b', fontWeight: pasteInputMode === opt.id ? 700 : 500, fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                style={{ padding: '12px', border: `2px solid ${pasteInputMode === opt.id ? (opt.id === 'upload' ? '#185fa5' : '#0d9488') : '#e2e8f0'}`, borderRadius: '12px', background: pasteInputMode === opt.id ? (opt.id === 'upload' ? '#eff6ff' : '#f0fdf9') : 'white', color: pasteInputMode === opt.id ? (opt.id === 'upload' ? '#185fa5' : '#0f766e') : '#64748b', fontWeight: pasteInputMode === opt.id ? 700 : 500, fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
                 {opt.label} {pasteInputMode === opt.id ? '✓' : ''}
               </button>
             ))}
@@ -482,16 +481,8 @@ export default function BuildPage() {
       {/* ══ SCREEN: FORM STEP 1 — PERSONAL ══════════════════════ */}
       {screen === 'form-1' && (
         <div style={{ maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          {/* Swift greeting */}
-          <div style={{ background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.15)', borderRadius: '14px', padding: '14px 18px', marginBottom: '28px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-            <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-            </div>
-            <div style={{ fontSize: '14px', color: '#0a0f1a', lineHeight: 1.6 }}>
-              Hi, I'm Swift 👋<br />
-              I'll help you build your <strong>{meta.label}</strong> today.
-            </div>
-          </div>
+          {/* Swift greeting with typing animation */}
+          <SwiftGreeting label={meta.label} />
 
           <StepLabel label={`Step 1 of ${meta.totalFormSteps}`} />
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
@@ -807,9 +798,62 @@ export default function BuildPage() {
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         * { box-sizing: border-box; }
         textarea:focus, input:focus { outline: none; border-color: #0d9488 !important; box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
       `}</style>
+    </div>
+  )
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// SWIFT GREETING — typing animation
+// ─────────────────────────────────────────────────────────────
+function SwiftGreeting({ label }: { label: string }) {
+  const [displayed, setDisplayed] = useState('')
+  const [done, setDone] = useState(false)
+  const fullText = `Hi, I'm Swift 👋\nI'll help you build your ${label} today.`
+
+  useEffect(() => {
+    setDisplayed('')
+    setDone(false)
+    let i = 0
+    const interval = setInterval(() => {
+      i++
+      setDisplayed(fullText.slice(0, i))
+      if (i >= fullText.length) {
+        clearInterval(interval)
+        setDone(true)
+      }
+    }, 28)
+    return () => clearInterval(interval)
+  }, [label])
+
+  const lines = displayed.split('\n')
+
+  return (
+    <div style={{ background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.15)', borderRadius: '14px', padding: '14px 18px', marginBottom: '28px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+      <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      </div>
+      <div style={{ fontSize: '14px', color: '#0a0f1a', lineHeight: 1.7 }}>
+        {lines.map((line, i) => (
+          <span key={i}>
+            {i === 1 ? (
+              <>
+                {line.replace(`I'll help you build your ${label} today.`, '').trim()}
+                {line.includes(label) && (
+                  <>I'll help you build your <strong>{label}</strong> today.</>
+                )}
+                {!line.includes(label) && line}
+              </>
+            ) : line}
+            {i < lines.length - 1 && <br />}
+          </span>
+        ))}
+        {!done && <span style={{ display: 'inline-block', width: '2px', height: '14px', background: '#0d9488', marginLeft: '2px', verticalAlign: 'middle', animation: 'blink 0.7s step-end infinite' }} />}
+      </div>
     </div>
   )
 }
