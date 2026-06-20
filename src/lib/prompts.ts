@@ -1,28 +1,35 @@
 import { CVFormData, CVType } from '@/types'
 
-export const CV_SYSTEM_PROMPT = `You are an elite CV writer with 20+ years of experience helping professionals across Ghana and Africa land competitive roles at top organisations — from MTN and GCB to Unilever, the UN, and international NGOs.
+// ─────────────────────────────────────────────────────────────
+// SYSTEM PROMPT
+// ─────────────────────────────────────────────────────────────
+export const CV_SYSTEM_PROMPT = `You are an elite CV writer with 25+ years of experience. You have personally helped over 5,000 professionals across Ghana, Nigeria, Kenya, and the UK land senior roles at MTN, GCB, Stanbic, Unilever, Deloitte, PwC, the UN, World Bank, and top NGOs.
 
-You write CVs that:
-- Pass ATS (Applicant Tracking Systems) screening on the first pass
-- Impress human recruiters within the critical 6-second scan
-- Use strong, specific action verbs — never weak, passive language
-- Quantify achievements wherever possible (%, GHS amounts, headcounts, timeframes)
-- Reflect real Ghanaian professional contexts and employers naturally
-- Sound like a real, accomplished human — not a generic AI template
+Your writing voice is HIGH-END:
+- Crisp, confident, never wordy
+- Specific and quantified (numbers, GHS amounts, percentages, headcounts, scope, timeframes)
+- Past-tense action verbs that command respect: led, delivered, transformed, secured, designed, launched, scaled, negotiated, championed
+- Never generic — every line is tailored to the actual person
+- Reads like a senior consultant wrote it, not an AI
 
-YOUR RULES — NEVER BREAK THESE:
-1. Never invent facts, titles, dates, or employers not provided by the user
-2. Never use placeholders like [Company Name] or [Year] — if you do not have it, omit it gracefully
-3. Never use em dashes in bullet points — use clean sentence structure instead
-4. Never use buzzwords: synergy, leverage, paradigm, rockstar, ninja, guru
-5. Always write bullet points that start with a strong past-tense action verb
-6. Always respond with valid JSON only — no markdown, no explanation, no preamble
+YOUR ABSOLUTE RULES:
+1. NEVER invent facts, employers, dates, salaries, or qualifications not provided
+2. NEVER use placeholders like [Company] or [Year] — if missing, omit gracefully
+3. NEVER use buzzwords: synergy, leverage, paradigm, rockstar, ninja, guru, passionate, hardworking
+4. NEVER start two bullets with the same verb in the same role
+5. NEVER write a bullet shorter than 12 words or longer than 28 words
+6. ALWAYS quantify at least 60% of bullets with real or reasonably inferred numbers
+7. ALWAYS respond with valid JSON ONLY — no markdown fences, no explanation, no preamble
+8. ALWAYS make the summary feel like an executive bio — confident, specific, distinctive
 
-QUALITY STANDARD:
-Write at a level that would make a senior HR professional at a Ghanaian multinational nod and say this person knows what they are doing. Not perfect — real. Not generic — specific.`
+QUALITY BAR:
+A senior recruiter at PwC Accra should read this CV and want to call the person within 30 seconds. If the writing feels even slightly generic, rewrite it sharper. Every word earns its place.`
 
+// ─────────────────────────────────────────────────────────────
+// MAIN PROMPT BUILDER
+// ─────────────────────────────────────────────────────────────
 export function buildGenerationPrompt(formData: CVFormData): string {
-  const typeInstructions = getTypeInstructions(formData.cvType, formData.jobDescription)
+  const typeInstructions = getTypeInstructions(formData)
   const outputFormat = getOutputFormat(formData.cvType)
   const userInfo = buildUserInfoBlock(formData)
 
@@ -31,15 +38,26 @@ export function buildGenerationPrompt(formData: CVFormData): string {
 USER INFORMATION:
 ${userInfo}
 
-OUTPUT FORMAT:
+CRITICAL OUTPUT REQUIREMENTS:
+- Write a CV that genuinely impresses. The user is paying GHS 35 for excellence.
+- If the user's input is sparse or messy, infer professionally and elevate the writing — but never fabricate facts.
+- Each bullet must demonstrate IMPACT, not just describe duty.
+- Wrong: "Responsible for managing the IT team"
+- Right: "Led 8-person IT team supporting 2,400 users across 14 branches; reduced ticket resolution time by 38%"
+
+OUTPUT JSON FORMAT (return ONLY this, no markdown):
 ${outputFormat}`
 }
 
+// ─────────────────────────────────────────────────────────────
+// USER INFO BLOCK — feeds all form fields into the prompt
+// ─────────────────────────────────────────────────────────────
 function buildUserInfoBlock(formData: CVFormData): string {
   const lines: string[] = []
 
+  // Personal details
   if (formData.fullName)      lines.push(`Full Name: ${formData.fullName}`)
-  if (formData.jobTitle)      lines.push(`Target Role: ${formData.jobTitle}`)
+  if (formData.jobTitle)      lines.push(`Target Role / Current Title: ${formData.jobTitle}`)
   if (formData.email)         lines.push(`Email: ${formData.email}`)
   if (formData.phone)         lines.push(`Phone: ${formData.phone}`)
   if (formData.location)      lines.push(`Location: ${formData.location}`)
@@ -48,175 +66,247 @@ function buildUserInfoBlock(formData: CVFormData): string {
   if (formData.linkedin)      lines.push(`LinkedIn: ${formData.linkedin}`)
   if (formData.languages)     lines.push(`Languages: ${formData.languages}`)
 
-  if (formData.rawContent) {
-    lines.push(`\nRAW CONTENT (old CV, notes, or extracted file text):\n${formData.rawContent}`)
-  }
+  // Raw content (paste/upload path)
+  if (formData.rawContent)    lines.push(`\nRAW CONTENT (old CV / notes / extracted file text):\n${formData.rawContent}`)
 
+  // Form path structured fields
   if (formData.education) {
     lines.push(`\nEDUCATION:\n${formData.education}`)
+    // Academic optional extras
+    if (formData.gpa)         lines.push(`GPA / Class of Degree: ${formData.gpa}`)
+    if (formData.thesis)      lines.push(`Thesis / Dissertation Title: ${formData.thesis}`)
+    if (formData.research)    lines.push(`Research Undertaken: ${formData.research}`)
   }
 
   if (formData.experience) {
     lines.push(`\nWORK EXPERIENCE:\n${formData.experience}`)
+    // Academic experience extras
+    if (formData.publications)  lines.push(`Publications & Papers:\n${formData.publications}`)
+    if (formData.teaching)      lines.push(`Teaching Experience:\n${formData.teaching}`)
+    if (formData.conferences)   lines.push(`Conferences & Presentations:\n${formData.conferences}`)
   }
 
-  if (formData.references) {
-    lines.push(`\nREFERENCES:\n${formData.references}`)
+  if (formData.extras) {
+    lines.push(`\nSKILLS & EXTRA DETAILS:\n${formData.extras}`)
+    // Academic extras
+    if (formData.grants)        lines.push(`Grants & Fellowships:\n${formData.grants}`)
+    if (formData.supervision)   lines.push(`Student Supervision:\n${formData.supervision}`)
+    if (formData.orcid)         lines.push(`ORCID ID: ${formData.orcid}`)
   }
 
-  if (formData.additionalInfo) {
-    lines.push(`\nADDITIONAL INFORMATION:\n${formData.additionalInfo}`)
-  }
-
-  if (formData.specialRequests) {
-    lines.push(`\nSPECIAL REQUESTS (follow carefully):\n${formData.specialRequests}`)
-  }
+  if (formData.references)      lines.push(`\nREFERENCES:\n${formData.references}`)
+  if (formData.additionalInfo)  lines.push(`\nADDITIONAL INFORMATION:\n${formData.additionalInfo}`)
+  if (formData.specialRequests) lines.push(`\nSPECIAL REQUESTS (follow carefully):\n${formData.specialRequests}`)
 
   return lines.join('\n')
 }
 
-function getTypeInstructions(cvType: CVType, jobDescription?: string): string {
+// ─────────────────────────────────────────────────────────────
+// TYPE INSTRUCTIONS
+// ─────────────────────────────────────────────────────────────
+function getTypeInstructions(formData: CVFormData): string {
+  const { cvType, jobDescription, company, whyRole } = formData
+
   switch (cvType) {
+
     case 'professional':
-      return `TASK: Write a complete Professional CV.
-- Summary: 3-4 sentences. Years of experience, key domain, standout achievement, value to new employer.
-- Bullets: 3-5 per role. Strong past-tense verbs. At least one quantified achievement per role.
-- Skills: extract and expand intelligently from what was provided.
-- Education: highest to lowest qualification.`
+      return `TASK: Write a Professional CV that commands attention.
+
+STRUCTURE & STANDARDS:
+- SUMMARY (3-4 sentences): Open with years of experience and domain expertise. Include one signature achievement with numbers. End with what value the person brings to a future employer. Make it sound like an executive bio, not a job-seeker plea.
+
+- EXPERIENCE BULLETS: 4-5 per role for senior positions, 3-4 for junior.
+  • Start each bullet with a different strong past-tense verb
+  • Lead with the impact (number, scale, outcome)
+  • Follow with the action (what they did)
+  • Optionally end with the context (for whom, where)
+  • Example: "Reduced operational costs by GHS 240,000 annually by restructuring procurement across 6 departments"
+
+- SKILLS: Extract from the user's actual experience. Group by category if 8+ skills. Use industry-standard names.
+
+- EDUCATION: Highest first. Include grade/class only if shared.
+
+TONE: Confident senior professional. Never apologetic, never overstated. Specific over generic, always.`
+
 
     case 'targeted':
-      return `TASK: Write a Targeted CV tailored to this specific job.
+      return `TASK: Write a Targeted CV laser-focused on this specific role.
 
-JOB DESCRIPTION:
+THE JOB:
 ${jobDescription || 'No job description provided — write a strong professional CV.'}
+${company ? `\nTARGET COMPANY: ${company}` : ''}
 
-- Mirror the top keywords from the job description naturally throughout.
-- Summary must directly address what this employer needs.
-- Reorder bullets so most relevant achievements come first.
-- Do not keyword-stuff — weave them in so it reads like a human wrote it.`
+YOUR APPROACH:
+- Read the job description carefully. Identify the top 5-7 skills, keywords, and competencies the employer wants.
+- Weave those keywords NATURALLY into the summary, bullets, and skills section.
+- Reorder bullets within each role so the most job-relevant achievement appears first.
+- The summary must directly address why THIS person fits THIS role — specific, not generic.
+- Do NOT keyword-stuff. Read it back — does it sound natural? If not, rewrite.
+- Match the seniority and tone of the role. Manager job = managerial language. Specialist role = technical depth.
+
+QUALITY: A hiring manager should read the first 6 lines and say "this person is exactly who we need."`
+
 
     case 'academic':
-      return `TASK: Write a full Academic CV.
-- Sections: Professional Profile, Education, Teaching Experience, Research, Publications (if any), Honours & Awards, Memberships, Languages.
-- Education: most detailed section. Include dissertation/thesis titles where given.
-- Use formal academic language throughout.
-- Bullet points should emphasise scholarly contributions.`
+      return `TASK: Write a full Academic CV in scholarly format.
+
+SECTIONS (in this order, include only those with content):
+- Professional Profile / Research Statement (4-5 sentences, scholarly tone)
+- Education (most recent first — include thesis/dissertation titles if mentioned, GPA if provided)
+- Teaching Experience (courses taught, levels, institutions — only if provided)
+- Research Experience (projects, methodologies, funding — only if provided)
+- Publications (use scholarly citation format — only if provided, NEVER fabricate)
+- Conference Presentations (only if mentioned)
+- Honours, Awards & Fellowships (only if mentioned)
+- Professional Memberships (only if mentioned)
+- Languages
+- References
+
+TONE: Scholarly, precise, no marketing language. Use academic conventions throughout.
+CRITICAL: Never fabricate publications, conference presentations, awards, or affiliations.`
+
 
     case 'cover_letter':
-      return `TASK: Write a professional Cover Letter.
-${jobDescription ? `\nJOB DESCRIPTION:\n${jobDescription}\n` : ''}
-- Opening: strong hook naming the role. Do NOT start with "I am writing to apply for".
-- Middle (2-3 paragraphs): 2-3 specific achievements matching the role.
-- Closing: confident call to action, invite interview.
-- Tone: professional but warm. 250-350 words maximum.`
+      return `TASK: Write a powerful, personalised cover letter — NOT a CV.
+
+THE JOB:
+${jobDescription || 'No job description provided — write a strong general cover letter.'}
+${company ? `\nCOMPANY: ${company}` : ''}
+${whyRole ? `\nWHY THE CANDIDATE WANTS THIS ROLE (use this authentically):\n${whyRole}` : ''}
+
+LETTER STRUCTURE (4 paragraphs):
+- Para 1 (Hook): State the role being applied for. Open with a specific, attention-grabbing statement about fit — quantified achievement preferred. Avoid "I am writing to apply for..." clichés.
+- Para 2 (Why You): 2-3 specific, quantified achievements that directly map to what the role requires. Show, don't tell.
+- Para 3 (Why Them): If company name provided, show genuine knowledge of/interest in the employer. If no company, focus on value brought to any employer in this field.
+- Para 4 (Close): Clear, confident call to action. Available to discuss. Thank them.
+
+LENGTH: 250-320 words. Tight, professional, never rambling.
+TONE: Confident, warm, professional. Never desperate, never generic.
+OUTPUT NOTE: Put the entire letter body into "coverLetterBody". Still include name, contact, jobTitle in JSON.`
 
     default:
       return ''
   }
 }
 
+// ─────────────────────────────────────────────────────────────
+// OUTPUT FORMAT — what the AI returns as JSON
+// ─────────────────────────────────────────────────────────────
 function getOutputFormat(cvType: CVType): string {
   if (cvType === 'cover_letter') {
-    return `Respond with this exact JSON only:
-{
+    return `{
   "fullName": "string",
-  "jobTitle": "string",
+  "jobTitle": "string (target role)",
   "email": "string",
   "phone": "string",
   "location": "string",
   "linkedin": "string or null",
-  "coverLetterBody": "full letter text, paragraphs separated by \\n\\n",
   "summary": "",
   "experience": [],
   "education": [],
   "skills": [],
   "languages": [],
-  "additionalInfo": null
+  "coverLetterBody": "Full cover letter text — 4 paragraphs separated by \\n\\n. Start directly with paragraph 1, no greeting line."
 }`
   }
 
   if (cvType === 'academic') {
-    return `Respond with this exact JSON only:
-{
+    return `{
   "fullName": "string",
-  "jobTitle": "string",
+  "jobTitle": "string (academic position or research focus)",
   "email": "string",
   "phone": "string",
   "location": "string",
   "linkedin": "string or null",
-  "summary": "3-4 sentence professional profile",
-  "experience": [{"id":"exp_1","company":"string","role":"string","startDate":"string","endDate":"string","bullets":["string"]}],
-  "education": [{"id":"edu_1","institution":"string","qualification":"string","field":"string","startYear":"YYYY","endYear":"YYYY","grade":"string or null"}],
-  "skills": ["string"],
-  "languages": ["string"],
-  "publications": ["string"],
-  "research": ["string"],
-  "teaching": ["string"],
-  "additionalInfo": "string or null"
-}`
-  }
-
-  return `Respond with this exact JSON only:
-{
-  "fullName": "string",
-  "jobTitle": "string",
-  "email": "string",
-  "phone": "string",
-  "location": "string",
-  "linkedin": "string or null",
-  "summary": "3-4 sentence professional summary",
+  "summary": "Research/Professional Profile — 4-5 scholarly sentences",
   "experience": [
     {
-      "id": "exp_1",
-      "company": "string",
+      "id": "exp1",
       "role": "string",
-      "startDate": "Month Year",
-      "endDate": "Month Year or Present",
-      "bullets": ["Verb + achievement with impact", "Verb + achievement with impact"]
+      "company": "string (institution)",
+      "startDate": "string",
+      "endDate": "string",
+      "bullets": ["3-4 scholarly bullets per role"]
     }
   ],
   "education": [
     {
-      "id": "edu_1",
-      "institution": "string",
-      "qualification": "string",
+      "id": "edu1",
+      "qualification": "string (e.g. PhD, MA, BSc)",
       "field": "string",
-      "startYear": "YYYY",
-      "endYear": "YYYY",
-      "grade": "string or null"
+      "institution": "string",
+      "startYear": "string",
+      "endYear": "string",
+      "grade": "thesis title or grade if known, else null"
     }
   ],
-  "skills": ["skill 1", "skill 2"],
-  "languages": ["English (Fluent)"],
-  "additionalInfo": "string or null"
+  "skills": ["research methods and technical competencies"],
+  "languages": ["array"],
+  "publications": ["scholarly citation format strings — only if provided"],
+  "research": ["research projects array — only if provided"],
+  "teaching": ["courses taught array — only if provided"],
+  "additionalInfo": "awards, fellowships, memberships, conference presentations if provided — else null"
+}`
+  }
+
+  // Professional and Targeted CV
+  return `{
+  "fullName": "string",
+  "jobTitle": "string (target role or current title)",
+  "email": "string",
+  "phone": "string",
+  "location": "string",
+  "linkedin": "string or null",
+  "summary": "Executive-level professional summary — 3-4 sentences, confident, specific, quantified",
+  "experience": [
+    {
+      "id": "exp1",
+      "role": "string",
+      "company": "string",
+      "startDate": "string (e.g. Mar 2021)",
+      "endDate": "string (e.g. Present or Aug 2023)",
+      "bullets": ["3-5 strong, quantified impact bullets per role"]
+    }
+  ],
+  "education": [
+    {
+      "id": "edu1",
+      "qualification": "string (e.g. BSc, MBA, MSc)",
+      "field": "string",
+      "institution": "string",
+      "startYear": "string",
+      "endYear": "string",
+      "grade": "string if known, else null"
+    }
+  ],
+  "skills": ["8-12 strong industry-standard skills"],
+  "languages": ["array if known"],
+  "additionalInfo": "awards, certifications, memberships, or null"
 }`
 }
 
+// ─────────────────────────────────────────────────────────────
+// REGENERATION PROMPT — for section-level rewrites on preview
+// ─────────────────────────────────────────────────────────────
 export function buildRegenerationPrompt(
   section: string,
-  currentContent: string,
-  userInstruction: string,
+  currentContent: any,
+  instruction: string,
   cvContext: { fullName: string; jobTitle: string; cvType: string }
 ): string {
-  return `You are an expert CV writer. Rewrite only the "${section}" section.
+  return `You are improving a single section of an existing CV.
 
-PERSON: ${cvContext.fullName} — ${cvContext.jobTitle}
+PERSON: ${cvContext.fullName}, ${cvContext.jobTitle}
 CV TYPE: ${cvContext.cvType}
+SECTION TO REWRITE: ${section}
+USER'S INSTRUCTION: ${instruction || 'Make this stronger. Use better action verbs and be more specific.'}
 
 CURRENT CONTENT:
-${currentContent}
+${JSON.stringify(currentContent, null, 2)}
 
-USER INSTRUCTION:
-${userInstruction || 'Make this stronger. Use better action verbs and be more specific.'}
+Rewrite this section following the user's instruction. Keep the same JSON structure. Make it sharper, more specific, and more impactful. Never fabricate facts.
 
-RULES:
-- Rewrite only this section
-- Keep all facts accurate — do not invent information
-- Strong action verbs for bullets
-- Quantify where reasonably inferable
-- Return ONLY valid JSON — no explanation
-
-${getSectionOutputFormat(section)}`
+Return ONLY the new JSON for this section — no markdown, no explanation.`
 }
 
 function getSectionOutputFormat(section: string): string {
