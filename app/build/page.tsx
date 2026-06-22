@@ -172,14 +172,6 @@ export default function BuildPage() {
     }
     if (inputMethod === 'form') {
       if (!refs.fullName.current?.value.trim()) return 'name'
-      if (!refs.email.current?.value.trim()) return 'email'
-      if (!refs.location.current?.value.trim()) return 'location'
-    }
-    if (needsJD) {
-      const hasJD = jdInputMode === 'paste'
-        ? refs.jdPaste.current?.value.trim()
-        : uploadedJD
-      if (!hasJD) return 'jd'
     }
     return null
   }
@@ -759,15 +751,15 @@ export default function BuildPage() {
           <h1 style={{ ...h1Style, marginBottom: '6px' }}>Ready To Build Your CV</h1>
           <p style={{ ...subStyle, marginBottom: '28px' }}>Review your details before we generate.</p>
 
-          {/* Summary blocks */}
+          {/* Summary blocks — only show sections with content */}
           {[
-            { title: 'Document Type', val: meta.label, editScreen: 'type' as Screen },
-            { title: 'Personal Details', val: [refs.fullName.current?.value, refs.phone.current?.value, refs.email.current?.value, refs.location.current?.value].filter(Boolean).join(' · ') || '—', editScreen: 'form-1' as Screen },
-            { title: 'Education', val: refs.education.current?.value || '—', editScreen: 'form-2' as Screen },
-            { title: 'Work Experience', val: refs.experience.current?.value || '—', editScreen: 'form-3' as Screen },
-            { title: 'Skills & Extras', val: refs.extras.current?.value || '—', editScreen: 'form-4' as Screen },
-            ...(meta.hasJobStep ? [{ title: 'Target Role', val: [refs.jobTitle.current?.value, refs.company.current?.value].filter(Boolean).join(' at ') || '—', editScreen: 'form-5' as Screen }] : []),
-          ].map(b => (
+            { title: 'Document Type', val: meta.label, editScreen: 'type' as Screen, alwaysShow: true },
+            { title: 'Personal Details', val: [refs.fullName.current?.value, refs.phone.current?.value, refs.email.current?.value, refs.location.current?.value].filter(Boolean).join(' · '), editScreen: 'form-1' as Screen },
+            { title: 'Education', val: refs.education.current?.value || '', editScreen: 'form-2' as Screen },
+            { title: 'Work Experience', val: refs.experience.current?.value || '', editScreen: 'form-3' as Screen },
+            { title: 'Skills & Extras', val: refs.extras.current?.value || '', editScreen: 'form-4' as Screen },
+            ...(meta.hasJobStep ? [{ title: 'Target Role', val: [refs.jobTitle.current?.value, refs.company.current?.value].filter(Boolean).join(' at '), editScreen: 'form-5' as Screen }] : []),
+          ].filter(b => (b as any).alwaysShow || b.val).map(b => (
             <div key={b.title} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#94a3b8' }}>{b.title}</span>
