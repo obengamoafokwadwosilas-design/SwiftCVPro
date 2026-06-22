@@ -55,6 +55,13 @@ export default function PreviewPage() {
   const [pdfOnlyModal, setPdfOnlyModal] = useState(false)
   const [accentColor, setAccentColor] = useState<string | null>(null)
   const [showColorPicker, setShowColorPicker] = useState(false)
+  const [showRevision, setShowRevision] = useState(false)
+  const [revisionText, setRevisionText] = useState('')
+  const [freeRevisionUsed, setFreeRevisionUsed] = useState(false)
+  const [isRevising, setIsRevising] = useState(false)
+  const [revisionError, setRevisionError] = useState('')
+  const [showUpsell, setShowUpsell] = useState(false)
+  const [hasDownloaded, setHasDownloaded] = useState(false)
 
   useEffect(() => {
     const stored = sessionStorage.getItem('swiftcv_cv')
@@ -108,6 +115,8 @@ export default function PreviewPage() {
       const a = document.createElement('a')
       a.href = url
       a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.docx`
+      setHasDownloaded(true)
+      setTimeout(() => setShowUpsell(true), 2000)
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
     } catch { alert('Download failed. Please try again.') }
@@ -144,6 +153,8 @@ export default function PreviewPage() {
       const a = document.createElement('a')
       a.href = url
       a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.pdf`
+      setHasDownloaded(true)
+      setTimeout(() => setShowUpsell(true), 2000)
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -226,6 +237,66 @@ export default function PreviewPage() {
   const atsTemplates = visibleTemplates.filter(t => t.category === 'ats' || t.category === 'academic')
   const academicTemplates = visibleTemplates.filter(t => t.category === 'academic')
 
+  async function handleRevision() {
+    if (!revisionText.trim()) { setRevisionError('Please describe what you would like changed.'); return }
+    if (!cv) return
+    if (freeRevisionUsed) {
+      // Trigger GH₵5 payment
+      const script = document.createElement('script')
+      script.src = 'https://js.paystack.co/v1/inline.js'
+      script.onload = () => {
+        const handler = (window as any).PaystackPop.setup({
+          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
+          email: `${phone.replace('+','')}@swiftcvpro.com`,
+          amount: 500000, // GH₵5
+          currency: 'GHS',
+          ref: `rev_${Date.now()}`,
+          callback: async () => { await doRevision() },
+          onClose: () => {}
+        })
+        handler.openIframe()
+      }
+      document.body.appendChild(script)
+      return
+    }
+    await doRevision()
+  }
+
+  async function doRevision() {
+    if (!cv) return
+    setIsRevising(true)
+    setRevisionError('')
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cvType: sessionStorage.getItem('swiftcv_type') || 'professional',
+          rawContent: JSON.stringify(cv),
+          specialRequests: revisionText,
+          isRevision: true,
+          phoneNumber: phone,
+          lockedName: cv.fullName,
+        })
+      })
+      const data = await res.json()
+      if (data.success && data.cv) {
+        // Preserve locked name
+        data.cv.fullName = cv.fullName
+        sessionStorage.setItem('swiftcv_cv', JSON.stringify(data.cv))
+        setCV(data.cv)
+        setFreeRevisionUsed(true)
+        setShowRevision(false)
+        setRevisionText('')
+      } else {
+        setRevisionError('Something went wrong. Please try again.')
+      }
+    } catch {
+      setRevisionError('Connection error. Please try again.')
+    }
+    setIsRevising(false)
+  }
+
   return (
     <div style={{ minHeight:'100vh', background:'#f1f5f9' }}>
       {/* Load premium fonts for screen + print */}
@@ -289,6 +360,7 @@ export default function PreviewPage() {
           <button onClick={handleNewCV} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>+ New CV</button>
           <button onClick={handleDownloadDocx} disabled={!!downloading} style={{ padding:'8px 16px', background: currentTpl?.formats === 'pdf' ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)', color: currentTpl?.formats === 'pdf' ? 'rgba(255,255,255,0.5)' : 'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>{downloading==='docx'?'...':'↓ Word'}</button>
           <button onClick={handleDownloadPdf} disabled={!!downloading} style={{ padding:'8px 16px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', boxShadow:'0 4px 14px rgba(13,148,136,0.3)' }}>{downloading==='pdf'?'...':'↓ PDF'}</button>
+          <button onClick={() => setShowRevision(true)} style={{ padding:'8px 16px', background:'transparent', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>✎ Request Revision</button>
         </div>
       </nav>
 
@@ -356,6 +428,43 @@ export default function PreviewPage() {
           )}
         </div>
       </div>
+
+      {/* REVISION PANEL */}
+      {showRevision && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+          <div style={{ background:'white', borderRadius:'20px 20px 0 0', padding:'28px 24px 36px', width:'100%', maxWidth:'600px', boxShadow:'0 -8px 40px rgba(0,0,0,0.15)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
+              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.4rem', fontWeight:600, color:'#0a0f1a' }}>What would you like changed?</div>
+              <button onClick={() => setShowRevision(false)} style={{ background:'none', border:'none', fontSize:'20px', color:'#94a3b8', cursor:'pointer' }}>✕</button>
+            </div>
+            <div style={{ fontSize:'12px', color:'#94a3b8', marginBottom:'12px', fontStyle:'italic' }}>e.g. "Make the summary more confident" · "Add my KNUST degree" · "Remove date of birth"</div>
+            <div style={{ fontSize:'11px', color:'#64748b', background: freeRevisionUsed ? '#fffbeb' : '#f0fdf9', border:`1px solid ${freeRevisionUsed ? 'rgba(245,158,11,0.3)' : 'rgba(13,148,136,0.2)'}`, borderRadius:'8px', padding:'8px 14px', marginBottom:'14px' }}>
+              {freeRevisionUsed ? '⚠️ Your free revision has been used. This revision costs GH₵5.' : '✅ 1 free revision included.'}
+            </div>
+            <textarea value={revisionText} onChange={e => setRevisionText(e.target.value)} placeholder="Describe what you'd like changed..." style={{ width:'100%', padding:'12px 14px', border:'1.5px solid #e2e8f0', borderRadius:'12px', fontFamily:"'DM Sans', sans-serif", fontSize:'14px', color:'#0a0f1a', resize:'none', lineHeight:1.7, minHeight:'100px', marginBottom:'8px' }} />
+            {revisionError && <div style={{ fontSize:'12px', color:'#e24b4a', marginBottom:'10px' }}>{revisionError}</div>}
+            <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
+              <button onClick={() => setShowRevision(false)} style={{ padding:'11px 22px', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'13px', fontWeight:500, color:'#64748b', cursor:'pointer' }}>Cancel</button>
+              <button onClick={handleRevision} disabled={isRevising} style={{ padding:'11px 28px', background: freeRevisionUsed ? '#f59e0b' : '#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', opacity: isRevising ? 0.7 : 1 }}>
+                {isRevising ? 'Regenerating...' : freeRevisionUsed ? 'Pay GH₵5 & Regenerate →' : 'Regenerate →'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* COVER LETTER UPSELL */}
+      {showUpsell && !isCoverLetter && (
+        <div style={{ position:'fixed', bottom:'24px', right:'24px', zIndex:150, background:'white', borderRadius:'16px', padding:'18px 20px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)', border:'1px solid #e2e8f0', maxWidth:'280px' }}>
+          <button onClick={() => setShowUpsell(false)} style={{ position:'absolute', top:'10px', right:'12px', background:'none', border:'none', fontSize:'16px', color:'#94a3b8', cursor:'pointer' }}>✕</button>
+          <div style={{ fontSize:'1.1rem', fontWeight:600, color:'#0a0f1a', fontFamily:"'Cormorant Garamond', serif", marginBottom:'6px' }}>Add a Cover Letter?</div>
+          <div style={{ fontSize:'12px', color:'#64748b', lineHeight:1.6, marginBottom:'14px' }}>Tailored to a specific role using this CV. Instant delivery.</div>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div style={{ fontSize:'1.3rem', fontWeight:700, color:'#0a0f1a' }}>GH₵ 10</div>
+            <button onClick={() => { setShowUpsell(false); window.location.href = '/build?type=cover_letter' }} style={{ padding:'9px 18px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>Add Now →</button>
+          </div>
+        </div>
+      )}
 
       {pdfOnlyModal && (
         <div onClick={() => setPdfOnlyModal(false)} style={{ position:'fixed', inset:0, background:'rgba(10,15,26,0.7)', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', backdropFilter:'blur(4px)' }}>
