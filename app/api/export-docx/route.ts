@@ -7,11 +7,6 @@ import {
   LevelFormat, convertInchesToTwip, TabStopType, TabStopPosition
 } from 'docx'
 import { GeneratedCV, TemplateId } from '@/types'
-import { buildMeridian } from './meridian'
-import { buildNewYork } from './newyork'
-import { buildAtelier } from './atelier'
-import { buildGraduate } from './graduate'
-import { buildEuropass } from './europass'
 import { buildVertex, buildSovereign, buildMeridianV2, buildAscend, buildHarbour } from './premium'
 
 // ═══════════════════════════════════════════════════════
