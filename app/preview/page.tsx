@@ -11,21 +11,19 @@ type Formats = 'both' | 'pdf'
 type Category = 'ats' | 'premium' | 'academic'
 
 const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; formats: Formats; category: Category; customizable: boolean }[] = [
-  // 💎 Premium — PDF only, rich design
-  { id: 'meridian', name: 'Meridian',     tag: 'Navy Sidebar · Gold',        color: '#0a1f44', formats: 'pdf',  category: 'premium', customizable: true  },
-  { id: 'newyork',  name: 'New York',     tag: 'Bold Serif · Crimson',       color: '#a01e1e', formats: 'pdf',  category: 'premium', customizable: true  },
-  { id: 'atelier',  name: 'Atelier',      tag: 'Playfair · Timeline',        color: '#3b0a45', formats: 'pdf',  category: 'premium', customizable: true  },
-  { id: 'graduate', name: 'Graduate',     tag: 'Optimistic · Fresh',         color: '#dc6e3a', formats: 'pdf',  category: 'premium', customizable: true  },
-  { id: 'europass', name: 'Europass Pro', tag: 'Two-Column · International', color: '#1e3a8a', formats: 'pdf',  category: 'premium', customizable: true  },
-  { id: 'noir',     name: 'Noir',         tag: 'Refined · Dark',             color: '#111111', formats: 'pdf',  category: 'premium', customizable: false },
+  // 💎 Premium — perfect in BOTH PDF and Word
+  { id: 'vertex',    name: 'Vertex',    tag: 'Bold · Colour Rail · Two-Column', color: '#e0533d', formats: 'both', category: 'premium', customizable: true  },
+  { id: 'sovereign', name: 'Sovereign', tag: 'Prestige · Crest · Centered',     color: '#b08d3f', formats: 'both', category: 'premium', customizable: true  },
+  { id: 'meridian',  name: 'Meridian',  tag: 'Teal Sidebar · Modern',           color: '#0d9488', formats: 'both', category: 'premium', customizable: true  },
+  { id: 'ascend',    name: 'Ascend',    tag: 'Corporate · Colour Bars',         color: '#1d4ed8', formats: 'both', category: 'premium', customizable: true  },
+  { id: 'harbour',   name: 'Harbour',   tag: 'Editorial · Refined Serif',       color: '#0f766e', formats: 'both', category: 'premium', customizable: true  },
 
-  // 🔵 ATS — PDF + Word, simple by design, recruiter-safe
-  { id: 'london',   name: 'London',       tag: 'Editorial · Warm Serif',     color: '#6B4F3A', formats: 'both', category: 'ats',     customizable: false },
-  { id: 'nordic',   name: 'Nordic',       tag: 'Clean · Modern · Sans',      color: '#2563eb', formats: 'both', category: 'ats',     customizable: true  },
-  { id: 'classic',  name: 'Classic',      tag: 'Traditional · ATS Safe',     color: '#1f2937', formats: 'both', category: 'ats',     customizable: false },
+  // 🔵 ATS — PDF + Word, recruiter-safe minimal
+  { id: 'classic',  name: 'Classic',   tag: 'Traditional · ATS Safe',          color: '#1f2937', formats: 'both', category: 'ats',     customizable: false },
+  { id: 'london',   name: 'London',     tag: 'Clean · Single Column',          color: '#1a3a5a', formats: 'both', category: 'ats',     customizable: false },
 
   // 🎓 Academic — only shows for academic CV type
-  { id: 'academic', name: 'Academic',     tag: 'Scholarly · Structured',     color: '#374151', formats: 'both', category: 'academic', customizable: false },
+  { id: 'academic', name: 'Academic',   tag: 'Scholarly · Structured',         color: '#374151', formats: 'both', category: 'academic', customizable: false },
 ]
 
 // Color swatches for picker
@@ -224,8 +222,8 @@ export default function PreviewPage() {
   const currentTpl = TEMPLATES.find(t => t.id === template)
 
   // ── Template filtering by CV type ──────────────────────
-  const ACADEMIC_ALLOWED: TemplateId[] = ['classic', 'academic', 'nordic', 'london']
-  const COVER_LETTER_ALLOWED: TemplateId[] = ['classic', 'nordic', 'london']
+  const ACADEMIC_ALLOWED: TemplateId[] = ['classic', 'academic', 'sovereign', 'harbour', 'london']
+  const COVER_LETTER_ALLOWED: TemplateId[] = ['classic', 'sovereign', 'harbour', 'london']
 
   const visibleTemplates = isCoverLetter
     ? TEMPLATES.filter(t => COVER_LETTER_ALLOWED.includes(t.id))
