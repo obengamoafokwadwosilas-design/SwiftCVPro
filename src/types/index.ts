@@ -14,6 +14,10 @@ export type TemplateId =
   | 'europass'
   | 'meridian'
   | 'graduate'
+  | 'vertex'
+  | 'sovereign'
+  | 'ascend'
+  | 'harbour'
 
 export type ExportFormat = 'docx' | 'pdf'
 
