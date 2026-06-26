@@ -9,6 +9,10 @@ import {
 import { GeneratedCV, TemplateId } from '@/types'
 import { buildMeridian } from './meridian'
 import { buildNewYork } from './newyork'
+import { buildAtelier } from './atelier'
+import { buildGraduate } from './graduate'
+import { buildEuropass } from './europass'
+import { buildVertex, buildSovereign, buildMeridianV2, buildAscend, buildHarbour } from './premium'
 
 // ═══════════════════════════════════════════════════════
 // PREMIUM TYPOGRAPHY SYSTEM
@@ -93,31 +97,39 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
     europass: '1e3a8a',
   }
 
-  switch (templateId) {
-    // ATS templates — clean single-column builders that match preview
-    case 'london':    return buildExecutive(cv)
-    case 'nordic':    return buildModern(cv)
-    case 'classic':   return buildClassic(cv)
-    case 'academic':  return buildAcademic(cv)
-
-    // New York — distinct editorial builder
-    case 'newyork':
-      return buildNewYork(cv, accentColor || accentFor.newyork)
-
-    // Premium — FLAGSHIP shaded/table builder (real design in Word)
-    case 'meridian':
+    switch (templateId) {
+    // ── 5 PREMIUM DESIGNS (match CVPreview.tsx PDF designs) ──
+    case 'vertex':
     case 'atelier':
-    case 'graduate':
+    case 'editorial':
+      return buildVertex(cv, accentColor)
+
+    case 'sovereign':
+    case 'newyork':
+    case 'executive':
+      return buildSovereign(cv, accentColor)
+
+    case 'meridian':
+    case 'modern':
     case 'europass':
-      return buildMeridian(cv, accentColor || accentFor[templateId])
+    case 'graduate':
+    case 'nordic':
+      return buildMeridianV2(cv, accentColor)
 
-    // Noir kept as a refined dark mono — classic structure is fine for it
-    case 'noir':      return buildClassic(cv)
+    case 'ascend':
+      return buildAscend(cv, accentColor)
 
-    // Legacy aliases
-    case 'modern':    return buildModern(cv)
-    case 'executive': return buildExecutive(cv)
-    default:          return buildClassic(cv)
+    case 'harbour':
+    case 'noir':
+      return buildHarbour(cv, accentColor)
+
+    // ── ATS single-column ──
+    case 'london':    return buildAscend(cv, accentColor)
+    case 'classic':   return buildClassic(cv)
+    case 'academic':  return buildSovereign(cv, accentColor)
+
+    default:
+      return buildClassic(cv)
   }
 }
 
