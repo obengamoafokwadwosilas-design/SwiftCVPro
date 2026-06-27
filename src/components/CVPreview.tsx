@@ -138,88 +138,96 @@ function SidebarContent({ cv, light }: { cv: GeneratedCV; light?: boolean }) {
 function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: TemplateConfig }) {
   const blocks = config.buildBlocks(cv, A)
   const measureRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLDivElement>(null)
   const [pages, setPages] = useState<number[][] | null>(null)
 
   useLayoutEffect(() => {
     let cancelled = false
     let raf = 0
+
     function paginate() {
-      const el = measureRef.current
-      if (!el) return
-      const children = Array.from(el.children) as HTMLElement[]
-      if (children.length !== blocks.length) return
+      try {
+        const el = measureRef.current
+        if (!el) return
+        const children = Array.from(el.children) as HTMLElement[]
+        if (children.length !== blocks.length || blocks.length === 0) return
 
-      // accurate per-block height including vertical margins
-      const heights = children.map(c => {
-        const r = c.getBoundingClientRect()
-        const cs = window.getComputedStyle(c)
-        return r.height + parseFloat(cs.marginTop || '0') + parseFloat(cs.marginBottom || '0')
-      })
+        const heights = children.map(c => {
+          const r = c.getBoundingClientRect()
+          let m = 0
+          try {
+            const cs = window.getComputedStyle(c)
+            m = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0)
+          } catch { m = 0 }
+          return r.height + m
+        })
 
-      // real header height (page 1 only)
-      const headerEl = el.parentElement?.querySelector('[data-measure-header]') as HTMLElement | null
-      const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0
+        const headerH = headerRef.current ? headerRef.current.getBoundingClientRect().height : 0
+        const usable = PAGE_H - config.contentPadV * 2
+        const page1Usable = Math.max(160, usable - headerH)
 
-      const usable = PAGE_H - config.contentPadV * 2
-      const page1Usable = Math.max(120, usable - headerH)
-      const result: number[][] = []
-      let current: number[] = []
-      let used = 0
-      let limit = page1Usable
-      const isHeading = (i: number) => blocks[i].key.endsWith('-h')
+        const result: number[][] = []
+        let current: number[] = []
+        let used = 0
+        let limit = page1Usable
+        const isHeading = (i: number) => blocks[i].key.endsWith('-h')
 
-      for (let i = 0; i < blocks.length; i++) {
-        const h = heights[i]
-        // start a new page only if this page already has content AND the block won't fit
-        if (current.length > 0 && used + h > limit) {
-          result.push(current); current = []; used = 0; limit = usable
-        }
-        current.push(i)
-        used += h
-        // orphan protection: a heading must not be the last item if its first child won't fit
-        if (isHeading(i) && i + 1 < blocks.length) {
-          const nextH = heights[i + 1]
-          if (used + nextH > limit && current.length > 1) {
-            current.pop()
-            result.push(current)
-            current = [i]
-            used = h
-            limit = usable
+        for (let i = 0; i < blocks.length; i++) {
+          const h = heights[i] || 0
+          if (current.length > 0 && used + h > limit) {
+            result.push(current); current = []; used = 0; limit = usable
+          }
+          current.push(i)
+          used += h
+          if (isHeading(i) && i + 1 < blocks.length) {
+            const nextH = heights[i + 1] || 0
+            if (used + nextH > limit && current.length > 1) {
+              current.pop()
+              result.push(current)
+              current = [i]
+              used = h
+              limit = usable
+            }
           }
         }
+        if (current.length) result.push(current)
+        if (result.length === 0) result.push(blocks.map((_, i) => i))
+        if (!cancelled) setPages(result)
+      } catch {
+        // on any measurement error, fall back to single page (never crash the app)
+        if (!cancelled) setPages([blocks.map((_, i) => i)])
       }
-      if (current.length) result.push(current)
-      if (!cancelled) setPages(result)
     }
-    // measure ONCE after fonts are ready (heights are wrong before fonts load)
+
     const run = () => { raf = requestAnimationFrame(() => { if (!cancelled) paginate() }) }
-    if ((document as any).fonts?.ready) {
-      (document as any).fonts.ready.then(run)
+    const fonts = (document as any).fonts
+    if (fonts && fonts.ready && typeof fonts.ready.then === 'function') {
+      fonts.ready.then(run).catch(run)
     } else {
       run()
     }
-    return () => { cancelled = true; cancelAnimationFrame(raf) }
+    return () => { cancelled = true; if (raf) cancelAnimationFrame(raf) }
   }, [cv, A, config.design]) // eslint-disable-line
 
-  // ── MEASURE PASS (hidden) ──
+  // Hidden measure pass — renders real header + all blocks at exact column width
   const measurePass = (
-    <div data-measure-pass style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: -99999, top: 0, width: config.measureW }}>
-      <div data-measure-header style={{ width: '100%' }}><config.Header cv={cv} A={A} /></div>
+    <div data-measure-pass aria-hidden="true" style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: -99999, top: 0, width: config.measureW }}>
+      <div ref={headerRef} style={{ width: '100%' }}><config.Header cv={cv} A={A} /></div>
       <div ref={measureRef}>
         {blocks.map(b => <div key={b.key}>{b.node}</div>)}
       </div>
     </div>
   )
 
-  // Before pagination resolves, render page 1 with everything (avoids flash of empty)
-  const pagePlan = pages || [blocks.map((_, i) => i)]
+  // Until pagination resolves, render everything on page 1 (correct for 1-page CVs, no flash)
+  const pagePlan = (pages && pages.length > 0) ? pages : [blocks.map((_, i) => i)]
 
   return (
     <div>
       {measurePass}
       {pagePlan.map((blockIdxs, pageIndex) => (
         <config.Frame key={pageIndex} cv={cv} A={A} pageIndex={pageIndex}>
-          {blockIdxs.map(i => <div key={blocks[i].key}>{blocks[i].node}</div>)}
+          {blockIdxs.map(i => blocks[i] ? <div key={blocks[i].key}>{blocks[i].node}</div> : null)}
         </config.Frame>
       ))}
     </div>
