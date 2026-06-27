@@ -67,6 +67,8 @@ type TemplateConfig = {
   Frame: (p: { cv: GeneratedCV; A: string; pageIndex: number; children: React.ReactNode }) => React.ReactElement
   // build the ordered list of content blocks (main column)
   buildBlocks: (cv: GeneratedCV, A: string) => Block[]
+  // page-1 header (name/title block) — used in Frame AND measured for accurate pagination
+  Header: (p: { cv: GeneratedCV; A: string }) => React.ReactElement
 }
 
 // shared block builders for single-column-ish bodies
@@ -138,68 +140,71 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   const measureRef = useRef<HTMLDivElement>(null)
   const [pages, setPages] = useState<number[][] | null>(null)
 
-  // usable content height per page = page height − content vertical padding − (page1 header height handled separately)
   useLayoutEffect(() => {
     let cancelled = false
+    let raf = 0
     function paginate() {
       const el = measureRef.current
       if (!el) return
       const children = Array.from(el.children) as HTMLElement[]
       if (children.length !== blocks.length) return
 
-      const heights = children.map(c => c.offsetHeight)
-      // header height (page 1 only) measured separately via data attr
+      // accurate per-block height including vertical margins
+      const heights = children.map(c => {
+        const r = c.getBoundingClientRect()
+        const cs = window.getComputedStyle(c)
+        return r.height + parseFloat(cs.marginTop || '0') + parseFloat(cs.marginBottom || '0')
+      })
+
+      // real header height (page 1 only)
       const headerEl = el.parentElement?.querySelector('[data-measure-header]') as HTMLElement | null
-      const headerH = headerEl ? headerEl.offsetHeight : 0
+      const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0
 
       const usable = PAGE_H - config.contentPadV * 2
-      const page1Usable = usable - headerH
+      const page1Usable = Math.max(120, usable - headerH)
       const result: number[][] = []
       let current: number[] = []
       let used = 0
       let limit = page1Usable
       const isHeading = (i: number) => blocks[i].key.endsWith('-h')
 
-      blocks.forEach((_, i) => {
+      for (let i = 0; i < blocks.length; i++) {
         const h = heights[i]
-        // would this block overflow the page?
-        if (used + h > limit && current.length > 0) {
+        // start a new page only if this page already has content AND the block won't fit
+        if (current.length > 0 && used + h > limit) {
           result.push(current); current = []; used = 0; limit = usable
         }
         current.push(i)
         used += h
-        // orphan protection: if a heading is now the LAST item and won't have room
-        // for its first item, move the heading to the next page
+        // orphan protection: a heading must not be the last item if its first child won't fit
         if (isHeading(i) && i + 1 < blocks.length) {
           const nextH = heights[i + 1]
-          if (used + nextH > limit) {
-            // pull the heading off this page onto the next
+          if (used + nextH > limit && current.length > 1) {
             current.pop()
-            if (current.length) result.push(current)
+            result.push(current)
             current = [i]
             used = h
             limit = usable
           }
         }
-      })
+      }
       if (current.length) result.push(current)
       if (!cancelled) setPages(result)
     }
-    // measure after fonts are ready (heights are wrong before fonts load)
+    // measure ONCE after fonts are ready (heights are wrong before fonts load)
+    const run = () => { raf = requestAnimationFrame(() => { if (!cancelled) paginate() }) }
     if ((document as any).fonts?.ready) {
-      (document as any).fonts.ready.then(() => { if (!cancelled) paginate() })
+      (document as any).fonts.ready.then(run)
     } else {
-      paginate()
+      run()
     }
-    // also run immediately as a fallback
-    paginate()
-    return () => { cancelled = true }
+    return () => { cancelled = true; cancelAnimationFrame(raf) }
   }, [cv, A, config.design]) // eslint-disable-line
 
   // ── MEASURE PASS (hidden) ──
   const measurePass = (
     <div data-measure-pass style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: -99999, top: 0, width: config.measureW }}>
-      <div data-measure-header style={{ width: '100%' }}>{config.design === 'meridian' || config.design === 'pulse' ? null : null}</div>
+      <div data-measure-header style={{ width: '100%' }}><config.Header cv={cv} A={A} /></div>
       <div ref={measureRef}>
         {blocks.map(b => <div key={b.key}>{b.node}</div>)}
       </div>
@@ -247,11 +252,12 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#333', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
       return b
     },
+    Header: ({ cv, A }) => (<><div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.1, color: '#1a1a1a', marginBottom: 4 }}>{cv.fullName}</div>{cv.jobTitle && <div style={{ fontSize: 14, color: A, fontWeight: 600, letterSpacing: 0.5, marginBottom: 22, textTransform: 'uppercase' }}>{cv.jobTitle}</div>}</>),
     Frame: ({ cv, A, pageIndex, children }) => (
       <div style={{ ...pageBase, display: 'grid', gridTemplateColumns: '262px 1fr', fontFamily: BODY_SERIF, color: '#1a1a1a', background: `linear-gradient(90deg, ${A} 0, ${A} 262px, #fff 262px, #fff 100%)`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
         <div style={{ color: '#fff', padding: '40px 26px' }}>{pageIndex === 0 ? <SidebarContent cv={cv} /> : null}</div>
         <div style={{ padding: '40px 32px' }}>
-          {pageIndex === 0 && <div data-measure-header><div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.1, color: '#1a1a1a', marginBottom: 4 }}>{cv.fullName}</div>{cv.jobTitle && <div style={{ fontSize: 14, color: A, fontWeight: 600, letterSpacing: 0.5, marginBottom: 22, textTransform: 'uppercase' }}>{cv.jobTitle}</div>}</div>}
+          {pageIndex === 0 && <TEMPLATES_CONFIG.meridian.Header cv={cv} A={A} />}
           {children}
         </div>
       </div>
@@ -273,16 +279,20 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
       return b
     },
+    Header: ({ cv, A }) => {
+      const DARK = '#15131f'
+      return (<>
+        <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1, color: DARK }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ display: 'inline-block', background: A, color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', padding: '5px 16px', borderRadius: 20, margin: '10px 0 16px' }}>{cv.jobTitle}</div>}
+        <div style={{ fontSize: 11.5, color: '#777', marginBottom: 8 }}>{contact(cv)}</div>
+        <div style={{ height: 3, background: `linear-gradient(90deg, ${A}, transparent)`, marginBottom: 26 }} />
+      </>)
+    },
     Frame: ({ cv, A, pageIndex, children }) => {
       const DARK = '#15131f'
       return (
         <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', background: `linear-gradient(90deg, #fff 0, #fff 554px, ${DARK} 554px, ${DARK} 100%)`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-          {pageIndex === 0 && <div data-measure-header style={{ padding: '46px 46px 0' }}>
-            <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1, color: DARK }}>{cv.fullName}</div>
-            {cv.jobTitle && <div style={{ display: 'inline-block', background: A, color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', padding: '5px 16px', borderRadius: 20, margin: '10px 0 16px' }}>{cv.jobTitle}</div>}
-            <div style={{ fontSize: 11.5, color: '#777', marginBottom: 8 }}>{contact(cv)}</div>
-            <div style={{ height: 3, background: `linear-gradient(90deg, ${A}, transparent)`, marginBottom: 26 }} />
-          </div>}
+          {pageIndex === 0 && <div style={{ padding: '46px 46px 0' }}><TEMPLATES_CONFIG.pulse.Header cv={cv} A={A} /></div>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px' }}>
             <div style={{ padding: pageIndex === 0 ? '0 30px 40px 46px' : '46px 30px 40px 46px' }}>{children}</div>
             <div style={{ color: '#fff', padding: '34px 26px' }}>
@@ -298,13 +308,21 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   vertex: {
     design: 'vertex', font: BODY_SERIF, contentPadV: 46, mainPad: '46px', sidebarW: 0, sidebarSide: 'none', measureW: 664,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'dash', { skillsInline: true }),
+    Header: ({ cv, A }) => {
+      const first = cv.fullName.split(' ')[0], rest = cv.fullName.split(' ').slice(1).join(' ')
+      return (<>
+        <div style={{ marginBottom: 6 }}><span style={{ fontSize: 42, fontWeight: 800, letterSpacing: -1, lineHeight: 0.95, color: '#1c1c1c', textTransform: 'uppercase' }}>{first} </span><span style={{ fontSize: 42, fontWeight: 300, letterSpacing: -1, color: '#1c1c1c', textTransform: 'uppercase' }}>{rest}</span></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}><div style={{ width: 40, height: 3, background: A }} /><span style={{ fontSize: 14, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: A }}>{cv.jobTitle}</span></div>
+        <div style={{ fontSize: 11.5, color: '#777', marginBottom: 30 }}>{contact(cv)}</div>
+      </>)
+    },
     Frame: ({ cv, A, pageIndex, children }) => {
       const first = cv.fullName.split(' ')[0], rest = cv.fullName.split(' ').slice(1).join(' ')
       return (
         <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', display: 'grid', gridTemplateColumns: '38px 1fr', background: `linear-gradient(90deg, ${A} 0, ${A} 38px, #fff 38px, #fff 100%)`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
           <div />
           <div style={{ padding: '46px' }}>
-            {pageIndex === 0 && <div data-measure-header><div style={{ marginBottom: 6 }}><span style={{ fontSize: 42, fontWeight: 800, letterSpacing: -1, lineHeight: 0.95, color: '#1c1c1c', textTransform: 'uppercase' }}>{first} </span><span style={{ fontSize: 42, fontWeight: 300, letterSpacing: -1, color: '#1c1c1c', textTransform: 'uppercase' }}>{rest}</span></div><div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}><div style={{ width: 40, height: 3, background: A }} /><span style={{ fontSize: 14, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: A }}>{cv.jobTitle}</span></div><div style={{ fontSize: 11.5, color: '#777', marginBottom: 30 }}>{contact(cv)}</div></div>}
+            {pageIndex === 0 && <TEMPLATES_CONFIG.vertex.Header cv={cv} A={A} />}
             {children}
           </div>
         </div>
@@ -332,18 +350,22 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 11.5, lineHeight: 1.75, color: '#444', margin: 0, textAlign: 'center', fontFamily: BODY_SANS, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
       return b
     },
+    Header: ({ cv, A }) => {
+      const DARK = '#1a2238'
+      return (<>
+        <div style={{ textAlign: 'center', paddingBottom: 22, borderBottom: `2px solid ${A}`, marginBottom: 8 }}>
+          <div style={{ width: 60, height: 60, margin: '0 auto 14px', border: `2px solid ${A}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 22, fontWeight: 700, color: DARK, letterSpacing: 1 }}>{initials(cv.fullName)}</span></div>
+          <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase', color: DARK, lineHeight: 1 }}>{cv.fullName}</div>
+          {cv.jobTitle && <div style={{ fontSize: 13, letterSpacing: 5, textTransform: 'uppercase', color: A, marginTop: 10, fontWeight: 600 }}>{cv.jobTitle}</div>}
+        </div>
+        <div style={{ textAlign: 'center', fontSize: 10.5, letterSpacing: 1, color: '#888', marginBottom: 28, fontFamily: BODY_SANS }}>{contact(cv)}</div>
+      </>)
+    },
     Frame: ({ cv, A, pageIndex, children }) => {
       const DARK = '#1a2238'
       return (
         <div style={{ ...pageBase, background: '#fdfcfa', fontFamily: BODY_SERIF, color: '#22252b', padding: '46px 54px' }}>
-          {pageIndex === 0 && <div data-measure-header>
-            <div style={{ textAlign: 'center', paddingBottom: 22, borderBottom: `2px solid ${A}`, marginBottom: 8 }}>
-              <div style={{ width: 60, height: 60, margin: '0 auto 14px', border: `2px solid ${A}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 22, fontWeight: 700, color: DARK, letterSpacing: 1 }}>{initials(cv.fullName)}</span></div>
-              <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase', color: DARK, lineHeight: 1 }}>{cv.fullName}</div>
-              {cv.jobTitle && <div style={{ fontSize: 13, letterSpacing: 5, textTransform: 'uppercase', color: A, marginTop: 10, fontWeight: 600 }}>{cv.jobTitle}</div>}
-            </div>
-            <div style={{ textAlign: 'center', fontSize: 10.5, letterSpacing: 1, color: '#888', marginBottom: 28, fontFamily: BODY_SANS }}>{contact(cv)}</div>
-          </div>}
+          {pageIndex === 0 && <TEMPLATES_CONFIG.sovereign.Header cv={cv} A={A} />}
           {children}
         </div>
       )
@@ -354,13 +376,14 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   ascend: {
     design: 'ascend', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'bar', { skillsInline: true }),
+    Header: ({ cv, A }) => (<>
+      <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 0.5, color: '#1a1a1a', textTransform: 'uppercase', marginBottom: 6 }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 15, color: A, fontWeight: 700, marginBottom: 8 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 11.5, color: '#777', marginBottom: 24 }}>{contact(cv).replace(/•/g, '|')}</div>
+    </>),
     Frame: ({ cv, A, pageIndex, children }) => (
       <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '44px 46px' }}>
-        {pageIndex === 0 && <div data-measure-header>
-          <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 0.5, color: '#1a1a1a', textTransform: 'uppercase', marginBottom: 6 }}>{cv.fullName}</div>
-          {cv.jobTitle && <div style={{ fontSize: 15, color: A, fontWeight: 700, marginBottom: 8 }}>{cv.jobTitle}</div>}
-          <div style={{ fontSize: 11.5, color: '#777', marginBottom: 24 }}>{contact(cv).replace(/•/g, '|')}</div>
-        </div>}
+        {pageIndex === 0 && <TEMPLATES_CONFIG.ascend.Header cv={cv} A={A} />}
         {children}
       </div>
     ),
@@ -370,16 +393,17 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   harbour: {
     design: 'harbour', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'tick', { skillsInline: true }),
+    Header: ({ cv, A }) => (<>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 8 }}>
+        <div style={{ width: 5, alignSelf: 'stretch', background: A, minHeight: 56 }} />
+        <div><div style={{ fontSize: 38, fontWeight: 700, color: '#1a2a2a', lineHeight: 1 }}>{cv.fullName}</div>{cv.jobTitle && <div style={{ fontSize: 16, color: A, fontStyle: 'italic', marginTop: 6 }}>{cv.jobTitle}</div>}</div>
+      </div>
+      <div style={{ fontSize: 11.5, color: '#778080', marginBottom: 18 }}>{contact(cv).replace(/•/g, '   ')}</div>
+      <div style={{ borderBottom: '1px solid #d8e0e0', marginBottom: 22 }} />
+    </>),
     Frame: ({ cv, A, pageIndex, children }) => (
       <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a2a2a', padding: '46px 50px' }}>
-        {pageIndex === 0 && <div data-measure-header>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 8 }}>
-            <div style={{ width: 5, alignSelf: 'stretch', background: A, minHeight: 56 }} />
-            <div><div style={{ fontSize: 38, fontWeight: 700, color: '#1a2a2a', lineHeight: 1 }}>{cv.fullName}</div>{cv.jobTitle && <div style={{ fontSize: 16, color: A, fontStyle: 'italic', marginTop: 6 }}>{cv.jobTitle}</div>}</div>
-          </div>
-          <div style={{ fontSize: 11.5, color: '#778080', marginBottom: 18 }}>{contact(cv).replace(/•/g, '   ')}</div>
-          <div style={{ borderBottom: '1px solid #d8e0e0', marginBottom: 22 }} />
-        </div>}
+        {pageIndex === 0 && <TEMPLATES_CONFIG.harbour.Header cv={cv} A={A} />}
         {children}
       </div>
     ),
@@ -389,13 +413,14 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   classic: {
     design: 'classic', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 48px', sidebarW: 0, sidebarSide: 'none', measureW: 698,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'rule', { skillsInline: true }),
+    Header: ({ cv }) => (<div style={{ textAlign: 'center', marginBottom: 22 }}>
+      <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 13.5, color: '#555', marginBottom: 8 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 11, color: '#666' }}>{contact(cv)}</div>
+    </div>),
     Frame: ({ cv, A, pageIndex, children }) => (
       <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '44px 48px' }}>
-        {pageIndex === 0 && <div data-measure-header style={{ textAlign: 'center', marginBottom: 22 }}>
-          <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>{cv.fullName}</div>
-          {cv.jobTitle && <div style={{ fontSize: 13.5, color: '#555', marginBottom: 8 }}>{cv.jobTitle}</div>}
-          <div style={{ fontSize: 11, color: '#666' }}>{contact(cv)}</div>
-        </div>}
+        {pageIndex === 0 && <TEMPLATES_CONFIG.classic.Header cv={cv} A={A} />}
         {children}
       </div>
     ),
