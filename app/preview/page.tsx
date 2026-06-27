@@ -167,11 +167,9 @@ export default function PreviewPage() {
     }
   }
 
-  function buildPdfHtml(cvMarkup: string, tplId: TemplateId) {
-    // Sidebar templates bleed to the edge (margin 0); single-column get page breathing room
-    const sidebarTemplates: TemplateId[] = ['meridian', 'pulse']
-    const isSidebar = sidebarTemplates.includes(tplId)
-    const pageMargin = isSidebar ? '0' : '14mm 0'
+  function buildPdfHtml(cvMarkup: string, _tplId: TemplateId) {
+    // Multi-page engine: each page div is a self-contained A4 with its own sidebar.
+    // @page margin is 0 — the page divs handle their own internal padding.
     return `<!doctype html>
 <html>
 <head>
@@ -179,10 +177,9 @@ export default function PreviewPage() {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="${PRINT_FONTS_HREF}" />
   <style>
-    @page { size: A4; margin: ${pageMargin}; }
+    @page { size: A4; margin: 0; }
     html, body {
       width: 210mm;
-      min-height: 297mm;
       margin: 0;
       padding: 0;
       background: white;
@@ -201,6 +198,21 @@ export default function PreviewPage() {
       padding: 0;
       background: white;
     }
+    /* each rendered page = one printed sheet */
+    #cv-print-area > div > div {
+      width: 210mm !important;
+      min-height: 297mm;
+      margin: 0 !important;
+      page-break-after: always;
+      break-after: page;
+      overflow: hidden;
+    }
+    #cv-print-area > div > div:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+    /* never print any hidden measuring artifacts */
+    [data-measure-pass] { display: none !important; }
   </style>
 </head>
 <body>
