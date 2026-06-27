@@ -135,7 +135,7 @@ export default function PreviewPage() {
     setDownloading('pdf')
 
     try {
-      const html = buildPdfHtml(printArea.outerHTML)
+      const html = buildPdfHtml(printArea.outerHTML, template)
 
       const res = await fetch('/api/export-pdf', {
         method: 'POST',
@@ -167,7 +167,11 @@ export default function PreviewPage() {
     }
   }
 
-  function buildPdfHtml(cvMarkup: string) {
+  function buildPdfHtml(cvMarkup: string, tplId: TemplateId) {
+    // Sidebar templates bleed to the edge (margin 0); single-column get page breathing room
+    const sidebarTemplates: TemplateId[] = ['meridian', 'pulse']
+    const isSidebar = sidebarTemplates.includes(tplId)
+    const pageMargin = isSidebar ? '0' : '14mm 0'
     return `<!doctype html>
 <html>
 <head>
@@ -175,7 +179,7 @@ export default function PreviewPage() {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="${PRINT_FONTS_HREF}" />
   <style>
-    @page { size: A4; margin: 0; }
+    @page { size: A4; margin: ${pageMargin}; }
     html, body {
       width: 210mm;
       min-height: 297mm;
@@ -351,54 +355,48 @@ export default function PreviewPage() {
           ))}
         </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
-          {currentTpl?.customizable && (
-            <button onClick={() => setShowColorPicker(!showColorPicker)} style={{ padding:'6px 12px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.8)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
-              <span style={{ width:'12px', height:'12px', borderRadius:'50%', background: accentColor || currentTpl.color, border:'1.5px solid rgba(255,255,255,0.3)' }} />
-              Color
-            </button>
-          )}
           <button onClick={handleNewCV} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>+ New CV</button>
           <button onClick={handleDownloadDocx} disabled={!!downloading} style={{ padding:'8px 16px', background: currentTpl?.formats === 'pdf' ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)', color: currentTpl?.formats === 'pdf' ? 'rgba(255,255,255,0.5)' : 'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>{downloading==='docx'?'...':'↓ Word'}</button>
           <button onClick={handleDownloadPdf} disabled={!!downloading} style={{ padding:'8px 16px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', boxShadow:'0 4px 14px rgba(13,148,136,0.3)' }}>{downloading==='pdf'?'...':'↓ PDF'}</button>
-          <button onClick={() => setShowRevision(true)} style={{ padding:'8px 16px', background:'transparent', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>✎ Request Revision</button>
+          <button onClick={() => setShowRevision(true)} style={{ padding:'8px 16px', background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.92)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}><span style={{ color:'#5eead4' }}>✦</span> Want changes? Edit free</button>
         </div>
       </nav>
 
-      {showColorPicker && currentTpl?.customizable && (
-        <div style={{ background:'white', borderBottom:'1px solid #e2e8f0', padding:'14px 24px', display:'flex', alignItems:'center', gap:'14px', flexWrap:'wrap' }}>
-          <span style={{ fontSize:'11px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#64748b' }}>Accent Color:</span>
-          <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
-            <button onClick={() => setAccentColor(null)} style={{ width:'28px', height:'28px', borderRadius:'50%', background: currentTpl.color, border: accentColor === null ? '3px solid #0d9488' : '2px solid #e2e8f0', cursor:'pointer', position:'relative' }} title="Default">
-              {accentColor === null && <span style={{ position:'absolute', top:'-18px', left:'50%', transform:'translateX(-50%)', fontSize:'9px', color:'#0d9488', fontWeight:700 }}>✓</span>}
-            </button>
-            {COLOR_SWATCHES.map(s => (
-              <button key={s.value} onClick={() => setAccentColor(s.value)} style={{ width:'28px', height:'28px', borderRadius:'50%', background: s.value, border: accentColor === s.value ? '3px solid #0d9488' : '2px solid #e2e8f0', cursor:'pointer' }} title={s.name} />
-            ))}
-          </div>
-          <button onClick={() => setShowColorPicker(false)} style={{ marginLeft:'auto', padding:'6px 12px', background:'#f1f5f9', color:'#64748b', border:'none', borderRadius:'8px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>Done</button>
-        </div>
-      )}
-
+      
       <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
         {!isCoverLetter && (
-          <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'20px', overflowY:'auto' }}>
+          <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'22px 20px', overflowY:'auto' }}>
+
+            {/* ── COLOUR — always visible, premium ── */}
+            {currentTpl?.customizable && (
+              <div style={{ marginBottom:'22px' }}>
+                <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#94a3b8', marginBottom:'12px' }}>Colour</div>
+                <div style={{ display:'flex', gap:'9px', flexWrap:'wrap' }}>
+                  <button onClick={() => setAccentColor(null)} title="Default" style={{ width:'26px', height:'26px', borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #fff, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0', transition:'all 0.15s' }} />
+                  {COLOR_SWATCHES.map(s => (
+                    <button key={s.value} onClick={() => setAccentColor(s.value)} title={s.name} style={{ width:'26px', height:'26px', borderRadius:'50%', background: s.value, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === s.value ? `0 0 0 2px #fff, 0 0 0 4px ${s.value}` : '0 0 0 1px #e2e8f0', transition:'all 0.15s' }} />
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ height:'1px', background:'#eef2f6', margin:'0 0 20px' }} />
 
             {/* PREMIUM SECTION FIRST */}
             {premiumTemplates.length > 0 && (<>
               <CategoryHeader>Premium</CategoryHeader>
-              <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Rich design · PDF download</div>
+              <div style={{ fontSize:'10px', color:'#cbd5e1', marginBottom:'12px', lineHeight:1.5 }}>Rich design · PDF &amp; Word</div>
               {premiumTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
             </>)}
 
             {/* ATS SECTION */}
             <CategoryHeader>ATS Templates</CategoryHeader>
-            <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Recruiter-safe · PDF & Word</div>
+            <div style={{ fontSize:'10px', color:'#cbd5e1', marginBottom:'12px', lineHeight:1.5 }}>Recruiter-safe · PDF &amp; Word</div>
             {atsTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
 
             {/* ACADEMIC SECTION */}
             {academicTemplates.length > 0 && (<>
               <CategoryHeader>Academic</CategoryHeader>
-              <div style={{ fontSize:'10px', color:'#94a3b8', marginBottom:'10px', lineHeight:1.5, fontStyle:'italic' }}>Scholarly · PDF & Word</div>
+              <div style={{ fontSize:'10px', color:'#cbd5e1', marginBottom:'12px', lineHeight:1.5 }}>Scholarly · PDF &amp; Word</div>
               {academicTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
             </>)}
 
@@ -610,21 +608,23 @@ function TemplateThumb({ id }: { id: TemplateId }) {
 // SIDEBAR UI
 // ══════════════════════════════════════════════════════
 function CategoryHeader({ children }: { children: string }) {
-  return <div style={{ fontSize:'10px', fontWeight:700, letterSpacing:'1.8px', textTransform:'uppercase', color:'#0d9488', marginBottom:'4px', marginTop:'12px', paddingBottom:'6px', borderBottom:'1px solid #ccfbf1' }}>{children}</div>
+  return <div style={{ fontSize:'9.5px', fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'#b0bccb', marginBottom:'2px', marginTop:'18px' }}>{children}</div>
 }
 
 function TemplateCard({ tpl, active, onClick }: { tpl: typeof TEMPLATES[0]; active: boolean; onClick: () => void }) {
   return (
-    <div onClick={onClick} style={{ display:'flex', alignItems:'flex-start', gap:'10px', padding:'12px', borderRadius:'10px', border: active ? '2px solid #0d9488' : '2px solid transparent', background: active ? '#f0fdf9' : 'none', cursor:'pointer', marginBottom:'6px', transition:'all 0.2s' }}>
+    <div onClick={onClick} style={{ display:'flex', alignItems:'flex-start', gap:'12px', padding:'11px 12px', borderRadius:'12px', background: active ? '#f6fdfb' : 'none', boxShadow: active ? '0 0 0 1.5px #0d9488' : '0 0 0 1px transparent', cursor:'pointer', marginBottom:'7px', transition:'all 0.18s' }}
+      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = '#fafbfc' }}
+      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'none' }}>
       <TemplateThumb id={tpl.id} />
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:'13px', fontWeight:600, color: active ? '#0d9488' : '#0a0f1a' }}>{tpl.name}</div>
         <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px', marginBottom:'5px' }}>{tpl.tag}</div>
         <div style={{
-          display:'inline-block', fontSize:'8.5px', fontWeight:700, letterSpacing:'0.6px',
-          padding:'2px 6px', borderRadius:'4px',
-          background: tpl.formats === 'both' ? '#d1fae5' : '#fef3c7',
-          color:      tpl.formats === 'both' ? '#065f46' : '#92400e'
+          display:'inline-block', fontSize:'8px', fontWeight:700, letterSpacing:'0.8px',
+          padding:'2.5px 7px', borderRadius:'20px',
+          background: tpl.formats === 'both' ? '#ecfdf5' : '#fffbeb',
+          color:      tpl.formats === 'both' ? '#0d9488' : '#b45309'
         }}>
           {tpl.formats === 'both' ? 'PDF + WORD' : 'PDF ONLY'}
         </div>
