@@ -143,8 +143,6 @@ export function buildMeridianV2(cv: GeneratedCV, accent?: string | null): Docume
   const sbText = (t: string) => new Paragraph({ spacing: { before: 30, after: 30, line: 240 }, children: [new TextRun({ text: t, size: 17, color: white, font: BODY })] })
 
   const sidebar: any[] = []
-  sidebar.push(new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: cv.fullName, bold: true, size: 30, color: white, font: BODY })] }))
-  if (cv.jobTitle) sidebar.push(new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: cv.jobTitle, size: 19, color: 'd4f5ee', font: BODY })] }))
   sidebar.push(sbHeading('Contact'));[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).forEach(c => sidebar.push(sbText(c as string)))
   if (cv.skills?.length) { sidebar.push(sbHeading('Skills')); cv.skills.forEach(s => sidebar.push(new Paragraph({ spacing: { before: 28, after: 28 }, children: [new TextRun({ text: '› ', size: 17, color: '5eead4', font: BODY }), new TextRun({ text: s, size: 17, color: white, font: BODY })] }))) }
   if (cv.languages?.length) { sidebar.push(sbHeading('Languages')); cv.languages.forEach(l => sidebar.push(sbText(l))) }
@@ -154,6 +152,8 @@ export function buildMeridianV2(cv: GeneratedCV, accent?: string | null): Docume
   const mpara = (t: string) => new Paragraph({ spacing: { line: 288 }, children: [new TextRun({ text: t, size: 19, color: '333333', font: BODY })] })
 
   const main: any[] = []
+  main.push(new Paragraph({ spacing: { after: 30 }, children: [new TextRun({ text: cv.fullName, bold: true, size: 38, color: INK, font: BODY })] }))
+  if (cv.jobTitle) main.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: cv.jobTitle.toUpperCase(), size: 20, color: A, bold: true, characterSpacing: 30, font: BODY })] }))
   if (cv.summary) { main.push(mainHeading('Profile')); main.push(new Paragraph({ spacing: { after: 60, line: 288 }, children: [new TextRun({ text: cv.summary, size: 21, color: '333333', font: BODY })] })) }
   if (cv.experience?.length) {
     main.push(mainHeading('Experience'))
@@ -263,6 +263,52 @@ export function buildHarbour(cv: GeneratedCV, accent?: string | null): Document 
   appendExtras(c, cv, heading, bullet, para)
 
   return pageDoc(c, 'har-b', A, '–', { top: 900, right: 950, bottom: 900, left: 950 })
+}
+
+
+// ════════════════════════════════════════════════════════════════
+// PULSE — dark sidebar on RIGHT, pill title, name top-left
+// ════════════════════════════════════════════════════════════════
+export function buildPulse(cv: GeneratedCV, accent?: string | null): Document {
+  const A = hex(accent, '6d4aff'), DARK = '15131f', INK = '1a1a1a', GREY = '999999', white = 'FFFFFF'
+  if (cv.coverLetterBody) return coverLetter(cv, A, BODY)
+
+  // ── MAIN (left) ──
+  const mainHeading = (t: string) => new Paragraph({ spacing: { before: 220, after: 110 }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 22, color: A, characterSpacing: 30, font: BODY })] })
+  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'pulse-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 21, font: BODY, color: '444444' })] })
+  const mpara = (t: string) => new Paragraph({ spacing: { line: 288 }, children: [new TextRun({ text: t, size: 19, color: '444444', font: BODY })] })
+
+  const main: any[] = []
+  // name
+  main.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: cv.fullName, bold: true, size: 40, color: DARK, font: BODY })] }))
+  if (cv.jobTitle) main.push(new Paragraph({ spacing: { after: 80 }, shading: { type: ShadingType.CLEAR, fill: A, color: A }, children: [new TextRun({ text: `  ${cv.jobTitle.toUpperCase()}  `, size: 18, color: white, bold: true, characterSpacing: 30, font: BODY })] }))
+  main.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: contactStr(cv), size: 17, color: '777777', font: BODY })] }))
+  if (cv.summary) { main.push(mainHeading('Profile')); main.push(new Paragraph({ spacing: { after: 60, line: 288 }, children: [new TextRun({ text: cv.summary, size: 21, color: '444444', font: BODY })] })) }
+  if (cv.experience?.length) {
+    main.push(mainHeading('Experience'))
+    cv.experience.forEach(e => {
+      main.push(new Paragraph({ spacing: { before: 80 }, border: { left: { style: BorderStyle.SINGLE, size: 18, color: A, space: 8 } }, children: [new TextRun({ text: e.role, bold: true, size: 22, color: DARK, font: BODY })] }))
+      main.push(new Paragraph({ border: { left: { style: BorderStyle.SINGLE, size: 18, color: A, space: 8 } }, spacing: { after: 10 }, children: [new TextRun({ text: e.company, size: 19, color: A, bold: true, font: BODY }), new TextRun({ text: `    ${e.startDate} – ${e.endDate}`, size: 16, color: GREY, italics: true, font: BODY })] }))
+      e.bullets.forEach(b => main.push(bullet(b)))
+    })
+  }
+  appendExtras(main, cv, mainHeading, bullet, mpara)
+
+  // ── SIDEBAR (right, dark) ──
+  const sbHeading = (t: string) => new Paragraph({ spacing: { before: 200, after: 90 }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 18, color: A, characterSpacing: 40, font: BODY })] })
+  const sbText = (t: string) => new Paragraph({ spacing: { before: 30, after: 30, line: 240 }, children: [new TextRun({ text: t, size: 17, color: 'd8d8e0', font: BODY })] })
+  const sidebar: any[] = []
+  if (cv.skills?.length) { sidebar.push(sbHeading('Skills')); cv.skills.forEach(s => sidebar.push(new Paragraph({ spacing: { before: 28, after: 28 }, children: [new TextRun({ text: s, size: 17, color: 'd8d8e0', font: BODY })] }))) }
+  if (cv.education?.length) { sidebar.push(sbHeading('Education')); cv.education.forEach(e => { sidebar.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} ${e.field}`, bold: true, size: 17, color: white, font: BODY })] })); sidebar.push(new Paragraph({ children: [new TextRun({ text: e.institution, size: 15, color: 'b0b0c0', font: BODY })] })); sidebar.push(new Paragraph({ children: [new TextRun({ text: `${e.startYear}–${e.endYear}${e.grade ? ` · ${e.grade}` : ''}`, size: 14, color: '9090a0', font: BODY })] })) }) }
+  if (cv.languages?.length) { sidebar.push(sbHeading('Languages')); cv.languages.forEach(l => sidebar.push(sbText(l))) }
+  if (cv.additionalInfo) { sidebar.push(sbHeading('Certifications')); sidebar.push(new Paragraph({ spacing: { line: 264 }, children: [new TextRun({ text: cv.additionalInfo, size: 15, color: 'b0b0c0', font: BODY })] })) }
+
+  const layout = new Table({ width: { size: 10800, type: WidthType.DXA }, columnWidths: [7250, 3550], borders: NO_BORDERS, rows: [new TableRow({ children: [
+    new TableCell({ width: { size: 7250, type: WidthType.DXA }, margins: { top: 400, bottom: 400, left: 360, right: 280 }, children: main }),
+    new TableCell({ width: { size: 3550, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: DARK, color: DARK }, margins: { top: 400, bottom: 400, left: 280, right: 280 }, children: sidebar }),
+  ] })] })
+
+  return pageDoc([layout], 'pulse-b', A, '•', { top: 0, right: 0, bottom: 0, left: 0 })
 }
 
 // ════════════════════════════════════════════════════════════════
