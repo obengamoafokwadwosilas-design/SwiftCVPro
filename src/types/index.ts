@@ -18,6 +18,7 @@ export type TemplateId =
   | 'sovereign'
   | 'ascend'
   | 'harbour'
+  | 'pulse'
 
 export type ExportFormat = 'docx' | 'pdf'
 
