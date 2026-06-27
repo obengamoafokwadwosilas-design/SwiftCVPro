@@ -42,6 +42,46 @@ const COLOR_SWATCHES: { name: string; value: string }[] = [
 
 const PRINT_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Source+Sans+3:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap'
 
+// ══════════════════════════════════════════════════════
+// SANITISE MODEL OUTPUT — the AI returns JSON whose shape isn't
+// guaranteed. Force arrays to be arrays and strings to be strings so
+// no render path (e.bullets.map, fullName.split, etc.) can ever throw.
+// ══════════════════════════════════════════════════════
+function normalizeCV(raw: any): GeneratedCV {
+  const arr = (v: any) => (Array.isArray(v) ? v : [])
+  const str = (v: any) => (typeof v === 'string' ? v : v == null ? '' : String(v))
+  return {
+    ...raw,
+    fullName: str(raw?.fullName),
+    jobTitle: str(raw?.jobTitle),
+    email: str(raw?.email),
+    phone: str(raw?.phone),
+    location: str(raw?.location),
+    summary: str(raw?.summary),
+    skills: arr(raw?.skills).map(str),
+    languages: arr(raw?.languages).map(str),
+    publications: arr(raw?.publications).map(str),
+    research: arr(raw?.research).map(str),
+    teaching: arr(raw?.teaching).map(str),
+    education: arr(raw?.education).map((e: any) => ({
+      ...e,
+      qualification: str(e?.qualification),
+      field: str(e?.field),
+      institution: str(e?.institution),
+      startYear: str(e?.startYear),
+      endYear: str(e?.endYear),
+    })),
+    experience: arr(raw?.experience).map((e: any) => ({
+      ...e,
+      role: str(e?.role),
+      company: str(e?.company),
+      startDate: str(e?.startDate),
+      endDate: str(e?.endDate),
+      bullets: arr(e?.bullets).map(str),
+    })),
+  }
+}
+
 export default function PreviewPage() {
   const router = useRouter()
   const [cv, setCV] = useState<GeneratedCV | null>(null)
@@ -68,7 +108,7 @@ export default function PreviewPage() {
     const ph = sessionStorage.getItem('swiftcv_phone')
     if (!stored) { router.push('/build'); return }
     try {
-      const parsed = JSON.parse(stored)
+      const parsed = normalizeCV(JSON.parse(stored))
       setCV(parsed)
       setPhone(ph || '')
       const storedCvType = sessionStorage.getItem('swiftcv_type') || 'professional'
@@ -201,7 +241,7 @@ export default function PreviewPage() {
     /* each rendered page = one printed sheet */
     #cv-print-area > div > div {
       width: 210mm !important;
-      min-height: 297mm;
+      height: 296mm;
       margin: 0 !important;
       page-break-after: always;
       break-after: page;
@@ -299,8 +339,9 @@ export default function PreviewPage() {
       if (data.success && data.cv) {
         // Preserve locked name
         data.cv.fullName = cv.fullName
-        sessionStorage.setItem('swiftcv_cv', JSON.stringify(data.cv))
-        setCV(data.cv)
+        const revised = normalizeCV(data.cv)
+        sessionStorage.setItem('swiftcv_cv', JSON.stringify(revised))
+        setCV(revised)
         setFreeRevisionUsed(true)
         setShowRevision(false)
         setRevisionText('')
