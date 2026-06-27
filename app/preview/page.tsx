@@ -17,6 +17,7 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'meridian',  name: 'Meridian',  tag: 'Teal Sidebar · Modern',           color: '#0d9488', formats: 'both', category: 'premium', customizable: true  },
   { id: 'ascend',    name: 'Ascend',    tag: 'Corporate · Colour Bars',         color: '#1d4ed8', formats: 'both', category: 'premium', customizable: true  },
   { id: 'harbour',   name: 'Harbour',   tag: 'Editorial · Refined Serif',       color: '#0f766e', formats: 'both', category: 'premium', customizable: true  },
+  { id: 'pulse',     name: 'Pulse',     tag: 'Modern · Dark Sidebar · Pill',    color: '#6d4aff', formats: 'both', category: 'premium', customizable: true  },
 
   // 🔵 ATS — PDF + Word, recruiter-safe minimal
   { id: 'classic',  name: 'Classic',   tag: 'Traditional · ATS Safe',          color: '#1f2937', formats: 'both', category: 'ats',     customizable: false },
@@ -498,241 +499,110 @@ export default function PreviewPage() {
 // ══════════════════════════════════════════════════════
 function TemplateThumb({ id }: { id: TemplateId }) {
   const W = 50, H = 64
-  const wrap: React.CSSProperties = { width: W, height: H, borderRadius: 4, overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.12)', background: 'white' }
+  const wrap: React.CSSProperties = { width: W, height: H, borderRadius: 4, overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.12)', background: 'white', border: '1px solid #e2e8f0' }
+  const lines = (x: number, y: number, w: number, n: number, gap = 2.6, c = '#cbd5e1') =>
+    Array.from({ length: n }).map((_, i) => <rect key={i} x={x} y={y + i * gap} width={w} height="0.8" fill={c} rx="0.4" />)
 
+  // VERTEX — colour rail + two columns
+  if (id === 'vertex') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="0" y="0" width="4" height={H} fill="#e0533d" />
+      <text x="9" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="6" fill="#1c1c1c">NAME</text>
+      <rect x="9" y="14" width="9" height="1.4" fill="#e0533d" />
+      <rect x="9" y="20" width="6" height="1" fill="#1c1c1c" />{lines(9, 23, 18, 4)}
+      <rect x="9" y="36" width="6" height="1" fill="#1c1c1c" />{lines(9, 39, 17, 3)}
+      <rect x="31" y="20" width="6" height="1" fill="#1c1c1c" />{lines(31, 23, 14, 5)}
+    </svg></div>
+  )
+  // SOVEREIGN — crest + centered
+  if (id === 'sovereign') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fdfcfa" />
+      <circle cx="25" cy="9" r="4" fill="none" stroke="#b08d3f" strokeWidth="0.8" />
+      <text x="25" y="11" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="3" fill="#1a2238">WB</text>
+      <text x="25" y="19" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="4.5" fill="#1a2238" letterSpacing="1">NAME</text>
+      <line x1="6" y1="23" x2="44" y2="23" stroke="#b08d3f" strokeWidth="0.6" />
+      <rect x="22" y="28" width="6" height="1" fill="#1a2238" />{lines(8, 32, 34, 3)}
+      <rect x="8" y="42" width="6" height="1" fill="#1a2238" />{lines(8, 46, 34, 3)}
+    </svg></div>
+  )
+  // MERIDIAN — teal sidebar, name in main
   if (id === 'meridian') return (
-    <div style={wrap}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        <rect width={W} height={H} fill="#fff"/>
-        <rect x="0" y="0" width="18" height={H} fill="#0a1f44"/>
-        <rect x="0" y="0" width="18" height="2" fill="#c9a449"/>
-        <rect x="3" y="6" width="12" height="2.5" fill="#c9a449"/>
-        <rect x="3" y="11" width="9" height="1.2" fill="rgba(255,255,255,0.6)"/>
-        <rect x="3" y="19" width="6" height="0.8" fill="#c9a449"/>
-        <rect x="3" y="22" width="10" height="0.6" fill="rgba(255,255,255,0.5)"/>
-        <rect x="3" y="24" width="11" height="0.6" fill="rgba(255,255,255,0.5)"/>
-        <rect x="22" y="6" width="3" height="0.8" fill="#c9a449"/>
-        <rect x="26" y="6" width="14" height="1.5" fill="#0a1f44"/>
-        <rect x="22" y="11" width="22" height="0.5" fill="#cbd5e1"/>
-        <rect x="22" y="13" width="20" height="0.5" fill="#cbd5e1"/>
-        <rect x="22" y="15" width="18" height="0.5" fill="#cbd5e1"/>
-        <rect x="22" y="22" width="3" height="0.8" fill="#c9a449"/>
-        <rect x="26" y="22" width="12" height="1.3" fill="#0a1f44"/>
-        <rect x="22" y="26" width="20" height="0.5" fill="#cbd5e1"/>
-        <rect x="22" y="28" width="18" height="0.5" fill="#cbd5e1"/>
-      </svg>
-    </div>
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="0" y="0" width="17" height={H} fill="#0d9488" />
+      <rect x="3" y="6" width="6" height="1" fill="#fff" opacity="0.9" />{lines(3, 9, 10, 3, 2.4, 'rgba(255,255,255,0.6)')}
+      <rect x="3" y="20" width="6" height="1" fill="#fff" opacity="0.9" />{lines(3, 23, 11, 4, 2.4, 'rgba(255,255,255,0.6)')}
+      <text x="21" y="10" fontFamily="serif" fontWeight="700" fontSize="5" fill="#1a1a1a">NAME</text>
+      <rect x="21" y="13" width="10" height="1.2" fill="#0d9488" />{lines(21, 18, 24, 3)}
+      <rect x="21" y="29" width="6" height="1" fill="#0d9488" />{lines(21, 32, 22, 4)}
+    </svg></div>
   )
-
-  if (id === 'newyork') return (
-    <div style={wrap}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        <rect width={W} height={H} fill="#fff"/>
-        <text x="25" y="10" textAnchor="middle" fontFamily="serif" fontWeight="900" fontSize="6" fill="#0a0a0a">NAME</text>
-        <text x="25" y="14" textAnchor="middle" fontFamily="serif" fontStyle="italic" fontSize="3" fill="#a01e1e">title</text>
-        <line x1="3" y1="17" x2="47" y2="17" stroke="#a01e1e" strokeWidth="0.8"/>
-        <line x1="3" y1="18.3" x2="47" y2="18.3" stroke="#a01e1e" strokeWidth="0.4"/>
-        <rect x="3" y="22" width="16" height="2.5" fill="#a01e1e"/>
-        <line x1="3" y1="28" x2="3" y2="36" stroke="#a01e1e" strokeWidth="1"/>
-        <rect x="6" y="28" width="14" height="1.2" fill="#0a0a0a"/>
-        <rect x="6" y="31" width="22" height="0.5" fill="#cbd5e1"/>
-        <rect x="6" y="33" width="20" height="0.5" fill="#cbd5e1"/>
-        <rect x="3" y="40" width="14" height="2" fill="#a01e1e"/>
-        <line x1="3" y1="46" x2="3" y2="54" stroke="#a01e1e" strokeWidth="1"/>
-        <rect x="6" y="46" width="14" height="1.2" fill="#0a0a0a"/>
-        <rect x="6" y="49" width="20" height="0.5" fill="#cbd5e1"/>
-      </svg>
-    </div>
+  // ASCEND — colour bar headings
+  if (id === 'ascend') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="4" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="6" fill="#1a1a1a">NAME</text>
+      <rect x="4" y="14" width="9" height="1.2" fill="#1d4ed8" />
+      <rect x="4" y="20" width="42" height="3.5" fill="#1d4ed8" />{lines(4, 26, 40, 3)}
+      <rect x="4" y="37" width="42" height="3.5" fill="#1d4ed8" />{lines(4, 43, 40, 3)}
+    </svg></div>
   )
-
-  if (id === 'atelier') return (
-    <div style={wrap}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        <rect width={W} height={H} fill="#fdfcf9"/>
-        <text x="3" y="10" fontFamily="serif" fontStyle="italic" fontWeight="700" fontSize="5.5" fill="#3b0a45">Name</text>
-        <text x="3" y="14" fontFamily="serif" fontStyle="italic" fontSize="2.5" fill="#6d3a78">title</text>
-        <text x="3" y="22" fontFamily="serif" fontStyle="italic" fontSize="3.5" fill="#3b0a45">Profile</text>
-        <line x1="14" y1="20.5" x2="46" y2="20.5" stroke="#6d3a78" strokeWidth="0.3" opacity="0.5"/>
-        <rect x="3" y="25" width="40" height="0.5" fill="#cbd5e1"/>
-        <rect x="3" y="27" width="38" height="0.5" fill="#cbd5e1"/>
-        <text x="3" y="35" fontFamily="serif" fontStyle="italic" fontSize="3.5" fill="#3b0a45">Experience</text>
-        <line x1="9" y1="38" x2="9" y2="58" stroke="#6d3a78" strokeWidth="0.3" strokeDasharray="1,1"/>
-        <circle cx="9" cy="40" r="1.2" fill="#fdfcf9" stroke="#3b0a45" strokeWidth="0.5"/>
-        <rect x="13" y="39" width="14" height="0.9" fill="#3b0a45"/>
-        <rect x="13" y="41" width="18" height="0.5" fill="#cbd5e1"/>
-        <circle cx="9" cy="48" r="1.2" fill="#fdfcf9" stroke="#3b0a45" strokeWidth="0.5"/>
-        <rect x="13" y="47" width="14" height="0.9" fill="#3b0a45"/>
-        <rect x="13" y="49" width="18" height="0.5" fill="#cbd5e1"/>
-      </svg>
-    </div>
+  // HARBOUR — tick headings, editorial
+  if (id === 'harbour') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="4" y="6" width="2" height="9" fill="#0f766e" />
+      <text x="9" y="11" fontFamily="serif" fontWeight="700" fontSize="6" fill="#1a2a2a">NAME</text>
+      <text x="9" y="15" fontFamily="serif" fontStyle="italic" fontSize="3" fill="#0f766e">title</text>
+      <line x1="4" y1="19" x2="46" y2="19" stroke="#d8e0e0" strokeWidth="0.6" />
+      <rect x="4" y="23" width="2" height="3" fill="#0f766e" /><rect x="8" y="23" width="6" height="1" fill="#1a2a2a" />{lines(4, 28, 42, 3)}
+      <rect x="4" y="40" width="2" height="3" fill="#0f766e" /><rect x="8" y="40" width="6" height="1" fill="#1a2a2a" />{lines(4, 45, 42, 3)}
+    </svg></div>
   )
-
-  if (id === 'graduate') return (
-    <div style={wrap}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        <rect width={W} height={H} fill="#fff"/>
-        <defs>
-          <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#dc6e3a"/>
-            <stop offset="100%" stopColor="#b85b2e"/>
-          </linearGradient>
-        </defs>
-        <rect width={W} height="20" fill="url(#grad1)"/>
-        <rect x="3" y="6" width="18" height="2.5" fill="#fff"/>
-        <rect x="3" y="11" width="12" height="1" fill="rgba(255,255,255,0.85)"/>
-        <rect x="3" y="14" width="20" height="0.6" fill="rgba(255,255,255,0.7)"/>
-        <circle cx="3.5" cy="25" r="0.8" fill="#dc6e3a"/>
-        <rect x="6" y="24.5" width="10" height="1" fill="#dc6e3a"/>
-        <rect x="3" y="29" width={W-6} height="8" rx="2" fill="#fef3eb" stroke="#dc6e3a" strokeWidth="0.3"/>
-        <rect x="3" y="29" width="1.5" height="8" fill="#dc6e3a"/>
-        <rect x="6" y="31" width="10" height="0.8" fill="#1f2937"/>
-        <rect x="6" y="33" width="18" height="0.5" fill="#dc6e3a"/>
-        <rect x="6" y="35" width="14" height="0.4" fill="#374151"/>
-        <circle cx="3.5" cy="42" r="0.8" fill="#dc6e3a"/>
-        <rect x="6" y="41.5" width="8" height="1" fill="#dc6e3a"/>
-        <rect x="3" y="46" width="18" height="3" rx="1.5" fill="#fef3eb"/>
-        <rect x="24" y="46" width="18" height="3" rx="1.5" fill="#fef3eb"/>
-      </svg>
-    </div>
+  // PULSE — dark sidebar right, pill title
+  if (id === 'pulse') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="33" y="0" width="17" height={H} fill="#15131f" />
+      <text x="4" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="6" fill="#15131f">NAME</text>
+      <rect x="4" y="14" width="14" height="3" rx="1.5" fill="#6d4aff" />
+      <rect x="4" y="22" width="5" height="1" fill="#6d4aff" /><rect x="4" y="25" width="1" height="10" fill="#6d4aff" />{lines(7, 26, 22, 4)}
+      <rect x="36" y="6" width="5" height="1" fill="#6d4aff" />{lines(36, 9, 11, 3, 2.4, 'rgba(255,255,255,0.6)')}
+      <rect x="36" y="20" width="5" height="1" fill="#6d4aff" />{lines(36, 23, 10, 3, 2.4, 'rgba(255,255,255,0.6)')}
+    </svg></div>
   )
-
-  if (id === 'europass') return (
-    <div style={wrap}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        <rect width={W} height={H} fill="#fff"/>
-        <rect x="0" y="0" width="17" height={H} fill="#1e3a8a"/>
-        <rect x="2" y="4" width="13" height="1.8" fill="#fff"/>
-        <rect x="2" y="7" width="9" height="0.8" fill="rgba(255,255,255,0.6)"/>
-        <rect x="2" y="14" width="9" height="0.6" fill="rgba(255,255,255,0.4)"/>
-        <rect x="2" y="16" width="11" height="0.5" fill="rgba(255,255,255,0.4)"/>
-        <rect x="2" y="23" width="6" height="0.6" fill="#fff"/>
-        <line x1="2" y1="25" x2="14" y2="25" stroke="rgba(255,255,255,0.3)" strokeWidth="0.3"/>
-        <rect x="2" y="27" width="11" height="0.4" fill="rgba(255,255,255,0.5)"/>
-        <rect x="2" y="29" width="10" height="0.4" fill="rgba(255,255,255,0.5)"/>
-        <rect x="2" y="31" width="9" height="0.4" fill="rgba(255,255,255,0.5)"/>
-        <rect x="20" y="5" width="6" height="1" fill="#1e3a8a"/>
-        <line x1="20" y1="7.5" x2="46" y2="7.5" stroke="#1e3a8a" strokeWidth="0.5"/>
-        <rect x="20" y="10" width="22" height="0.5" fill="#cbd5e1"/>
-        <rect x="20" y="12" width="20" height="0.5" fill="#cbd5e1"/>
-        <rect x="20" y="14" width="22" height="0.5" fill="#cbd5e1"/>
-        <rect x="20" y="20" width="8" height="0.8" fill="#1e3a8a"/>
-        <line x1="20" y1="22" x2="46" y2="22" stroke="#1e3a8a" strokeWidth="0.5"/>
-        <rect x="20" y="24.5" width="14" height="0.9" fill="#0f172a"/>
-        <rect x="20" y="27" width="20" height="0.5" fill="#cbd5e1"/>
-        <rect x="20" y="29" width="18" height="0.5" fill="#cbd5e1"/>
-      </svg>
-    </div>
-  )
-
-  if (id === 'noir') return (
-    <div style={wrap}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        <rect width={W} height={H} fill="#fff"/>
-        <rect x="0" y="0" width={W} height="20" fill="#0a0a0a"/>
-        <rect x="3" y="6" width="22" height="3" fill="#fff"/>
-        <rect x="3" y="11" width="14" height="1" fill="rgba(255,255,255,0.5)"/>
-        <rect x="3" y="14" width="20" height="0.5" fill="rgba(255,255,255,0.6)"/>
-        <rect x="3" y="24" width="8" height="1.2" fill="#0a0a0a"/>
-        <line x1="3" y1="27" x2="46" y2="27" stroke="#e5e5e5" strokeWidth="0.5"/>
-        <rect x="3" y="30" width="16" height="1" fill="#0a0a0a"/>
-        <rect x="3" y="33" width="22" height="0.4" fill="#999"/>
-        <rect x="3" y="35" width="20" height="0.4" fill="#999"/>
-        <rect x="3" y="37" width="18" height="0.4" fill="#999"/>
-        <rect x="3" y="43" width="8" height="1.2" fill="#0a0a0a"/>
-        <line x1="3" y1="46" x2="46" y2="46" stroke="#e5e5e5" strokeWidth="0.5"/>
-        <rect x="3" y="49" width="16" height="1" fill="#0a0a0a"/>
-        <rect x="3" y="52" width="22" height="0.4" fill="#999"/>
-        <rect x="3" y="54" width="20" height="0.4" fill="#999"/>
-      </svg>
-    </div>
-  )
-
+  // LONDON — clean single column
   if (id === 'london') return (
-    <div style={wrap}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        <rect width={W} height={H} fill="#faf8f5"/>
-        <text x="25" y="9" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="5.5" fill="#1a1a1a">Name</text>
-        <text x="25" y="13" textAnchor="middle" fontFamily="serif" fontStyle="italic" fontSize="2.6" fill="#666">title</text>
-        <line x1="3" y1="17" x2="47" y2="17" stroke="#1a1a1a" strokeWidth="0.6"/>
-        <text x="3" y="24" fontFamily="serif" fontWeight="700" fontSize="3.2" fill="#1a1a1a">SUMMARY</text>
-        <line x1="3" y1="25.5" x2="20" y2="25.5" stroke="#1a1a1a" strokeWidth="0.4"/>
-        <rect x="3" y="28" width="42" height="0.5" fill="#cbd5e1"/>
-        <rect x="3" y="30" width="40" height="0.5" fill="#cbd5e1"/>
-        <text x="3" y="38" fontFamily="serif" fontWeight="700" fontSize="3.2" fill="#1a1a1a">EXPERIENCE</text>
-        <line x1="3" y1="39.5" x2="25" y2="39.5" stroke="#1a1a1a" strokeWidth="0.4"/>
-        <rect x="3" y="42" width="14" height="1" fill="#1a1a1a"/>
-        <rect x="3" y="44.5" width="20" height="0.4" fill="#999"/>
-        <rect x="3" y="46.5" width="22" height="0.4" fill="#cbd5e1"/>
-        <rect x="3" y="48.5" width="20" height="0.4" fill="#cbd5e1"/>
-      </svg>
-    </div>
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="4" y="11" fontFamily="serif" fontWeight="700" fontSize="6" fill="#1a3a5a">NAME</text>
+      <line x1="4" y1="15" x2="46" y2="15" stroke="#1a3a5a" strokeWidth="1.2" />
+      <rect x="4" y="20" width="7" height="1" fill="#1a3a5a" />{lines(4, 23, 42, 3)}
+      <rect x="4" y="35" width="7" height="1" fill="#1a3a5a" />{lines(4, 38, 42, 3)}
+    </svg></div>
   )
-
-  if (id === 'nordic') return (
-    <div style={wrap}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        <rect width={W} height={H} fill="#fff"/>
-        <rect x="3" y="6" width="22" height="3" fill="#0a0a0a"/>
-        <rect x="3" y="11" width="14" height="1" fill="#2563eb"/>
-        <rect x="3" y="14" width="20" height="0.5" fill="#666"/>
-        <rect x="3" y="20" width="10" height="1" fill="#2563eb"/>
-        <line x1="3" y1="22.5" x2="47" y2="22.5" stroke="#2563eb" strokeWidth="0.6"/>
-        <rect x="3" y="25" width="22" height="0.5" fill="#cbd5e1"/>
-        <rect x="3" y="27" width="20" height="0.5" fill="#cbd5e1"/>
-        <rect x="3" y="33" width="12" height="1" fill="#2563eb"/>
-        <line x1="3" y1="35.5" x2="47" y2="35.5" stroke="#2563eb" strokeWidth="0.6"/>
-        <rect x="3" y="38" width="14" height="1" fill="#0a0a0a"/>
-        <rect x="3" y="40.5" width="10" height="0.5" fill="#2563eb"/>
-        <rect x="4" y="43" width="20" height="0.4" fill="#999"/>
-        <rect x="4" y="45" width="18" height="0.4" fill="#999"/>
-        <rect x="3" y="50" width="14" height="1" fill="#0a0a0a"/>
-        <rect x="4" y="52.5" width="18" height="0.4" fill="#999"/>
-      </svg>
-    </div>
-  )
-
-  if (id === 'classic') return (
-    <div style={wrap}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        <rect width={W} height={H} fill="#fff"/>
-        <text x="25" y="9" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="5" fill="#000">NAME</text>
-        <text x="25" y="13" textAnchor="middle" fontFamily="serif" fontStyle="italic" fontSize="2.5" fill="#333">title</text>
-        <line x1="3" y1="16" x2="47" y2="16" stroke="#000" strokeWidth="0.6"/>
-        <text x="3" y="22" fontFamily="sans-serif" fontWeight="700" fontSize="2.8" fill="#000">SUMMARY</text>
-        <line x1="3" y1="23.5" x2="47" y2="23.5" stroke="#000" strokeWidth="0.4"/>
-        <rect x="3" y="26" width="42" height="0.4" fill="#666"/>
-        <rect x="3" y="28" width="40" height="0.4" fill="#666"/>
-        <text x="3" y="36" fontFamily="sans-serif" fontWeight="700" fontSize="2.8" fill="#000">EXPERIENCE</text>
-        <line x1="3" y1="37.5" x2="47" y2="37.5" stroke="#000" strokeWidth="0.4"/>
-        <rect x="3" y="40" width="14" height="0.9" fill="#000"/>
-        <rect x="3" y="42.5" width="20" height="0.4" fill="#666"/>
-        <rect x="3" y="44.5" width="22" height="0.4" fill="#999"/>
-      </svg>
-    </div>
-  )
-
+  // ACADEMIC — scholarly
   if (id === 'academic') return (
-    <div style={wrap}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-        <rect width={W} height={H} fill="#fff"/>
-        <text x="25" y="9" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="4.5" fill="#0a0a0a">Name</text>
-        <text x="25" y="13" textAnchor="middle" fontFamily="serif" fontStyle="italic" fontSize="2.5" fill="#4a4a4a">title</text>
-        <line x1="3" y1="17" x2="47" y2="17" stroke="#1a1a1a" strokeWidth="0.5"/>
-        <text x="3" y="22" fontFamily="sans-serif" fontWeight="700" fontSize="2.6" fill="#1a1a1a">RESEARCH</text>
-        <line x1="3" y1="23.5" x2="47" y2="23.5" stroke="#1a1a1a" strokeWidth="0.3"/>
-        <rect x="3" y="26" width="42" height="0.4" fill="#666"/>
-        <rect x="3" y="28" width="40" height="0.4" fill="#666"/>
-        <text x="3" y="35" fontFamily="sans-serif" fontWeight="700" fontSize="2.6" fill="#1a1a1a">EDUCATION</text>
-        <line x1="3" y1="36.5" x2="47" y2="36.5" stroke="#1a1a1a" strokeWidth="0.3"/>
-        <rect x="3" y="39" width="16" height="0.9" fill="#0a0a0a"/>
-        <rect x="3" y="41.5" width="20" height="0.4" fill="#666"/>
-        <text x="3" y="48" fontFamily="sans-serif" fontWeight="700" fontSize="2.6" fill="#1a1a1a">PUBLICATIONS</text>
-        <line x1="3" y1="49.5" x2="47" y2="49.5" stroke="#1a1a1a" strokeWidth="0.3"/>
-      </svg>
-    </div>
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="25" y="10" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="5" fill="#374151">NAME</text>
+      <line x1="4" y1="14" x2="46" y2="14" stroke="#374151" strokeWidth="0.6" />
+      <rect x="4" y="19" width="8" height="1" fill="#374151" />{lines(4, 22, 42, 4)}
+      <rect x="4" y="36" width="8" height="1" fill="#374151" />{lines(4, 39, 42, 3)}
+    </svg></div>
   )
-
-  return <div style={wrap}><svg width={W} height={H}><rect width={W} height={H} fill="#eee"/></svg></div>
+  // CLASSIC (default) — centered minimal
+  return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="25" y="10" textAnchor="middle" fontFamily="sans-serif" fontWeight="700" fontSize="5" fill="#1f2937">NAME</text>
+      <line x1="4" y1="14" x2="46" y2="14" stroke="#1f2937" strokeWidth="0.8" />
+      <rect x="4" y="19" width="7" height="1" fill="#1f2937" />{lines(4, 22, 42, 4)}
+      <rect x="4" y="36" width="7" height="1" fill="#1f2937" />{lines(4, 39, 42, 3)}
+    </svg></div>
+  )
 }
 
 // ══════════════════════════════════════════════════════
