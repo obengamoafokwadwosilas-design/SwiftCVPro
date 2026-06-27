@@ -40,7 +40,6 @@ export default function CVPreview({ cv, templateId = 'meridian', accentColor }: 
 }
 
 const A4: React.CSSProperties = { width: 794, minHeight: 1123, background: '#fff', margin: '0 auto', boxSizing: 'border-box', position: 'relative' }
-const A4_CLIP: React.CSSProperties = { ...A4, overflow: 'hidden' }
 const contact = (cv: GeneratedCV) => [cv.location, cv.phone, cv.email, cv.linkedin].filter(Boolean).join('  •  ')
 const isCL = (cv: GeneratedCV) => !!cv.coverLetterBody
 const initials = (name: string) => name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -149,13 +148,15 @@ function Meridian({ cv, A }: { cv: GeneratedCV; A: string }) {
   const SB = ({ t, children }: any) => <div style={{ marginBottom: 26 }}><div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.3)' }}>{t}</div>{children}</div>
   const H = ({ t }: { t: string }) => <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: A, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>{t}<span style={{ flex: 1, height: 2, background: A, opacity: 0.25 }} /></div>
   return (
-    <div style={{ ...A4_CLIP, display: 'grid', gridTemplateColumns: '262px 1fr', gridTemplateRows: 'minmax(1123px, 1fr)', alignItems: 'stretch', fontFamily: BODY_SERIF, color: '#1a1a1a' }}>
-      <div style={{ background: A, color: '#fff', padding: '40px 26px' }}>
+    <div style={{ ...A4, display: 'grid', gridTemplateColumns: '262px 1fr', fontFamily: BODY_SERIF, color: '#1a1a1a', position: 'relative' }}>
+      {/* full-height colour background layer — always reaches page bottom */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: 262, height: '100%', background: A, zIndex: 0 }} />
+      <div style={{ color: '#fff', padding: '40px 26px', position: 'relative', zIndex: 1 }}>
         <SB t="Contact">{[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).map((c, i) => <div key={i} style={{ fontSize: 11.5, marginBottom: 7, opacity: 0.95, wordBreak: 'break-word', lineHeight: 1.5 }}>{c}</div>)}</SB>
         {!!cv.skills?.length && <SB t="Skills">{cv.skills.map((s, i) => <div key={i} style={{ fontSize: 11.5, marginBottom: 7, opacity: 0.95, display: 'flex', gap: 7 }}><span style={{ opacity: 0.7 }}>›</span><span>{s}</span></div>)}</SB>}
         {!!cv.languages?.length && <SB t="Languages">{cv.languages.map((l, i) => <div key={i} style={{ fontSize: 11.5, marginBottom: 7, opacity: 0.95 }}>{l}</div>)}</SB>}
       </div>
-      <div style={{ padding: '40px 32px' }}>
+      <div style={{ padding: '40px 32px', position: 'relative', zIndex: 1 }}>
         <div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.1, color: '#1a1a1a', marginBottom: 4 }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: 14, color: A, fontWeight: 600, letterSpacing: 0.5, marginBottom: 22, textTransform: 'uppercase' }}>{cv.jobTitle}</div>}
         {cv.summary && <div style={{ marginBottom: 22 }}><H t="Profile" /><p style={{ fontSize: 12.5, lineHeight: 1.8, color: '#333', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div>}
@@ -249,14 +250,16 @@ function Pulse({ cv, A }: { cv: GeneratedCV; A: string }) {
   const H = ({ t }: { t: string }) => <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: A, marginBottom: 12 }}>{t}</div>
   const SH = ({ t }: { t: string }) => <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: A, marginBottom: 13 }}>{t}</div>
   return (
-    <div style={{ ...A4_CLIP, fontFamily: BODY_SERIF, color: '#1a1a1a', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '46px 46px 0' }}>
+    <div style={{ ...A4, fontFamily: BODY_SERIF, color: '#1a1a1a', position: 'relative' }}>
+      {/* full-height dark sidebar background on the right */}
+      <div style={{ position: 'absolute', top: 0, right: 0, width: 240, height: '100%', background: DARK, zIndex: 0 }} />
+      <div style={{ padding: '46px 46px 0', position: 'relative', zIndex: 1 }}>
         <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1, color: DARK }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ display: 'inline-block', background: A, color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', padding: '5px 16px', borderRadius: 20, margin: '10px 0 16px' }}>{cv.jobTitle}</div>}
         <div style={{ fontSize: 11.5, color: '#777', marginBottom: 8 }}>{contact(cv)}</div>
         <div style={{ height: 3, background: `linear-gradient(90deg, ${A}, transparent)`, marginBottom: 26 }} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px', alignItems: 'stretch', flex: 1 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px', position: 'relative', zIndex: 1 }}>
         <div style={{ padding: '0 30px 40px 46px' }}>
           {cv.summary && <div style={{ marginBottom: 24 }}><H t="Profile" /><p style={{ fontSize: 12.3, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div>}
           {!!cv.experience?.length && <div><H t="Experience" />
@@ -270,7 +273,7 @@ function Pulse({ cv, A }: { cv: GeneratedCV; A: string }) {
           </div>}
           <AcademicExtras cv={cv} H={H} />
         </div>
-        <div style={{ background: DARK, color: '#fff', padding: '34px 26px' }}>
+        <div style={{ color: '#fff', padding: '34px 26px' }}>
           {!!cv.skills?.length && <div style={{ marginBottom: 26 }}><SH t="Skills" /><ul style={{ margin: 0, paddingLeft: 14 }}>{cv.skills.map((s, i) => <li key={i} style={{ fontSize: 11.5, lineHeight: 1.9, color: 'rgba(255,255,255,0.85)' }}>{s}</li>)}</ul></div>}
           {!!cv.education?.length && <div style={{ marginBottom: 26 }}><SH t="Education" />{cv.education.map(e => <div key={e.id} style={{ marginBottom: 9 }}><div style={{ fontSize: 11.8, fontWeight: 700, color: '#fff' }}>{e.qualification} {e.field}</div><div style={{ fontSize: 10.8, color: 'rgba(255,255,255,0.7)' }}>{e.institution}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{e.startYear}–{e.endYear}{e.grade ? ` · ${e.grade}` : ''}</div></div>)}</div>}
           {!!cv.languages?.length && <div style={{ marginBottom: 26 }}><SH t="Languages" /><div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{cv.languages.map((l, i) => <span key={i} style={{ fontSize: 10.5, background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '3px 11px', borderRadius: 14 }}>{l}</span>)}</div></div>}
