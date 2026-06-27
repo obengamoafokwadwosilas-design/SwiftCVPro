@@ -7,7 +7,7 @@ import {
   LevelFormat, convertInchesToTwip, TabStopType, TabStopPosition
 } from 'docx'
 import { GeneratedCV, TemplateId } from '@/types'
-import { buildVertex, buildSovereign, buildMeridianV2, buildAscend, buildHarbour } from './premium'
+import { buildVertex, buildSovereign, buildMeridianV2, buildAscend, buildHarbour, buildPulse } from './premium'
 
 // ═══════════════════════════════════════════════════════
 // PREMIUM TYPOGRAPHY SYSTEM
@@ -115,8 +115,11 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
       return buildAscend(cv, accentColor)
 
     case 'harbour':
-    case 'noir':
       return buildHarbour(cv, accentColor)
+
+    case 'pulse':
+    case 'noir':
+      return buildPulse(cv, accentColor)
 
     // ── ATS single-column ──
     case 'london':    return buildAscend(cv, accentColor)
