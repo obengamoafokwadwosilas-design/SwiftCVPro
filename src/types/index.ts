@@ -19,6 +19,11 @@ export type TemplateId =
   | 'ascend'
   | 'harbour'
   | 'pulse'
+  | 'onyx'
+  | 'sterling'
+  | 'slate'
+  | 'verde'
+  | 'crimson'
 
 export type ExportFormat = 'docx' | 'pdf'
 
