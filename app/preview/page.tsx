@@ -18,11 +18,16 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'meridian',  name: 'Meridian',  tag: 'Teal Sidebar · Modern',           color: '#0d9488', formats: 'both', category: 'premium', customizable: true  },
   { id: 'ascend',    name: 'Ascend',    tag: 'Corporate · Colour Bars',         color: '#1d4ed8', formats: 'both', category: 'premium', customizable: true  },
   { id: 'harbour',   name: 'Harbour',   tag: 'Editorial · Refined Serif',       color: '#0f766e', formats: 'both', category: 'premium', customizable: true  },
-  { id: 'pulse',     name: 'Pulse',     tag: 'Modern · Dark Sidebar · Pill',    color: '#6d4aff', formats: 'both', category: 'premium', customizable: true  },
+
+  // ✨ PDF-only premium — rich designs, PDF download only
+  { id: 'onyx',      name: 'Onyx',      tag: 'Dark Header · Gold · Editorial',  color: '#c9a86a', formats: 'pdf',  category: 'premium', customizable: true  },
+  { id: 'sterling',  name: 'Sterling',  tag: 'Gold Executive · Navy Sidebar',   color: '#c9a86a', formats: 'pdf',  category: 'premium', customizable: true  },
+  { id: 'verde',     name: 'Verde',     tag: 'Green Header · Timeline · Cards',  color: '#3f9142', formats: 'pdf',  category: 'premium', customizable: true  },
+  { id: 'crimson',   name: 'Crimson',   tag: 'Magazine · Colour Band · Bold',   color: '#a01e1e', formats: 'pdf',  category: 'premium', customizable: true  },
+  { id: 'slate',     name: 'Slate',     tag: 'Minimal · Airy · Understated',    color: '#1a1a1a', formats: 'pdf',  category: 'premium', customizable: false },
 
   // 🔵 ATS — PDF + Word, recruiter-safe minimal
   { id: 'classic',  name: 'Classic',   tag: 'Traditional · ATS Safe',          color: '#1f2937', formats: 'both', category: 'ats',     customizable: false },
-  { id: 'london',   name: 'London',     tag: 'Clean · Single Column',          color: '#1a3a5a', formats: 'both', category: 'ats',     customizable: false },
 
   // 🎓 Academic — only shows for academic CV type
   { id: 'academic', name: 'Academic',   tag: 'Scholarly · Structured',         color: '#374151', formats: 'both', category: 'academic', customizable: false },
@@ -280,8 +285,8 @@ export default function PreviewPage() {
   const currentTpl = TEMPLATES.find(t => t.id === template)
 
   // ── Template filtering by CV type ──────────────────────
-  const ACADEMIC_ALLOWED: TemplateId[] = ['classic', 'academic', 'sovereign', 'harbour', 'london']
-  const COVER_LETTER_ALLOWED: TemplateId[] = ['classic', 'sovereign', 'harbour', 'london']
+  const ACADEMIC_ALLOWED: TemplateId[] = ['classic', 'academic', 'sovereign', 'harbour']
+  const COVER_LETTER_ALLOWED: TemplateId[] = ['classic', 'sovereign', 'harbour']
 
   const visibleTemplates = isCoverLetter
     ? TEMPLATES.filter(t => COVER_LETTER_ALLOWED.includes(t.id))
@@ -437,7 +442,7 @@ export default function PreviewPage() {
             {/* PREMIUM SECTION FIRST */}
             {premiumTemplates.length > 0 && (<>
               <CategoryHeader>Premium</CategoryHeader>
-              <div style={{ fontSize:'10px', color:'#cbd5e1', marginBottom:'12px', lineHeight:1.5 }}>Rich design · PDF &amp; Word</div>
+              <div style={{ fontSize:'10px', color:'#cbd5e1', marginBottom:'12px', lineHeight:1.5 }}>Rich design · see badge for format</div>
               {premiumTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
             </>)}
 
@@ -614,25 +619,60 @@ function TemplateThumb({ id }: { id: TemplateId }) {
     </svg></div>
   )
   // PULSE — dark sidebar right, pill title
-  if (id === 'pulse') return (
+  // ONYX — dark header band, gold
+  if (id === 'onyx') return (
     <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
       <rect width={W} height={H} fill="#fff" />
-      <rect x="33" y="0" width="17" height={H} fill="#15131f" />
-      <text x="4" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="6" fill="#15131f">NAME</text>
-      <rect x="4" y="14" width="14" height="3" rx="1.5" fill="#6d4aff" />
-      <rect x="4" y="22" width="5" height="1" fill="#6d4aff" /><rect x="4" y="25" width="1" height="10" fill="#6d4aff" />{lines(7, 26, 22, 4)}
-      <rect x="36" y="6" width="5" height="1" fill="#6d4aff" />{lines(36, 9, 11, 3, 2.4, 'rgba(255,255,255,0.6)')}
-      <rect x="36" y="20" width="5" height="1" fill="#6d4aff" />{lines(36, 23, 10, 3, 2.4, 'rgba(255,255,255,0.6)')}
+      <rect x="0" y="0" width={W} height="18" fill="#15131f" />
+      <text x="4" y="9" fontFamily="serif" fontWeight="800" fontSize="5.5" fill="#fff">NAME</text>
+      <rect x="4" y="12" width="14" height="1.4" fill="#c9a86a" />
+      <rect x="4" y="24" width="6" height="1" fill="#c9a86a" />{lines(4, 27, 42, 3)}
+      <rect x="4" y="40" width="6" height="1" fill="#c9a86a" />{lines(4, 43, 42, 3)}
     </svg></div>
   )
-  // LONDON — clean single column
-  if (id === 'london') return (
+  // STERLING — gold executive, navy sidebar right
+  if (id === 'sterling') return (
     <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
       <rect width={W} height={H} fill="#fff" />
-      <text x="4" y="11" fontFamily="serif" fontWeight="700" fontSize="6" fill="#1a3a5a">NAME</text>
-      <line x1="4" y1="15" x2="46" y2="15" stroke="#1a3a5a" strokeWidth="1.2" />
-      <rect x="4" y="20" width="7" height="1" fill="#1a3a5a" />{lines(4, 23, 42, 3)}
-      <rect x="4" y="35" width="7" height="1" fill="#1a3a5a" />{lines(4, 38, 42, 3)}
+      <rect x="35" y="0" width="15" height={H} fill="#1a2238" />
+      <circle cx="42.5" cy="10" r="3.5" fill="none" stroke="#c9a86a" strokeWidth="0.7" />
+      <text x="4" y="10" fontFamily="serif" fontWeight="700" fontSize="6" fill="#1a2238">NAME</text>
+      <rect x="4" y="13" width="12" height="1" fill="#c9a86a" />
+      <rect x="4" y="20" width="6" height="1" fill="#1a2238" /><rect x="4" y="22" width="9" height="0.6" fill="#c9a86a" />{lines(4, 25, 26, 4)}
+      <rect x="37" y="18" width="5" height="0.8" fill="#c9a86a" />{lines(37, 21, 10, 3, 2.4, 'rgba(255,255,255,0.6)')}
+    </svg></div>
+  )
+  // VERDE — green gradient header, cards
+  if (id === 'verde') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <defs><linearGradient id="vg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#14532d"/><stop offset="1" stopColor="#1f7a44"/></linearGradient></defs>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="0" y="0" width={W} height="16" fill="url(#vg)" />
+      <text x="4" y="9" fontFamily="serif" fontWeight="700" fontSize="5.5" fill="#fff">NAME</text>
+      <circle cx="5" cy="22" r="1.2" fill="#3f9142" /><rect x="8" y="21" width="6" height="1" fill="#14532d" />
+      <rect x="4" y="26" width="42" height="9" rx="2" fill="#f4f7f4" />{lines(7, 28, 36, 2)}
+      <circle cx="5" cy="40" r="1.2" fill="#3f9142" /><rect x="8" y="39" width="6" height="1" fill="#14532d" />
+    </svg></div>
+  )
+  // CRIMSON — magazine colour band
+  if (id === 'crimson') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="0" y="0" width={W} height="3" fill="#a01e1e" />
+      <text x="4" y="13" fontFamily="serif" fontWeight="800" fontSize="6" fill="#1a1a1a">NAME</text>
+      <rect x="4" y="16" width="13" height="3" fill="#a01e1e" />
+      <rect x="4" y="24" width="6" height="1" fill="#a01e1e" /><rect x="4" y="26" width="42" height="0.6" fill="#a01e1e" />{lines(4, 29, 42, 3)}
+      <rect x="4" y="42" width="6" height="1" fill="#a01e1e" />{lines(4, 45, 42, 2)}
+    </svg></div>
+  )
+  // SLATE — minimal mono
+  if (id === 'slate') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="6" y="12" fontFamily="serif" fontWeight="300" fontSize="5" fill="#1a1a1a" letterSpacing="1.5">NAME</text>
+      <rect x="6" y="16" width="8" height="1" fill="#1a1a1a" />
+      <rect x="6" y="26" width="7" height="0.8" fill="#1a1a1a" />{lines(6, 29, 38, 3, 3)}
+      <rect x="6" y="44" width="7" height="0.8" fill="#1a1a1a" />{lines(6, 47, 38, 2, 3)}
     </svg></div>
   )
   // ACADEMIC — scholarly
