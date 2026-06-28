@@ -135,3 +135,14 @@ body {
     height: 297mm;
   }
 }
+
+/* Re-enable list bullets inside CV previews (Tailwind Preflight strips them globally) */
+#cv-print-area ul,
+[data-cv-preview] ul {
+  list-style-type: disc !important;
+}
+#cv-print-area ul li,
+[data-cv-preview] ul li {
+  list-style: disc outside !important;
+  display: list-item !important;
+}
