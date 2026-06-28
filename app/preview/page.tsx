@@ -236,6 +236,8 @@ export default function PreviewPage() {
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+    ul { list-style-type: disc !important; }
+    ul li { list-style: disc outside !important; display: list-item !important; }
     #cv-print-area {
       width: 210mm;
       max-width: 210mm;
