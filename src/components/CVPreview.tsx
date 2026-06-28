@@ -10,17 +10,23 @@ import React, { useRef, useState, useLayoutEffect } from 'react'
 // Same paged DOM feeds both screen preview and PDF export.
 // ════════════════════════════════════════════════════════════════
 
-const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'pulse' | 'classic'> = {
+const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson'> = {
   vertex: 'vertex', atelier: 'vertex', editorial: 'vertex',
   sovereign: 'sovereign', newyork: 'sovereign', executive: 'sovereign',
   meridian: 'meridian', modern: 'meridian', europass: 'meridian', graduate: 'meridian',
   ascend: 'ascend',
   harbour: 'harbour', nordic: 'harbour',
-  pulse: 'pulse', noir: 'pulse',
   classic: 'classic', academic: 'classic', london: 'classic',
+  // PDF-only premium designs
+  onyx: 'onyx', noir: 'onyx', pulse: 'onyx',
+  sterling: 'sterling',
+  slate: 'slate',
+  verde: 'verde',
+  crimson: 'crimson',
 }
 const DEFAULT_ACCENT: Record<string, string> = {
-  vertex: '#e0533d', sovereign: '#b08d3f', meridian: '#0d9488', ascend: '#1d4ed8', harbour: '#0f766e', pulse: '#6d4aff', classic: '#1a1a1a',
+  vertex: '#e0533d', sovereign: '#b08d3f', meridian: '#0d9488', ascend: '#1d4ed8', harbour: '#0f766e', classic: '#1a1a1a',
+  onyx: '#c9a86a', sterling: '#c9a86a', slate: '#1a1a1a', verde: '#3f9142', crimson: '#a01e1e',
 }
 const BODY_SERIF = "'Cambria', Georgia, serif"
 const BODY_SANS = "'Calibri', 'Segoe UI', sans-serif"
@@ -42,7 +48,7 @@ export default function CVPreview({ cv, templateId = 'meridian', accentColor }: 
   const A = accentColor ? `#${accentColor.replace('#', '')}` : DEFAULT_ACCENT[design]
 
   // Cover letters never paginate into columns — single flowing page(s)
-  if (isCL(cv)) return <CoverLetter cv={cv} A={A} font={design === 'meridian' || design === 'ascend' || design === 'pulse' ? BODY_SANS : BODY_SERIF} />
+  if (isCL(cv)) return <CoverLetter cv={cv} A={A} font={design === 'meridian' || design === 'ascend' ? BODY_SANS : BODY_SERIF} />
 
   const config = TEMPLATES_CONFIG[design]
   return <Paginated cv={cv} A={A} config={config} />
@@ -273,43 +279,192 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   },
 
   // ── PULSE: dark sidebar right ──
-  pulse: {
-    design: 'pulse', font: BODY_SERIF, contentPadV: 40, mainPad: '0 30px 40px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478,
+  // ══════════════════════════════════════════════════════════════
+  // PDF-ONLY PREMIUM DESIGNS (Onyx, Sterling, Slate, Verde, Crimson)
+  // ══════════════════════════════════════════════════════════════
+
+  // ── ONYX: dark editorial header band, gold accents ──
+  onyx: {
+    design: 'onyx', font: BODY_SERIF, contentPadV: 30, mainPad: '30px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702,
     buildBlocks: (cv, A) => {
-      const head = (t: string) => <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: A, marginBottom: 12 }}>{t}</div>
+      const head = (t: string) => <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: A, marginBottom: 10 }}>{t}</div>
       const b: Block[] = []
-      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 24 }}>{head('Profile')}<p style={{ fontSize: 12.3, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 22 }}>{head('Profile')}<p style={{ fontSize: 12.5, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
       if (cv.experience?.length) {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
-        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 17, paddingLeft: 16, borderLeft: `3px solid ${A}` }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}><span style={{ fontSize: 13.5, fontWeight: 700, color: '#15131f' }}>{e.role}</span><span style={{ fontSize: 10, color: '#999', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 11.5, color: A, fontWeight: 700, margin: '2px 0 7px' }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 15 }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li>)}</ul></div> }))
+        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 15 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 13.5, color: '#15131f' }}>{e.role}</span><span style={{ fontSize: 10.5, color: '#999', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 12, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16 }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li>)}</ul></div> }))
       }
-      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 15, marginBottom: 4 }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
+      if (cv.education?.length) {
+        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
+        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div><div style={{ fontSize: 12.5, fontWeight: 700, color: '#15131f' }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 11.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div><div style={{ fontSize: 10.5, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startYear} – {e.endYear}</div></div> }))
+      }
+      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 14 }}>{head('Core Skills')}<div style={{ fontSize: 12, color: '#444', lineHeight: 2 }}>{cv.skills.join('  ·  ')}</div></div> })
+      if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{head('Languages')}<div style={{ fontSize: 12, color: '#444' }}>{cv.languages.join('  ·  ')}</div></div> })
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4 }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
       return b
     },
-    Header: ({ cv, A }) => {
-      const DARK = '#15131f'
-      return (<>
-        <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1, color: DARK }}>{cv.fullName}</div>
-        {cv.jobTitle && <div style={{ display: 'inline-block', background: A, color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', padding: '5px 16px', borderRadius: 20, margin: '10px 0 16px' }}>{cv.jobTitle}</div>}
-        <div style={{ fontSize: 11.5, color: '#777', marginBottom: 8 }}>{contact(cv)}</div>
-        <div style={{ height: 3, background: `linear-gradient(90deg, ${A}, transparent)`, marginBottom: 26 }} />
-      </>)
+    Header: ({ cv, A }) => (<>
+      <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1, color: '#fff' }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 14, letterSpacing: 3, textTransform: 'uppercase', color: A, marginTop: 8 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginTop: 12 }}>{contact(cv)}</div>
+    </>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+        {pageIndex === 0 && <div style={{ background: '#15131f', padding: '38px 46px 30px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}><TEMPLATES_CONFIG.onyx.Header cv={cv} A={A} /></div>}
+        <div style={{ padding: pageIndex === 0 ? '30px 46px' : '46px 46px' }}>{children}</div>
+      </div>
+    ),
+  },
+
+  // ── STERLING: gold executive, navy sidebar right, monogram ──
+  sterling: {
+    design: 'sterling', font: BODY_SERIF, contentPadV: 42, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478,
+    buildBlocks: (cv, A) => {
+      const DARK = '#1a2238'
+      const head = (t: string) => <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: DARK, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12, display: 'inline-block' }}>{t}</div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 20 }}>{head('Profile')}<p style={{ fontSize: 12.5, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 15 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 13.5, color: DARK }}>{e.role}</span><span style={{ fontSize: 10.5, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 12, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16 }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li>)}</ul></div> }))
+      }
+      if (cv.education?.length) {
+        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
+        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: DARK }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 11.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''} · {e.startYear}–{e.endYear}</div></div> }))
+      }
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4 }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      return b
     },
+    Header: ({ cv, A }) => (<>
+      <div style={{ fontSize: 34, fontWeight: 700, color: '#1a2238', letterSpacing: 1 }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 13, letterSpacing: 2, textTransform: 'uppercase', color: A, margin: '6px 0 20px' }}>{cv.jobTitle}</div>}
+    </>),
     Frame: ({ cv, A, pageIndex, children }) => {
-      const DARK = '#15131f'
+      const DARK = '#1a2238'
       return (
-        <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', background: `linear-gradient(90deg, #fff 0, #fff 554px, ${DARK} 554px, ${DARK} 100%)`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-          {pageIndex === 0 && <div style={{ padding: '46px 46px 0' }}><TEMPLATES_CONFIG.pulse.Header cv={cv} A={A} /></div>}
+        <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#22252b', background: `linear-gradient(90deg, #fff 0, #fff 554px, ${DARK} 554px, ${DARK} 100%)`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px' }}>
-            <div style={{ padding: pageIndex === 0 ? '0 30px 40px 46px' : '46px 30px 40px 46px' }}>{children}</div>
-            <div style={{ color: '#fff', padding: '34px 26px' }}>
-              {pageIndex === 0 && <PulseSidebar cv={cv} A={A} />}
+            <div style={{ padding: pageIndex === 0 ? '42px 30px 42px 46px' : '46px 30px 42px 46px' }}>
+              {pageIndex === 0 && <TEMPLATES_CONFIG.sterling.Header cv={cv} A={A} />}
+              {children}
+            </div>
+            <div style={{ color: '#fff', padding: '42px 26px' }}>
+              {pageIndex === 0 && <SterlingSidebar cv={cv} A={A} />}
             </div>
           </div>
         </div>
       )
     },
+  },
+
+  // ── SLATE: minimalist mono, airy whitespace ──
+  slate: {
+    design: 'slate', font: BODY_SERIF, contentPadV: 54, mainPad: '54px 60px', sidebarW: 0, sidebarSide: 'none', measureW: 674,
+    buildBlocks: (cv, A) => {
+      const head = (t: string) => <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: '#1a1a1a', marginBottom: 14 }}>{t}</div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 26 }}>{head('Profile')}<p style={{ fontSize: 12.5, lineHeight: 1.9, color: '#555', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 16 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 13.5, color: '#1a1a1a' }}>{e.role}</span><span style={{ fontSize: 10.5, color: '#bbb', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16 }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 11.5, lineHeight: 1.75, color: '#555', marginBottom: 5 }}>{x}</li>)}</ul></div> }))
+      }
+      if (cv.education?.length) {
+        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
+        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div><div style={{ fontSize: 12.5, fontWeight: 700, color: '#1a1a1a' }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 11.5, color: '#888' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div><div style={{ fontSize: 10.5, color: '#bbb', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startYear} – {e.endYear}</div></div> }))
+      }
+      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 18 }}>{head('Skills')}<div style={{ fontSize: 12, color: '#555', lineHeight: 2 }}>{cv.skills.join('   ·   ')}</div></div> })
+      if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 18 }}>{head('Languages')}<div style={{ fontSize: 12, color: '#555' }}>{cv.languages.join('   ·   ')}</div></div> })
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4 }}><li style={{ fontSize: 11.5, lineHeight: 1.75, color: '#555' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.8, color: '#555', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      return b
+    },
+    Header: ({ cv }) => (<>
+      <div style={{ fontSize: 30, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', color: '#1a1a1a' }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 11, letterSpacing: 4, textTransform: 'uppercase', color: '#888', margin: '10px 0 4px' }}>{cv.jobTitle}</div>}
+      <div style={{ width: 36, height: 2, background: '#1a1a1a', margin: '16px 0 28px' }} />
+      <div style={{ fontSize: 10.5, letterSpacing: 1, color: '#999', marginBottom: 30 }}>{contact(cv)}</div>
+    </>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '54px 60px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.slate.Header cv={cv} A={A} />}
+        {children}
+      </div>
+    ),
+  },
+
+  // ── VERDE: green gradient header, timeline experience, cards ──
+  verde: {
+    design: 'verde', font: BODY_SERIF, contentPadV: 36, mainPad: '36px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    buildBlocks: (cv, A) => {
+      const head = (t: string) => <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#14532d', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: A }} />{t}<span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${A}40, transparent)` }} /></div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 22 }}>{head('About Me')}<p style={{ fontSize: 12.5, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 12, background: '#f4f7f4', borderRadius: 10, padding: '16px 18px' }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 13.5, color: '#14532d' }}>{e.role}</span><span style={{ fontSize: 10.5, color: '#7a8a7a', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 12, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16 }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li>)}</ul></div> }))
+      }
+      if (cv.education?.length) {
+        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
+        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, paddingLeft: 14, borderLeft: `3px solid ${A}` }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: '#14532d' }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 10.5, color: '#7a8a7a', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startYear} – {e.endYear}</div></div><div style={{ fontSize: 11.5, color: '#666' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div> }))
+      }
+      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 14 }}>{head('Skills')}<div style={{ fontSize: 12, color: '#444', lineHeight: 2 }}>{cv.skills.join('  ·  ')}</div></div> })
+      if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{head('Languages')}<div style={{ fontSize: 12, color: '#444' }}>{cv.languages.join('  ·  ')}</div></div> })
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4 }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      return b
+    },
+    Header: ({ cv, A }) => (<>
+      <div style={{ fontSize: 34, fontWeight: 700, color: '#fff' }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 600, marginTop: 4 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', marginTop: 10 }}>{contact(cv)}</div>
+    </>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+        {pageIndex === 0 && <div style={{ background: `linear-gradient(135deg, #14532d, #1f7a44)`, padding: '36px 50px 30px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}><TEMPLATES_CONFIG.verde.Header cv={cv} A={A} /></div>}
+        <div style={{ padding: pageIndex === 0 ? '32px 50px 40px' : '46px 50px 40px' }}>{children}</div>
+      </div>
+    ),
+  },
+
+  // ── CRIMSON: magazine colour header band ──
+  crimson: {
+    design: 'crimson', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    buildBlocks: (cv, A) => {
+      const head = (t: string) => <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: A, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12 }}>{t}</div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 22 }}>{head('Profile')}<p style={{ fontSize: 12.5, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 15 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 13.5, color: '#1a1a1a' }}>{e.role}</span><span style={{ fontSize: 10.5, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 12, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16 }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li>)}</ul></div> }))
+      }
+      if (cv.education?.length) {
+        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
+        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div><div style={{ fontSize: 12.5, fontWeight: 700, color: '#1a1a1a' }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 11.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div><div style={{ fontSize: 10.5, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startYear} – {e.endYear}</div></div> }))
+      }
+      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 14 }}>{head('Core Skills')}<div style={{ fontSize: 12, color: '#444', lineHeight: 2 }}>{cv.skills.join('  ·  ')}</div></div> })
+      if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{head('Languages')}<div style={{ fontSize: 12, color: '#444' }}>{cv.languages.join('  ·  ')}</div></div> })
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4 }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      return b
+    },
+    Header: ({ cv, A }) => (<>
+      <div style={{ fontSize: 38, fontWeight: 800, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: 1 }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ display: 'inline-block', background: A, color: '#fff', fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', padding: '4px 14px', margin: '10px 0 6px' }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>{contact(cv)}</div>
+    </>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', borderTop: `8px solid ${A}`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+        {pageIndex === 0 && <div style={{ padding: '34px 50px 0' }}><TEMPLATES_CONFIG.crimson.Header cv={cv} A={A} /></div>}
+        <div style={{ padding: pageIndex === 0 ? '22px 50px 40px' : '46px 50px 40px' }}>{children}</div>
+      </div>
+    ),
   },
 
   // ── VERTEX: colour rail + two inner columns (paginate the whole body) ──
@@ -435,14 +590,17 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   },
 }
 
-function PulseSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
-  const SH = ({ t }: { t: string }) => <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: A, marginBottom: 13 }}>{t}</div>
+function SterlingSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
+  const SH = ({ t }: { t: string }) => <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: A, marginBottom: 10 }}>{t}</div>
   return (
     <>
-      {!!cv.skills?.length && <div style={{ marginBottom: 26 }}><SH t="Skills" /><ul style={{ margin: 0, paddingLeft: 14 }}>{cv.skills.map((s, i) => <li key={i} style={{ fontSize: 11.5, lineHeight: 1.9, color: 'rgba(255,255,255,0.85)' }}>{s}</li>)}</ul></div>}
-      {!!cv.education?.length && <div style={{ marginBottom: 26 }}><SH t="Education" />{cv.education.map((e, i) => <div key={i} style={{ marginBottom: 9 }}><div style={{ fontSize: 11.8, fontWeight: 700, color: '#fff' }}>{e.qualification} {e.field}</div><div style={{ fontSize: 10.8, color: 'rgba(255,255,255,0.7)' }}>{e.institution}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{e.startYear}–{e.endYear}{e.grade ? ` · ${e.grade}` : ''}</div></div>)}</div>}
-      {!!cv.languages?.length && <div style={{ marginBottom: 26 }}><SH t="Languages" /><div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{cv.languages.map((l, i) => <span key={i} style={{ fontSize: 10.5, background: 'rgba(255,255,255,0.1)', color: '#fff', padding: '3px 11px', borderRadius: 14 }}>{l}</span>)}</div></div>}
-      {cv.additionalInfo && <div><SH t="Certifications" /><div style={{ fontSize: 10.8, lineHeight: 1.7, color: 'rgba(255,255,255,0.8)', whiteSpace: 'pre-line' }}>{cv.additionalInfo}</div></div>}
+      <div style={{ width: 54, height: 54, border: `2px solid ${A}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+        <span style={{ fontSize: 20, color: A, fontWeight: 700 }}>{initials(cv.fullName)}</span>
+      </div>
+      <SH t="Contact" />
+      <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.7, marginBottom: 18, wordBreak: 'break-word' }}>{[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).map((x, i) => <div key={i}>{x}</div>)}</div>
+      {!!cv.skills?.length && <><SH t="Skills" />{cv.skills.map((s, i) => <div key={i} style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.85)', marginBottom: 5 }}>{s}</div>)}<div style={{ height: 18 }} /></>}
+      {!!cv.languages?.length && <><SH t="Languages" />{cv.languages.map((l, i) => <div key={i} style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.85)', marginBottom: 5 }}>{l}</div>)}</>}
     </>
   )
 }
