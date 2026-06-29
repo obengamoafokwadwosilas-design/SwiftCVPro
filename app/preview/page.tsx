@@ -24,6 +24,7 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'sterling',  name: 'Sterling',  tag: 'Gold Executive · Navy Sidebar',   color: '#c9a86a', formats: 'pdf',  category: 'premium', customizable: true  },
   { id: 'verde',     name: 'Verde',     tag: 'Green Header · Timeline · Cards',  color: '#3f9142', formats: 'pdf',  category: 'premium', customizable: true  },
   { id: 'crimson',   name: 'Crimson',   tag: 'Magazine · Colour Band · Bold',   color: '#a01e1e', formats: 'pdf',  category: 'premium', customizable: true  },
+  { id: 'atlas',     name: 'Atlas',     tag: 'Timeline Rail · Dated · Modern',   color: '#3b82f6', formats: 'pdf',  category: 'premium', customizable: true  },
   { id: 'slate',     name: 'Slate',     tag: 'Minimal · Airy · Understated',    color: '#1a1a1a', formats: 'pdf',  category: 'premium', customizable: false },
 
   // 🔵 ATS — PDF + Word, recruiter-safe minimal
@@ -665,6 +666,22 @@ function TemplateThumb({ id }: { id: TemplateId }) {
       <rect x="4" y="16" width="13" height="3" fill="#a01e1e" />
       <rect x="4" y="24" width="6" height="1" fill="#a01e1e" /><rect x="4" y="26" width="42" height="0.6" fill="#a01e1e" />{lines(4, 29, 42, 3)}
       <rect x="4" y="42" width="6" height="1" fill="#a01e1e" />{lines(4, 45, 42, 2)}
+    </svg></div>
+  )
+  // ATLAS — timeline date rail
+  if (id === 'atlas') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="4" y="10" fontFamily="serif" fontWeight="300" fontSize="6" fill="#0f172a">NA<tspan font-weight="800">ME</tspan></text>
+      <rect x="4" y="13" width="12" height="1" fill="#3b82f6" />
+      <text x="4" y="24" fontFamily="sans-serif" fontWeight="800" fontSize="3.5" fill="#0f172a">26</text>
+      <line x1="13" y1="20" x2="13" y2="34" stroke="#e2e8f0" strokeWidth="1" />
+      <circle cx="13" cy="22" r="1.3" fill="#3b82f6" />
+      <rect x="16" y="21" width="10" height="1" fill="#0f172a" />{lines(16, 24, 28, 3)}
+      <text x="4" y="40" fontFamily="sans-serif" fontWeight="800" fontSize="3.5" fill="#0f172a">20</text>
+      <line x1="13" y1="37" x2="13" y2="46" stroke="#e2e8f0" strokeWidth="1" />
+      <circle cx="13" cy="39" r="1.3" fill="#3b82f6" />
+      <rect x="16" y="38" width="10" height="1" fill="#0f172a" />{lines(16, 41, 28, 2)}
     </svg></div>
   )
   // SLATE — minimal mono
