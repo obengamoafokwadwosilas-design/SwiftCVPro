@@ -263,7 +263,11 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
 // ════════════════════════════════════════════════════════════════
 // TEMPLATE CONFIGS
 // ════════════════════════════════════════════════════════════════
-const pageBase: React.CSSProperties = { width: PAGE_W, minHeight: PAGE_H, background: '#fff', margin: '0 auto 24px', boxSizing: 'border-box', position: 'relative', overflow: 'hidden', pageBreakAfter: 'always' }
+// NOTE: no minHeight here on purpose. On screen, pages collapse to their real
+// content height so an under-filled page leaves no empty gap. The PDF page height
+// is set separately in buildPdfHtml (#cv-print-area > div > div { height: 296mm })
+// inside app/preview/page.tsx, so the download stays full-A4 and unaffected.
+const pageBase: React.CSSProperties = { width: PAGE_W, background: '#fff', margin: '0 auto 24px', boxSizing: 'border-box', position: 'relative', overflow: 'hidden', pageBreakAfter: 'always' }
 
 const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   // ── MERIDIAN: teal sidebar left ──
