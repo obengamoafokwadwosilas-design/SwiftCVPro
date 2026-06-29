@@ -250,7 +250,19 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
 
   return (
     <div>
+      {/* On screen, hide the paged frames and show only the continuous doc.
+          In print/PDF (buildPdfHtml uses print media) this rule does NOT apply,
+          so the real pages render — the download is unchanged. */}
+      <style>{`@media screen { #cv-print-area > div > div:not([data-screen-doc]):not([data-measure-pass]) { display: none !important; } }`}</style>
       {measurePass}
+      {/* SCREEN: one continuous document — every block in a single frame, so there
+          are no inter-page padding/margin seams and no trailing empty space. */}
+      <div data-screen-doc>
+        <config.Frame cv={cv} A={A} pageIndex={0}>
+          {blocks.map(b => <div key={b.key}>{b.node}</div>)}
+        </config.Frame>
+      </div>
+      {/* PRINT/PDF: the real A4 pages. Captured by buildPdfHtml, hidden on screen. */}
       {pagePlan.map((blockIdxs, pageIndex) => (
         <config.Frame key={pageIndex} cv={cv} A={A} pageIndex={pageIndex}>
           {blockIdxs.map(i => blocks[i] ? <div key={blocks[i].key}>{blocks[i].node}</div> : null)}
