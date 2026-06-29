@@ -261,6 +261,8 @@ export default function PreviewPage() {
     }
     /* never print any hidden measuring artifacts */
     [data-measure-pass] { display: none !important; }
+    /* the continuous screen-only doc must never appear in the PDF */
+    [data-screen-doc] { display: none !important; }
   </style>
 </head>
 <body>
@@ -370,32 +372,7 @@ export default function PreviewPage() {
       {/* CRITICAL print CSS — hides everything except the CV, sizes to A4 */}
       <style>{`
         @media screen {
-          #cv-print-area.export-only {
-            position: absolute !important;
-            left: -99999px !important;
-            top: 0 !important;
-            width: 210mm !important;
-            max-width: 210mm !important;
-            background: white !important;
-            pointer-events: none !important;
-          }
-
-          /* Screen preview only: remove fake A4 height so blank gaps disappear.
-             The hidden #cv-print-area remains paginated for perfect PDF export. */
-          .screen-preview-flow #cv-screen-preview-area {
-            width: 210mm !important;
-            max-width: 210mm !important;
-            background: white !important;
-          }
-
-          .screen-preview-flow #cv-screen-preview-area > div > div:not([data-measure-pass]) {
-            min-height: 0 !important;
-            height: auto !important;
-            overflow: visible !important;
-            page-break-after: auto !important;
-            break-after: auto !important;
-            margin-bottom: 0 !important;
-          }
+          #cv-print-area { width: 210mm; }
         }
         @media print {
           @page { size: A4; margin: 0; }
@@ -502,19 +479,11 @@ export default function PreviewPage() {
 
         <div style={{ padding:'24px', overflowY:'auto', overflowX:'auto', background:'#f1f5f9' }}>
           {activeTab === 'preview' ? (
-            <>
-              {/* Visible preview: continuous flow, no ugly page gaps */}
-              <div className="screen-preview-flow" style={{ background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'visible', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', width:'210mm', maxWidth:'210mm', margin:'0 auto' }}>
-                <div id="cv-screen-preview-area">
-                  <CVPreview cv={cv} templateId={template} accentColor={accentColor} />
-                </div>
-              </div>
-
-              {/* Hidden export copy: keeps the exact paginated A4 DOM for PDF download */}
-              <div id="cv-print-area" className="export-only">
+            <div style={{ background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'visible', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', width:'210mm', maxWidth:'210mm', margin:'0 auto' }}>
+              <div id="cv-print-area">
                 <CVPreview cv={cv} templateId={template} accentColor={accentColor} />
               </div>
-            </>
+            </div>
           ) : (
             <CVEditor cv={cv} updateCV={updateCV} />
           )}
