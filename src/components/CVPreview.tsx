@@ -10,7 +10,7 @@ import React, { useRef, useState, useLayoutEffect } from 'react'
 // Same paged DOM feeds both screen preview and PDF export.
 // ════════════════════════════════════════════════════════════════
 
-const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson'> = {
+const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson' | 'atlas'> = {
   vertex: 'vertex', atelier: 'vertex', editorial: 'vertex',
   sovereign: 'sovereign', newyork: 'sovereign', executive: 'sovereign',
   meridian: 'meridian', modern: 'meridian', europass: 'meridian', graduate: 'meridian',
@@ -23,10 +23,11 @@ const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend
   slate: 'slate',
   verde: 'verde',
   crimson: 'crimson',
+  atlas: 'atlas',
 }
 const DEFAULT_ACCENT: Record<string, string> = {
   vertex: '#e0533d', sovereign: '#b08d3f', meridian: '#0d9488', ascend: '#1d4ed8', harbour: '#0f766e', classic: '#1a1a1a',
-  onyx: '#c9a86a', sterling: '#c9a86a', slate: '#1a1a1a', verde: '#3f9142', crimson: '#a01e1e',
+  onyx: '#c9a86a', sterling: '#c9a86a', slate: '#1a1a1a', verde: '#3f9142', crimson: '#a01e1e', atlas: '#3b82f6',
 }
 const BODY_SERIF = "'Cambria', Georgia, serif"
 const BODY_SANS = "'Calibri', 'Segoe UI', sans-serif"
@@ -39,13 +40,22 @@ const contact = (cv: GeneratedCV) => [cv.location, cv.phone, cv.email, cv.linked
 const isCL = (cv: GeneratedCV) => !!cv.coverLetterBody
 const initials = (name: string) => name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
-// darken a hex colour by a factor (0-1) — used so coloured 'brand' bands follow the accent
-function darken(hex: string, factor = 0.55): string {
+// Produce a deep, rich version of the accent for 'brand' bands/sidebars.
+// Adapts to the colour's lightness so already-dark accents (navy, plum, forest)
+// stay distinct instead of collapsing into the same near-black.
+function darken(hex: string, _factor?: number): string {
   const h = hex.replace('#', '')
   const n = h.length === 3 ? h.split('').map(x => x + x).join('') : h
-  const r = Math.round(parseInt(n.slice(0, 2), 16) * (1 - factor))
-  const g = Math.round(parseInt(n.slice(2, 4), 16) * (1 - factor))
-  const b = Math.round(parseInt(n.slice(4, 6), 16) * (1 - factor))
+  let r = parseInt(n.slice(0, 2), 16)
+  let g = parseInt(n.slice(2, 4), 16)
+  let b = parseInt(n.slice(4, 6), 16)
+  // perceived lightness 0-255
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b
+  // darken more when the colour is light, less when it's already dark
+  // light (lum~200) → mult ~0.42 ; dark (lum~40) → mult ~0.85
+  const mult = Math.min(0.9, Math.max(0.4, 0.4 + (255 - lum) / 255 * 0.5))
+  r = Math.round(r * mult); g = Math.round(g * mult); b = Math.round(b * mult)
+  // ensure a minimum depth floor so text stays readable on it
   return `rgb(${r}, ${g}, ${b})`
 }
 
@@ -477,6 +487,71 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     ),
   },
 
+
+  // ── ATLAS: numbered-free date rail timeline, architectural ──
+  atlas: {
+    design: 'atlas', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    buildBlocks: (cv, A) => {
+      const head = (t: string) => <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#0f172a', marginBottom: 16 }}>{t}</div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 26 }}><p style={{ fontSize: 12.5, lineHeight: 1.8, color: '#475569', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: (
+          <div style={{ display: 'grid', gridTemplateColumns: '54px 1fr', gap: 16, marginBottom: 18 }}>
+            <div style={{ textAlign: 'right', paddingTop: 2 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>{e.endDate}</div>
+              <div style={{ fontSize: 10, color: '#94a3b8' }}>{e.startDate}</div>
+            </div>
+            <div style={{ borderLeft: `2px solid #e2e8f0`, paddingLeft: 16, position: 'relative' }}>
+              <div style={{ position: 'absolute', left: -5, top: 4, width: 8, height: 8, borderRadius: '50%', background: A }} />
+              <div style={{ fontWeight: 700, fontSize: 13.5, color: '#0f172a' }}>{e.role}</div>
+              <div style={{ fontSize: 11.5, color: A, fontWeight: 700, marginBottom: 6 }}>{e.company}</div>
+              <ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 11.5, lineHeight: 1.7, color: '#475569', marginBottom: 4 }}>{x}</li>)}</ul>
+            </div>
+          </div>
+        ) }))
+      }
+      if (cv.education?.length) {
+        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
+        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: (
+          <div style={{ display: 'grid', gridTemplateColumns: '54px 1fr', gap: 16, marginBottom: 12 }}>
+            <div style={{ textAlign: 'right', paddingTop: 2 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>{e.endYear}</div>
+              <div style={{ fontSize: 10, color: '#94a3b8' }}>{e.startYear}</div>
+            </div>
+            <div style={{ borderLeft: `2px solid #e2e8f0`, paddingLeft: 16, position: 'relative' }}>
+              <div style={{ position: 'absolute', left: -5, top: 4, width: 8, height: 8, borderRadius: '50%', background: A }} />
+              <div style={{ fontWeight: 700, fontSize: 12.5, color: '#0f172a' }}>{e.qualification} in {e.field}</div>
+              <div style={{ fontSize: 11.5, color: '#64748b' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div>
+            </div>
+          </div>
+        ) }))
+      }
+      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 16 }}>{head('Skills')}<div style={{ fontSize: 12, color: '#475569', lineHeight: 2, paddingLeft: 70 }}>{cv.skills.join('   ·   ')}</div></div> })
+      if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 16 }}>{head('Languages')}<div style={{ fontSize: 12, color: '#475569', paddingLeft: 70 }}>{cv.languages.join('   ·   ')}</div></div> })
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 86, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#475569' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#475569', margin: 0, paddingLeft: 70, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      return b
+    },
+    Header: ({ cv, A }) => {
+      const first = cv.fullName.split(' ')[0], last = cv.fullName.split(' ').slice(1).join(' ')
+      return (<>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+          <div style={{ fontSize: 40, fontWeight: 300, color: '#0f172a', letterSpacing: 1 }}>{first} <strong style={{ fontWeight: 800 }}>{last}</strong></div>
+          <div style={{ textAlign: 'right', fontSize: 10, color: '#94a3b8', lineHeight: 1.6, marginTop: 6 }}>{[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).map((x, i) => <div key={i}>{x}</div>)}</div>
+        </div>
+        {cv.jobTitle && <div style={{ fontSize: 13, letterSpacing: 3, textTransform: 'uppercase', color: A, marginBottom: 24 }}>{cv.jobTitle}</div>}
+      </>)
+    },
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '46px 50px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.atlas.Header cv={cv} A={A} />}
+        {children}
+      </div>
+    ),
+  },
   // ── VERTEX: colour rail + two inner columns (paginate the whole body) ──
   vertex: {
     design: 'vertex', font: BODY_SERIF, contentPadV: 46, mainPad: '46px', sidebarW: 0, sidebarSide: 'none', measureW: 664,
@@ -508,7 +583,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     design: 'sovereign', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 54px', sidebarW: 0, sidebarSide: 'none', measureW: 686,
     buildBlocks: (cv, A) => {
       const DARK = '#1a2238'
-      const head = (t: string) => <div style={{ textAlign: 'center', marginBottom: 14 }}><span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: DARK, borderBottom: `1px solid ${A}`, paddingBottom: 4 }}>{t}</span></div>
+      const head = (t: string) => <div style={{ marginBottom: 14 }}><span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: DARK, borderBottom: `1px solid ${A}`, paddingBottom: 4 }}>{t}</span></div>
       const b: Block[] = []
       if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 24 }}>{head('Profile')}<p style={{ fontSize: 12.5, lineHeight: 1.85, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
       if (cv.experience?.length) {
@@ -519,8 +594,8 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
         b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
         cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div><div style={{ fontSize: 12.5, fontWeight: 700, color: DARK }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 11.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div><div style={{ fontSize: 10.5, color: A, fontStyle: 'italic', whiteSpace: 'nowrap', fontFamily: BODY_SANS }}>{e.startYear} – {e.endYear}</div></div> }))
       }
-      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 20 }}>{head('Expertise')}<div style={{ textAlign: 'center', fontSize: 11.5, lineHeight: 1.95, color: '#444', fontFamily: BODY_SANS }}>{cv.skills.join('   ·   ')}</div>{!!cv.languages?.length && <div style={{ textAlign: 'center', fontSize: 11, color: '#666', marginTop: 8, fontFamily: BODY_SANS }}>{cv.languages.join('   ·   ')}</div>}</div> })
-      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 11.5, lineHeight: 1.75, color: '#444', margin: 0, textAlign: 'center', fontFamily: BODY_SANS, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 20 }}>{head('Expertise')}<div style={{ fontSize: 11.5, lineHeight: 1.95, color: '#444', fontFamily: BODY_SANS }}>{cv.skills.join('   ·   ')}</div>{!!cv.languages?.length && <div style={{ fontSize: 11, color: '#666', marginTop: 8, fontFamily: BODY_SANS }}>{cv.languages.join('   ·   ')}</div>}</div> })
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 11.5, lineHeight: 1.75, color: '#444', margin: 0, fontFamily: BODY_SANS, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
       return b
     },
     Header: ({ cv, A }) => {
