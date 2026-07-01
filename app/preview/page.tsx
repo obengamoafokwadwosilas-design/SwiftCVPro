@@ -108,6 +108,9 @@ export default function PreviewPage() {
   const [revisionError, setRevisionError] = useState('')
   const [showUpsell, setShowUpsell] = useState(false)
   const [hasDownloaded, setHasDownloaded] = useState(false)
+  const [showReadyBanner, setShowReadyBanner] = useState(true)
+  const [showChooser, setShowChooser] = useState(false)
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false)
 
   useEffect(() => {
     const stored = sessionStorage.getItem('swiftcv_cv')
@@ -412,20 +415,35 @@ export default function PreviewPage() {
 
       <nav className="no-print" style={{ background:'#0a0f1a', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap:'wrap', gap:'10px' }}>
         <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', fontWeight:600, color:'white' }}>Swift<span style={{ color:'#5eead4' }}>CV</span>Pro</div>
-        <div style={{ display:'flex', background:'rgba(255,255,255,0.08)', borderRadius:'50px', padding:'3px', gap:'2px' }}>
-          {(['preview','edit'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12px', fontWeight:activeTab===tab?600:400, background:activeTab===tab?'white':'none', color:activeTab===tab?'#0a0f1a':'rgba(255,255,255,0.4)', border:'none', cursor:'pointer', textTransform:'capitalize', fontFamily:"'DM Sans',sans-serif" }}>{tab}</button>
-          ))}
-        </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
           <button onClick={handleNewCV} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>+ New CV</button>
-          <button onClick={handleDownloadDocx} disabled={!!downloading} style={{ padding:'8px 16px', background: currentTpl?.formats === 'pdf' ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)', color: currentTpl?.formats === 'pdf' ? 'rgba(255,255,255,0.5)' : 'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer' }}>{downloading==='docx'?'...':'↓ Word'}</button>
-          <button onClick={handleDownloadPdf} disabled={!!downloading} style={{ padding:'8px 16px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', boxShadow:'0 4px 14px rgba(13,148,136,0.3)' }}>{downloading==='pdf'?'...':'↓ PDF'}</button>
-          <button onClick={() => setShowRevision(true)} style={{ padding:'8px 16px', background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.92)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}><span style={{ color:'#5eead4' }}>✦</span> Want changes? Edit free</button>
+          <div style={{ position:'relative' }}>
+            <button onClick={() => setShowDownloadMenu(v => !v)} disabled={!!downloading} style={{ padding:'8px 16px', background:'rgba(255,255,255,0.1)', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
+              {downloading ? '...' : <>↓ Download <span style={{ fontSize:'10px' }}>▾</span></>}
+            </button>
+            {showDownloadMenu && (
+              <div onMouseLeave={() => setShowDownloadMenu(false)} style={{ position:'absolute', top:'calc(100% + 8px)', right:0, background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', boxShadow:'0 8px 30px rgba(0,0,0,0.15)', overflow:'hidden', minWidth:'160px', zIndex:60 }}>
+                <button onClick={() => { setShowDownloadMenu(false); handleDownloadPdf() }} style={{ display:'block', width:'100%', textAlign:'left', padding:'12px 16px', background:'white', border:'none', borderBottom:'1px solid #f1f5f9', fontSize:'13px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}>↓ Download PDF</button>
+                <button onClick={() => { setShowDownloadMenu(false); handleDownloadDocx() }} style={{ display:'block', width:'100%', textAlign:'left', padding:'12px 16px', background:'white', border:'none', fontSize:'13px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}>↓ Download Word</button>
+              </div>
+            )}
+          </div>
+          <button onClick={() => setShowChooser(true)} style={{ padding:'8px 16px', background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.92)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}><span style={{ color:'#5eead4' }}>✦</span> Need Changes?</button>
         </div>
       </nav>
 
-      
+      {activeTab === 'preview' && showReadyBanner && (
+        <div className="no-print" style={{ display:'flex', alignItems:'center', gap:'14px', background:'#f0fdf9', borderBottom:'1px solid rgba(13,148,136,0.2)', padding:'14px 20px' }}>
+          <div style={{ width:'26px', height:'26px', borderRadius:'50%', background:'#0d9488', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>✓</div>
+          <div style={{ flex:1, minWidth:'200px' }}>
+            <div style={{ fontSize:'14px', fontWeight:700, color:'#0a0f1a' }}>Great job! Your CV is ready.</div>
+            <div style={{ fontSize:'12.5px', color:'#64748b' }}>Download it now or make any changes before sending it out.</div>
+          </div>
+          <button onClick={handleDownloadPdf} disabled={!!downloading} style={{ padding:'9px 16px', background:'white', color:'#0a0f1a', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap' }}>↓ Download PDF</button>
+          <button onClick={handleDownloadDocx} disabled={!!downloading} style={{ padding:'9px 16px', background:'white', color:'#0a0f1a', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap' }}>↓ Download Word</button>
+          <button onClick={() => setShowReadyBanner(false)} style={{ background:'none', border:'none', fontSize:'16px', color:'#94a3b8', cursor:'pointer' }}>✕</button>
+        </div>
+      )}
       <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
         {!isCoverLetter && (
           <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'22px 20px', overflowY:'auto' }}>
@@ -433,7 +451,7 @@ export default function PreviewPage() {
             {/* ── COLOUR — always visible, premium ── */}
             {currentTpl?.customizable && (
               <div style={{ marginBottom:'22px' }}>
-                <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#94a3b8', marginBottom:'12px' }}>Colour</div>
+                <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#94a3b8', marginBottom:'12px' }}>Choose Colour</div>
                 <div style={{ display:'flex', gap:'9px', flexWrap:'wrap' }}>
                   <button onClick={() => setAccentColor(null)} title="Default" style={{ width:'26px', height:'26px', borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #fff, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0', transition:'all 0.15s' }} />
                   {COLOR_SWATCHES.map(s => (
@@ -485,10 +503,40 @@ export default function PreviewPage() {
               </div>
             </div>
           ) : (
-            <CVEditor cv={cv} updateCV={updateCV} />
+            <div style={{ maxWidth:'720px', margin:'0 auto' }}>
+              <button onClick={() => setActiveTab('preview')} className="no-print" style={{ display:'flex', alignItems:'center', gap:'6px', padding:'9px 16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, color:'#0a0f1a', cursor:'pointer', marginBottom:'18px' }}>← Back to preview</button>
+              <CVEditor cv={cv} updateCV={updateCV} />
+            </div>
           )}
         </div>
       </div>
+
+      {/* NEED CHANGES? CHOOSER */}
+      {showChooser && (
+        <div onClick={() => setShowChooser(false)} className="no-print" style={{ position:'fixed', inset:0, background:'rgba(10,15,26,0.5)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'380px', padding:'22px', boxShadow:'0 25px 80px rgba(0,0,0,0.35)', fontFamily:"'DM Sans', sans-serif" }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
+              <div style={{ fontSize:'15px', fontWeight:700, color:'#0a0f1a' }}>How would you like to make changes?</div>
+              <button onClick={() => setShowChooser(false)} style={{ background:'none', border:'none', fontSize:'18px', color:'#94a3b8', cursor:'pointer' }}>✕</button>
+            </div>
+            <button onClick={() => { setShowChooser(false); setShowRevision(true) }} style={{ display:'flex', gap:'12px', alignItems:'flex-start', width:'100%', textAlign:'left', padding:'16px', background:'#f0fdf9', border:'2px solid #0d9488', borderRadius:'14px', cursor:'pointer', marginBottom:'12px' }}>
+              <span style={{ fontSize:'20px' }}>✨</span>
+              <span>
+                <div style={{ fontSize:'14px', fontWeight:700, color:'#0a0f1a', marginBottom:'2px' }}>Edit with AI</div>
+                <div style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.5 }}>Make changes faster with AI.</div>
+              </span>
+            </button>
+            <button onClick={() => { setShowChooser(false); setActiveTab('edit') }} style={{ display:'flex', gap:'12px', alignItems:'flex-start', width:'100%', textAlign:'left', padding:'16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'14px', cursor:'pointer', marginBottom:'16px' }}>
+              <span style={{ fontSize:'20px' }}>✏️</span>
+              <span>
+                <div style={{ fontSize:'14px', fontWeight:700, color:'#0a0f1a', marginBottom:'2px' }}>Edit Manually</div>
+                <div style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.5 }}>Edit every section yourself.</div>
+              </span>
+            </button>
+            <button onClick={() => setShowChooser(false)} style={{ width:'100%', padding:'11px', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'13px', fontWeight:500, color:'#64748b', cursor:'pointer' }}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {/* REVISION PANEL */}
       {showRevision && (
