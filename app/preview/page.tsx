@@ -415,6 +415,10 @@ export default function PreviewPage() {
 
       <nav className="no-print" style={{ background:'#0a0f1a', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap:'wrap', gap:'10px' }}>
         <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', fontWeight:600, color:'white' }}>Swift<span style={{ color:'#5eead4' }}>CV</span>Pro</div>
+        <div style={{ display:'flex', background:'rgba(255,255,255,0.08)', borderRadius:'50px', padding:'3px', gap:'2px' }}>
+          <button onClick={() => setActiveTab('preview')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12px', fontWeight:activeTab==='preview'?600:400, background:activeTab==='preview'?'white':'none', color:activeTab==='preview'?'#0a0f1a':'rgba(255,255,255,0.4)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Preview</button>
+          <button onClick={() => setShowChooser(true)} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12px', fontWeight:activeTab==='edit'?600:400, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.4)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
+        </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
           <button onClick={handleNewCV} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>+ New CV</button>
           <div style={{ position:'relative' }}>
@@ -422,18 +426,19 @@ export default function PreviewPage() {
               {downloading ? '...' : <>↓ Download <span style={{ fontSize:'10px' }}>▾</span></>}
             </button>
             {showDownloadMenu && (
-              <div onMouseLeave={() => setShowDownloadMenu(false)} style={{ position:'absolute', top:'calc(100% + 8px)', right:0, background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', boxShadow:'0 8px 30px rgba(0,0,0,0.15)', overflow:'hidden', minWidth:'160px', zIndex:60 }}>
+              <div onMouseLeave={() => setShowDownloadMenu(false)} style={{ position:'absolute', top:'calc(100% + 8px)', right:0, background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', boxShadow:'0 8px 30px rgba(0,0,0,0.15)', overflow:'hidden', minWidth:'160px', zIndex:60, animation:'menuIn 0.14s ease', transformOrigin:'top right' }}>
+                <style>{`@keyframes menuIn { from{opacity:0; transform:scale(0.96) translateY(-4px)} to{opacity:1; transform:scale(1) translateY(0)} }`}</style>
                 <button onClick={() => { setShowDownloadMenu(false); handleDownloadPdf() }} style={{ display:'block', width:'100%', textAlign:'left', padding:'12px 16px', background:'white', border:'none', borderBottom:'1px solid #f1f5f9', fontSize:'13px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}>↓ Download PDF</button>
                 <button onClick={() => { setShowDownloadMenu(false); handleDownloadDocx() }} style={{ display:'block', width:'100%', textAlign:'left', padding:'12px 16px', background:'white', border:'none', fontSize:'13px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}>↓ Download Word</button>
               </div>
             )}
           </div>
-          <button onClick={() => setShowChooser(true)} style={{ padding:'8px 16px', background:'rgba(255,255,255,0.08)', color:'rgba(255,255,255,0.92)', border:'1px solid rgba(255,255,255,0.25)', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}><span style={{ color:'#5eead4' }}>✦</span> Need Changes?</button>
         </div>
       </nav>
 
       {activeTab === 'preview' && showReadyBanner && (
-        <div className="no-print" style={{ display:'flex', alignItems:'center', gap:'14px', background:'#f0fdf9', borderBottom:'1px solid rgba(13,148,136,0.2)', padding:'14px 20px' }}>
+        <div className="no-print" style={{ display:'flex', alignItems:'center', gap:'14px', background:'#f0fdf9', borderBottom:'1px solid rgba(13,148,136,0.2)', padding:'14px 20px', animation:'slideDown 0.2s ease' }}>
+          <style>{`@keyframes slideDown { from{opacity:0; transform:translateY(-8px)} to{opacity:1; transform:translateY(0)} }`}</style>
           <div style={{ width:'26px', height:'26px', borderRadius:'50%', background:'#0d9488', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>✓</div>
           <div style={{ flex:1, minWidth:'200px' }}>
             <div style={{ fontSize:'14px', fontWeight:700, color:'#0a0f1a' }}>Great job! Your CV is ready.</div>
@@ -484,10 +489,8 @@ export default function PreviewPage() {
             <div style={{ background:'#f8fafc', borderRadius:'10px', border:'1px solid #f1f5f9', padding:'14px', marginTop:'16px' }}>
               <div style={{ fontSize:'11px', fontWeight:600, color:'#0a0f1a', marginBottom:'8px', textTransform:'uppercase', letterSpacing:'1px' }}>Tips</div>
               {[
-                'Premium: bold design, PDF only',
-                'ATS: recruiter-safe, both formats',
-                'Customize colors on premium templates',
-                'Edit tab: add/remove sections',
+                'Customize colours on premium templates',
+                'Not sure what to change? Try Edit → Edit with AI',
               ].map(t => (
                 <div key={t} style={{ fontSize:'11.5px', color:'#64748b', marginBottom:'6px', lineHeight:1.5, fontWeight:300 }}>· {t}</div>
               ))}
@@ -513,20 +516,26 @@ export default function PreviewPage() {
 
       {/* NEED CHANGES? CHOOSER */}
       {showChooser && (
-        <div onClick={() => setShowChooser(false)} className="no-print" style={{ position:'fixed', inset:0, background:'rgba(10,15,26,0.5)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'380px', padding:'22px', boxShadow:'0 25px 80px rgba(0,0,0,0.35)', fontFamily:"'DM Sans', sans-serif" }}>
+        <div onClick={() => setShowChooser(false)} className="no-print" style={{ position:'fixed', inset:0, background:'rgba(10,15,26,0.5)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', animation:'fadeIn 0.18s ease' }}>
+          <style>{`
+            @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+            @keyframes riseIn { from{opacity:0; transform:translateY(12px) scale(0.98)} to{opacity:1; transform:translateY(0) scale(1)} }
+            .chooser-card { transition: border-color 0.15s ease, transform 0.15s ease; }
+            .chooser-card:hover { transform: translateY(-1px); }
+          `}</style>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'380px', padding:'22px', boxShadow:'0 25px 80px rgba(0,0,0,0.35)', fontFamily:"'DM Sans', sans-serif", animation:'riseIn 0.2s ease' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
               <div style={{ fontSize:'15px', fontWeight:700, color:'#0a0f1a' }}>How would you like to make changes?</div>
               <button onClick={() => setShowChooser(false)} style={{ background:'none', border:'none', fontSize:'18px', color:'#94a3b8', cursor:'pointer' }}>✕</button>
             </div>
-            <button onClick={() => { setShowChooser(false); setShowRevision(true) }} style={{ display:'flex', gap:'12px', alignItems:'flex-start', width:'100%', textAlign:'left', padding:'16px', background:'#f0fdf9', border:'2px solid #0d9488', borderRadius:'14px', cursor:'pointer', marginBottom:'12px' }}>
+            <button className="chooser-card" onClick={() => { setShowChooser(false); setShowRevision(true) }} style={{ display:'flex', gap:'12px', alignItems:'flex-start', width:'100%', textAlign:'left', padding:'16px', background:'#f0fdf9', border:'2px solid #0d9488', borderRadius:'14px', cursor:'pointer', marginBottom:'12px' }}>
               <span style={{ fontSize:'20px' }}>✨</span>
               <span>
                 <div style={{ fontSize:'14px', fontWeight:700, color:'#0a0f1a', marginBottom:'2px' }}>Edit with AI</div>
                 <div style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.5 }}>Make changes faster with AI.</div>
               </span>
             </button>
-            <button onClick={() => { setShowChooser(false); setActiveTab('edit') }} style={{ display:'flex', gap:'12px', alignItems:'flex-start', width:'100%', textAlign:'left', padding:'16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'14px', cursor:'pointer', marginBottom:'16px' }}>
+            <button className="chooser-card" onClick={() => { setShowChooser(false); setActiveTab('edit') }} style={{ display:'flex', gap:'12px', alignItems:'flex-start', width:'100%', textAlign:'left', padding:'16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'14px', cursor:'pointer', marginBottom:'16px' }}>
               <span style={{ fontSize:'20px' }}>✏️</span>
               <span>
                 <div style={{ fontSize:'14px', fontWeight:700, color:'#0a0f1a', marginBottom:'2px' }}>Edit Manually</div>
