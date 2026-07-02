@@ -137,13 +137,9 @@ export default function PreviewPage() {
     setShowColorPicker(false)
   }, [template])
 
-  // Ready toast: celebrate, then get out of the way (paused while hovered).
+  // Ready toast: pause the countdown while hovered (dismissal is driven by the
+  // progress bar's animationEnd below, so there is a single clock).
   const [bannerPaused, setBannerPaused] = useState(false)
-  useEffect(() => {
-    if (!showReadyBanner || bannerPaused) return
-    const t = setTimeout(() => setShowReadyBanner(false), 6000)
-    return () => clearTimeout(t)
-  }, [showReadyBanner, bannerPaused])
 
   function updateCV(patch: Partial<GeneratedCV>) {
     if (!cv) return
@@ -423,7 +419,6 @@ export default function PreviewPage() {
 
       {/* ── Redesign motion + polish (screen only) ── */}
       <style>{`
-        @keyframes scv-bannerDrop { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:none} }
         @keyframes scv-pop { from{opacity:0;transform:scale(.4)} to{opacity:1;transform:scale(1)} }
         @keyframes scv-draw { to{stroke-dashoffset:0} }
         @keyframes scv-up { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
@@ -432,13 +427,29 @@ export default function PreviewPage() {
         @keyframes scv-optIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
         @keyframes scv-menuIn { from{opacity:0;transform:scale(.96) translateY(-4px)} to{opacity:1;transform:scale(1) translateY(0)} }
 
-        .scv-banner { animation: scv-bannerDrop .5s cubic-bezier(.22,1,.36,1); }
-        .scv-banner .scv-check { animation: scv-pop .5s .05s cubic-bezier(.34,1.56,.64,1) both; }
-        .scv-banner .scv-check path { stroke-dasharray:20; stroke-dashoffset:20; animation: scv-draw .4s .32s ease forwards; }
-        .scv-banner .scv-btitle { animation: scv-up .5s .12s cubic-bezier(.22,1,.36,1) both; }
-        .scv-banner .scv-bsub { animation: scv-up .5s .18s cubic-bezier(.22,1,.36,1) both; }
-        .scv-banner .scv-bbtn1 { animation: scv-up .5s .26s cubic-bezier(.22,1,.36,1) both; }
-        .scv-banner .scv-bbtn2 { animation: scv-up .5s .33s cubic-bezier(.22,1,.36,1) both; }
+        /* ── ready toast ── */
+        @keyframes scv-toastIn { from{opacity:0;transform:translateY(-14px) scale(.96)} to{opacity:1;transform:none} }
+        @keyframes scv-sheen { 0%{transform:translateX(-120%) skewX(-18deg)} 60%,100%{transform:translateX(320%) skewX(-18deg)} }
+        @keyframes scv-timer { from{transform:scaleX(1)} to{transform:scaleX(0)} }
+        .scv-toast-wrap { position:fixed; top:70px; right:22px; z-index:120; width:340px; max-width:calc(100vw - 32px); }
+        .scv-toast { position:relative; display:flex; gap:13px; align-items:flex-start; padding:16px 16px 18px;
+          background:linear-gradient(150deg,#ffffff 0%,#f6fefb 100%); border:1px solid rgba(13,148,136,.16);
+          border-radius:16px; overflow:hidden;
+          box-shadow:0 2px 6px rgba(10,15,26,.06), 0 20px 44px -12px rgba(10,15,26,.28);
+          animation:scv-toastIn .42s cubic-bezier(.22,1,.36,1); }
+        .scv-toast::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(#14b8a6,#0a5d55); }
+        .scv-toast-sheen { position:absolute; top:0; bottom:0; left:0; width:40%;
+          background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
+          animation:scv-sheen 1.1s .35s ease-out both; pointer-events:none; }
+        .scv-toast .scv-check { animation:scv-pop .5s .06s cubic-bezier(.34,1.56,.64,1) both; }
+        .scv-toast .scv-check path { stroke-dasharray:20; stroke-dashoffset:20; animation:scv-draw .4s .34s ease forwards; }
+        .scv-toast .scv-btitle { animation:scv-up .5s .12s cubic-bezier(.22,1,.36,1) both; }
+        .scv-toast .scv-bsub { animation:scv-up .5s .18s cubic-bezier(.22,1,.36,1) both; }
+        .scv-toast .scv-bbtn1 { animation:scv-up .5s .26s cubic-bezier(.22,1,.36,1) both; }
+        .scv-toast .scv-bbtn2 { animation:scv-up .5s .32s cubic-bezier(.22,1,.36,1) both; }
+        .scv-toast-timer { position:absolute; left:0; right:0; bottom:0; height:2.5px; transform-origin:left;
+          background:linear-gradient(90deg,#14b8a6,#0a5d55); animation:scv-timer 6s linear forwards; }
+        .scv-toast-timer[data-paused="true"] { animation-play-state:paused; }
         .scv-bbtn { transition: transform .16s ease, border-color .16s ease, color .16s ease, background .16s ease; }
         .scv-bbtn:hover { transform: translateY(-1px); border-color:#0d9488; color:#0a5d55; }
         .scv-bbtn-primary:hover { background:#0a5d55; color:#fff; }
@@ -456,11 +467,6 @@ export default function PreviewPage() {
 
         .scv-tpl { transition: transform .16s ease, box-shadow .16s ease, background .16s ease; }
         .scv-tpl:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(10,15,26,.06), 0 10px 22px -10px rgba(10,15,26,.22); background:#fafbfc; }
-        .scv-tplscroll::-webkit-scrollbar { width:6px; }
-        .scv-tplscroll::-webkit-scrollbar-thumb { background:#e2e8f0; border-radius:10px; }
-        .scv-tplscroll::-webkit-scrollbar-track { background:transparent; }
-        .scv-tplwrap { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; }
-        .scv-tplwrap::after { content:""; position:absolute; left:0; right:0; bottom:0; height:28px; pointer-events:none; background:linear-gradient(transparent,#fff); }
       `}</style>
 
       <nav className="no-print" style={{ background:'#0a0f1a', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap:'wrap', gap:'10px' }}>
@@ -486,23 +492,28 @@ export default function PreviewPage() {
       </nav>
 
       {activeTab === 'preview' && showReadyBanner && (
-        <div className="no-print scv-banner" onMouseEnter={() => setBannerPaused(true)} onMouseLeave={() => setBannerPaused(false)} style={{ display:'flex', alignItems:'center', gap:'16px', padding:'15px 22px', background:'linear-gradient(100deg,#ecfdf7 0%,#f0fdf9 55%,#f7fdfb 100%)', borderBottom:'1px solid rgba(13,148,136,0.18)', position:'relative', overflow:'hidden' }}>
-          <div style={{ position:'absolute', left:0, top:0, bottom:0, width:'3px', background:'linear-gradient(#14b8a6,#0a5d55)' }} />
-          <div className="scv-check" style={{ width:'30px', height:'30px', borderRadius:'50%', background:'linear-gradient(140deg,#14b8a6,#0a5d55)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 12px -2px rgba(13,148,136,0.5)' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <div className="no-print scv-toast-wrap" onMouseEnter={() => setBannerPaused(true)} onMouseLeave={() => setBannerPaused(false)}>
+          <div className="scv-toast">
+            <div className="scv-toast-sheen" />
+            <div className="scv-check" style={{ width:'34px', height:'34px', borderRadius:'50%', background:'linear-gradient(140deg,#14b8a6,#0a5d55)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 12px -2px rgba(13,148,136,0.55)' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div className="scv-btitle" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.18rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.15, color:'#0a0f1a' }}>Great job! Your CV is ready.</div>
+              <div className="scv-bsub" style={{ fontSize:'12px', color:'#64748b', marginTop:'2px' }}>Download it now or make changes before you send it.</div>
+              <div style={{ display:'flex', gap:'8px', marginTop:'11px' }}>
+                <button className="scv-bbtn scv-bbtn-primary scv-bbtn1" onClick={handleDownloadPdf} disabled={!!downloading} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'8px 14px', background:'#0d9488', color:'white', border:'1px solid #0d9488', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 6px 16px -4px rgba(13,148,136,0.5)' }}><DownIcon/> PDF</button>
+                <button className="scv-bbtn scv-bbtn2" onClick={handleDownloadDocx} disabled={!!downloading} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'8px 14px', background:'white', color:'#0a0f1a', border:'1px solid #e7ebf0', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 1px 2px rgba(10,15,26,0.05)' }}><DownIcon/> Word</button>
+              </div>
+            </div>
+            <button className="scv-x" onClick={() => setShowReadyBanner(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex', borderRadius:'8px', alignSelf:'flex-start' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+            <div className="scv-toast-timer" data-paused={bannerPaused} onAnimationEnd={() => setShowReadyBanner(false)} />
           </div>
-          <div style={{ flex:1, minWidth:'180px' }}>
-            <div className="scv-btitle" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.28rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.1, color:'#0a0f1a' }}>Great job! Your CV is ready.</div>
-            <div className="scv-bsub" style={{ fontSize:'12.5px', color:'#64748b', marginTop:'1px' }}>Download it now or make any changes before sending it out.</div>
-          </div>
-          <button className="scv-bbtn scv-bbtn-primary scv-bbtn1" onClick={handleDownloadPdf} disabled={!!downloading} style={{ display:'flex', alignItems:'center', gap:'7px', padding:'9px 17px', background:'#0d9488', color:'white', border:'1px solid #0d9488', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 6px 16px -4px rgba(13,148,136,0.5)' }}><DownIcon/> Download PDF</button>
-          <button className="scv-bbtn scv-bbtn2" onClick={handleDownloadDocx} disabled={!!downloading} style={{ display:'flex', alignItems:'center', gap:'7px', padding:'9px 17px', background:'white', color:'#0a0f1a', border:'1px solid #e7ebf0', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 1px 2px rgba(10,15,26,0.05)' }}><DownIcon/> Download Word</button>
-          <button className="scv-x" onClick={() => setShowReadyBanner(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex', borderRadius:'8px' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
         </div>
       )}
       <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
         {!isCoverLetter && (
-          <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'22px 20px', display:'flex', flexDirection:'column', overflow:'hidden', height:'calc(100vh - 57px)' }}>
+          <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'22px 20px', overflowY:'auto', height:'calc(100vh - 57px)' }}>
 
             {/* ── COLOUR — always visible, premium ── */}
             {currentTpl?.customizable && (
@@ -516,11 +527,7 @@ export default function PreviewPage() {
                 </div>
               </div>
             )}
-            <div style={{ height:'1px', background:'#eef2f6', margin:'0 0 16px' }} />
-
-            {/* ── Templates: bounded scroll region with pinned bottom fade ── */}
-            <div className="scv-tplwrap" style={{ margin:'0 -20px' }}>
-            <div className="scv-tplscroll" style={{ height:'100%', overflowY:'auto', overflowX:'hidden', padding:'0 20px' }}>
+            <div style={{ height:'1px', background:'#eef2f6', margin:'0 0 18px' }} />
 
             {/* PREMIUM SECTION FIRST */}
             {premiumTemplates.length > 0 && (<>
@@ -538,8 +545,6 @@ export default function PreviewPage() {
               {academicTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
             </>)}
 
-            </div>{/* /scroll */}
-            </div>{/* /fade wrap */}
           </div>
         )}
 
