@@ -413,6 +413,40 @@ export default function PreviewPage() {
         }
       `}</style>
 
+      {/* ── Redesign motion + polish (screen only) ── */}
+      <style>{`
+        @keyframes scv-bannerDrop { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:none} }
+        @keyframes scv-pop { from{opacity:0;transform:scale(.4)} to{opacity:1;transform:scale(1)} }
+        @keyframes scv-draw { to{stroke-dashoffset:0} }
+        @keyframes scv-up { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+        @keyframes scv-scrimIn { from{opacity:0} to{opacity:1} }
+        @keyframes scv-sheetIn { from{opacity:0;transform:translateY(20px) scale(.97)} to{opacity:1;transform:none} }
+        @keyframes scv-optIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
+        @keyframes scv-menuIn { from{opacity:0;transform:scale(.96) translateY(-4px)} to{opacity:1;transform:scale(1) translateY(0)} }
+
+        .scv-banner { animation: scv-bannerDrop .5s cubic-bezier(.22,1,.36,1); }
+        .scv-banner .scv-check { animation: scv-pop .5s .05s cubic-bezier(.34,1.56,.64,1) both; }
+        .scv-banner .scv-check path { stroke-dasharray:20; stroke-dashoffset:20; animation: scv-draw .4s .32s ease forwards; }
+        .scv-banner .scv-btitle { animation: scv-up .5s .12s cubic-bezier(.22,1,.36,1) both; }
+        .scv-banner .scv-bsub { animation: scv-up .5s .18s cubic-bezier(.22,1,.36,1) both; }
+        .scv-banner .scv-bbtn1 { animation: scv-up .5s .26s cubic-bezier(.22,1,.36,1) both; }
+        .scv-banner .scv-bbtn2 { animation: scv-up .5s .33s cubic-bezier(.22,1,.36,1) both; }
+        .scv-bbtn { transition: transform .16s ease, border-color .16s ease, color .16s ease, background .16s ease; }
+        .scv-bbtn:hover { transform: translateY(-1px); border-color:#0d9488; color:#0a5d55; }
+        .scv-bbtn-primary:hover { background:#0a5d55; color:#fff; }
+
+        .scv-scrim { animation: scv-scrimIn .22s ease; }
+        .scv-sheet { animation: scv-sheetIn .34s cubic-bezier(.22,1,.36,1); }
+        .scv-opt { transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; opacity:0; }
+        .scv-opt:nth-of-type(1) { animation: scv-optIn .4s .08s cubic-bezier(.22,1,.36,1) forwards; }
+        .scv-opt:nth-of-type(2) { animation: scv-optIn .4s .15s cubic-bezier(.22,1,.36,1) forwards; }
+        .scv-opt:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(10,15,26,.06), 0 12px 28px -8px rgba(10,15,26,.16); border-color:#d7dee6; }
+        .scv-opt .scv-go { transition: transform .16s ease; }
+        .scv-opt:hover .scv-go { transform: translateX(3px); }
+        .scv-x { transition:.15s; }
+        .scv-x:hover { background:#f1f5f9; }
+      `}</style>
+
       <nav className="no-print" style={{ background:'#0a0f1a', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap:'wrap', gap:'10px' }}>
         <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', fontWeight:600, color:'white' }}>Swift<span style={{ color:'#5eead4' }}>CV</span>Pro</div>
         <div style={{ display:'flex', background:'rgba(255,255,255,0.08)', borderRadius:'50px', padding:'3px', gap:'2px' }}>
@@ -426,10 +460,9 @@ export default function PreviewPage() {
               {downloading ? '...' : <>↓ Download <span style={{ fontSize:'10px' }}>▾</span></>}
             </button>
             {showDownloadMenu && (
-              <div onMouseLeave={() => setShowDownloadMenu(false)} style={{ position:'absolute', top:'calc(100% + 8px)', right:0, background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', boxShadow:'0 8px 30px rgba(0,0,0,0.15)', overflow:'hidden', minWidth:'160px', zIndex:60, animation:'menuIn 0.14s ease', transformOrigin:'top right' }}>
-                <style>{`@keyframes menuIn { from{opacity:0; transform:scale(0.96) translateY(-4px)} to{opacity:1; transform:scale(1) translateY(0)} }`}</style>
-                <button onClick={() => { setShowDownloadMenu(false); handleDownloadPdf() }} style={{ display:'block', width:'100%', textAlign:'left', padding:'12px 16px', background:'white', border:'none', borderBottom:'1px solid #f1f5f9', fontSize:'13px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}>↓ Download PDF</button>
-                <button onClick={() => { setShowDownloadMenu(false); handleDownloadDocx() }} style={{ display:'block', width:'100%', textAlign:'left', padding:'12px 16px', background:'white', border:'none', fontSize:'13px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}>↓ Download Word</button>
+              <div onMouseLeave={() => setShowDownloadMenu(false)} style={{ position:'absolute', top:'calc(100% + 8px)', right:0, background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', boxShadow:'0 12px 30px -6px rgba(10,15,26,0.2)', overflow:'hidden', minWidth:'168px', zIndex:60, animation:'scv-menuIn 0.14s ease', transformOrigin:'top right' }}>
+                <button onClick={() => { setShowDownloadMenu(false); handleDownloadPdf() }} style={{ display:'flex', alignItems:'center', gap:'8px', width:'100%', textAlign:'left', padding:'12px 16px', background:'white', border:'none', borderBottom:'1px solid #f1f5f9', fontSize:'13px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}><DownIcon/> Download PDF</button>
+                <button onClick={() => { setShowDownloadMenu(false); handleDownloadDocx() }} style={{ display:'flex', alignItems:'center', gap:'8px', width:'100%', textAlign:'left', padding:'12px 16px', background:'white', border:'none', fontSize:'13px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}><DownIcon/> Download Word</button>
               </div>
             )}
           </div>
@@ -437,16 +470,18 @@ export default function PreviewPage() {
       </nav>
 
       {activeTab === 'preview' && showReadyBanner && (
-        <div className="no-print" style={{ display:'flex', alignItems:'center', gap:'14px', background:'#f0fdf9', borderBottom:'1px solid rgba(13,148,136,0.2)', padding:'14px 20px', animation:'slideDown 0.2s ease' }}>
-          <style>{`@keyframes slideDown { from{opacity:0; transform:translateY(-8px)} to{opacity:1; transform:translateY(0)} }`}</style>
-          <div style={{ width:'26px', height:'26px', borderRadius:'50%', background:'#0d9488', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', flexShrink:0 }}>✓</div>
-          <div style={{ flex:1, minWidth:'200px' }}>
-            <div style={{ fontSize:'14px', fontWeight:700, color:'#0a0f1a' }}>Great job! Your CV is ready.</div>
-            <div style={{ fontSize:'12.5px', color:'#64748b' }}>Download it now or make any changes before sending it out.</div>
+        <div className="no-print scv-banner" style={{ display:'flex', alignItems:'center', gap:'16px', padding:'15px 22px', background:'linear-gradient(100deg,#ecfdf7 0%,#f0fdf9 55%,#f7fdfb 100%)', borderBottom:'1px solid rgba(13,148,136,0.18)', position:'relative', overflow:'hidden' }}>
+          <div style={{ position:'absolute', left:0, top:0, bottom:0, width:'3px', background:'linear-gradient(#14b8a6,#0a5d55)' }} />
+          <div className="scv-check" style={{ width:'30px', height:'30px', borderRadius:'50%', background:'linear-gradient(140deg,#14b8a6,#0a5d55)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 12px -2px rgba(13,148,136,0.5)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
-          <button onClick={handleDownloadPdf} disabled={!!downloading} style={{ padding:'9px 16px', background:'white', color:'#0a0f1a', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap' }}>↓ Download PDF</button>
-          <button onClick={handleDownloadDocx} disabled={!!downloading} style={{ padding:'9px 16px', background:'white', color:'#0a0f1a', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap' }}>↓ Download Word</button>
-          <button onClick={() => setShowReadyBanner(false)} style={{ background:'none', border:'none', fontSize:'16px', color:'#94a3b8', cursor:'pointer' }}>✕</button>
+          <div style={{ flex:1, minWidth:'180px' }}>
+            <div className="scv-btitle" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.28rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.1, color:'#0a0f1a' }}>Great job! Your CV is ready.</div>
+            <div className="scv-bsub" style={{ fontSize:'12.5px', color:'#64748b', marginTop:'1px' }}>Download it now or make any changes before sending it out.</div>
+          </div>
+          <button className="scv-bbtn scv-bbtn-primary scv-bbtn1" onClick={handleDownloadPdf} disabled={!!downloading} style={{ display:'flex', alignItems:'center', gap:'7px', padding:'9px 17px', background:'#0d9488', color:'white', border:'1px solid #0d9488', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 6px 16px -4px rgba(13,148,136,0.5)' }}><DownIcon/> Download PDF</button>
+          <button className="scv-bbtn scv-bbtn2" onClick={handleDownloadDocx} disabled={!!downloading} style={{ display:'flex', alignItems:'center', gap:'7px', padding:'9px 17px', background:'white', color:'#0a0f1a', border:'1px solid #e7ebf0', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 1px 2px rgba(10,15,26,0.05)' }}><DownIcon/> Download Word</button>
+          <button className="scv-x" onClick={() => setShowReadyBanner(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex', borderRadius:'8px' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
         </div>
       )}
       <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
@@ -516,33 +551,40 @@ export default function PreviewPage() {
 
       {/* NEED CHANGES? CHOOSER */}
       {showChooser && (
-        <div onClick={() => setShowChooser(false)} className="no-print" style={{ position:'fixed', inset:0, background:'rgba(10,15,26,0.5)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', animation:'fadeIn 0.18s ease' }}>
-          <style>{`
-            @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-            @keyframes riseIn { from{opacity:0; transform:translateY(12px) scale(0.98)} to{opacity:1; transform:translateY(0) scale(1)} }
-            .chooser-card { transition: border-color 0.15s ease, transform 0.15s ease; }
-            .chooser-card:hover { transform: translateY(-1px); }
-          `}</style>
-          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'380px', padding:'22px', boxShadow:'0 25px 80px rgba(0,0,0,0.35)', fontFamily:"'DM Sans', sans-serif", animation:'riseIn 0.2s ease' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
-              <div style={{ fontSize:'15px', fontWeight:700, color:'#0a0f1a' }}>How would you like to make changes?</div>
-              <button onClick={() => setShowChooser(false)} style={{ background:'none', border:'none', fontSize:'18px', color:'#94a3b8', cursor:'pointer' }}>✕</button>
+        <div onClick={() => setShowChooser(false)} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+          <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'392px', padding:'8px', boxShadow:'0 1px 3px rgba(10,15,26,0.08), 0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif" }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'16px 16px 10px' }}>
+              <div>
+                <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, letterSpacing:'0.2px', color:'#0a0f1a' }}>How would you like to make changes?</div>
+                <div style={{ fontSize:'12.5px', color:'#64748b', marginTop:'3px' }}>Pick a path — you can switch anytime.</div>
+              </div>
+              <button className="scv-x" onClick={() => setShowChooser(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', borderRadius:'8px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
-            <button className="chooser-card" onClick={() => { setShowChooser(false); setShowRevision(true) }} style={{ display:'flex', gap:'12px', alignItems:'flex-start', width:'100%', textAlign:'left', padding:'16px', background:'#f0fdf9', border:'2px solid #0d9488', borderRadius:'14px', cursor:'pointer', marginBottom:'12px' }}>
-              <span style={{ fontSize:'20px' }}>✨</span>
-              <span>
-                <div style={{ fontSize:'14px', fontWeight:700, color:'#0a0f1a', marginBottom:'2px' }}>Edit with AI</div>
-                <div style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.5 }}>Make changes faster with AI.</div>
+
+            <button className="scv-opt" onClick={() => { setShowChooser(false); setShowRevision(true) }} style={{ position:'relative', display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'0 8px', textAlign:'left', padding:'15px', background:'linear-gradient(140deg,#f0fdf9,#e7fbf5)', border:'1.5px solid rgba(13,148,136,0.4)', borderRadius:'14px', cursor:'pointer' }}>
+              <span style={{ position:'absolute', top:'-9px', left:'17px', font:"700 9px 'DM Sans'", letterSpacing:'1px', color:'#0a5d55', background:'#d7f5ee', padding:'3px 8px', borderRadius:'20px' }}>POPULAR</span>
+              <span style={{ width:'42px', height:'42px', borderRadius:'11px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(140deg,#14b8a6,#0a5d55)', boxShadow:'0 6px 14px -4px rgba(13,148,136,0.55)' }}>
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z" fill="#fff"/><circle cx="18.5" cy="4.5" r="1.3" fill="#fff"/><circle cx="5" cy="16" r="1" fill="#fff"/></svg>
               </span>
-            </button>
-            <button className="chooser-card" onClick={() => { setShowChooser(false); setActiveTab('edit') }} style={{ display:'flex', gap:'12px', alignItems:'flex-start', width:'100%', textAlign:'left', padding:'16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'14px', cursor:'pointer', marginBottom:'16px' }}>
-              <span style={{ fontSize:'20px' }}>✏️</span>
-              <span>
-                <div style={{ fontSize:'14px', fontWeight:700, color:'#0a0f1a', marginBottom:'2px' }}>Edit Manually</div>
-                <div style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.5 }}>Edit every section yourself.</div>
+              <span style={{ flex:1 }}>
+                <span style={{ display:'block', fontSize:'14.5px', fontWeight:700, letterSpacing:'-0.1px', color:'#0a0f1a' }}>Edit with AI</span>
+                <span style={{ display:'block', fontSize:'12.5px', color:'#64748b', marginTop:'2px', lineHeight:1.45 }}>Make changes faster with AI.</span>
               </span>
+              <span className="scv-go" style={{ color:'#0d9488', display:'flex' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
             </button>
-            <button onClick={() => setShowChooser(false)} style={{ width:'100%', padding:'11px', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'13px', fontWeight:500, color:'#64748b', cursor:'pointer' }}>Cancel</button>
+
+            <button className="scv-opt" onClick={() => { setShowChooser(false); setActiveTab('edit') }} style={{ display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'9px 8px 0', textAlign:'left', padding:'15px', background:'white', border:'1px solid #e7ebf0', borderRadius:'14px', cursor:'pointer' }}>
+              <span style={{ width:'42px', height:'42px', borderRadius:'11px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#f1f5f9' }}>
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5M4 20l1.2-4.2L15.3 5.7a1.7 1.7 0 012.4 0l.6.6a1.7 1.7 0 010 2.4L8.2 18.8 4 20z" stroke="#0a0f1a" strokeWidth="1.8" strokeLinejoin="round"/></svg>
+              </span>
+              <span style={{ flex:1 }}>
+                <span style={{ display:'block', fontSize:'14.5px', fontWeight:700, letterSpacing:'-0.1px', color:'#0a0f1a' }}>Edit manually</span>
+                <span style={{ display:'block', fontSize:'12.5px', color:'#64748b', marginTop:'2px', lineHeight:1.45 }}>Edit every section yourself.</span>
+              </span>
+              <span className="scv-go" style={{ color:'#94a3b8', display:'flex' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+            </button>
+
+            <button className="scv-x" onClick={() => setShowChooser(false)} style={{ display:'block', width:'calc(100% - 16px)', margin:'12px 8px 8px', padding:'12px', background:'white', border:'1px solid #e7ebf0', borderRadius:'50px', fontSize:'13px', fontWeight:500, color:'#64748b', cursor:'pointer' }}>Cancel</button>
           </div>
         </div>
       )}
@@ -616,6 +658,10 @@ export default function PreviewPage() {
 // ══════════════════════════════════════════════════════
 // SVG THUMBNAILS — one per template
 // ══════════════════════════════════════════════════════
+function DownIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+}
+
 function TemplateThumb({ id }: { id: TemplateId }) {
   const W = 50, H = 64
   const wrap: React.CSSProperties = { width: W, height: H, borderRadius: 4, overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.12)', background: 'white', border: '1px solid #e2e8f0' }
