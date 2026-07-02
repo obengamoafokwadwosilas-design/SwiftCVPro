@@ -137,6 +137,14 @@ export default function PreviewPage() {
     setShowColorPicker(false)
   }, [template])
 
+  // Ready toast: celebrate, then get out of the way (paused while hovered).
+  const [bannerPaused, setBannerPaused] = useState(false)
+  useEffect(() => {
+    if (!showReadyBanner || bannerPaused) return
+    const t = setTimeout(() => setShowReadyBanner(false), 6000)
+    return () => clearTimeout(t)
+  }, [showReadyBanner, bannerPaused])
+
   function updateCV(patch: Partial<GeneratedCV>) {
     if (!cv) return
     const updated = { ...cv, ...patch }
@@ -445,6 +453,14 @@ export default function PreviewPage() {
         .scv-opt:hover .scv-go { transform: translateX(3px); }
         .scv-x { transition:.15s; }
         .scv-x:hover { background:#f1f5f9; }
+
+        .scv-tpl { transition: transform .16s ease, box-shadow .16s ease, background .16s ease; }
+        .scv-tpl:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(10,15,26,.06), 0 10px 22px -10px rgba(10,15,26,.22); background:#fafbfc; }
+        .scv-tplscroll::-webkit-scrollbar { width:6px; }
+        .scv-tplscroll::-webkit-scrollbar-thumb { background:#e2e8f0; border-radius:10px; }
+        .scv-tplscroll::-webkit-scrollbar-track { background:transparent; }
+        .scv-tplwrap { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; }
+        .scv-tplwrap::after { content:""; position:absolute; left:0; right:0; bottom:0; height:28px; pointer-events:none; background:linear-gradient(transparent,#fff); }
       `}</style>
 
       <nav className="no-print" style={{ background:'#0a0f1a', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap:'wrap', gap:'10px' }}>
@@ -470,7 +486,7 @@ export default function PreviewPage() {
       </nav>
 
       {activeTab === 'preview' && showReadyBanner && (
-        <div className="no-print scv-banner" style={{ display:'flex', alignItems:'center', gap:'16px', padding:'15px 22px', background:'linear-gradient(100deg,#ecfdf7 0%,#f0fdf9 55%,#f7fdfb 100%)', borderBottom:'1px solid rgba(13,148,136,0.18)', position:'relative', overflow:'hidden' }}>
+        <div className="no-print scv-banner" onMouseEnter={() => setBannerPaused(true)} onMouseLeave={() => setBannerPaused(false)} style={{ display:'flex', alignItems:'center', gap:'16px', padding:'15px 22px', background:'linear-gradient(100deg,#ecfdf7 0%,#f0fdf9 55%,#f7fdfb 100%)', borderBottom:'1px solid rgba(13,148,136,0.18)', position:'relative', overflow:'hidden' }}>
           <div style={{ position:'absolute', left:0, top:0, bottom:0, width:'3px', background:'linear-gradient(#14b8a6,#0a5d55)' }} />
           <div className="scv-check" style={{ width:'30px', height:'30px', borderRadius:'50%', background:'linear-gradient(140deg,#14b8a6,#0a5d55)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 12px -2px rgba(13,148,136,0.5)' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -486,7 +502,7 @@ export default function PreviewPage() {
       )}
       <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
         {!isCoverLetter && (
-          <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'22px 20px', overflowY:'auto' }}>
+          <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'22px 20px', display:'flex', flexDirection:'column', overflow:'hidden', height:'calc(100vh - 57px)' }}>
 
             {/* ── COLOUR — always visible, premium ── */}
             {currentTpl?.customizable && (
@@ -500,36 +516,30 @@ export default function PreviewPage() {
                 </div>
               </div>
             )}
-            <div style={{ height:'1px', background:'#eef2f6', margin:'0 0 20px' }} />
+            <div style={{ height:'1px', background:'#eef2f6', margin:'0 0 16px' }} />
+
+            {/* ── Templates: bounded scroll region with pinned bottom fade ── */}
+            <div className="scv-tplwrap" style={{ margin:'0 -20px' }}>
+            <div className="scv-tplscroll" style={{ height:'100%', overflowY:'auto', overflowX:'hidden', padding:'0 20px' }}>
 
             {/* PREMIUM SECTION FIRST */}
             {premiumTemplates.length > 0 && (<>
               <CategoryHeader>Premium</CategoryHeader>
-              <div style={{ fontSize:'10px', color:'#cbd5e1', marginBottom:'12px', lineHeight:1.5 }}>Rich design · see badge for format</div>
               {premiumTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
             </>)}
 
             {/* ATS SECTION */}
             <CategoryHeader>ATS Templates</CategoryHeader>
-            <div style={{ fontSize:'10px', color:'#cbd5e1', marginBottom:'12px', lineHeight:1.5 }}>Recruiter-safe · PDF &amp; Word</div>
             {atsTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
 
             {/* ACADEMIC SECTION */}
             {academicTemplates.length > 0 && (<>
               <CategoryHeader>Academic</CategoryHeader>
-              <div style={{ fontSize:'10px', color:'#cbd5e1', marginBottom:'12px', lineHeight:1.5 }}>Scholarly · PDF &amp; Word</div>
               {academicTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
             </>)}
 
-            <div style={{ background:'#f8fafc', borderRadius:'10px', border:'1px solid #f1f5f9', padding:'14px', marginTop:'16px' }}>
-              <div style={{ fontSize:'11px', fontWeight:600, color:'#0a0f1a', marginBottom:'8px', textTransform:'uppercase', letterSpacing:'1px' }}>Tips</div>
-              {[
-                'Customize colours on premium templates',
-                'Not sure what to change? Try Edit → Edit with AI',
-              ].map(t => (
-                <div key={t} style={{ fontSize:'11.5px', color:'#64748b', marginBottom:'6px', lineHeight:1.5, fontWeight:300 }}>· {t}</div>
-              ))}
-            </div>
+            </div>{/* /scroll */}
+            </div>{/* /fade wrap */}
           </div>
         )}
 
@@ -829,21 +839,16 @@ function CategoryHeader({ children }: { children: string }) {
 }
 
 function TemplateCard({ tpl, active, onClick }: { tpl: typeof TEMPLATES[0]; active: boolean; onClick: () => void }) {
+  const both = tpl.formats === 'both'
   return (
-    <div onClick={onClick} style={{ display:'flex', alignItems:'flex-start', gap:'12px', padding:'11px 12px', borderRadius:'12px', background: active ? '#f6fdfb' : 'none', boxShadow: active ? '0 0 0 1.5px #0d9488' : '0 0 0 1px transparent', cursor:'pointer', marginBottom:'7px', transition:'all 0.18s' }}
-      onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = '#fafbfc' }}
-      onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = 'none' }}>
+    <div onClick={onClick} className="scv-tpl" style={{ display:'flex', alignItems:'flex-start', gap:'12px', padding:'11px 12px', borderRadius:'12px', background: active ? '#f6fdfb' : 'none', boxShadow: active ? '0 0 0 1.5px #0d9488' : '0 0 0 1px transparent', cursor:'pointer', marginBottom:'7px' }}>
       <TemplateThumb id={tpl.id} />
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontSize:'13px', fontWeight:600, color: active ? '#0d9488' : '#0a0f1a' }}>{tpl.name}</div>
-        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px', marginBottom:'5px' }}>{tpl.tag}</div>
-        <div style={{
-          display:'inline-block', fontSize:'8px', fontWeight:700, letterSpacing:'0.8px',
-          padding:'2.5px 7px', borderRadius:'20px',
-          background: tpl.formats === 'both' ? '#ecfdf5' : '#fffbeb',
-          color:      tpl.formats === 'both' ? '#0d9488' : '#b45309'
-        }}>
-          {tpl.formats === 'both' ? 'PDF + WORD' : 'PDF ONLY'}
+        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px', marginBottom:'6px' }}>{tpl.tag}</div>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:'5px', fontSize:'8.5px', fontWeight:700, letterSpacing:'0.5px', padding:'3px 8px 3px 6px', borderRadius:'20px', background: both ? '#ecfdf5' : '#fffbeb', color: both ? '#0d9488' : '#b45309' }}>
+          <svg width="9" height="10" viewBox="0 0 12 14" fill="none"><path d="M2 1h5l3 3v9a0 0 0 01 0 0H2a0 0 0 01 0 0V1z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/><path d="M7 1v3h3" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/></svg>
+          {both ? 'PDF · WORD' : 'PDF ONLY'}
         </div>
       </div>
       {active && <span style={{ color:'#0d9488', fontSize:'14px', fontWeight:700, marginTop:'2px' }}>✓</span>}
