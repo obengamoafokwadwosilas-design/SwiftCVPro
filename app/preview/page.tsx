@@ -140,6 +140,7 @@ export default function PreviewPage() {
   // Ready toast: pause the countdown while hovered (dismissal is driven by the
   // progress bar's animationEnd below, so there is a single clock).
   const [bannerPaused, setBannerPaused] = useState(false)
+  const [showCoverSoon, setShowCoverSoon] = useState(false)
 
   function updateCV(patch: Partial<GeneratedCV>) {
     if (!cv) return
@@ -477,6 +478,7 @@ export default function PreviewPage() {
         </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
           <button onClick={handleNewCV} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>+ New CV</button>
+          <button onClick={() => setShowCoverSoon(true)} title="Coming soon" style={{ padding:'8px 12px 8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.55)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer', display:'flex', alignItems:'center', gap:'7px' }}>+ Cover Letter <span style={{ fontSize:'8px', fontWeight:700, letterSpacing:'0.5px', color:'#5eead4', background:'rgba(94,234,212,0.14)', padding:'2px 6px', borderRadius:'20px' }}>SOON</span></button>
           <div style={{ position:'relative' }}>
             <button onClick={() => setShowDownloadMenu(v => !v)} disabled={!!downloading} style={{ padding:'8px 16px', background:'rgba(255,255,255,0.1)', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
               {downloading ? '...' : <>↓ Download <span style={{ fontSize:'10px' }}>▾</span></>}
@@ -529,20 +531,28 @@ export default function PreviewPage() {
             )}
             <div style={{ height:'1px', background:'#eef2f6', margin:'0 0 18px' }} />
 
-            {/* PREMIUM SECTION FIRST */}
+            <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#94a3b8', marginBottom:'12px' }}>Choose Template</div>
+
+            {/* PREMIUM */}
             {premiumTemplates.length > 0 && (<>
               <CategoryHeader>Premium</CategoryHeader>
-              {premiumTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'9px', margin:'6px 0 16px' }}>
+                {premiumTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
+              </div>
             </>)}
 
-            {/* ATS SECTION */}
+            {/* ATS */}
             <CategoryHeader>ATS Templates</CategoryHeader>
-            {atsTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'9px', margin:'6px 0 16px' }}>
+              {atsTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
+            </div>
 
-            {/* ACADEMIC SECTION */}
+            {/* ACADEMIC */}
             {academicTemplates.length > 0 && (<>
               <CategoryHeader>Academic</CategoryHeader>
-              {academicTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'9px', margin:'6px 0 4px' }}>
+                {academicTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
+              </div>
             </>)}
 
           </div>
@@ -563,6 +573,23 @@ export default function PreviewPage() {
           )}
         </div>
       </div>
+
+      {showCoverSoon && (
+        <div className="no-print scv-toast-wrap" style={{ top:'70px' }}>
+          <div className="scv-toast">
+            <div className="scv-toast-sheen" />
+            <div style={{ width:'34px', height:'34px', borderRadius:'50%', background:'linear-gradient(140deg,#334155,#0a0f1a)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, color:'#fff' }}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M7 3h7l4 4v14H7V3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M14 3v4h4M9.5 12h6M9.5 15.5h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.18rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.15, color:'#0a0f1a' }}>Cover letters are coming soon.</div>
+              <div style={{ fontSize:'12px', color:'#64748b', marginTop:'2px' }}>Soon you'll generate a matching cover letter from this CV in one click.</div>
+            </div>
+            <button className="scv-x" onClick={() => setShowCoverSoon(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex', borderRadius:'8px', alignSelf:'flex-start' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+            <div className="scv-toast-timer" onAnimationEnd={() => setShowCoverSoon(false)} />
+          </div>
+        </div>
+      )}
 
       {/* NEED CHANGES? CHOOSER */}
       {showChooser && (
@@ -846,17 +873,16 @@ function CategoryHeader({ children }: { children: string }) {
 function TemplateCard({ tpl, active, onClick }: { tpl: typeof TEMPLATES[0]; active: boolean; onClick: () => void }) {
   const both = tpl.formats === 'both'
   return (
-    <div onClick={onClick} className="scv-tpl" style={{ display:'flex', alignItems:'flex-start', gap:'12px', padding:'11px 12px', borderRadius:'12px', background: active ? '#f6fdfb' : 'none', boxShadow: active ? '0 0 0 1.5px #0d9488' : '0 0 0 1px transparent', cursor:'pointer', marginBottom:'7px' }}>
+    <div onClick={onClick} className="scv-tpl" title={tpl.tag} style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', gap:'8px', padding:'12px 8px 11px', borderRadius:'12px', background: active ? '#f6fdfb' : '#fff', boxShadow: active ? '0 0 0 1.5px #0d9488' : '0 0 0 1px #eef2f6', cursor:'pointer' }}>
+      {active && <span style={{ position:'absolute', top:'6px', right:'6px', width:'16px', height:'16px', borderRadius:'50%', background:'#0d9488', color:'#fff', fontSize:'9px', fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center' }}>✓</span>}
       <TemplateThumb id={tpl.id} />
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:'13px', fontWeight:600, color: active ? '#0d9488' : '#0a0f1a' }}>{tpl.name}</div>
-        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px', marginBottom:'6px' }}>{tpl.tag}</div>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:'5px', fontSize:'8.5px', fontWeight:700, letterSpacing:'0.5px', padding:'3px 8px 3px 6px', borderRadius:'20px', background: both ? '#ecfdf5' : '#fffbeb', color: both ? '#0d9488' : '#b45309' }}>
-          <svg width="9" height="10" viewBox="0 0 12 14" fill="none"><path d="M2 1h5l3 3v9a0 0 0 01 0 0H2a0 0 0 01 0 0V1z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/><path d="M7 1v3h3" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/></svg>
+      <div style={{ textAlign:'center', width:'100%' }}>
+        <div style={{ fontSize:'12px', fontWeight:600, color: active ? '#0d9488' : '#0a0f1a', lineHeight:1.2 }}>{tpl.name}</div>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:'4px', marginTop:'5px', fontSize:'7.5px', fontWeight:700, letterSpacing:'0.4px', padding:'2.5px 7px', borderRadius:'20px', background: both ? '#ecfdf5' : '#fffbeb', color: both ? '#0d9488' : '#b45309' }}>
+          <svg width="8" height="9" viewBox="0 0 12 14" fill="none"><path d="M2 1h5l3 3v9H2V1z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/><path d="M7 1v3h3" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/></svg>
           {both ? 'PDF · WORD' : 'PDF ONLY'}
         </div>
       </div>
-      {active && <span style={{ color:'#0d9488', fontSize:'14px', fontWeight:700, marginTop:'2px' }}>✓</span>}
     </div>
   )
 }
