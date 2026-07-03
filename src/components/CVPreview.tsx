@@ -3,6 +3,21 @@
 import { GeneratedCV, TemplateId } from '@/types'
 import React, { useRef, useState, useLayoutEffect } from 'react'
 
+// Render Additional Information as clean labelled lines: bold the "Label:" prefix,
+// put each newline-separated entry on its own line. Falls back to plain text.
+function addlNodes(text?: string): React.ReactNode {
+  if (!text) return null
+  return text.split('\n').map((raw, i) => {
+    const line = raw.trim()
+    if (!line) return null
+    const ci = line.indexOf(':')
+    if (ci > 0 && ci <= 32) {
+      return <span key={i} style={{ display: 'block', marginBottom: 2 }}><strong style={{ fontWeight: 700 }}>{line.slice(0, ci + 1)}</strong>{line.slice(ci + 1)}</span>
+    }
+    return <span key={i} style={{ display: 'block', marginBottom: 2 }}>{line}</span>
+  })
+}
+
 // ════════════════════════════════════════════════════════════════
 // CV PREVIEW — TRUE MULTI-PAGE PAGINATION ENGINE
 // Measures content, packs into discrete A4 pages, each page gets its
@@ -142,7 +157,7 @@ function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skill
     if (cv.skills?.length) blocks.push({ key: 'skills', node: <div style={{ marginBottom: 14 }}>{sectionHeading('Core Skills', A, headStyle)}<div style={{ fontSize: 12, color: '#333', lineHeight: 2 }}>{cv.skills.join('  •  ')}</div></div> })
     if (cv.languages?.length) blocks.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{sectionHeading('Languages', A, headStyle)}<div style={{ fontSize: 12, color: '#333' }}>{cv.languages.join('  •  ')}</div></div> })
   }
-  if (cv.additionalInfo) blocks.push({ key: 'addl', node: <div style={{ marginBottom: 14 }}>{sectionHeading('Additional Information', A, headStyle)}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#333', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+  if (cv.additionalInfo) blocks.push({ key: 'addl', node: <div style={{ marginBottom: 14 }}>{sectionHeading('Additional Information', A, headStyle)}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#333', margin: 0, whiteSpace: 'pre-line' }}>{addlNodes(cv.additionalInfo)}</p></div> })
   return blocks
 }
 
@@ -299,7 +314,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       }
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#333' }}>{x}</li></ul> })) } }
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
-      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#333', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#333', margin: 0, whiteSpace: 'pre-line' }}>{addlNodes(cv.additionalInfo)}</p></div> })
       return b
     },
     Header: ({ cv, A }) => (<><div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.1, color: '#1a1a1a', marginBottom: 4 }}>{cv.fullName}</div>{cv.jobTitle && <div style={{ fontSize: 14, color: A, fontWeight: 600, letterSpacing: 0.5, marginBottom: 22, textTransform: 'uppercase' }}>{cv.jobTitle}</div>}</>),
@@ -338,7 +353,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{head('Languages')}<div style={{ fontSize: 12, color: '#444' }}>{cv.languages.join('  ·  ')}</div></div> })
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
-      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{addlNodes(cv.additionalInfo)}</p></div> })
       return b
     },
     Header: ({ cv, A }) => (<>
@@ -372,7 +387,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       }
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
-      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{addlNodes(cv.additionalInfo)}</p></div> })
       return b
     },
     Header: ({ cv, A }) => (<>
@@ -416,7 +431,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 18 }}>{head('Languages')}<div style={{ fontSize: 12, color: '#555' }}>{cv.languages.join('   ·   ')}</div></div> })
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 11.5, lineHeight: 1.75, color: '#555' }}>{x}</li></ul> })) } }
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
-      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.8, color: '#555', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.8, color: '#555', margin: 0, whiteSpace: 'pre-line' }}>{addlNodes(cv.additionalInfo)}</p></div> })
       return b
     },
     Header: ({ cv }) => (<>
@@ -452,7 +467,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{head('Languages')}<div style={{ fontSize: 12, color: '#444' }}>{cv.languages.join('  ·  ')}</div></div> })
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
-      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{addlNodes(cv.additionalInfo)}</p></div> })
       return b
     },
     Header: ({ cv, A }) => (<>
@@ -487,7 +502,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{head('Languages')}<div style={{ fontSize: 12, color: '#444' }}>{cv.languages.join('  ·  ')}</div></div> })
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
-      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{addlNodes(cv.additionalInfo)}</p></div> })
       return b
     },
     Header: ({ cv, A }) => (<>
@@ -548,7 +563,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 16 }}>{head('Languages')}<div style={{ fontSize: 12, color: '#475569', paddingLeft: 70 }}>{cv.languages.join('   ·   ')}</div></div> })
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 86, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#475569' }}>{x}</li></ul> })) } }
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
-      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#475569', margin: 0, paddingLeft: 70, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#475569', margin: 0, paddingLeft: 70, whiteSpace: 'pre-line' }}>{addlNodes(cv.additionalInfo)}</p></div> })
       return b
     },
     Header: ({ cv, A }) => {
@@ -611,7 +626,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
         cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div><div style={{ fontSize: 12.5, fontWeight: 700, color: DARK }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 11.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div><div style={{ fontSize: 10.5, color: A, fontStyle: 'italic', whiteSpace: 'nowrap', fontFamily: BODY_SANS }}>{e.startYear} – {e.endYear}</div></div> }))
       }
       if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 20 }}>{head('Expertise')}<div style={{ fontSize: 11.5, lineHeight: 1.95, color: '#444', fontFamily: BODY_SANS }}>{cv.skills.join('   ·   ')}</div>{!!cv.languages?.length && <div style={{ fontSize: 11, color: '#666', marginTop: 8, fontFamily: BODY_SANS }}>{cv.languages.join('   ·   ')}</div>}</div> })
-      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 11.5, lineHeight: 1.75, color: '#444', margin: 0, fontFamily: BODY_SANS, whiteSpace: 'pre-line' }}>{cv.additionalInfo}</p></div> })
+      if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 11.5, lineHeight: 1.75, color: '#444', margin: 0, fontFamily: BODY_SANS, whiteSpace: 'pre-line' }}>{addlNodes(cv.additionalInfo)}</p></div> })
       return b
     },
     Header: ({ cv, A }) => {
