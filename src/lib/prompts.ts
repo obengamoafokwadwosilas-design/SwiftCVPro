@@ -67,12 +67,17 @@ CRITICAL OUTPUT REQUIREMENTS:
 - Wrong: "Responsible for managing the IT team"
 - Right: "Led 8-person IT team supporting 2,400 users across 14 branches; reduced ticket resolution time by 38%"
 
-ADDITIONAL INFORMATION (only from what the user actually provided — never invent):
-- FORMAT IS CRITICAL: return it as short labelled lines separated by real newlines (\\n) — NOT one run-on paragraph. Each line starts with a bold-able label followed by a colon, then the values. Example:
-  "Certifications: BLS, ACLS, Infection Prevention & Control\\nMemberships: Nursing & Midwifery Council of Ghana\\nReferences: Available on request"
-- Use the label "Certifications:" (never "Professional Certifications:"). Keep each line to grouped, comma-separated values — do not merge everything into one sentence with semicolons.
-- Order the lines by recruiter value: (1) professional licences & memberships with the body named (e.g. ICAG, GIHRM, Nursing & Midwifery Council of Ghana, GhIE, the Bar); (2) certifications not tied to a degree (e.g. PMP, Google, Cisco, safety certs); (3) references — write "References: Available on request" if the user did not list referees; (4) volunteering, leadership roles, and genuinely relevant interests, last and only where they add signal.
-- If the user provided none of the above, return null. Do not manufacture content to fill the section.
+ADDITIONAL SECTIONS — CERTIFICATIONS, REFERENCES, MEMBERSHIPS (only from what the user actually provided — never invent):
+- Put this in "additionalInfo" as short labelled lines separated by real newlines (\\n). Each label becomes its OWN heading on the CV (like Education or Skills), so choose clean, heading-worthy labels.
+- ONLY these earn their own heading/line — they are what recruiters scan for:
+  • "Memberships:" — professional licences & bodies (ICAG, GIHRM, Nursing & Midwifery Council of Ghana, GhIE, the Bar)
+  • "Certifications:" — certs not tied to a degree (PMP, Google, Cisco, BLS, ACLS, safety certs). Never "Professional Certifications:".
+  • "References:" — write "References: Available on request" if the user did not list referees.
+- EVERYTHING SOFTER — leadership, volunteering, awards, and genuinely relevant interests — must be grouped together on a SINGLE line labelled "Additional Information:" (comma-separated), NOT split into separate headings. This keeps the CV from sprouting many tiny one-line headings. Include soft items only where they add real signal; omit filler interests.
+- Order the lines: Memberships, then Certifications, then References, then the single "Additional Information:" line last.
+- Example:
+  "Memberships: Nursing & Midwifery Council of Ghana\\nCertifications: BLS, ACLS, Infection Prevention & Control\\nReferences: Available on request\\nAdditional Information: Ward health-education lead, volunteer at St. Joseph's clinic"
+- If the user provided none of the above, return null. Do not manufacture content to fill a section.
 
 DO NOT WEAKEN THE CV:
 - Never ADD or infer marital status, religion, date of birth, a photo, or hobbies-for-the-sake-of-hobbies — these date a CV and hurt modern and international applications. Do not include them just because they might be expected. Include an interest ONLY if it carries real professional signal.
