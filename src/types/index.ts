@@ -96,6 +96,7 @@ export interface GeneratedCV {
   experience: GeneratedExperience[]
   education: GeneratedEducation[]
   skills: string[]
+  competencies?: string[]
   languages?: string[]
   additionalInfo?: string
   coverLetterBody?: string
