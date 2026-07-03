@@ -167,6 +167,7 @@ function SidebarContent({ cv, light }: { cv: GeneratedCV; light?: boolean }) {
   return (
     <>
       <div style={{ marginBottom: 26 }}>{head('Contact')}{[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).map((c, i) => <div key={i} style={{ fontSize: 11.5, marginBottom: 7, opacity: 0.95, wordBreak: 'break-word', lineHeight: 1.5 }}>{c}</div>)}</div>
+      {!!cv.education?.length && <div style={{ marginBottom: 26 }}>{head('Education')}{cv.education.map((e, i) => <div key={i} style={{ marginBottom: 11, fontSize: 11.5, opacity: 0.95, lineHeight: 1.45 }}><div style={{ fontWeight: 700 }}>{e.qualification}{e.field ? ` in ${e.field}` : ''}</div><div style={{ opacity: 0.85 }}>{e.institution}</div><div style={{ opacity: 0.7, fontSize: 10.5 }}>{e.startYear} – {e.endYear}{e.grade ? ` · ${e.grade}` : ''}</div></div>)}</div>}
       {!!cv.skills?.length && <div style={{ marginBottom: 26 }}>{head('Skills')}{cv.skills.map((s, i) => <div key={i} style={{ fontSize: 11.5, marginBottom: 7, opacity: 0.95, display: 'flex', gap: 7 }}><span style={{ opacity: 0.7 }}>›</span><span>{s}</span></div>)}</div>}
       {!!cv.languages?.length && <div style={{ marginBottom: 26 }}>{head('Languages')}{cv.languages.map((l, i) => <div key={i} style={{ fontSize: 11.5, marginBottom: 7, opacity: 0.95 }}>{l}</div>)}</div>}
     </>
@@ -308,10 +309,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
         cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 16 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 13.5, fontWeight: 700 }}>{e.role}</div><div style={{ fontSize: 10.5, color: '#888', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</div></div><div style={{ fontSize: 12, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 12, lineHeight: 1.7, color: '#333', marginBottom: 5 }}>{x}</li>)}</ul></div> }))
       }
-      if (cv.education?.length) {
-        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
-        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 10 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 12.5, fontWeight: 700 }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 10.5, color: '#888', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startYear} – {e.endYear}</div></div><div style={{ fontSize: 11.5, color: '#666' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div> }))
-      }
+      // Education is rendered in the sidebar for this two-column template.
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#333' }}>{x}</li></ul> })) } }
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
       if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#333', margin: 0, whiteSpace: 'pre-line' }}>{addlNodes(cv.additionalInfo)}</p></div> })
@@ -381,10 +379,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
         cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 15 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 13.5, color: DARK }}>{e.role}</span><span style={{ fontSize: 10.5, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 12, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li>)}</ul></div> }))
       }
-      if (cv.education?.length) {
-        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
-        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9 }}><div style={{ fontSize: 12.5, fontWeight: 700, color: DARK }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 11.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''} · {e.startYear}–{e.endYear}</div></div> }))
-      }
+      // Education is rendered in the sidebar for this two-column template.
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 11.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
       if (cv.additionalInfo) b.push({ key: 'addl', node: <div>{head('Additional Information')}<p style={{ fontSize: 12, lineHeight: 1.75, color: '#444', margin: 0, whiteSpace: 'pre-line' }}>{addlNodes(cv.additionalInfo)}</p></div> })
@@ -715,6 +710,7 @@ function SterlingSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
       </div>
       <SH t="Contact" />
       <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.85)', lineHeight: 1.7, marginBottom: 18, wordBreak: 'break-word' }}>{[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).map((x, i) => <div key={i}>{x}</div>)}</div>
+      {!!cv.education?.length && <><SH t="Education" />{cv.education.map((e, i) => <div key={i} style={{ marginBottom: 10 }}><div style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.92)' }}>{e.qualification}{e.field ? ` in ${e.field}` : ''}</div><div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.8)' }}>{e.institution}</div><div style={{ fontSize: 10, color: 'rgba(255,255,255,0.62)' }}>{e.startYear} – {e.endYear}{e.grade ? ` · ${e.grade}` : ''}</div></div>)}<div style={{ height: 18 }} /></>}
       {!!cv.skills?.length && <><SH t="Skills" />{cv.skills.map((s, i) => <div key={i} style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.85)', marginBottom: 5 }}>{s}</div>)}<div style={{ height: 18 }} /></>}
       {!!cv.languages?.length && <><SH t="Languages" />{cv.languages.map((l, i) => <div key={i} style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.85)', marginBottom: 5 }}>{l}</div>)}</>}
     </>
