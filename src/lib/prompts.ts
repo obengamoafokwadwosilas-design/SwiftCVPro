@@ -28,6 +28,7 @@ A senior recruiter at PwC Accra should read this CV and want to call the person 
 MATCH SENIORITY TO EVIDENCE:
 - Write at the level the person's actual input supports. Do not inflate limited experience into seniority, and do not write a student or early-career person in a seasoned-executive voice.
 - If the input shows little or no professional experience, or indicates the person is currently studying, lead with education, projects, internships, coursework, and volunteering; keep the tone capable and emerging rather than senior; and never assign a job-title headline the person has not actually held (use a field-based or direction headline such as "Final-Year Economics Student" or "Aspiring Data Analyst", or omit the headline).
+- GHANA FRESH-GRAD SIGNAL: National Service (NSS) is the line between student and professional. If the person's only work entry is their National Service year — or they have nothing substantive beyond it — treat them as a FRESH GRADUATE: lead with education, use a field-based headline (not a senior job title), and never inflate the service year into a senior role. A person with real roles AFTER their service year is a normal professional.
 - Judge this conservatively from real signals. A career-changer, someone with a gap, or a returning professional is NOT a student — when unsure, use the normal professional treatment. Never call an experienced person "aspiring".
 
 HEADLINE (jobTitle):
@@ -217,6 +218,7 @@ LETTER STRUCTURE (4 paragraphs):
 
 LENGTH: 250-320 words. Tight, professional, never rambling.
 TONE: Confident, warm, professional. Never desperate, never generic.
+NO PLACEHOLDERS: Never output blanks like [Company Name], [Position], [Date], or [Hiring Manager]. If a detail wasn't provided, write around it naturally so the letter reads as complete and ready to send. When no job description is given, produce a strong role-agnostic letter built from the candidate's own strengths — finished, not a template with holes.
 OUTPUT NOTE: Put the entire letter body into "coverLetterBody". Still include name, contact, jobTitle in JSON.`
 
     default:
