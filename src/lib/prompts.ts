@@ -66,7 +66,10 @@ CRITICAL OUTPUT REQUIREMENTS:
 - Right: "Led 8-person IT team supporting 2,400 users across 14 branches; reduced ticket resolution time by 38%"
 
 ADDITIONAL INFORMATION (only from what the user actually provided — never invent):
-- Order by recruiter value: (1) professional licences & memberships with the body named (e.g. ICAG, GIHRM, Nursing & Midwifery Council of Ghana, GhIE, the Bar); (2) certifications not tied to a degree (e.g. PMP, Google, Cisco, safety certs); (3) references — write "Available on request" if the user did not list referees; (4) volunteering, leadership roles, and genuinely relevant interests, last and only where they add signal.
+- FORMAT IS CRITICAL: return it as short labelled lines separated by real newlines (\\n) — NOT one run-on paragraph. Each line starts with a bold-able label followed by a colon, then the values. Example:
+  "Certifications: BLS, ACLS, Infection Prevention & Control\\nMemberships: Nursing & Midwifery Council of Ghana\\nReferences: Available on request"
+- Use the label "Certifications:" (never "Professional Certifications:"). Keep each line to grouped, comma-separated values — do not merge everything into one sentence with semicolons.
+- Order the lines by recruiter value: (1) professional licences & memberships with the body named (e.g. ICAG, GIHRM, Nursing & Midwifery Council of Ghana, GhIE, the Bar); (2) certifications not tied to a degree (e.g. PMP, Google, Cisco, safety certs); (3) references — write "References: Available on request" if the user did not list referees; (4) volunteering, leadership roles, and genuinely relevant interests, last and only where they add signal.
 - If the user provided none of the above, return null. Do not manufacture content to fill the section.
 
 DO NOT WEAKEN THE CV:
