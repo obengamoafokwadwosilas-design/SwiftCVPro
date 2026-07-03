@@ -141,6 +141,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Grant one free cover-letter entitlement per paid CV ──
+    // Only for actual CVs (not when the generated document IS a cover letter).
+    if (!TESTING_MODE && cvType !== 'cover_letter' && !generatedCV.coverLetterBody) {
+      try {
+        const { grantCoverLetterCredit } = await import('@/lib/credits')
+        await grantCoverLetterCredit(phone)
+      } catch (err) {
+        console.error('Cover-letter grant error (non-fatal):', err)
+      }
+    }
+
     console.log(`[Generate] ✅ Success for ${phone}`)
     return NextResponse.json({ success: true, cv: generatedCV })
 
