@@ -23,7 +23,27 @@ YOUR ABSOLUTE RULES:
 8. ALWAYS make the summary feel like an executive bio — confident, specific, distinctive
 
 QUALITY BAR:
-A senior recruiter at PwC Accra should read this CV and want to call the person within 30 seconds. If the writing feels even slightly generic, rewrite it sharper. Every word earns its place.`
+A senior recruiter at PwC Accra should read this CV and want to call the person within 30 seconds. If the writing feels even slightly generic, rewrite it sharper. Every word earns its place.
+
+MATCH SENIORITY TO EVIDENCE:
+- Write at the level the person's actual input supports. Do not inflate limited experience into seniority, and do not write a student or early-career person in a seasoned-executive voice.
+- If the input shows little or no professional experience, or indicates the person is currently studying, lead with education, projects, internships, coursework, and volunteering; keep the tone capable and emerging rather than senior; and never assign a job-title headline the person has not actually held (use a field-based or direction headline such as "Final-Year Economics Student" or "Aspiring Data Analyst", or omit the headline).
+- Judge this conservatively from real signals. A career-changer, someone with a gap, or a returning professional is NOT a student — when unsure, use the normal professional treatment. Never call an experienced person "aspiring".
+
+HEADLINE (jobTitle):
+- For a targeted CV, align the headline to the role being applied for (only where the person's background genuinely supports it).
+- For a general CV, use the most senior or representative title from the person's real history — not merely their latest job.
+- Never invent a title the person has not held.
+
+LOCATION INFERENCE:
+- Use any location the user provided verbatim. Never override a provided location.
+- You may state the established location of a WELL-KNOWN employer or institution (e.g. KNUST → Kumasi, University of Ghana → Accra, MTN, GCB, Stanbic). Ghanaian universities have fixed, known locations — placing them is safe.
+- For any company or school you cannot place with genuine confidence, OMIT the location rather than guess. A missing city is invisible; a wrong city is a verifiable error on a document going to an employer.
+- NEVER let the applicant's home city stand in for the location of a workplace you cannot place. You cannot look anything up live — rely only on what is genuinely well-known.
+
+SKILLS (evidence-gated):
+- Prefer hard, specific, demonstrable skills drawn from what the person actually did.
+- Include a soft skill ONLY when a bullet in their experience proves it (e.g. "supervised 4 staff" → "Team Leadership"). Never pad the list with generic soft skills like "Communication", "Teamwork", or "Problem-solving" just to look fuller — an unproven soft skill weakens the CV.`
 
 // ─────────────────────────────────────────────────────────────
 // MAIN PROMPT BUILDER
@@ -44,6 +64,14 @@ CRITICAL OUTPUT REQUIREMENTS:
 - Each bullet must demonstrate IMPACT, not just describe duty.
 - Wrong: "Responsible for managing the IT team"
 - Right: "Led 8-person IT team supporting 2,400 users across 14 branches; reduced ticket resolution time by 38%"
+
+ADDITIONAL INFORMATION (only from what the user actually provided — never invent):
+- Order by recruiter value: (1) professional licences & memberships with the body named (e.g. ICAG, GIHRM, Nursing & Midwifery Council of Ghana, GhIE, the Bar); (2) certifications not tied to a degree (e.g. PMP, Google, Cisco, safety certs); (3) references — write "Available on request" if the user did not list referees; (4) volunteering, leadership roles, and genuinely relevant interests, last and only where they add signal.
+- If the user provided none of the above, return null. Do not manufacture content to fill the section.
+
+DO NOT WEAKEN THE CV:
+- Never ADD or infer marital status, religion, date of birth, a photo, or hobbies-for-the-sake-of-hobbies — these date a CV and hurt modern and international applications. Do not include them just because they might be expected. Include an interest ONLY if it carries real professional signal.
+- If the user explicitly provided one of these, you may keep it (it is their choice) but keep it minimal and never lead with it.
 
 OUTPUT JSON FORMAT (return ONLY this, no markdown):
 ${outputFormat}`
@@ -110,7 +138,8 @@ function getTypeInstructions(formData: CVFormData): string {
   switch (cvType) {
 
     case 'professional':
-      return `TASK: Write a Professional CV that commands attention.
+    case 'targeted': {
+      const base = `TASK: Write a Professional CV that commands attention.
 
 STRUCTURE & STANDARDS:
 - SUMMARY (3-4 sentences): Open with years of experience and domain expertise. Include one signature achievement with numbers. End with what value the person brings to a future employer. Make it sound like an executive bio, not a job-seeker plea.
@@ -128,24 +157,27 @@ STRUCTURE & STANDARDS:
 
 TONE: Confident senior professional. Never apologetic, never overstated. Specific over generic, always.`
 
+      // Optional tailoring: only when the user provided a job description.
+      if (jobDescription && jobDescription.trim()) {
+        return `${base}
 
-    case 'targeted':
-      return `TASK: Write a Targeted CV laser-focused on this specific role.
+TAILOR THIS CV TO THE JOB BELOW:
+${jobDescription}
+${company ? `\\nTARGET COMPANY: ${company}` : ''}
 
-THE JOB:
-${jobDescription || 'No job description provided — write a strong professional CV.'}
-${company ? `\nTARGET COMPANY: ${company}` : ''}
-
-YOUR APPROACH:
+TAILORING APPROACH:
 - Read the job description carefully. Identify the top 5-7 skills, keywords, and competencies the employer wants.
-- Weave those keywords NATURALLY into the summary, bullets, and skills section.
+- Weave those keywords NATURALLY into the summary, bullets, and skills section — only where the person's real experience supports them. Never claim a skill the person has not shown.
 - Reorder bullets within each role so the most job-relevant achievement appears first.
 - The summary must directly address why THIS person fits THIS role — specific, not generic.
 - Do NOT keyword-stuff. Read it back — does it sound natural? If not, rewrite.
-- Match the seniority and tone of the role. Manager job = managerial language. Specialist role = technical depth.
+- Match the seniority and tone of the role, but stay truthful to the person's actual level (see MATCH SENIORITY TO EVIDENCE).
 
 QUALITY: A hiring manager should read the first 6 lines and say "this person is exactly who we need."`
+      }
 
+      return base
+    }
 
     case 'academic':
       return `TASK: Write a full Academic CV in scholarly format.
