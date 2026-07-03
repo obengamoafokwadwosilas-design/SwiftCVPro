@@ -107,6 +107,7 @@ export default function PreviewPage() {
   const [isRevising, setIsRevising] = useState(false)
   const [revisionError, setRevisionError] = useState('')
   const [showUpsell, setShowUpsell] = useState(false)
+  const [upsellShown, setUpsellShown] = useState(false)
   const [hasDownloaded, setHasDownloaded] = useState(false)
   const [showReadyBanner, setShowReadyBanner] = useState(true)
   const [showChooser, setShowChooser] = useState(false)
@@ -236,7 +237,7 @@ export default function PreviewPage() {
       a.href = url
       a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.docx`
       setHasDownloaded(true)
-      setTimeout(() => setShowUpsell(true), 2000)
+      setTimeout(() => { if (!upsellShown && !coverLetter && activeDoc === 'cv') { setShowUpsell(true); setUpsellShown(true) } }, 2000)
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
     } catch { alert('Download failed. Please try again.') }
@@ -274,7 +275,7 @@ export default function PreviewPage() {
       a.href = url
       a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.pdf`
       setHasDownloaded(true)
-      setTimeout(() => setShowUpsell(true), 2000)
+      setTimeout(() => { if (!upsellShown && !coverLetter && activeDoc === 'cv') { setShowUpsell(true); setUpsellShown(true) } }, 2000)
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -495,10 +496,10 @@ export default function PreviewPage() {
         @keyframes scv-menuIn { from{opacity:0;transform:scale(.96) translateY(-4px)} to{opacity:1;transform:scale(1) translateY(0)} }
 
         /* ── ready toast ── */
-        @keyframes scv-toastIn { from{opacity:0;transform:translateY(-14px) scale(.96)} to{opacity:1;transform:none} }
+        @keyframes scv-toastIn { from{opacity:0;transform:translateY(14px) scale(.96)} to{opacity:1;transform:none} }
         @keyframes scv-sheen { 0%{transform:translateX(-120%) skewX(-18deg)} 60%,100%{transform:translateX(320%) skewX(-18deg)} }
         @keyframes scv-timer { from{transform:scaleX(1)} to{transform:scaleX(0)} }
-        .scv-toast-wrap { position:fixed; top:70px; right:22px; z-index:120; width:340px; max-width:calc(100vw - 32px); }
+        .scv-toast-wrap { position:fixed; bottom:24px; right:24px; z-index:120; width:300px; max-width:calc(100vw - 32px); }
         .scv-toast { position:relative; display:flex; gap:13px; align-items:flex-start; padding:16px 16px 18px;
           background:linear-gradient(150deg,#ffffff 0%,#f6fefb 100%); border:1px solid rgba(13,148,136,.16);
           border-radius:16px; overflow:hidden;
@@ -563,18 +564,14 @@ export default function PreviewPage() {
         <div className="no-print scv-toast-wrap" onMouseEnter={() => setBannerPaused(true)} onMouseLeave={() => setBannerPaused(false)}>
           <div className="scv-toast">
             <div className="scv-toast-sheen" />
-            <div className="scv-check" style={{ width:'34px', height:'34px', borderRadius:'50%', background:'linear-gradient(140deg,#14b8a6,#0a5d55)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 12px -2px rgba(13,148,136,0.55)' }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <div className="scv-check" style={{ width:'26px', height:'26px', borderRadius:'50%', background:'linear-gradient(140deg,#14b8a6,#0a5d55)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 12px -2px rgba(13,148,136,0.5)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
             <div style={{ flex:1, minWidth:0 }}>
-              <div className="scv-btitle" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.18rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.15, color:'#0a0f1a' }}>Great job! Your CV is ready.</div>
-              <div className="scv-bsub" style={{ fontSize:'12px', color:'#64748b', marginTop:'2px' }}>Download it now or make changes before you send it.</div>
-              <div style={{ display:'flex', gap:'8px', marginTop:'11px' }}>
-                <button className="scv-bbtn scv-bbtn-primary scv-bbtn1" onClick={handleDownloadPdf} disabled={!!downloading} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'8px 14px', background:'#0d9488', color:'white', border:'1px solid #0d9488', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 6px 16px -4px rgba(13,148,136,0.5)' }}><DownIcon/> PDF</button>
-                <button className="scv-bbtn scv-bbtn2" onClick={handleDownloadDocx} disabled={!!downloading} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'8px 14px', background:'white', color:'#0a0f1a', border:'1px solid #e7ebf0', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap', boxShadow:'0 1px 2px rgba(10,15,26,0.05)' }}><DownIcon/> Word</button>
-              </div>
+              <div className="scv-btitle" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.02rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.15, color:'#0a0f1a' }}>Great job! Your CV is ready.</div>
+              <div className="scv-bsub" style={{ fontSize:'11.5px', color:'#64748b', marginTop:'1px' }}>Download it from the top bar when you\u2019re ready.</div>
             </div>
-            <button className="scv-x" onClick={() => setShowReadyBanner(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex', borderRadius:'8px', alignSelf:'flex-start' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+            <button className="scv-x" onClick={() => setShowReadyBanner(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'3px', display:'flex', borderRadius:'8px', alignSelf:'flex-start' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             <div className="scv-toast-timer" data-paused={bannerPaused} onAnimationEnd={() => setShowReadyBanner(false)} />
           </div>
         </div>
@@ -741,14 +738,14 @@ export default function PreviewPage() {
       )}
 
       {/* COVER LETTER UPSELL */}
-      {showUpsell && !isCoverLetter && (
-        <div style={{ position:'fixed', bottom:'24px', right:'24px', zIndex:150, background:'white', borderRadius:'16px', padding:'18px 20px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)', border:'1px solid #e2e8f0', maxWidth:'280px' }}>
+      {showUpsell && !isCoverLetter && !coverLetter && (
+        <div className="scv-sheet" style={{ position:'fixed', bottom:'24px', right:'24px', zIndex:150, background:'white', borderRadius:'16px', padding:'18px 20px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)', border:'1px solid #e2e8f0', maxWidth:'290px' }}>
           <button onClick={() => setShowUpsell(false)} style={{ position:'absolute', top:'10px', right:'12px', background:'none', border:'none', fontSize:'16px', color:'#94a3b8', cursor:'pointer' }}>✕</button>
-          <div style={{ fontSize:'1.1rem', fontWeight:600, color:'#0a0f1a', fontFamily:"'Cormorant Garamond', serif", marginBottom:'6px' }}>Add a Cover Letter?</div>
-          <div style={{ fontSize:'12px', color:'#64748b', lineHeight:1.6, marginBottom:'14px' }}>Tailored to a specific role using this CV. Instant delivery.</div>
+          <div style={{ fontSize:'1.15rem', fontWeight:600, color:'#0a0f1a', fontFamily:"'Cormorant Garamond', serif", marginBottom:'6px' }}>Add a matching cover letter?</div>
+          <div style={{ fontSize:'12px', color:'#64748b', lineHeight:1.6, marginBottom:'14px' }}>Written from this same CV — tailored to a role, or general. Ready in seconds.</div>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div style={{ fontSize:'1.3rem', fontWeight:700, color:'#0a0f1a' }}>GH₵ 10</div>
-            <button onClick={() => { setShowUpsell(false); window.location.href = '/build?type=cover_letter' }} style={{ padding:'9px 18px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>Add Now →</button>
+            <div style={{ fontSize:'12px', fontWeight:700, color:'#0d9488', background:'#f0fdf9', padding:'4px 10px', borderRadius:'20px' }}>Free with your CV</div>
+            <button onClick={() => { setShowUpsell(false); setCoverErr(''); setShowCoverModal(true) }} style={{ padding:'9px 18px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>Generate →</button>
           </div>
         </div>
       )}
