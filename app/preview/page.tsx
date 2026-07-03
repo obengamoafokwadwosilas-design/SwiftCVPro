@@ -119,7 +119,11 @@ export default function PreviewPage() {
     try {
       const parsed = normalizeCV(JSON.parse(stored))
       setCV(parsed)
+      setBaseCv(parsed)
       setPhone(ph || '')
+      // Restore a cover letter generated earlier this session (if any)
+      const storedCover = sessionStorage.getItem('swiftcv_coverletter')
+      if (storedCover) { try { setCoverLetter(normalizeCV(JSON.parse(storedCover))) } catch {} }
       const storedCvType = sessionStorage.getItem('swiftcv_type') || 'professional'
       setCvType(storedCvType)
       if (storedCvType === 'cover_letter' || parsed.coverLetterBody) setIsCoverLetter(true)
@@ -140,13 +144,75 @@ export default function PreviewPage() {
   // Ready toast: pause the countdown while hovered (dismissal is driven by the
   // progress bar's animationEnd below, so there is a single clock).
   const [bannerPaused, setBannerPaused] = useState(false)
-  const [showCoverSoon, setShowCoverSoon] = useState(false)
+
+  // ── Cover letter (Stage 2) ──────────────────────────────────
+  const [baseCv, setBaseCv] = useState<GeneratedCV | null>(null)          // always the CV, never the letter
+  const [coverLetter, setCoverLetter] = useState<GeneratedCV | null>(null)
+  const [activeDoc, setActiveDoc] = useState<'cv' | 'cover'>('cv')
+  const [showCoverModal, setShowCoverModal] = useState(false)
+  const [coverGenerating, setCoverGenerating] = useState(false)
+  const [coverJd, setCoverJd] = useState('')
+  const [coverErr, setCoverErr] = useState('')
+  const [coverReadingFile, setCoverReadingFile] = useState(false)
 
   function updateCV(patch: Partial<GeneratedCV>) {
     if (!cv) return
     const updated = { ...cv, ...patch }
     setCV(updated)
-    sessionStorage.setItem('swiftcv_cv', JSON.stringify(updated))
+    if (activeDoc === 'cover') {
+      setCoverLetter(updated)
+      sessionStorage.setItem('swiftcv_coverletter', JSON.stringify(updated))
+    } else {
+      setBaseCv(updated)
+      sessionStorage.setItem('swiftcv_cv', JSON.stringify(updated))
+    }
+  }
+
+  function showCvDoc() {
+    if (!baseCv) return
+    setActiveDoc('cv'); setCV(baseCv); setIsCoverLetter(false); setActiveTab('preview')
+  }
+  function showCoverDoc() {
+    if (!coverLetter) return
+    setActiveDoc('cover'); setCV(coverLetter); setIsCoverLetter(true); setActiveTab('preview')
+  }
+
+  async function readCoverFile(file: File) {
+    setCoverReadingFile(true); setCoverErr('')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/extract-content', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok || !data.text) { setCoverErr('Could not read that file. Try pasting the text instead.'); return }
+      setCoverJd(data.text)
+    } catch { setCoverErr('Could not read that file. Try pasting the text instead.') }
+    finally { setCoverReadingFile(false) }
+  }
+
+  async function handleGenerateCover() {
+    const source = baseCv || cv
+    if (!source) return
+    setCoverGenerating(true); setCoverErr('')
+    try {
+      const res = await fetch('/api/generate-cover-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cv: source, jobDescription: coverJd || undefined, phoneNumber: phone })
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (data.error === 'NO_CREDITS') setCoverErr('You\u2019ve used the free cover letter that came with this CV. Add a credit to generate another.')
+        else setCoverErr(data.error || 'Generation failed. Please try again.')
+        return
+      }
+      const letter = normalizeCV(data.coverLetter)
+      setCoverLetter(letter)
+      sessionStorage.setItem('swiftcv_coverletter', JSON.stringify(letter))
+      setShowCoverModal(false); setCoverJd('')
+      setActiveDoc('cover'); setCV(letter); setIsCoverLetter(true); setActiveTab('preview')
+    } catch { setCoverErr('Network error. Please try again.') }
+    finally { setCoverGenerating(false) }
   }
 
   async function handleDownloadDocx() {
@@ -478,7 +544,7 @@ export default function PreviewPage() {
         </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
           <button onClick={handleNewCV} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>+ New CV</button>
-          <button onClick={() => setShowCoverSoon(true)} title="Coming soon" style={{ padding:'8px 12px 8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.55)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer', display:'flex', alignItems:'center', gap:'7px' }}>+ Cover Letter <span style={{ fontSize:'8px', fontWeight:700, letterSpacing:'0.5px', color:'#5eead4', background:'rgba(94,234,212,0.14)', padding:'2px 6px', borderRadius:'20px' }}>SOON</span></button>
+          <button onClick={() => { setCoverErr(''); setShowCoverModal(true) }} title="Generate a cover letter from this CV" style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.72)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer', display:'flex', alignItems:'center', gap:'7px' }}><span style={{ color:'#5eead4' }}>✦</span> Cover Letter</button>
           <div style={{ position:'relative' }}>
             <button onClick={() => setShowDownloadMenu(v => !v)} disabled={!!downloading} style={{ padding:'8px 16px', background:'rgba(255,255,255,0.1)', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
               {downloading ? '...' : <>↓ Download <span style={{ fontSize:'10px' }}>▾</span></>}
@@ -559,6 +625,14 @@ export default function PreviewPage() {
         )}
 
         <div style={{ padding:'24px', overflowY:'auto', overflowX:'auto', background:'#f1f5f9' }}>
+          {coverLetter && (
+            <div className="no-print" style={{ display:'flex', justifyContent:'center', marginBottom:'18px' }}>
+              <div style={{ display:'inline-flex', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', padding:'4px', boxShadow:'0 2px 8px rgba(10,15,26,0.06)' }}>
+                <button onClick={showCvDoc} style={{ padding:'8px 20px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', background: activeDoc==='cv' ? '#0d9488' : 'transparent', color: activeDoc==='cv' ? 'white' : '#64748b' }}>CV</button>
+                <button onClick={showCoverDoc} style={{ padding:'8px 20px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', background: activeDoc==='cover' ? '#0d9488' : 'transparent', color: activeDoc==='cover' ? 'white' : '#64748b' }}>Cover Letter</button>
+              </div>
+            </div>
+          )}
           {activeTab === 'preview' ? (
             <div style={{ background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'visible', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', width:'210mm', maxWidth:'210mm', margin:'0 auto' }}>
               <div id="cv-print-area">
@@ -574,19 +648,30 @@ export default function PreviewPage() {
         </div>
       </div>
 
-      {showCoverSoon && (
-        <div className="no-print scv-toast-wrap" style={{ top:'70px' }}>
-          <div className="scv-toast">
-            <div className="scv-toast-sheen" />
-            <div style={{ width:'34px', height:'34px', borderRadius:'50%', background:'linear-gradient(140deg,#334155,#0a0f1a)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, color:'#fff' }}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M7 3h7l4 4v14H7V3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M14 3v4h4M9.5 12h6M9.5 15.5h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+      {/* COVER LETTER MODAL */}
+      {showCoverModal && (
+        <div onClick={() => !coverGenerating && setShowCoverModal(false)} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+          <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'440px', padding:'22px', boxShadow:'0 1px 3px rgba(10,15,26,0.08), 0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif" }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'6px' }}>
+              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>Generate a cover letter</div>
+              <button onClick={() => !coverGenerating && setShowCoverModal(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.18rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.15, color:'#0a0f1a' }}>Cover letters are coming soon.</div>
-              <div style={{ fontSize:'12px', color:'#64748b', marginTop:'2px' }}>Soon you'll generate a matching cover letter from this CV in one click.</div>
-            </div>
-            <button className="scv-x" onClick={() => setShowCoverSoon(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex', borderRadius:'8px', alignSelf:'flex-start' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
-            <div className="scv-toast-timer" onAnimationEnd={() => setShowCoverSoon(false)} />
+            <p style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.5, margin:'0 0 16px' }}>We’ll write a cover letter from your CV. Applying for a specific role? Paste or upload the job posting to tailor it — or skip for a strong general letter.</p>
+
+            <textarea value={coverJd} onChange={e => setCoverJd(e.target.value)} placeholder="Paste the job description here (optional)…" rows={5} style={{ width:'100%', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'12px 14px', fontSize:'13px', fontFamily:"'DM Sans', sans-serif", resize:'vertical', outline:'none', boxSizing:'border-box' }} />
+
+            <label style={{ display:'inline-flex', alignItems:'center', gap:'7px', marginTop:'10px', fontSize:'12px', color:'#0d9488', fontWeight:600, cursor:'pointer' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              {coverReadingFile ? 'Reading file\u2026' : 'Or upload the job (image, PDF, Word)'}
+              <input type="file" accept="image/*,application/pdf,.doc,.docx" style={{ display:'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) readCoverFile(f) }} />
+            </label>
+
+            {coverErr && <div style={{ marginTop:'12px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'10px 12px' }}>{coverErr}</div>}
+
+            <button onClick={handleGenerateCover} disabled={coverGenerating || coverReadingFile} style={{ width:'100%', marginTop:'16px', padding:'13px', background: coverGenerating ? '#5eead4' : '#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor: coverGenerating ? 'default' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
+              {coverGenerating ? 'Writing your cover letter\u2026' : <><span style={{ color:'#fff' }}>✦</span> Generate Cover Letter</>}
+            </button>
+            <div style={{ textAlign:'center', fontSize:'11px', color:'#94a3b8', marginTop:'10px' }}>Free with your CV · takes about 20 seconds</div>
           </div>
         </div>
       )}
