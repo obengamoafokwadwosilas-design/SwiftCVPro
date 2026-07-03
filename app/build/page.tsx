@@ -38,7 +38,7 @@ const DID_YOU_KNOWS = [
 type Screen = 'type' | 'method' | 'paste' | 'form-1' | 'form-2' | 'form-3' | 'form-4' | 'form-5' | 'summary'
 
 const CV_TYPE_META: Record<CVType, { label: string; shortLabel: string; hasJobStep: boolean; totalFormSteps: number }> = {
-  professional: { label: 'Professional CV', shortLabel: 'Professional CV', hasJobStep: false, totalFormSteps: 4 },
+  professional: { label: 'Professional CV', shortLabel: 'Professional CV', hasJobStep: true,  totalFormSteps: 5 },
   targeted:     { label: 'Targeted CV',     shortLabel: 'Targeted CV',     hasJobStep: true,  totalFormSteps: 5 },
   academic:     { label: 'Academic CV',     shortLabel: 'Academic CV',     hasJobStep: false, totalFormSteps: 4 },
   cover_letter: { label: 'Cover Letter',    shortLabel: 'Cover Letter',    hasJobStep: true,  totalFormSteps: 5 },
@@ -73,7 +73,9 @@ export default function BuildPage() {
   const [didYouKnowFade, setDidYouKnowFade] = useState(true)
 
   const meta = CV_TYPE_META[cvType]
-  const needsJD = cvType === 'targeted' || cvType === 'cover_letter'
+  // JD is available/captured for everything except Academic. It is optional for
+  // Professional (tailor if given) and only genuinely required for cover letters.
+  const needsJD = cvType !== 'academic'
 
   // ── Refs ──────────────────────────────────────
   const refs = {
@@ -290,7 +292,7 @@ export default function BuildPage() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvType, rawContent, jobDescription: needsJD ? jobDescription : undefined, phoneNumber: normalizedPhone })
+        body: JSON.stringify({ cvType, rawContent, jobDescription: needsJD ? (jobDescription || undefined) : undefined, phoneNumber: normalizedPhone })
       })
       const data = await res.json()
       if (!data.success) {
@@ -380,10 +382,9 @@ export default function BuildPage() {
             <div style={{ flex: 1, height: '0.5px', background: '#e2e8f0' }} />
           </div>
 
-          {/* Three small cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
+          {/* Secondary document options */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '16px' }}>
             {([
-              { id: 'targeted' as CVType, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>, iconBg: '#e6f1fb', name: 'Targeted CV', desc: 'For a specific vacancy — we match your CV to the job posting exactly.' },
               { id: 'academic' as CVType, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>, iconBg: '#eeedfe', name: 'Academic CV', desc: 'For research roles, postgraduate applications, and lecturing positions.' },
               { id: 'cover_letter' as CVType, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>, iconBg: '#fbeaf0', name: 'Cover Letter', desc: 'A personalised letter that introduces you and makes the case for you.' },
             ] as any[]).map((card: any) => (
@@ -926,15 +927,17 @@ function Field({ label, placeholder, fieldRef }: { label: string; placeholder: s
 }
 
 function JDSection({ method, setMethod, pasteRef, uploadedFile, setUploadedFile, cvType }: any) {
-  const label = cvType === 'cover_letter' ? 'Cover Letter' : 'Targeted CV'
+  const required = cvType === 'cover_letter'
   return (
     <div style={{ background: '#fffbf5', border: '2px dashed #f59e0b', borderRadius: '18px', padding: '24px', marginBottom: '16px' }}>
       <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.3rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' as const }}>
         🎯 Job Description
-        <span style={{ fontSize: '10px', fontWeight: 600, background: '#fef9c3', color: '#854d0e', padding: '3px 10px', borderRadius: '20px', fontFamily: "'DM Sans', sans-serif" }}>Required for {label}</span>
+        <span style={{ fontSize: '10px', fontWeight: 600, background: '#fef9c3', color: '#854d0e', padding: '3px 10px', borderRadius: '20px', fontFamily: "'DM Sans', sans-serif" }}>{required ? 'Required for Cover Letter' : 'Optional — we\u2019ll tailor your CV to it'}</span>
       </div>
       <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.65, marginBottom: '14px', fontWeight: 300 }}>
-        Paste the job posting so we can tailor your {cvType === 'cover_letter' ? 'letter' : 'CV'} to match exactly what the employer wants.
+        {required
+          ? 'Paste or upload the job posting so we can tailor your letter to match exactly what the employer wants.'
+          : 'Applying for a specific job? Paste or upload the posting (text, image, PDF or Word) and we\u2019ll tailor your CV to it. Skip this for a strong general CV.'}
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
         {[{id:'paste',label:'✎ Paste text'},{id:'upload',label:'↑ Upload file'}].map(opt => (
