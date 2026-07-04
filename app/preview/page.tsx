@@ -65,7 +65,6 @@ function normalizeCV(raw: any): GeneratedCV {
     location: str(raw?.location),
     summary: str(raw?.summary),
     skills: arr(raw?.skills).map(str),
-    competencies: arr(raw?.competencies).map(str),
     attributes: arr(raw?.attributes).map(str),
     languages: arr(raw?.languages).map(str),
     publications: arr(raw?.publications).map(str),
