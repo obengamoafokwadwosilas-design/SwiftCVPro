@@ -66,6 +66,7 @@ function normalizeCV(raw: any): GeneratedCV {
     summary: str(raw?.summary),
     skills: arr(raw?.skills).map(str),
     attributes: arr(raw?.attributes).map(str),
+    extraSections: arr(raw?.extraSections).map((s: any) => ({ heading: str(s?.heading), items: arr(s?.items).map(str) })).filter((s: any) => s.heading && s.items.length),
     languages: arr(raw?.languages).map(str),
     publications: arr(raw?.publications).map(str),
     research: arr(raw?.research).map(str),
