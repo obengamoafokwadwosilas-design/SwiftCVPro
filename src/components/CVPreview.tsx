@@ -25,7 +25,8 @@ function legacyToSections(text?: string): ExtraSection[] {
   return out
 }
 function getSections(cv: GeneratedCV): ExtraSection[] {
-  return (cv.extraSections && cv.extraSections.length) ? cv.extraSections : legacyToSections(cv.additionalInfo)
+  const raw = cv as any
+  return (raw.extraSections && raw.extraSections.length) ? raw.extraSections : legacyToSections(raw.additionalInfo)
 }
 
 // Interleave items with a bolder, accent-coloured separator dot (more visible than a plain ·).
@@ -197,7 +198,7 @@ function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skill
     if (cv.attributes?.length) blocks.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{sectionHeading('Professional Attributes', A, headStyle)}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#333', marginBottom: 4 }}>{a}</li>)}</ul></div> })
     if (cv.languages?.length) blocks.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{sectionHeading('Languages', A, headStyle)}<div style={{ fontSize: 13.5, color: '#333' }}>{dotList(cv.languages, A)}</div></div> })
   }
-  if (cv.extraSections?.length || cv.additionalInfo) extraMainBlocks(cv, (t) => sectionHeading(t, A, headStyle), false, '#333').forEach(bl => blocks.push(bl))
+  if (getSections(cv).length) extraMainBlocks(cv, (t) => sectionHeading(t, A, headStyle), false, '#333').forEach(bl => blocks.push(bl))
   return blocks
 }
 
