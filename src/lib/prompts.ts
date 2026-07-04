@@ -43,7 +43,14 @@ LOCATION INFERENCE:
 - For any company or school you cannot place with genuine confidence, OMIT the location rather than guess. A missing city is invisible; a wrong city is a verifiable error on a document going to an employer.
 - NEVER let the applicant's home city stand in for the location of a workplace you cannot place. You cannot look anything up live — rely only on what is genuinely well-known.
 
-SKILLS (evidence-gated):
+PROFESSIONAL ATTRIBUTES (attributes) — character traits, NOT technical:
+- Return exactly 4 short sentences in the "attributes" array (string[]). Each sentence describes a personal quality or work habit — NOT a technical skill or functional competency.
+- STRICT LENGTH: maximum 15 words per sentence. One line, one idea. No two-line sentences.
+- INFER from real signals in the experience — do NOT pick from a generic stock list. Ask: what does this person's actual behavior reveal about their character? A nurse who mentored junior staff shows patience; someone who maintained error-free records under pressure shows composure and discipline.
+- These should feel DIFFERENT from Core Competencies. Competencies say what they achieved; Attributes say what kind of person they are at work.
+  Good: "Approaches high-pressure situations with composure and sound judgment."
+  Bad: "Excellent communication skills" (generic, unproven, could apply to anyone)
+- If the experience is too thin to infer genuine attributes, return [] rather than inventing stock phrases.
 - Prefer hard, specific, demonstrable skills drawn from what the person actually did.
 - Include a soft skill ONLY when a bullet in their experience proves it (e.g. "supervised 4 staff" → "Team Leadership"). Never pad the list with generic soft skills like "Communication", "Teamwork", or "Problem-solving" just to look fuller — an unproven soft skill weakens the CV.
 
@@ -331,6 +338,7 @@ function getOutputFormat(cvType: CVType): string {
   ],
   "skills": ["8-12 strong industry-standard skills"],
   "competencies": ["4-6 full sentences describing how the person performs, each derived from a real experience bullet, never restating a skill"],
+  "attributes": ["exactly 4 short sentences, max 15 words each, personal qualities inferred from experience signals — NOT generic stock phrases"],
   "languages": ["array if known"],
   "additionalInfo": "awards, certifications, memberships, or null"
 }`
