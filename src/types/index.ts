@@ -44,7 +44,8 @@ export interface CVFormData {
   experience?: string
   extras?: string
   references?: string
-  additionalInfo?: string
+  additionalInfo?: string   // legacy — kept for Word export + older sessions
+  extraSections?: ExtraSection[]
   specialRequests?: string
   jobDescription?: string
   whyRole?: string
@@ -82,6 +83,11 @@ export interface GeneratedEducation {
   startYear: string
   endYear: string
   grade?: string | null
+}
+
+export interface ExtraSection {
+  heading: string
+  items: string[]
 }
 
 export interface GeneratedCV {
