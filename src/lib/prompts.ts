@@ -35,6 +35,7 @@ HEADLINE (jobTitle):
 - For a targeted CV, align the headline to the role being applied for (only where the person's background genuinely supports it).
 - For a general CV, use the most senior or representative title from the person's real history — not merely their latest job.
 - Never invent a title the person has not held.
+- NEVER upgrade or reword an actual job title. If their title is "Principal Administrative Assistant", keep it exactly — do not render it as "Principal Administrative Officer" or anything more senior. Use their real titles verbatim in both the headline and each experience entry.
 - For fresh graduates, students, or entry-level people (see MATCH SENIORITY TO EVIDENCE), leave jobTitle empty — no headline, no label.
 
 LOCATION INFERENCE:
@@ -76,17 +77,20 @@ CRITICAL OUTPUT REQUIREMENTS:
 - Wrong: "Responsible for managing the IT team"
 - Right: "Led 8-person IT team supporting 2,400 users across 14 branches; reduced ticket resolution time by 38%"
 
-ADDITIONAL SECTIONS — CERTIFICATIONS, REFERENCES, MEMBERSHIPS (only from what the user actually provided — never invent):
-- Put this in "additionalInfo" as short labelled lines separated by real newlines (\\n). Each label becomes its OWN heading on the CV (like Education or Skills), so choose clean, heading-worthy labels.
-- ONLY these earn their own heading/line — they are what recruiters scan for:
-  • "Memberships:" — professional licences & bodies (ICAG, GIHRM, Nursing & Midwifery Council of Ghana, GhIE, the Bar)
-  • "Certifications:" — certs not tied to a degree (PMP, Google, Cisco, BLS, ACLS, safety certs). Never "Professional Certifications:".
-  • "References:" — write "References: Available on request" if the user did not list referees.
-- EVERYTHING SOFTER — leadership, volunteering, awards, and genuinely relevant interests — must be grouped together on a SINGLE line labelled "Additional Information:" (comma-separated), NOT split into separate headings. This keeps the CV from sprouting many tiny one-line headings. Include soft items only where they add real signal; omit filler interests.
-- Order the lines: Memberships, then Certifications, then References, then the single "Additional Information:" line last.
-- Example:
-  "Memberships: Nursing & Midwifery Council of Ghana\\nCertifications: BLS, ACLS, Infection Prevention & Control\\nReferences: Available on request\\nAdditional Information: Ward health-education lead, volunteer at St. Joseph's clinic"
-- If the user provided none of the above, return null. Do not manufacture content to fill a section.
+EXTRA SECTIONS (extraSections) — build PROPER headed sections, never one "Additional Information" dump:
+- Return "extraSections": an array of { "heading": string, "items": string[] }. Each object becomes its OWN heading on the CV with its items bulleted underneath. ONLY from what the user actually provided — never invent.
+- Give substantial content its own real heading. Use clear, standard headings such as:
+  • "Publications" — each item a full citation (for anyone with written/published work, not just academics)
+  • "Leadership & Involvement" — student leadership, associations, committee/board roles (item = role, body, years)
+  • "Volunteer & Community Work" — NGO, church, or community roles (common and valued in Ghana)
+  • "Awards & Recognition" — scholarships, commendations, distinctions
+  • "Memberships" — professional licences & bodies (ICAG, GIHRM, Nursing & Midwifery Council of Ghana, GhIE, the Bar)
+  • "Certifications" — certs not tied to a degree (PMP, Google, Cisco, BLS, ACLS). Never "Professional Certifications".
+  • "References" — one item per referee ("Name, Institution — email"), or a single item "Available on request" if none were given.
+- One item per distinct entry (e.g. 5 publications = 5 items), so they render as a clean bulleted list — NOT one comma-separated blob.
+- Do NOT use a vague "Additional Information" heading unless a stray item genuinely fits nowhere else. With real headings available, that should almost never happen.
+- Order roughly: Publications, Research (if separate), Leadership & Involvement, Volunteer & Community Work, Awards & Recognition, Memberships, Certifications, References.
+- If the user gave nothing beyond the core CV, return an empty array []. Never manufacture sections to fill space.
 
 DO NOT WEAKEN THE CV:
 - Never ADD or infer marital status, religion, date of birth, a photo, or hobbies-for-the-sake-of-hobbies — these date a CV and hurt modern and international applications. Do not include them just because they might be expected. Include an interest ONLY if it carries real professional signal.
@@ -297,7 +301,7 @@ function getOutputFormat(cvType: CVType): string {
   "publications": ["scholarly citation format strings — only if provided"],
   "research": ["research projects array — only if provided"],
   "teaching": ["courses taught array — only if provided"],
-  "additionalInfo": "awards, fellowships, memberships, conference presentations if provided — else null"
+  "extraSections": [{ "heading": "Publications | Conference Presentations | Awards & Recognition | Memberships | References | …", "items": ["one item per entry"] }]
 }`
   }
 
@@ -331,10 +335,10 @@ function getOutputFormat(cvType: CVType): string {
       "grade": "string if known, else null"
     }
   ],
-  "skills": ["8-12 strong industry-standard skills"],
+  "skills": ["8-10 strong industry-standard skills — quality over quantity, no filler like \"Stakeholder Communication\" that is implied elsewhere"],
   "attributes": ["exactly 4 short sentences, max 15 words each, personal qualities inferred from experience signals — NOT generic stock phrases"],
   "languages": ["array if known"],
-  "additionalInfo": "awards, certifications, memberships, or null"
+  "extraSections": [{ "heading": "Publications | Leadership & Involvement | Memberships | Certifications | References | …", "items": ["one item per entry — full citations for publications, role+body+years for leadership, one referee per item, etc."] }]
 }`
 }
 
