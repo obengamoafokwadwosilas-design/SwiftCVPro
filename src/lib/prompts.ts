@@ -54,12 +54,7 @@ PROFESSIONAL ATTRIBUTES (attributes) — character traits, NOT technical:
 - Prefer hard, specific, demonstrable skills drawn from what the person actually did.
 - Include a soft skill ONLY when a bullet in their experience proves it (e.g. "supervised 4 staff" → "Team Leadership"). Never pad the list with generic soft skills like "Communication", "Teamwork", or "Problem-solving" just to look fuller — an unproven soft skill weakens the CV.
 
-CORE COMPETENCIES (competencies) — a DIFFERENT section from Skills:
-- Return 4-6 short sentences in the "competencies" array (string[]). Each is a full sentence describing HOW the person operates — behaviour, judgement, or working strengths — NOT a tool or a noun.
-- DERIVE EACH ONE FROM THE PERSON'S ACTUAL EXPERIENCE BULLETS. Every competency must trace to something they genuinely did. Never invent generic claims like "excellent time management" or "highly organised" with nothing behind them — that is fabrication and weakens the CV.
-- NEVER restate a Skills item as a sentence. Skills = what they can operate (nouns: "Microsoft Excel", "Data Entry"). Competencies = how they perform (behaviour). If a competency could just be a comma-separated noun in Skills, drop it.
-  Example — bullet "Managed incoming calls and directed enquiries without delay" → competency "Handles time-pressured front-desk demands calmly and directs enquiries efficiently." (NOT "Front Desk" — that's a Skill.)
-- If the person's experience is too thin to support genuine competencies (e.g. a fresh graduate with only study), return an empty array [] rather than manufacturing them.`
+`
 
 // ─────────────────────────────────────────────────────────────
 // MAIN PROMPT BUILDER
@@ -337,7 +332,6 @@ function getOutputFormat(cvType: CVType): string {
     }
   ],
   "skills": ["8-12 strong industry-standard skills"],
-  "competencies": ["4-6 full sentences describing how the person performs, each derived from a real experience bullet, never restating a skill"],
   "attributes": ["exactly 4 short sentences, max 15 words each, personal qualities inferred from experience signals — NOT generic stock phrases"],
   "languages": ["array if known"],
   "additionalInfo": "awards, certifications, memberships, or null"
