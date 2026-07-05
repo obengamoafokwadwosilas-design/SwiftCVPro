@@ -47,16 +47,51 @@ function sectionBody(sec: ExtraSection, color: string) {
 // sections (certs/memberships/refs/awards) are skipped here — they go in the sidebar.
 function extraMainBlocks(cv: GeneratedCV, headFn: (t: string) => React.ReactNode, routeSidebar: boolean, color?: string): Block[] {
   const out: Block[] = []
+  const sidebarSet = routeSidebar ? new Set(splitExtraForSidebar(cv).side) : new Set()
   getSections(cv).forEach((sec, i) => {
     if (!sec || !sec.items || !sec.items.length) return
-    if (routeSidebar && isSidebarHead(sec.heading)) return
+    if (routeSidebar && sidebarSet.has(sec)) return   // only skip what actually FIT in the sidebar
     out.push({ key: `extra-${i}`, node: <div style={{ marginBottom: 12 }}>{headFn(sec.heading)}{sectionBody(sec, color || '#444')}</div> })
   })
   return out
 }
 // Short sections destined for a two-column sidebar.
+// ── Sidebar capacity guard ──────────────────────────────────────
+// The coloured sidebar renders on page 1 only, inside overflow:hidden — anything
+// beyond one page height is silently CLIPPED. So we estimate how full the sidebar
+// already is (contact + education + skills + languages) and only admit extra
+// sections that fit. Everything that doesn't fit stays in the MAIN column, where
+// the pagination engine handles it properly.
+const SIDEBAR_LINE_BUDGET = 52  // conservative ~lines that fit one A4 sidebar
+
+function estimateFixedSidebarLines(cv: GeneratedCV): number {
+  let n = 4 // name/head padding allowance
+  n += 2 + [cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).length            // contact
+  n += cv.education?.length ? 2 + cv.education.length * 3 : 0                                // education (3 lines each)
+  n += cv.skills?.length ? 2 + cv.skills.length : 0                                          // skills (1 line each)
+  n += cv.languages?.length ? 2 + cv.languages.length : 0                                    // languages
+  return n
+}
+function estimateSectionLines(sec: ExtraSection): number {
+  // heading (2) + items; sidebar is narrow so assume long items wrap to 2 lines
+  return 2 + sec.items.reduce((t, it) => t + (String(it).length > 34 ? 2 : 1), 0)
+}
+// Split extra sections into what fits in the sidebar vs what must stay in main.
+function splitExtraForSidebar(cv: GeneratedCV): { side: ExtraSection[]; mainOnly: Set<number> } {
+  const side: ExtraSection[] = []
+  const mainOnly = new Set<number>()
+  let used = estimateFixedSidebarLines(cv)
+  getSections(cv).forEach((sec, i) => {
+    if (!sec || !sec.items || !sec.items.length) return
+    if (!isSidebarHead(sec.heading)) { mainOnly.add(i); return }
+    const cost = estimateSectionLines(sec)
+    if (used + cost <= SIDEBAR_LINE_BUDGET) { side.push(sec); used += cost }
+    else mainOnly.add(i)   // doesn't fit — keep it in the main column instead of clipping it
+  })
+  return { side, mainOnly }
+}
 function extraSidebarSections(cv: GeneratedCV): ExtraSection[] {
-  return getSections(cv).filter(s => s && s.items && s.items.length && isSidebarHead(s.heading))
+  return splitExtraForSidebar(cv).side
 }
 // ════════════════════════════════════════════════════════════════
 // CV PREVIEW — TRUE MULTI-PAGE PAGINATION ENGINE
