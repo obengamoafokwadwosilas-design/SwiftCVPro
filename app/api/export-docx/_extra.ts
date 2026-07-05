@@ -15,7 +15,10 @@ function legacyToSections(text?: string): { heading: string; items: string[] }[]
 }
 
 export function getExtraSections(cv: any): { heading: string; items: string[] }[] {
-  return (cv && cv.extraSections && cv.extraSections.length) ? cv.extraSections : legacyToSections(cv && cv.additionalInfo)
+  const secs = (cv && cv.extraSections && cv.extraSections.length) ? [...cv.extraSections] : legacyToSections(cv && cv.additionalInfo)
+  // Professional Attributes renders in Word too (parity with the PDF), ahead of the other extras.
+  if (cv && cv.attributes && cv.attributes.length) secs.unshift({ heading: 'Professional Attributes', items: cv.attributes })
+  return secs
 }
 
 function isRefs(h: string): boolean {
