@@ -4,6 +4,7 @@ import {
   VerticalAlign
 } from 'docx'
 import { GeneratedCV } from '@/types'
+import { extraSectionParagraphs } from './_extra'
 
 // ════════════════════════════════════════════════════════════════
 // FLAGSHIP "MERIDIAN" DOCX BUILDER
@@ -239,10 +240,7 @@ export function buildMeridian(cv: GeneratedCV, accent?: string | null): Document
     cv.teaching.forEach(t => children.push(bullet(t)))
   }
 
-  if (cv.additionalInfo) {
-    children.push(sectionHeading('Additional Information'))
-    children.push(new Paragraph({ spacing: { before: 80, after: 40, line: 290 }, children: [new TextRun({ text: cv.additionalInfo, size: 20, font: FONT, color: BODY_GREY })] }))
-  }
+  extraSectionParagraphs(cv, sectionHeading, { size: 20, font: FONT, color: BODY_GREY }).forEach(pp => children.push(pp))
 
   return assemble(children, P)
 }
