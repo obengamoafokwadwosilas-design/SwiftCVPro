@@ -3,6 +3,7 @@ import {
   AlignmentType, BorderStyle, WidthType, LevelFormat, VerticalAlign, ShadingType
 } from 'docx'
 import { GeneratedCV } from '@/types'
+import { extraSectionParagraphs } from './_extra'
 
 // ════════════════════════════════════════════════════════════════
 // PREMIUM WORD BUILDERS — Vertex · Sovereign · Meridian · Ascend · Harbour
@@ -24,7 +25,7 @@ function appendExtras(c: any[], cv: GeneratedCV, heading: (t: string) => any, bu
   if (cv.publications?.length) { c.push(heading('Publications')); cv.publications.forEach(p => c.push(bullet(p))) }
   if (cv.research?.length) { c.push(heading('Research')); cv.research.forEach(r => c.push(bullet(r))) }
   if (cv.teaching?.length) { c.push(heading('Teaching Experience')); cv.teaching.forEach(t => c.push(bullet(t))) }
-  if (cv.additionalInfo) { c.push(heading('Additional Information')); c.push(para(cv.additionalInfo)) }
+  extraSectionParagraphs(cv, heading, { size: 19, font: BODY, color: '333333' }).forEach(pp => c.push(pp))
 }
 
 function pageDoc(children: any[], ref: string, bulletColor: string, bulletChar = '•', margin = { top: 850, right: 850, bottom: 850, left: 850 }): Document {
@@ -75,7 +76,7 @@ export function buildVertex(cv: GeneratedCV, accent?: string | null): Document {
   if (cv.publications?.length) { right.push(heading('Publications')); cv.publications.forEach(p => right.push(bullet(p))) }
   if (cv.research?.length) { right.push(heading('Research')); cv.research.forEach(r => right.push(bullet(r))) }
   if (cv.teaching?.length) { right.push(heading('Teaching')); cv.teaching.forEach(t => right.push(bullet(t))) }
-  if (cv.additionalInfo) { right.push(heading('Certifications')); right.push(new Paragraph({ spacing: { line: 264 }, children: [new TextRun({ text: cv.additionalInfo, size: 18, color: '555555', font: BODY })] })) }
+  extraSectionParagraphs(cv, heading, { size: 18, font: BODY, color: '555555' }).forEach(pp => right.push(pp))
 
   const bodyTable = new Table({ width: { size: 10100, type: WidthType.DXA }, columnWidths: [5550, 4550], borders: NO_BORDERS, rows: [new TableRow({ children: [new TableCell({ borders: NO_BORDERS, width: { size: 5550, type: WidthType.DXA }, margins: { top: 0, bottom: 0, left: 0, right: 260 }, children: left }), new TableCell({ borders: NO_BORDERS, width: { size: 4550, type: WidthType.DXA }, margins: { top: 0, bottom: 0, left: 260, right: 0 }, children: right })] })] })
 
@@ -218,7 +219,7 @@ export function buildAscend(cv: GeneratedCV, accent?: string | null): Document {
   if (cv.publications?.length) { c.push(heading('Publications')); c.push(sp()); cv.publications.forEach(p => c.push(bullet(p))) }
   if (cv.research?.length) { c.push(heading('Research')); c.push(sp()); cv.research.forEach(r => c.push(bullet(r))) }
   if (cv.teaching?.length) { c.push(heading('Teaching Experience')); c.push(sp()); cv.teaching.forEach(t => c.push(bullet(t))) }
-  if (cv.additionalInfo) { c.push(heading('Additional Information')); c.push(sp()); c.push(para(cv.additionalInfo)) }
+  extraSectionParagraphs(cv, heading, { size: 19, font: BODY, color: '444444' }).forEach(pp => c.push(pp))
 
   return pageDoc(c, 'asc-b', A, '•', { top: 850, right: 850, bottom: 850, left: 850 })
 }
@@ -301,7 +302,7 @@ export function buildPulse(cv: GeneratedCV, accent?: string | null): Document {
   if (cv.skills?.length) { sidebar.push(sbHeading('Skills')); cv.skills.forEach(s => sidebar.push(new Paragraph({ spacing: { before: 28, after: 28 }, children: [new TextRun({ text: s, size: 17, color: 'd8d8e0', font: BODY })] }))) }
   if (cv.education?.length) { sidebar.push(sbHeading('Education')); cv.education.forEach(e => { sidebar.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} ${e.field}`, bold: true, size: 17, color: white, font: BODY })] })); sidebar.push(new Paragraph({ children: [new TextRun({ text: e.institution, size: 15, color: 'b0b0c0', font: BODY })] })); sidebar.push(new Paragraph({ children: [new TextRun({ text: `${e.startYear}–${e.endYear}${e.grade ? ` · ${e.grade}` : ''}`, size: 14, color: '9090a0', font: BODY })] })) }) }
   if (cv.languages?.length) { sidebar.push(sbHeading('Languages')); cv.languages.forEach(l => sidebar.push(sbText(l))) }
-  if (cv.additionalInfo) { sidebar.push(sbHeading('Certifications')); sidebar.push(new Paragraph({ spacing: { line: 264 }, children: [new TextRun({ text: cv.additionalInfo, size: 15, color: 'b0b0c0', font: BODY })] })) }
+  extraSectionParagraphs(cv, sbHeading, { size: 15, font: BODY, color: 'b0b0c0' }).forEach(pp => sidebar.push(pp))
 
   const layout = new Table({ width: { size: 10800, type: WidthType.DXA }, columnWidths: [7250, 3550], borders: NO_BORDERS, rows: [new TableRow({ children: [
     new TableCell({ width: { size: 7250, type: WidthType.DXA }, margins: { top: 400, bottom: 400, left: 360, right: 280 }, children: main }),
