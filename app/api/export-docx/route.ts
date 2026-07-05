@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
+import { extraSectionParagraphs } from './_extra'
 import {
   Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle,
   Table, TableRow, TableCell, WidthType, HeightRule, ShadingType,
@@ -262,13 +263,7 @@ function buildClassic(cv: GeneratedCV): Document {
   }
 
   // ── ADDITIONAL ──
-  if (cv.additionalInfo) {
-    children.push(sectionHead('Additional Information'))
-    children.push(new Paragraph({
-      children: [new TextRun({ text: cv.additionalInfo, size: SIZE_BODY, font: BODY_FONT, color: '1a1a1a' })],
-      spacing: { after: 100, line: 320 }
-    }))
-  }
+  extraSectionParagraphs(cv, sectionHead, { size: SIZE_BODY, font: BODY_FONT, color: '1a1a1a' }).forEach(pp => children.push(pp))
 
   return wrapDoc(children)
 }
@@ -398,13 +393,7 @@ function buildModern(cv: GeneratedCV): Document {
     }))
   }
 
-  if (cv.additionalInfo) {
-    children.push(sectionHead('Additional Information'))
-    children.push(new Paragraph({
-      children: [new TextRun({ text: cv.additionalInfo, size: SIZE_BODY, font: HEADER_FONT, color: '1a1a1a' })],
-      spacing: { after: 100, line: 320 }
-    }))
-  }
+  extraSectionParagraphs(cv, sectionHead, { size: SIZE_BODY, font: HEADER_FONT, color: '1a1a1a' }).forEach(pp => children.push(pp))
 
   return wrapDoc(children)
 }
@@ -544,13 +533,7 @@ function buildExecutive(cv: GeneratedCV): Document {
     }))
   }
 
-  if (cv.additionalInfo) {
-    children.push(sectionHead('Additional Information'))
-    children.push(new Paragraph({
-      children: [new TextRun({ text: cv.additionalInfo, size: SIZE_BODY, font: BODY_FONT, color: '1a1a1a' })],
-      spacing: { after: 100, line: 320 }
-    }))
-  }
+  extraSectionParagraphs(cv, sectionHead, { size: SIZE_BODY, font: BODY_FONT, color: '1a1a1a' }).forEach(pp => children.push(pp))
 
   return wrapDoc(children)
 }
@@ -693,13 +676,7 @@ function buildAcademic(cv: GeneratedCV): Document {
     }))
   }
 
-  if (cv.additionalInfo) {
-    children.push(sectionHead('Memberships, Honours & Awards'))
-    children.push(new Paragraph({
-      children: [new TextRun({ text: cv.additionalInfo, size: SIZE_BODY, font: BODY_FONT, color: '1a1a1a' })],
-      spacing: { after: 100, line: 320 }
-    }))
-  }
+  extraSectionParagraphs(cv, sectionHead, { size: SIZE_BODY, font: BODY_FONT, color: '1a1a1a' }).forEach(pp => children.push(pp))
 
   return wrapDoc(children)
 }
