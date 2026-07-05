@@ -53,6 +53,20 @@ const PRINT_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Crimson+Text:
 // guaranteed. Force arrays to be arrays and strings to be strings so
 // no render path (e.bullets.map, fullName.split, etc.) can ever throw.
 // ══════════════════════════════════════════════════════
+// Editor helpers: extraSections <-> labelled-lines text ("Heading: item; item")
+function extraSectionsToText(cv: any): string {
+  const secs = cv?.extraSections as { heading: string; items: string[] }[] | undefined
+  if (secs?.length) return secs.map(s => `${s.heading}: ${s.items.join('; ')}`).join('\n')
+  return cv?.additionalInfo || ''
+}
+function textToExtraSections(text: string): { heading: string; items: string[] }[] {
+  return text.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+    const ci = line.indexOf(':')
+    if (ci > 0) return { heading: line.slice(0, ci).trim(), items: line.slice(ci + 1).split(';').map(x => x.trim()).filter(Boolean) }
+    return { heading: 'Additional Information', items: [line] }
+  }).filter(s => s.items.length)
+}
+
 function normalizeCV(raw: any): GeneratedCV {
   const arr = (v: any) => (Array.isArray(v) ? v : [])
   const str = (v: any) => (typeof v === 'string' ? v : v == null ? '' : String(v))
@@ -1094,10 +1108,10 @@ function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<Gen
         </Sec>
       )}
 
-      <Sec title="Additional Information (optional)">
-        <TA value={cv.additionalInfo || ''} rows={3}
-          onChange={v => updateCV({ additionalInfo: v })} />
-        <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'6px' }}>Certifications, NSS, awards, hobbies, references, etc.</div>
+      <Sec title="Extra Sections (optional)">
+        <TA value={extraSectionsToText(cv)} rows={5}
+          onChange={v => updateCV({ extraSections: textToExtraSections(v), additionalInfo: undefined } as any)} />
+        <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'6px' }}>One section per line as "Heading: item; item; item" — e.g. "Certifications: PMP; Google PM" or "References: Available on request"</div>
       </Sec>
     </div>
   )
