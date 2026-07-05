@@ -3,6 +3,7 @@ import {
   AlignmentType, BorderStyle, WidthType, LevelFormat, VerticalAlign
 } from 'docx'
 import { GeneratedCV } from '@/types'
+import { extraSectionParagraphs } from './_extra'
 
 // ════════════════════════════════════════════════════════════════
 // "NEW YORK" — Editorial / Magazine DOCX builder
@@ -212,10 +213,7 @@ export function buildNewYork(cv: GeneratedCV, accent?: string | null): Document 
   }
 
   // ── ADDITIONAL ────────────────────────────────────────────────
-  if (cv.additionalInfo) {
-    children.push(sectionHeading('Additional Information'))
-    children.push(new Paragraph({ spacing: { before: 50, after: 40, line: 300 }, alignment: AlignmentType.LEFT, children: [new TextRun({ text: cv.additionalInfo, size: 20, font: BODY, color: INK })] }))
-  }
+  extraSectionParagraphs(cv, sectionHeading, { size: 20, font: BODY, color: INK }).forEach(pp => children.push(pp))
 
   return assemble(children, ACCENT)
 }
