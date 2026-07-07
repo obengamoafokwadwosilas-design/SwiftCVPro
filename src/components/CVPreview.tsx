@@ -47,53 +47,20 @@ function sectionBody(sec: ExtraSection, color: string) {
 // sections (certs/memberships/refs/awards) are skipped here — they go in the sidebar.
 function extraMainBlocks(cv: GeneratedCV, headFn: (t: string) => React.ReactNode, routeSidebar: boolean, color?: string): Block[] {
   const out: Block[] = []
-  const sidebarSet = routeSidebar ? new Set(splitExtraForSidebar(cv).side) : new Set()
   getSections(cv).forEach((sec, i) => {
     if (!sec || !sec.items || !sec.items.length) return
-    if (routeSidebar && sidebarSet.has(sec)) return   // only skip what actually FIT in the sidebar
+    if (routeSidebar && isSidebarHead(sec.heading)) return   // lives in the (paginated) sidebar
     out.push({ key: `extra-${i}`, node: <div style={{ marginBottom: 12 }}>{headFn(sec.heading)}{sectionBody(sec, color || '#444')}</div> })
   })
   return out
 }
 // Short sections destined for a two-column sidebar.
-// ── Sidebar capacity guard ──────────────────────────────────────
-// The coloured sidebar renders on page 1 only, inside overflow:hidden — anything
-// beyond one page height is silently CLIPPED. So we estimate how full the sidebar
-// already is (contact + education + skills + languages) and only admit extra
-// sections that fit. Everything that doesn't fit stays in the MAIN column, where
-// the pagination engine handles it properly.
-const SIDEBAR_LINE_BUDGET = 52  // conservative ~lines that fit one A4 sidebar
-
-function estimateFixedSidebarLines(cv: GeneratedCV): number {
-  let n = 4 // name/head padding allowance
-  n += 2 + [cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).length            // contact
-  n += cv.education?.length ? 2 + cv.education.length * 3 : 0                                // education (3 lines each)
-  n += cv.skills?.length ? 2 + cv.skills.length : 0                                          // skills (1 line each)
-  n += cv.languages?.length ? 2 + cv.languages.length : 0                                    // languages
-  return n
-}
-function estimateSectionLines(sec: ExtraSection): number {
-  // heading (2) + items; sidebar is narrow so assume long items wrap to 2 lines
-  return 2 + sec.items.reduce((t, it) => t + (String(it).length > 34 ? 2 : 1), 0)
-}
-// Split extra sections into what fits in the sidebar vs what must stay in main.
-function splitExtraForSidebar(cv: GeneratedCV): { side: ExtraSection[]; mainOnly: Set<number> } {
-  const side: ExtraSection[] = []
-  const mainOnly = new Set<number>()
-  let used = estimateFixedSidebarLines(cv)
-  getSections(cv).forEach((sec, i) => {
-    if (!sec || !sec.items || !sec.items.length) return
-    if (!isSidebarHead(sec.heading)) { mainOnly.add(i); return }
-    const cost = estimateSectionLines(sec)
-    if (used + cost <= SIDEBAR_LINE_BUDGET) { side.push(sec); used += cost }
-    else mainOnly.add(i)   // doesn't fit — keep it in the main column instead of clipping it
-  })
-  return { side, mainOnly }
-}
+// Sidebar routing: short factual sections live in the sidebar. The sidebar is
+// now PAGINATED (it flows onto page 2's sidebar), so nothing can be clipped and
+// no capacity budget is needed.
 function extraSidebarSections(cv: GeneratedCV): ExtraSection[] {
-  return splitExtraForSidebar(cv).side
-}
-// ════════════════════════════════════════════════════════════════
+  return getSections(cv).filter(sec => sec && sec.items && sec.items.length && isSidebarHead(sec.heading))
+}// ════════════════════════════════════════════════════════════════
 // CV PREVIEW — TRUE MULTI-PAGE PAGINATION ENGINE
 // Measures content, packs into discrete A4 pages, each page gets its
 // own full-height sidebar. Eliminates the white-gap problem entirely.
@@ -179,8 +146,15 @@ type TemplateConfig = {
   // exact inner width of main content column (for accurate height measurement)
   measureW: number
   sidebarSide: 'left' | 'right' | 'none'
-  // render the page frame: sidebar (only filled on page 1), header (page 1 only), and children = packed blocks
-  Frame: (p: { cv: GeneratedCV; A: string; pageIndex: number; children: React.ReactNode }) => React.ReactElement
+  // OPTIONAL sidebar pagination: when provided, sidebar content is measured and
+  // packed per page exactly like the main column, flowing onto page 2's sidebar
+  // instead of clipping. sidebarMeasureW = inner width, sidebarPadV = top+bottom padding.
+  buildSidebarBlocks?: (cv: GeneratedCV, A: string) => Block[]
+  sidebarMeasureW?: number
+  sidebarPadV?: number
+  // render the page frame: header (page 1 only), children = packed main blocks,
+  // sidebarChildren = this page's slice of the paginated sidebar (if enabled)
+  Frame: (p: { cv: GeneratedCV; A: string; pageIndex: number; children: React.ReactNode; sidebarChildren?: React.ReactNode }) => React.ReactElement
   // build the ordered list of content blocks (main column)
   buildBlocks: (cv: GeneratedCV, A: string) => Block[]
   // page-1 header (name/title block) — used in Frame AND measured for accurate pagination
@@ -237,30 +211,17 @@ function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skill
   return blocks
 }
 
-// ── Sidebar content (page 1 only) for sidebar templates ──
-function SidebarContent({ cv, light }: { cv: GeneratedCV; light?: boolean }) {
-  const head = (t: string) => <div style={{ fontSize: 13.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.3)' }}>{t}</div>
-  return (
-    <>
-      <div style={{ marginBottom: 26 }}>{head('Contact')}{[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).map((c, i) => <div key={i} style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95, wordBreak: 'break-word', lineHeight: 1.5 }}>{c}</div>)}</div>
-      {!!cv.education?.length && <div style={{ marginBottom: 26 }}>{head('Education')}{cv.education.map((e, i) => <div key={i} style={{ marginBottom: 11, fontSize: 13.5, opacity: 0.95, lineHeight: 1.45 }}><div style={{ fontWeight: 700 }}>{e.qualification}{e.field ? ` in ${e.field}` : ''}</div><div style={{ opacity: 0.85 }}>{e.institution}</div><div style={{ opacity: 0.7, fontSize: 12 }}>{e.startYear} – {e.endYear}{e.grade ? ` · ${e.grade}` : ''}</div></div>)}</div>}
-      {!!cv.skills?.length && <div style={{ marginBottom: 26 }}>{head('Skills')}{cv.skills.map((s, i) => <div key={i} style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95, display: 'flex', gap: 7 }}><span style={{ opacity: 0.7 }}>›</span><span>{s}</span></div>)}</div>}
-      {!!cv.languages?.length && <div style={{ marginBottom: 26 }}>{head('Languages')}{cv.languages.map((l, i) => <div key={i} style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95 }}>{l}</div>)}</div>}
-      {extraSidebarSections(cv).map((sec, i) => (
-        <div key={i} style={{ marginBottom: 26 }}>{head(sec.heading)}{sec.items.map((it, j) => <div key={j} style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95, lineHeight: 1.45 }}>{it}</div>)}</div>
-      ))}
-    </>
-  )
-}
-
 // ════════════════════════════════════════════════════════════════
 // THE PAGINATION ENGINE
 // ════════════════════════════════════════════════════════════════
 function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: TemplateConfig }) {
   const blocks = config.buildBlocks(cv, A)
+  const sideBlocks = config.buildSidebarBlocks ? config.buildSidebarBlocks(cv, A) : []
   const measureRef = useRef<HTMLDivElement>(null)
+  const sideMeasureRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLDivElement>(null)
   const [pages, setPages] = useState<number[][] | null>(null)
+  const [sidePages, setSidePages] = useState<number[][] | null>(null)
 
   useLayoutEffect(() => {
     let cancelled = false
@@ -312,8 +273,38 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
           }
         }
         if (current.length) result.push(current)
+
+        // ── Sidebar pagination (same algorithm, sidebar heights/budget) ──
+        let sideResult: number[][] | null = null
+        const sEl = sideMeasureRef.current
+        if (config.buildSidebarBlocks && sEl) {
+          const sChildren = Array.from(sEl.children) as HTMLElement[]
+          if (sChildren.length === sideBlocks.length && sideBlocks.length > 0) {
+            const sHeights = sChildren.map(c => {
+              const r = c.getBoundingClientRect()
+              let m = 0
+              try { const cs = window.getComputedStyle(c); m = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0) } catch { m = 0 }
+              return r.height + m
+            })
+            const sLimit = PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2
+            const sIsHeading = (i: number) => sideBlocks[i].key.endsWith('-h')
+            sideResult = []
+            let sCur: number[] = []; let sUsed = 0
+            for (let i = 0; i < sideBlocks.length; i++) {
+              const h = sHeights[i] || 0
+              if (sCur.length > 0 && sUsed + h > sLimit) { sideResult.push(sCur); sCur = []; sUsed = 0 }
+              sCur.push(i); sUsed += h
+              if (sIsHeading(i) && i + 1 < sideBlocks.length) {
+                const nextH = sHeights[i + 1] || 0
+                if (sUsed + nextH > sLimit && sCur.length > 1) { sCur.pop(); sideResult.push(sCur); sCur = [i]; sUsed = h }
+              }
+            }
+            if (sCur.length) sideResult.push(sCur)
+          }
+        }
         if (result.length === 0) result.push(blocks.map((_, i) => i))
         if (!cancelled) setPages(result)
+        if (!cancelled) setSidePages(sideResult)
       } catch {
         // on any measurement error, fall back to single page (never crash the app)
         if (!cancelled) setPages([blocks.map((_, i) => i)])
@@ -337,11 +328,27 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
       <div ref={measureRef}>
         {blocks.map(b => <div key={b.key}>{b.node}</div>)}
       </div>
+      {config.buildSidebarBlocks && (
+        <div style={{ width: config.sidebarMeasureW ?? 200 }}>
+          <div ref={sideMeasureRef}>
+            {sideBlocks.map(b => <div key={b.key}>{b.node}</div>)}
+          </div>
+        </div>
+      )}
     </div>
   )
 
   // Until pagination resolves, render everything on page 1 (correct for 1-page CVs, no flash)
-  const pagePlan = (pages && pages.length > 0) ? pages : [blocks.map((_, i) => i)]
+  let pagePlan = (pages && pages.length > 0) ? pages : [blocks.map((_, i) => i)]
+  const sidePlan: number[][] = (sidePages && sidePages.length > 0) ? sidePages : (sideBlocks.length ? [sideBlocks.map((_, i) => i)] : [])
+  // If the sidebar needs more pages than the main column, add empty main pages so nothing is lost.
+  if (sidePlan.length > pagePlan.length) {
+    pagePlan = [...pagePlan, ...Array.from({ length: sidePlan.length - pagePlan.length }, () => [] as number[])]
+  }
+  const sideSlice = (pageIndex: number): React.ReactNode =>
+    config.buildSidebarBlocks
+      ? (sidePlan[pageIndex] || []).map(i => sideBlocks[i] ? <div key={sideBlocks[i].key}>{sideBlocks[i].node}</div> : null)
+      : undefined
 
   return (
     <div>
@@ -353,18 +360,80 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
       {/* SCREEN: one continuous document — every block in a single frame, so there
           are no inter-page padding/margin seams and no trailing empty space. */}
       <div data-screen-doc>
-        <config.Frame cv={cv} A={A} pageIndex={0}>
+        <config.Frame cv={cv} A={A} pageIndex={0} sidebarChildren={config.buildSidebarBlocks ? sideBlocks.map(b => <div key={b.key}>{b.node}</div>) : undefined}>
           {blocks.map(b => <div key={b.key}>{b.node}</div>)}
         </config.Frame>
       </div>
       {/* PRINT/PDF: the real A4 pages. Captured by buildPdfHtml, hidden on screen. */}
       {pagePlan.map((blockIdxs, pageIndex) => (
-        <config.Frame key={pageIndex} cv={cv} A={A} pageIndex={pageIndex}>
+        <config.Frame key={pageIndex} cv={cv} A={A} pageIndex={pageIndex} sidebarChildren={sideSlice(pageIndex)}>
           {blockIdxs.map(i => blocks[i] ? <div key={blocks[i].key}>{blocks[i].node}</div> : null)}
         </config.Frame>
       ))}
     </div>
   )
+}
+
+
+// ── Paginated sidebar block builders ─────────────────────────────
+// Same content as the old monolithic sidebars, split into measurable blocks
+// (headings keyed "-h" so the packer keeps them with their first item).
+function meridianSidebarBlocks(cv: GeneratedCV, A: string): Block[] {
+  const head = (t: string) => <div style={{ fontSize: 13.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase' as const, borderBottom: '1px solid rgba(255,255,255,0.35)', paddingBottom: 6, marginBottom: 12 }}>{t}</div>
+  const b: Block[] = []
+  b.push({ key: 'sb-contact-h', node: head('Contact') })
+  ;[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).forEach((c, i) => b.push({ key: `sb-contact-${i}`, node: <div style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95, wordBreak: 'break-word' as const, lineHeight: 1.5 }}>{c}</div> }))
+  b.push({ key: 'sb-sp1', node: <div style={{ height: 14 }} /> })
+  if (cv.education?.length) {
+    b.push({ key: 'sb-edu-h', node: head('Education') })
+    cv.education.forEach((e, i) => b.push({ key: `sb-edu-${i}`, node: <div style={{ marginBottom: 11, fontSize: 13.5, opacity: 0.95, lineHeight: 1.45 }}><div style={{ fontWeight: 700 }}>{e.qualification}{e.field ? ` in ${e.field}` : ''}</div><div style={{ opacity: 0.85 }}>{e.institution}</div><div style={{ opacity: 0.7, fontSize: 12 }}>{e.startYear} – {e.endYear}{e.grade ? ` · ${e.grade}` : ''}</div></div> }))
+    b.push({ key: 'sb-sp2', node: <div style={{ height: 14 }} /> })
+  }
+  if (cv.skills?.length) {
+    b.push({ key: 'sb-skills-h', node: head('Skills') })
+    cv.skills.forEach((sk, i) => b.push({ key: `sb-skill-${i}`, node: <div style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95, display: 'flex', gap: 7 }}><span style={{ opacity: 0.7 }}>›</span><span>{sk}</span></div> }))
+    b.push({ key: 'sb-sp3', node: <div style={{ height: 14 }} /> })
+  }
+  if (cv.languages?.length) {
+    b.push({ key: 'sb-lang-h', node: head('Languages') })
+    cv.languages.forEach((l, i) => b.push({ key: `sb-lang-${i}`, node: <div style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95 }}>{l}</div> }))
+    b.push({ key: 'sb-sp4', node: <div style={{ height: 14 }} /> })
+  }
+  extraSidebarSections(cv).forEach((sec, i) => {
+    b.push({ key: `sb-x${i}-h`, node: head(sec.heading) })
+    sec.items.forEach((it, j) => b.push({ key: `sb-x${i}-${j}`, node: <div style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95, lineHeight: 1.45 }}>{it}</div> }))
+    b.push({ key: `sb-x${i}-sp`, node: <div style={{ height: 14 }} /> })
+  })
+  return b
+}
+
+function sterlingSidebarBlocks(cv: GeneratedCV, A: string): Block[] {
+  const SH = (t: string) => <div style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase' as const, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.3)', paddingBottom: 5, marginBottom: 10 }}>{t}</div>
+  const b: Block[] = []
+  b.push({ key: 'sb-contact-h', node: SH('Contact') })
+  b.push({ key: 'sb-contact', node: <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 1.7, wordBreak: 'break-word' as const }}>{[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).map((x, i) => <div key={i}>{x}</div>)}</div> })
+  b.push({ key: 'sb-sp1', node: <div style={{ height: 18 }} /> })
+  if (cv.education?.length) {
+    b.push({ key: 'sb-edu-h', node: SH('Education') })
+    cv.education.forEach((e, i) => b.push({ key: `sb-edu-${i}`, node: <div style={{ marginBottom: 10 }}><div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.92)' }}>{e.qualification}{e.field ? ` in ${e.field}` : ''}</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>{e.institution}</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.62)' }}>{e.startYear} – {e.endYear}{e.grade ? ` · ${e.grade}` : ''}</div></div> }))
+    b.push({ key: 'sb-sp2', node: <div style={{ height: 18 }} /> })
+  }
+  if (cv.skills?.length) {
+    b.push({ key: 'sb-skills-h', node: SH('Skills') })
+    cv.skills.forEach((sk, i) => b.push({ key: `sb-skill-${i}`, node: <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 5 }}>{sk}</div> }))
+    b.push({ key: 'sb-sp3', node: <div style={{ height: 18 }} /> })
+  }
+  if (cv.languages?.length) {
+    b.push({ key: 'sb-lang-h', node: SH('Languages') })
+    cv.languages.forEach((l, i) => b.push({ key: `sb-lang-${i}`, node: <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 5 }}>{l}</div> }))
+    b.push({ key: 'sb-sp4', node: <div style={{ height: 18 }} /> })
+  }
+  extraSidebarSections(cv).forEach((sec, i) => {
+    b.push({ key: `sb-x${i}-h`, node: SH(sec.heading) })
+    sec.items.forEach((it, j) => b.push({ key: `sb-x${i}-${j}`, node: <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 5, lineHeight: 1.5 }}>{it}</div> }))
+    b.push({ key: `sb-x${i}-sp`, node: <div style={{ height: 18 }} /> })
+  })
+  return b
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -379,14 +448,20 @@ const pageBase: React.CSSProperties = { width: PAGE_W, background: '#fff', margi
 const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   // ── MERIDIAN: teal sidebar left ──
   meridian: {
-    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468,
+    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: A, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>{t}<span style={{ flex: 1, height: 2, background: A, opacity: 0.25 }} /></div>
       const b: Block[] = []
       if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 22 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.8, color: '#333', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
       if (cv.experience?.length) {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
-        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 16 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 15, fontWeight: 700 }}>{e.role}</div><div style={{ fontSize: 12, color: '#888', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</div></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 13.5, lineHeight: 1.7, color: '#333', marginBottom: 5 }}>{x}</li>)}</ul></div> }))
+        cv.experience.forEach((e, i) => {
+          // role header keyed "-h" → the packer keeps it with its first bullet;
+          // bullets are separate blocks so a long role FLOWS across pages instead
+          // of jumping wholesale and leaving a large gap.
+          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 15, fontWeight: 700 }}>{e.role}</div><div style={{ fontSize: 12, color: '#888', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</div></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: j === e.bullets.length - 1 ? 14 : 0, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#333', marginBottom: 5 }}>{x}</li></ul> }))
+        })
       }
       // Education is rendered in the sidebar for this two-column template.
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#333' }}>{x}</li></ul> })) } }
@@ -396,9 +471,9 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       return b
     },
     Header: ({ cv, A }) => (<><div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.1, color: '#1a1a1a', marginBottom: 4 }}>{cv.fullName}</div>{cv.jobTitle && <div style={{ fontSize: 15.5, color: A, fontWeight: 600, letterSpacing: 0.5, marginBottom: 22, textTransform: 'uppercase' }}>{cv.jobTitle}</div>}</>),
-    Frame: ({ cv, A, pageIndex, children }) => (
+    Frame: ({ cv, A, pageIndex, children, sidebarChildren }) => (
       <div style={{ ...pageBase, display: 'grid', gridTemplateColumns: '262px 1fr', fontFamily: BODY_SERIF, color: '#1a1a1a', background: `linear-gradient(90deg, ${A} 0, ${A} 262px, #fff 262px, #fff 100%)`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-        <div style={{ color: '#fff', padding: '40px 26px' }}>{pageIndex === 0 ? <SidebarContent cv={cv} /> : null}</div>
+        <div style={{ color: '#fff', padding: '40px 26px' }}>{sidebarChildren}</div>
         <div style={{ padding: '40px 32px' }}>
           {pageIndex === 0 && <TEMPLATES_CONFIG.meridian.Header cv={cv} A={A} />}
           {children}
@@ -450,7 +525,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── STERLING: gold executive, navy sidebar right, monogram ──
   sterling: {
-    design: 'sterling', font: BODY_SERIF, contentPadV: 42, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478,
+    design: 'sterling', font: BODY_SERIF, contentPadV: 42, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42,
     buildBlocks: (cv, A) => {
       const DARK = darken(A, 0.74)
       const head = (t: string) => <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: DARK, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12, display: 'inline-block' }}>{t}</div>
@@ -458,7 +533,10 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 20 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
       if (cv.experience?.length) {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
-        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 15 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: DARK }}>{e.role}</span><span style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li>)}</ul></div> }))
+        cv.experience.forEach((e, i) => {
+          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: DARK }}>{e.role}</span><span style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: j === e.bullets.length - 1 ? 13 : 0, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#3a3a3a', marginBottom: 5 }}>{x}</li></ul> }))
+        })
       }
       // Education is rendered in the sidebar for this two-column template.
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
@@ -471,7 +549,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       <div style={{ fontSize: 34, fontWeight: 700, color: darken(A, 0.74), letterSpacing: 1 }}>{cv.fullName}</div>
       {cv.jobTitle && <div style={{ fontSize: 14.5, letterSpacing: 2, textTransform: 'uppercase', color: A, margin: '6px 0 20px' }}>{cv.jobTitle}</div>}
     </>),
-    Frame: ({ cv, A, pageIndex, children }) => {
+    Frame: ({ cv, A, pageIndex, children, sidebarChildren }) => {
       const DARK = darken(A, 0.74)
       return (
         <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#22252b', background: `linear-gradient(90deg, #fff 0, #fff 554px, ${DARK} 554px, ${DARK} 100%)`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
@@ -481,7 +559,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
               {children}
             </div>
             <div style={{ color: '#fff', padding: '42px 26px' }}>
-              {pageIndex === 0 && <SterlingSidebar cv={cv} A={A} />}
+              {sidebarChildren}
             </div>
           </div>
         </div>
@@ -786,25 +864,6 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       </div>
     ),
   },
-}
-
-function SterlingSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
-  const SH = ({ t }: { t: string }) => <div style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: A, marginBottom: 10 }}>{t}</div>
-  return (
-    <>
-      <div style={{ width: 54, height: 54, border: `2px solid ${A}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-        <span style={{ fontSize: 20, color: A, fontWeight: 700 }}>{initials(cv.fullName)}</span>
-      </div>
-      <SH t="Contact" />
-      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 1.7, marginBottom: 18, wordBreak: 'break-word' }}>{[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).map((x, i) => <div key={i}>{x}</div>)}</div>
-      {!!cv.education?.length && <><SH t="Education" />{cv.education.map((e, i) => <div key={i} style={{ marginBottom: 10 }}><div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.92)' }}>{e.qualification}{e.field ? ` in ${e.field}` : ''}</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>{e.institution}</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.62)' }}>{e.startYear} – {e.endYear}{e.grade ? ` · ${e.grade}` : ''}</div></div>)}<div style={{ height: 18 }} /></>}
-      {!!cv.skills?.length && <><SH t="Skills" />{cv.skills.map((s, i) => <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 5 }}>{s}</div>)}<div style={{ height: 18 }} /></>}
-      {!!cv.languages?.length && <><SH t="Languages" />{cv.languages.map((l, i) => <div key={i} style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 5 }}>{l}</div>)}</>}
-      {extraSidebarSections(cv).map((sec, i) => (
-        <React.Fragment key={i}><div style={{ height: 18 }} /><SH t={sec.heading} />{sec.items.map((it, j) => <div key={j} style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 5, lineHeight: 1.5 }}>{it}</div>)}</React.Fragment>
-      ))}
-    </>
-  )
 }
 
 // ── Cover letter (flows naturally, no columns) ──
