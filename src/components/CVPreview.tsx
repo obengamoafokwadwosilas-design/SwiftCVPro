@@ -250,7 +250,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         const headerH = headerRef.current ? headerRef.current.getBoundingClientRect().height : 0
         // Extra breathing room beyond the page's own padding, so content never packs
         // to the literal edge of the printable area — reads like a real printed page.
-        const BOTTOM_SAFETY = 34
+        const BOTTOM_SAFETY = 18
         const usable = PAGE_H - config.contentPadV * 2 - BOTTOM_SAFETY
         const page1Usable = Math.max(160, usable - headerH)
 
@@ -329,7 +329,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
 
   // Hidden measure pass — renders real header + all blocks at exact column width
   const measurePass = (
-    <div data-measure-pass aria-hidden="true" style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: -99999, top: 0, width: config.measureW }}>
+    <div data-measure-pass aria-hidden="true" style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: -99999, top: 0, width: config.measureW, fontFamily: config.font }}>
       <div ref={headerRef} style={{ width: '100%' }}><config.Header cv={cv} A={A} /></div>
       {/* flow-root wrappers CONTAIN inner margins, so measured heights include the
           spacing that would otherwise margin-collapse through and be invisible to the
