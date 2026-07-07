@@ -245,7 +245,10 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         })
 
         const headerH = headerRef.current ? headerRef.current.getBoundingClientRect().height : 0
-        const usable = PAGE_H - config.contentPadV * 2
+        // Extra breathing room beyond the page's own padding, so content never packs
+        // to the literal edge of the printable area — reads like a real printed page.
+        const BOTTOM_SAFETY = 34
+        const usable = PAGE_H - config.contentPadV * 2 - BOTTOM_SAFETY
         const page1Usable = Math.max(160, usable - headerH)
 
         const result: number[][] = []
@@ -286,7 +289,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
               try { const cs = window.getComputedStyle(c); m = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0) } catch { m = 0 }
               return r.height + m
             })
-            const sLimit = PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2
+            const sLimit = PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2 - BOTTOM_SAFETY
             const sIsHeading = (i: number) => sideBlocks[i].key.endsWith('-h')
             sideResult = []
             let sCur: number[] = []; let sUsed = 0
