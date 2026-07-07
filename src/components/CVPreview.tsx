@@ -177,15 +177,18 @@ function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skill
   if (cv.experience?.length) {
     // heading is its own block, each experience its own block (so they can split across pages)
     blocks.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Professional Experience', A, headStyle)}</div> })
-    cv.experience.forEach((e, i) => blocks.push({
-      key: `exp-${i}`, node: (
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 14.5, fontWeight: 700 }}>{e.role}</div><div style={{ fontSize: 12.5, color: '#888', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</div></div>
-          <div style={{ fontSize: 13.5, color: A, fontWeight: 600, fontStyle: 'italic', marginBottom: 6 }}>{e.company}</div>
-          <ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((b, j) => <li key={j} style={{ fontSize: 13.5, lineHeight: 1.7, color: '#333', marginBottom: 4 }}>{b}</li>)}</ul>
-        </div>
-      )
-    }))
+    cv.experience.forEach((e, i) => {
+      // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
+      blocks.push({
+        key: `exp${i}-h`, node: (
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 14.5, fontWeight: 700 }}>{e.role}</div><div style={{ fontSize: 12.5, color: '#888', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</div></div>
+            <div style={{ fontSize: 13.5, color: A, fontWeight: 600, fontStyle: 'italic' }}>{e.company}</div>
+          </div>
+        )
+      })
+      e.bullets.forEach((x, j) => blocks.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 18, marginBottom: j === e.bullets.length - 1 ? 14 : 0, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#333', marginBottom: 4 }}>{x}</li></ul> }))
+    })
   }
   if (cv.education?.length) {
     blocks.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Education', A, headStyle)}</div> })
@@ -499,7 +502,11 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 22 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
       if (cv.experience?.length) {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
-        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 15 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: darken(A, 0.72) }}>{e.role}</span><span style={{ fontSize: 12, color: '#999', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li>)}</ul></div> }))
+        cv.experience.forEach((e, i) => {
+          // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
+          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: darken(A, 0.72) }}>{e.role}</span><span style={{ fontSize: 12, color: '#999', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside', marginBottom: j === e.bullets.length - 1 ? 15 : 0 }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li></ul> }))
+        })
       }
       if (cv.education?.length) {
         b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
@@ -579,7 +586,11 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 26 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.9, color: '#555', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
       if (cv.experience?.length) {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
-        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 16 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: '#1a1a1a' }}>{e.role}</span><span style={{ fontSize: 12, color: '#bbb', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: '#888', marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 13.5, lineHeight: 1.75, color: '#555', marginBottom: 5 }}>{x}</li>)}</ul></div> }))
+        cv.experience.forEach((e, i) => {
+          // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
+          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: '#1a1a1a' }}>{e.role}</span><span style={{ fontSize: 12, color: '#bbb', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: '#888', marginBottom: 6 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside', marginBottom: j === e.bullets.length - 1 ? 16 : 0 }}><li style={{ fontSize: 13.5, lineHeight: 1.75, color: '#555', marginBottom: 5 }}>{x}</li></ul> }))
+        })
       }
       if (cv.education?.length) {
         b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
@@ -616,7 +627,11 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 22 }}>{head('About Me')}<p style={{ fontSize: 14, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
       if (cv.experience?.length) {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
-        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 12, background: '#f4f7f4', borderRadius: 10, padding: '16px 18px' }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: darken(A, 0.5) }}>{e.role}</span><span style={{ fontSize: 12, color: '#7a8a7a', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li>)}</ul></div> }))
+        cv.experience.forEach((e, i) => {
+          // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
+          b.push({ key: `exp${i}-h`, node: <div style={{ background: '#f4f7f4', borderRadius: '10px 10px 0 0', padding: '16px 18px 4px' }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: darken(A, 0.5) }}>{e.role}</span><span style={{ fontSize: 12, color: '#7a8a7a', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 34, listStyleType: 'disc', listStylePosition: 'outside', background: '#f4f7f4', paddingRight: 18, paddingTop: 2, paddingBottom: j === e.bullets.length - 1 ? 14 : 2, borderRadius: j === e.bullets.length - 1 ? '0 0 10px 10px' : 0, marginBottom: j === e.bullets.length - 1 ? 12 : 0 }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li></ul> }))
+        })
       }
       if (cv.education?.length) {
         b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
@@ -652,7 +667,11 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 22 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
       if (cv.experience?.length) {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
-        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 15 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: '#1a1a1a' }}>{e.role}</span><span style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li>)}</ul></div> }))
+        cv.experience.forEach((e, i) => {
+          // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
+          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: '#1a1a1a' }}>{e.role}</span><span style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside', marginBottom: j === e.bullets.length - 1 ? 15 : 0 }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li></ul> }))
+        })
       }
       if (cv.education?.length) {
         b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
@@ -689,20 +708,31 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 26 }}><p style={{ fontSize: 14, lineHeight: 1.8, color: '#475569', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
       if (cv.experience?.length) {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
-        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: (
-          <div style={{ display: 'grid', gridTemplateColumns: '54px 1fr', gap: 16, marginBottom: 18 }}>
-            <div style={{ textAlign: 'right', paddingTop: 2 }}>
-              <div style={{ fontSize: 14.5, fontWeight: 800, color: '#0f172a' }}>{e.endDate}</div>
-              <div style={{ fontSize: 11.5, color: '#94a3b8' }}>{e.startDate}</div>
+        cv.experience.forEach((e, i) => {
+          // split with a CONTINUOUS timeline rail: header carries the date + dot;
+          // each bullet block repeats the grid + left border so the rail runs on unbroken.
+          b.push({ key: `exp${i}-h`, node: (
+            <div style={{ display: 'grid', gridTemplateColumns: '54px 1fr', gap: 16 }}>
+              <div style={{ textAlign: 'right', paddingTop: 2 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 800, color: '#0f172a' }}>{e.endDate}</div>
+                <div style={{ fontSize: 11.5, color: '#94a3b8' }}>{e.startDate}</div>
+              </div>
+              <div style={{ borderLeft: `2px solid #e2e8f0`, paddingLeft: 16, position: 'relative', paddingBottom: 4 }}>
+                <div style={{ position: 'absolute', left: -5, top: 4, width: 8, height: 8, borderRadius: '50%', background: A }} />
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>{e.role}</div>
+                <div style={{ fontSize: 13.5, color: A, fontWeight: 700 }}>{e.company}</div>
+              </div>
             </div>
-            <div style={{ borderLeft: `2px solid #e2e8f0`, paddingLeft: 16, position: 'relative' }}>
-              <div style={{ position: 'absolute', left: -5, top: 4, width: 8, height: 8, borderRadius: '50%', background: A }} />
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>{e.role}</div>
-              <div style={{ fontSize: 13.5, color: A, fontWeight: 700, marginBottom: 6 }}>{e.company}</div>
-              <ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 13.5, lineHeight: 1.7, color: '#475569', marginBottom: 4 }}>{x}</li>)}</ul>
+          ) })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: (
+            <div style={{ display: 'grid', gridTemplateColumns: '54px 1fr', gap: 16, marginBottom: j === e.bullets.length - 1 ? 18 : 0 }}>
+              <div />
+              <div style={{ borderLeft: `2px solid #e2e8f0`, paddingLeft: 16, paddingBottom: j === e.bullets.length - 1 ? 4 : 0 }}>
+                <ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#475569', marginBottom: 4 }}>{x}</li></ul>
+              </div>
             </div>
-          </div>
-        ) }))
+          ) }))
+        })
       }
       if (cv.education?.length) {
         b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
@@ -781,7 +811,11 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 24 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.85, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
       if (cv.experience?.length) {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
-        cv.experience.forEach((e, i) => b.push({ key: `exp-${i}`, node: <div style={{ marginBottom: 16 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><span style={{ fontSize: 15.5, fontWeight: 700, color: DARK }}>{e.role}</span><span style={{ fontSize: 12, color: A, fontStyle: 'italic', fontFamily: BODY_SANS }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontStyle: 'italic', marginBottom: 7 }}>{e.company}</div><ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{e.bullets.map((x, j) => <li key={j} style={{ fontSize: 13.5, lineHeight: 1.75, color: '#444', marginBottom: 5, fontFamily: BODY_SANS }}>{x}</li>)}</ul></div> }))
+        cv.experience.forEach((e, i) => {
+          // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
+          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><span style={{ fontSize: 15.5, fontWeight: 700, color: DARK }}>{e.role}</span><span style={{ fontSize: 12, color: A, fontStyle: 'italic', fontFamily: BODY_SANS }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontStyle: 'italic', marginBottom: 7 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside', marginBottom: j === e.bullets.length - 1 ? 16 : 0 }}><li style={{ fontSize: 13.5, lineHeight: 1.75, color: '#444', marginBottom: 5, fontFamily: BODY_SANS }}>{x}</li></ul> }))
+        })
       }
       if (cv.education?.length) {
         b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
