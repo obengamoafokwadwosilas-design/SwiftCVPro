@@ -331,13 +331,18 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   const measurePass = (
     <div data-measure-pass aria-hidden="true" style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: -99999, top: 0, width: config.measureW }}>
       <div ref={headerRef} style={{ width: '100%' }}><config.Header cv={cv} A={A} /></div>
+      {/* flow-root wrappers CONTAIN inner margins, so measured heights include the
+          spacing that would otherwise margin-collapse through and be invisible to the
+          packer (the cause of sidebar bottom-edge clipping). Real render collapses
+          adjacent margins to the max ≤ our counted sum, so we only ever break EARLIER
+          than strictly needed — never later. Safe by construction. */}
       <div ref={measureRef}>
-        {blocks.map(b => <div key={b.key}>{b.node}</div>)}
+        {blocks.map(b => <div key={b.key} style={{ display: 'flow-root' }}>{b.node}</div>)}
       </div>
       {config.buildSidebarBlocks && (
         <div style={{ width: config.sidebarMeasureW ?? 200 }}>
           <div ref={sideMeasureRef}>
-            {sideBlocks.map(b => <div key={b.key}>{b.node}</div>)}
+            {sideBlocks.map(b => <div key={b.key} style={{ display: 'flow-root' }}>{b.node}</div>)}
           </div>
         </div>
       )}
