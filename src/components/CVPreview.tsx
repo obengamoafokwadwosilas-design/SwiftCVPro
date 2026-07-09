@@ -257,6 +257,11 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         const BOTTOM_SAFETY = 18
         const usable = PAGE_H - config.contentPadV * 2 - BOTTOM_SAFETY
         const page1Usable = Math.max(160, usable - headerH)
+        // Soft-fit tolerance: if a block would only just barely overflow, keep it on
+        // the page rather than breaking early. Closes small avoidable gaps (the
+        // "recruiter never notices a few px" spacing-compression idea) without the
+        // complexity/risk of actually re-rendering blocks at compressed spacing.
+        const TOLERANCE = 22
 
         const result: number[][] = []
         let current: number[] = []
@@ -266,7 +271,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
 
         for (let i = 0; i < blocks.length; i++) {
           const h = heights[i] || 0
-          if (current.length > 0 && used + h > limit) {
+          if (current.length > 0 && used + h > limit + TOLERANCE) {
             result.push(current); current = []; used = 0; limit = usable
           }
           current.push(i)
@@ -283,6 +288,36 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
           }
         }
         if (current.length) result.push(current)
+
+        // ── Widow-tail fix ────────────────────────────────────────
+        // If a page starts with the trailing 1-2 bullets of a role whose
+        // earlier bullets are all on the PREVIOUS page, pull that tail back
+        // instead of stranding it alone at the top of a new page. This is
+        // what "keep each job together" actually means in practice — full
+        // keep-together caused the big-gap bug, so instead we only rescue
+        // small stranded tails, bounded so it can never cascade into moving
+        // a whole role or blowing out a page.
+        const roleOf = (key: string) => { const m = key.match(/^(exp\d+)-b\d+$/); return m ? m[1] : null }
+        for (let p = 0; p < result.length - 1; p++) {
+          const prevPage = result[p]
+          const nextPage = result[p + 1]
+          if (!prevPage.length || !nextPage.length) continue
+          let pulled = 0
+          while (nextPage.length && pulled < 2) {
+            const firstIdx = nextPage[0]
+            const rk = roleOf(blocks[firstIdx].key)
+            if (!rk) break // not a role bullet — nothing to rescue
+            const prevKey = blocks[prevPage[prevPage.length - 1]].key
+            const sameRole = prevKey === `${rk}-h` || roleOf(prevKey) === rk
+            if (!sameRole) break // this page starts a NEW role — leave it, that's a normal break
+            const h = heights[firstIdx] || 0
+            if (h > 90) break // a large single bullet — don't risk a big overflow, leave it
+            prevPage.push(firstIdx)
+            nextPage.shift()
+            pulled++
+          }
+        }
+        for (let p = result.length - 1; p >= 0; p--) { if (result[p].length === 0) result.splice(p, 1) }
 
         // ── Sidebar pagination (same algorithm, sidebar heights/budget) ──
         let sideResult: number[][] | null = null
@@ -302,7 +337,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
             let sCur: number[] = []; let sUsed = 0
             for (let i = 0; i < sideBlocks.length; i++) {
               const h = sHeights[i] || 0
-              if (sCur.length > 0 && sUsed + h > sLimit) { sideResult.push(sCur); sCur = []; sUsed = 0 }
+              if (sCur.length > 0 && sUsed + h > sLimit + TOLERANCE) { sideResult.push(sCur); sCur = []; sUsed = 0 }
               sCur.push(i); sUsed += h
               if (sIsHeading(i) && i + 1 < sideBlocks.length) {
                 const nextH = sHeights[i + 1] || 0
