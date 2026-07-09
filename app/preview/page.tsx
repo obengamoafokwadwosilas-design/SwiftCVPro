@@ -501,6 +501,11 @@ export default function PreviewPage() {
         }
       `}</style>
 
+      {/* Load the print fonts in the PREVIEW too: the paginator must measure with
+          the exact fonts the PDF renders with, or line-wrapping (and thus page
+          breaks) drift between screen and PDF. fonts.ready in CVPreview waits on these. */}
+      <link rel="stylesheet" href={PRINT_FONTS_HREF} />
+
       {/* ── Redesign motion + polish (screen only) ── */}
       <style>{`
         @keyframes scv-pop { from{opacity:0;transform:scale(.4)} to{opacity:1;transform:scale(1)} }
