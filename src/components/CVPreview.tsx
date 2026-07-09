@@ -86,8 +86,12 @@ const DEFAULT_ACCENT: Record<string, string> = {
   vertex: '#e0533d', sovereign: '#b08d3f', meridian: '#0d9488', ascend: '#1d4ed8', harbour: '#0f766e', classic: '#1a1a1a',
   onyx: '#c9a86a', sterling: '#c9a86a', slate: '#1a1a1a', verde: '#3f9142', crimson: '#a01e1e', atlas: '#3b82f6',
 }
-const BODY_SERIF = "'Cambria', Georgia, serif"
-const BODY_SANS = "'Calibri', 'Segoe UI', sans-serif"
+// Webfonts FIRST: they render identically in the user's browser (measurement)
+// and in server-side headless Chrome (PDF). System fonts like Cambria don't exist
+// on the Linux PDF server, which made PDF line-wrapping differ from what the
+// paginator measured — the root cause of the gap/clip drift across templates.
+const BODY_SERIF = "'Crimson Text', 'Cambria', Georgia, serif"
+const BODY_SANS = "'Source Sans 3', 'Calibri', 'Segoe UI', sans-serif"
 
 // A4 at 96dpi
 const PAGE_W = 794
