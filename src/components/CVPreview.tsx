@@ -289,32 +289,65 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         }
         if (current.length) result.push(current)
 
-        // ── Widow-tail fix ────────────────────────────────────────
-        // If a page starts with the trailing 1-2 bullets of a role whose
-        // earlier bullets are all on the PREVIOUS page, pull that tail back
-        // instead of stranding it alone at the top of a new page. This is
-        // what "keep each job together" actually means in practice — full
-        // keep-together caused the big-gap bug, so instead we only rescue
-        // small stranded tails, bounded so it can never cascade into moving
-        // a whole role or blowing out a page.
+        // ── Widow-tail fix (capacity-checked, both directions) ──────
+        // Goal: a page must not START with the stranded trailing bullet(s) of a
+        // role whose body sits on the previous page. Two bounded rescues:
+        //   A) PULL BACK: move the stranded tail (≤2 bullets) onto the previous
+        //      page — but ONLY if it genuinely fits there. (The earlier version
+        //      skipped this check and caused mid-sentence clipping at page edges.)
+        //   B) PUSH FORWARD: if it can't fit, move the previous page's last
+        //      same-role bullet forward instead, so the widow has company —
+        //      only if the NEXT page can absorb it, and never if that would
+        //      leave the role's heading stranded with zero bullets.
+        // Every move is verified against real page capacity before it happens,
+        // so this can shuffle content but can never overflow a page.
         const roleOf = (key: string) => { const m = key.match(/^(exp\d+)-b\d+$/); return m ? m[1] : null }
+        const pageLimit = (p: number) => (p === 0 ? page1Usable : usable)
+        const pageUsed = result.map(pg => pg.reduce((t, i) => t + (heights[i] || 0), 0))
+
         for (let p = 0; p < result.length - 1; p++) {
           const prevPage = result[p]
           const nextPage = result[p + 1]
           if (!prevPage.length || !nextPage.length) continue
-          let pulled = 0
-          while (nextPage.length && pulled < 2) {
-            const firstIdx = nextPage[0]
-            const rk = roleOf(blocks[firstIdx].key)
-            if (!rk) break // not a role bullet — nothing to rescue
-            const prevKey = blocks[prevPage[prevPage.length - 1]].key
-            const sameRole = prevKey === `${rk}-h` || roleOf(prevKey) === rk
-            if (!sameRole) break // this page starts a NEW role — leave it, that's a normal break
-            const h = heights[firstIdx] || 0
-            if (h > 90) break // a large single bullet — don't risk a big overflow, leave it
-            prevPage.push(firstIdx)
-            nextPage.shift()
-            pulled++
+
+          const firstIdx = nextPage[0]
+          const rk = roleOf(blocks[firstIdx].key)
+          if (!rk) continue
+          const prevKey = blocks[prevPage[prevPage.length - 1]].key
+          const sameRole = prevKey === `${rk}-h` || roleOf(prevKey) === rk
+          if (!sameRole) continue // next page starts a NEW role — normal break
+
+          // Count how many leading blocks of nextPage belong to this stranded tail.
+          let tailLen = 0
+          while (tailLen < nextPage.length && roleOf(blocks[nextPage[tailLen]].key) === rk) tailLen++
+
+          // A) PULL BACK — only small tails, only if they truly fit on prevPage.
+          if (tailLen <= 2) {
+            const tailH = nextPage.slice(0, tailLen).reduce((t, i) => t + (heights[i] || 0), 0)
+            if (pageUsed[p] + tailH <= pageLimit(p) + TOLERANCE) {
+              for (let k = 0; k < tailLen; k++) prevPage.push(nextPage.shift() as number)
+              pageUsed[p] += tailH; pageUsed[p + 1] -= tailH
+              continue
+            }
+          }
+
+          // B) PUSH FORWARD — give the widow company by moving prevPage's last
+          // same-role bullet(s) forward (≤2), if the next page can absorb them
+          // and the role keeps at least one bullet with its heading on prevPage.
+          let moved = 0
+          while (moved < 2) {
+            const lastIdx = prevPage[prevPage.length - 1]
+            if (roleOf(blocks[lastIdx].key) !== rk) break
+            const beforeIdx = prevPage[prevPage.length - 2]
+            const beforeKey = beforeIdx !== undefined ? blocks[beforeIdx].key : ''
+            // never leave the heading alone: the block before the one we move
+            // must still be a same-role BULLET (not the heading, not another section)
+            if (roleOf(beforeKey) !== rk) break
+            const h = heights[lastIdx] || 0
+            if (pageUsed[p + 1] + h > usable + TOLERANCE) break // next page can't absorb it
+            prevPage.pop(); nextPage.unshift(lastIdx)
+            pageUsed[p] -= h; pageUsed[p + 1] += h
+            moved++
           }
         }
         for (let p = result.length - 1; p >= 0; p--) { if (result[p].length === 0) result.splice(p, 1) }
