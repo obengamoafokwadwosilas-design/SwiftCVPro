@@ -293,7 +293,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         let limit = page1Usable
         const isHeading = (i: number) => blocks[i].key.endsWith('-h')
 
-        function placeFlowing(idxs: number[]) {
+        const placeFlowing = (idxs: number[]) => {
           // Bullet-by-bullet placement (the old algorithm), used only when a role
           // is too long to ever fit on one page — or for non-role units.
           for (const i of idxs) {
