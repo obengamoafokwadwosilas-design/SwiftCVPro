@@ -156,6 +156,8 @@ type TemplateConfig = {
   buildSidebarBlocks?: (cv: GeneratedCV, A: string) => Block[]
   sidebarMeasureW?: number
   sidebarPadV?: number
+  // Exact usable height for page 2+ (when contentPadV*2 doesn't match the actual rendered padding+borders)
+  pageUsable?: number
   // render the page frame: header (page 1 only), children = packed main blocks,
   // sidebarChildren = this page's slice of the paginated sidebar (if enabled)
   Frame: (p: { cv: GeneratedCV; A: string; pageIndex: number; children: React.ReactNode; sidebarChildren?: React.ReactNode }) => React.ReactElement
@@ -255,7 +257,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         // Extra breathing room beyond the page's own padding, so content never packs
         // to the literal edge of the printable area — reads like a real printed page.
         const BOTTOM_SAFETY = 18
-        const usable = PAGE_H - config.contentPadV * 2 - BOTTOM_SAFETY
+        const usable = (config.pageUsable ?? (PAGE_H - config.contentPadV * 2)) - BOTTOM_SAFETY
         const page1Usable = Math.max(160, usable - headerH)
         // Soft-fit tolerance: if a block would only just barely overflow, keep it on
         // the page rather than breaking early. Closes small avoidable gaps (the
@@ -263,29 +265,72 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         // complexity/risk of actually re-rendering blocks at compressed spacing.
         const TOLERANCE = 22
 
+        // ── Group blocks into placement UNITS ───────────────────────
+        // A "unit" is either one standalone block, or an entire role (header +
+        // all its bullets) treated atomically for the FIRST placement attempt.
+        // This is the "try whole, fall back to flow" strategy: a role that fits
+        // on one page is placed as a clean, unsplit block — no widows possible.
+        // Only a role too long for any single page gets flowed bullet-by-bullet.
+        const roleKeyOf = (key: string) => { const m = key.match(/^(exp\d+)-/); return m ? m[1] : null }
+        type Unit = { idxs: number[]; h: number; isRole: boolean }
+        const units: Unit[] = []
+        for (let i = 0; i < blocks.length; ) {
+          const rk = roleKeyOf(blocks[i].key)
+          if (rk) {
+            const idxs: number[] = []
+            let h = 0
+            while (i < blocks.length && roleKeyOf(blocks[i].key) === rk) { idxs.push(i); h += heights[i] || 0; i++ }
+            units.push({ idxs, h, isRole: true })
+          } else {
+            units.push({ idxs: [i], h: heights[i] || 0, isRole: false })
+            i++
+          }
+        }
+
         const result: number[][] = []
         let current: number[] = []
         let used = 0
         let limit = page1Usable
         const isHeading = (i: number) => blocks[i].key.endsWith('-h')
 
-        for (let i = 0; i < blocks.length; i++) {
-          const h = heights[i] || 0
-          if (current.length > 0 && used + h > limit + TOLERANCE) {
-            result.push(current); current = []; used = 0; limit = usable
-          }
-          current.push(i)
-          used += h
-          if (isHeading(i) && i + 1 < blocks.length) {
-            const nextH = heights[i + 1] || 0
-            if (used + nextH > limit && current.length > 1) {
-              current.pop()
-              result.push(current)
-              current = [i]
-              used = h
-              limit = usable
+        function placeFlowing(idxs: number[]) {
+          // Bullet-by-bullet placement (the old algorithm), used only when a role
+          // is too long to ever fit on one page — or for non-role units.
+          for (const i of idxs) {
+            const h = heights[i] || 0
+            if (current.length > 0 && used + h > limit + TOLERANCE) {
+              result.push(current); current = []; used = 0; limit = usable
+            }
+            current.push(i)
+            used += h
+            if (isHeading(i) && i + 1 < blocks.length) {
+              const nextH = heights[i + 1] || 0
+              if (used + nextH > limit && current.length > 1) {
+                current.pop(); result.push(current); current = [i]; used = h; limit = usable
+              }
             }
           }
+        }
+
+        for (const u of units) {
+          if (!u.isRole) { placeFlowing(u.idxs); continue }
+
+          // Try WHOLE on the current page first.
+          if (used + u.h <= limit + TOLERANCE) {
+            current.push(...u.idxs); used += u.h; continue
+          }
+          // Doesn't fit here — would it fit whole on a FRESH page? If so, break
+          // and place it whole there (this is what avoids widows for normal-
+          // sized roles: no partial placement is ever attempted for them).
+          if (u.h <= usable + TOLERANCE) {
+            if (current.length) { result.push(current); current = []; used = 0 }
+            limit = usable
+            current.push(...u.idxs); used += u.h; continue
+          }
+          // Role is too long for any single page — only now fall back to
+          // flowing it bullet-by-bullet (the widow-tail fix below is the
+          // safety net for whatever falls out of this fallback path).
+          placeFlowing(u.idxs)
         }
         if (current.length) result.push(current)
 
@@ -572,7 +617,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── ONYX: dark editorial header band, gold accents ──
   onyx: {
-    design: 'onyx', font: BODY_SERIF, contentPadV: 30, mainPad: '30px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702,
+    design: 'onyx', font: BODY_SERIF, contentPadV: 30, pageUsable: 1047, mainPad: '30px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: A, marginBottom: 10 }}>{t}</div>
       const b: Block[] = []
@@ -612,7 +657,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── STERLING: gold executive, navy sidebar right, monogram ──
   sterling: {
-    design: 'sterling', font: BODY_SERIF, contentPadV: 42, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42,
+    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42,
     buildBlocks: (cv, A) => {
       const DARK = darken(A, 0.74)
       const head = (t: string) => <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: DARK, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12, display: 'inline-block' }}>{t}</div>
@@ -697,7 +742,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── VERDE: green gradient header, timeline experience, cards ──
   verde: {
-    design: 'verde', font: BODY_SERIF, contentPadV: 36, mainPad: '36px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    design: 'verde', font: BODY_SERIF, contentPadV: 36, pageUsable: 1037, mainPad: '36px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: darken(A, 0.5), marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: A }} />{t}<span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${A}40, transparent)` }} /></div>
       const b: Block[] = []
@@ -737,7 +782,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── CRIMSON: magazine colour header band ──
   crimson: {
-    design: 'crimson', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    design: 'crimson', font: BODY_SERIF, contentPadV: 40, pageUsable: 1029, mainPad: '40px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: A, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12 }}>{t}</div>
       const b: Block[] = []
