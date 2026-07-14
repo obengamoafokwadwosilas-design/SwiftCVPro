@@ -354,49 +354,58 @@ export default function BuildPage() {
           </h1>
           <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '36px', fontWeight: 300, lineHeight: 1.7 }}>Choose the option that best fits your goals.</p>
 
-          {/* Hero card — Professional CV */}
-          <div
-            onClick={() => { setCvType('professional'); go('method') }}
-            style={{ background: 'white', border: '2px solid #0d9488', borderRadius: '20px', padding: '24px', marginBottom: '12px', cursor: 'pointer', position: 'relative', transition: 'box-shadow 0.2s' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
-          >
-            <div style={{ position: 'absolute', top: '-13px', left: '20px', background: '#0d9488', color: 'white', fontSize: '11px', fontWeight: 600, padding: '4px 14px', borderRadius: '100px' }}>★ Recommended for most people</div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg>
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '5px' }}>Professional CV</div>
-                <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.7, fontWeight: 300, marginBottom: '8px' }}>For most job applications and any industry.</div>
-
-              </div>
-            </div>
-            <button style={{ marginTop: '16px', background: '#0d9488', color: 'white', border: 'none', padding: '11px 22px', borderRadius: '100px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Choose Professional CV →</button>
-          </div>
-
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '18px 0 14px' }}>
-            <div style={{ flex: 1, height: '0.5px', background: '#e2e8f0' }} />
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>Or choose something more specific</span>
-            <div style={{ flex: 1, height: '0.5px', background: '#e2e8f0' }} />
-          </div>
-
-          {/* Secondary document options */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginBottom: '16px' }}>
+          {/* Three equal-sized document type cards. Professional is nudged via a
+              small badge + slightly stronger border only — never a size difference,
+              so Academic and Cover Letter don't read as lesser options. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '16px' }}>
             {([
-              { id: 'academic' as CVType, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>, iconBg: '#eeedfe', name: 'Academic CV', desc: 'For research roles, postgraduate applications, and lecturing positions.' },
-              { id: 'cover_letter' as CVType, icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>, iconBg: '#fbeaf0', name: 'Cover Letter', desc: 'A personalised letter that introduces you and makes the case for you.' },
+              {
+                id: 'professional' as CVType, recommended: true,
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg>,
+                iconBg: '#e1f5ee', name: 'Professional CV', desc: 'For most job applications and any industry.', cta: 'Choose Professional CV'
+              },
+              {
+                id: 'academic' as CVType, recommended: false,
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>,
+                iconBg: '#eeedfe', name: 'Academic CV', desc: 'For research roles, postgraduate applications, and lecturing positions.', cta: 'Choose Academic CV'
+              },
+              {
+                id: 'cover_letter' as CVType, recommended: false,
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
+                iconBg: '#fbeaf0', name: 'Cover Letter', desc: 'A personalised letter that introduces you and makes the case for you.', cta: 'Choose Cover Letter'
+              },
             ] as any[]).map((card: any) => (
-              <div key={card.id} onClick={() => { setCvType(card.id); go('method') }}
-                style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '16px', cursor: 'pointer', transition: 'border-color 0.2s' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#0d9488' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#e2e8f0' }}
+              <div
+                key={card.id}
+                onClick={() => { setCvType(card.id); go('method') }}
+                style={{
+                  position: 'relative', background: 'white', display: 'flex', flexDirection: 'column',
+                  border: card.recommended ? '2px solid #0d9488' : '1px solid #e2e8f0',
+                  borderRadius: '18px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s, box-shadow 0.2s'
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLDivElement
+                  if (card.recommended) el.style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)'
+                  else el.style.borderColor = '#0d9488'
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLDivElement
+                  el.style.boxShadow = 'none'
+                  if (!card.recommended) el.style.borderColor = '#e2e8f0'
+                }}
               >
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: card.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>{card.icon}</div>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.05rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '5px' }}>{card.name}</div>
-                <div style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.6, fontWeight: 300, marginBottom: '10px' }}>{card.desc}</div>
-                <div style={{ width: '100%', background: 'transparent', border: '0.5px solid #e2e8f0', borderRadius: '100px', padding: '7px 0', fontSize: '12px', fontWeight: 500, color: '#0a0f1a', textAlign: 'center' as const }}>Choose →</div>
+                {card.recommended && (
+                  <div style={{ position: 'absolute', top: '-12px', left: '18px', background: '#0d9488', color: 'white', fontSize: '10.5px', fontWeight: 600, padding: '3px 12px', borderRadius: '100px' }}>★ Recommended</div>
+                )}
+                <div style={{ width: '42px', height: '42px', borderRadius: '11px', background: card.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>{card.icon}</div>
+                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.2rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '6px' }}>{card.name}</div>
+                <div style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.65, fontWeight: 300, marginBottom: '16px', flex: 1 }}>{card.desc}</div>
+                <button style={{
+                  width: '100%', border: 'none', borderRadius: '100px', padding: '10px 0', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
+                  background: card.recommended ? '#0d9488' : 'transparent',
+                  color: card.recommended ? 'white' : '#0a0f1a',
+                  ...(card.recommended ? {} : { border: '0.5px solid #e2e8f0' })
+                }}>{card.cta} →</button>
               </div>
             ))}
           </div>
