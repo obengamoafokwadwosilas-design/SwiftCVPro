@@ -354,10 +354,8 @@ export default function BuildPage() {
           </h1>
           <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '36px', fontWeight: 300, lineHeight: 1.7 }}>Choose the option that best fits your goals.</p>
 
-          {/* Three equal-sized document type cards. Professional is nudged via a
-              small badge + slightly stronger border only — never a size difference,
-              so Academic and Cover Letter don't read as lesser options. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '16px' }}>
+          {/* CV TYPES — the actual answer to "what CV type" — get equal top billing. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '18px' }}>
             {([
               {
                 id: 'professional' as CVType, recommended: true,
@@ -368,11 +366,6 @@ export default function BuildPage() {
                 id: 'academic' as CVType, recommended: false,
                 icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>,
                 iconBg: '#eeedfe', name: 'Academic CV', desc: 'For research roles, postgraduate applications, and lecturing positions.', cta: 'Choose Academic CV'
-              },
-              {
-                id: 'cover_letter' as CVType, recommended: false,
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
-                iconBg: '#fbeaf0', name: 'Cover Letter', desc: 'A personalised letter that introduces you and makes the case for you.', cta: 'Choose Cover Letter'
               },
             ] as any[]).map((card: any) => (
               <div
@@ -408,6 +401,35 @@ export default function BuildPage() {
                 }}>{card.cta} →</button>
               </div>
             ))}
+          </div>
+
+          {/* Divider — signals a category change, not a third peer option */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '4px 0 16px' }}>
+            <div style={{ flex: 1, height: '0.5px', background: '#e2e8f0' }} />
+            <span style={{ fontSize: '12px', color: '#94a3b8' }}>Need something else instead?</span>
+            <div style={{ flex: 1, height: '0.5px', background: '#e2e8f0' }} />
+          </div>
+
+          {/* COVER LETTER — a different document, not a third CV type, so it's
+              visually set apart below rather than styled as a peer of the two above. */}
+          <div
+            onClick={() => { setCvType('cover_letter'); go('method') }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '14px', background: 'white',
+              border: '1px solid #e2e8f0', borderRadius: '16px', padding: '14px 18px',
+              cursor: 'pointer', marginBottom: '16px', transition: 'border-color 0.2s'
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#0d9488' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#e2e8f0' }}
+          >
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fbeaf0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.05rem', fontWeight: 600, color: '#0a0f1a' }}>Cover Letter</div>
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 300 }}>A personalised letter that introduces you and makes the case for you.</div>
+            </div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#0a0f1a', whiteSpace: 'nowrap' as const }}>Choose Cover Letter →</div>
           </div>
 
           {/* Helper */}
