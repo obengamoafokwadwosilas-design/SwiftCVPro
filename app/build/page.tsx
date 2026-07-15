@@ -350,7 +350,7 @@ export default function BuildPage() {
       {screen === 'type' && (
         <div style={{ maxWidth: '760px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '8px', lineHeight: 1.1 }}>
-            What <span style={{ color: '#0d9488' }}>CV Type</span> Are We Building Today?
+            Select a <span style={{ color: '#0d9488' }}>CV Type</span>
           </h1>
           <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '36px', fontWeight: 300, lineHeight: 1.7 }}>Choose the option that best fits your goals.</p>
 
@@ -429,7 +429,7 @@ export default function BuildPage() {
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.05rem', fontWeight: 600, color: '#0a0f1a' }}>Cover Letter</div>
               <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 300 }}>A personalised letter that introduces you and makes the case for you.</div>
             </div>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#0a0f1a', whiteSpace: 'nowrap' as const }}>Choose Cover Letter →</div>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: '#0a0f1a', whiteSpace: 'nowrap' as const, border: '0.5px solid #e2e8f0', borderRadius: '100px', padding: '9px 18px' }}>Choose Cover Letter →</div>
           </div>
 
           {/* Helper */}
