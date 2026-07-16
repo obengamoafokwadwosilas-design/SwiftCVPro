@@ -49,11 +49,19 @@ function extraMainBlocks(cv: GeneratedCV, headFn: (t: string) => React.ReactNode
   const out: Block[] = []
   getSections(cv).forEach((sec, i) => {
     if (!sec || !sec.items || !sec.items.length) return
-    if (routeSidebar && isSidebarHead(sec.heading)) return   // lives in the (paginated) sidebar
-    out.push({ key: `extra-${i}`, node: <div style={{ marginBottom: 12 }}>{headFn(sec.heading)}{sectionBody(sec, color || '#444')}</div> })
+    if (routeSidebar && isSidebarHead(sec.heading)) return
+    out.push({ key: `extra-${i}-h`, node: <div style={{ marginBottom: 4 }}>{headFn(sec.heading)}</div> })
+    sec.items.forEach((it, j) => {
+      if (isRefsHead(sec.heading)) {
+        out.push({ key: `extra-${i}-${j}`, node: <div style={{ fontSize: 13.5, lineHeight: 1.5, color: color || '#444', marginBottom: j === sec.items.length - 1 ? 12 : 2 }}>{it}</div> })
+      } else {
+        out.push({ key: `extra-${i}-${j}`, node: <ul style={{ margin: 0, paddingLeft: 18, marginBottom: j === sec.items.length - 1 ? 12 : 3, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.5, color: color || '#444' }}>{it}</li></ul> })
+      }
+    })
   })
   return out
 }
+
 // Short sections destined for a two-column sidebar.
 // Sidebar routing: short factual sections live in the sidebar. The sidebar is
 // now PAGINATED (it flows onto page 2's sidebar), so nothing can be clipped and
@@ -133,58 +141,40 @@ const PACK_BOTTOM_SAFETY = 18
 const PACK_TOLERANCE = 22
 
 const packMainPlan = (keys: string[], heights: number[], page1Usable: number, usable: number): number[][] => {
-  const roleKeyOf = (key: string) => { const m = key.match(/^(exp\d+)-/); return m ? m[1] : null }
-  type Unit = { idxs: number[]; h: number; isRole: boolean }
-  const units: Unit[] = []
-  for (let i = 0; i < keys.length; ) {
-    const rk = roleKeyOf(keys[i])
-    if (rk) {
-      const idxs: number[] = []
-      let h = 0
-      while (i < keys.length && roleKeyOf(keys[i]) === rk) { idxs.push(i); h += heights[i] || 0; i++ }
-      units.push({ idxs, h, isRole: true })
-    } else {
-      units.push({ idxs: [i], h: heights[i] || 0, isRole: false })
-      i++
-    }
-  }
-
   const result: number[][] = []
   let current: number[] = []
   let used = 0
   let limit = page1Usable
   const isHeading = (i: number) => keys[i].endsWith('-h')
 
-  const placeFlowing = (idxs: number[]) => {
-    for (const i of idxs) {
-      const h = heights[i] || 0
-      if (current.length > 0 && used + h > limit + PACK_TOLERANCE) {
-        result.push(current); current = []; used = 0; limit = usable
-      }
-      current.push(i)
-      used += h
-      if (isHeading(i) && i + 1 < keys.length) {
-        const nextH = heights[i + 1] || 0
-        if (used + nextH > limit && current.length > 1) {
-          current.pop(); result.push(current); current = [i]; used = h; limit = usable
-        }
-      }
+  // Flow every block independently. Headings are orphan-protected below, so an
+  // experience header stays with its first bullet, but the entire role is never
+  // pushed wholesale to a fresh page. That wholesale move was the main source
+  // of large, avoidable white gaps.
+  for (let i = 0; i < keys.length; i++) {
+    const h = heights[i] || 0
+    if (current.length > 0 && used + h > limit + PACK_TOLERANCE) {
+      result.push(current); current = []; used = 0; limit = usable
     }
-  }
+    current.push(i)
+    used += h
 
-  for (const u of units) {
-    if (!u.isRole) { placeFlowing(u.idxs); continue }
-    if (used + u.h <= limit + PACK_TOLERANCE) { current.push(...u.idxs); used += u.h; continue }
-    if (u.h <= usable + PACK_TOLERANCE) {
-      if (current.length) { result.push(current); current = []; used = 0 }
-      limit = usable
-      current.push(...u.idxs); used += u.h; continue
+    // Never leave a section/role heading alone at the bottom of a page.
+    if (isHeading(i) && i + 1 < keys.length) {
+      const nextH = heights[i + 1] || 0
+      if (used + nextH > limit + PACK_TOLERANCE && current.length > 1) {
+        current.pop()
+        used -= h
+        result.push(current)
+        current = [i]
+        used = h
+        limit = usable
+      }
     }
-    placeFlowing(u.idxs)
   }
   if (current.length) result.push(current)
 
-  // Widow-tail fix (capacity-checked, both directions)
+  // Widow-tail fix for experience bullets (capacity-checked, both directions).
   const roleOf = (key: string) => { const m = key.match(/^(exp\d+)-b\d+$/); return m ? m[1] : null }
   const pageLimit = (p: number) => (p === 0 ? page1Usable : usable)
   const pageUsed = result.map(pg => pg.reduce((t, i) => t + (heights[i] || 0), 0))
@@ -333,9 +323,22 @@ function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skill
   extra('Publications', cv.publications); extra('Research', cv.research); extra('Teaching Experience', cv.teaching)
   // skills + languages (single-column templates show inline here; sidebar templates put them in sidebar)
   if (opts?.skillsInline) {
-    if (cv.skills?.length) blocks.push({ key: 'skills', node: <div style={{ marginBottom: 14 }}>{sectionHeading('Core Skills', A, headStyle)}<div style={{ fontSize: 13.5, color: '#333', lineHeight: 2 }}>{dotList(cv.skills, A)}</div></div> })
-    if (cv.attributes?.length) blocks.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{sectionHeading('Professional Attributes', A, headStyle)}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#333', marginBottom: 4 }}>{a}</li>)}</ul></div> })
-    if (cv.languages?.length) blocks.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{sectionHeading('Languages', A, headStyle)}<div style={{ fontSize: 13.5, color: '#333' }}>{dotList(cv.languages, A)}</div></div> })
+    if (cv.skills?.length) {
+      blocks.push({ key: 'skills-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Core Skills', A, headStyle)}</div> })
+      for (let i = 0; i < cv.skills.length; i += 5) {
+        const chunk = cv.skills.slice(i, i + 5)
+        blocks.push({ key: `skills-${i / 5}`, node: <div style={{ fontSize: 13.5, color: '#333', lineHeight: 2, marginBottom: i + 5 >= cv.skills.length ? 14 : 0 }}>{dotList(chunk, A)}</div> })
+      }
+    }
+    if (cv.attributes?.length) {
+      const attributes = cv.attributes
+      blocks.push({ key: 'attributes-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Professional Attributes', A, headStyle)}</div> })
+      attributes.forEach((a, i) => blocks.push({ key: `attributes-${i}`, node: <ul style={{ margin: 0, paddingLeft: 18, marginBottom: i === attributes.length - 1 ? 14 : 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.55, color: '#333' }}>{a}</li></ul> }))
+    }
+    if (cv.languages?.length) {
+      blocks.push({ key: 'langs-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Languages', A, headStyle)}</div> })
+      blocks.push({ key: 'langs-0', node: <div style={{ fontSize: 13.5, color: '#333', marginBottom: 14 }}>{dotList(cv.languages, A)}</div> })
+    }
   }
   if (getSections(cv).length) extraMainBlocks(cv, (t) => sectionHeading(t, A, headStyle), false, '#333').forEach(bl => blocks.push(bl))
   return blocks
@@ -974,7 +977,14 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
         b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
         cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div><div style={{ fontSize: 14, fontWeight: 700, color: DARK }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 13.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div><div style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap', fontFamily: BODY_SANS }}>{e.startYear} – {e.endYear}</div></div> }))
       }
-      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 20 }}>{head('Expertise')}<div style={{ fontSize: 13.5, lineHeight: 1.95, color: '#444', fontFamily: BODY_SANS }}>{dotList(cv.skills, A)}</div>{!!cv.languages?.length && <div style={{ fontSize: 12.5, color: '#666', marginTop: 8, fontFamily: BODY_SANS }}>{dotList(cv.languages, A)}</div>}</div> })
+      if (cv.skills?.length) {
+        b.push({ key: 'skills-h', node: <div style={{ marginBottom: 4 }}>{head('Expertise')}</div> })
+        for (let i = 0; i < cv.skills.length; i += 5) {
+          const chunk = cv.skills.slice(i, i + 5)
+          b.push({ key: `skills-${i / 5}`, node: <div style={{ fontSize: 13.5, lineHeight: 1.95, color: '#444', fontFamily: BODY_SANS, marginBottom: i + 5 >= cv.skills.length ? (cv.languages?.length ? 0 : 20) : 0 }}>{dotList(chunk, A)}</div> })
+        }
+      }
+      if (cv.languages?.length) b.push({ key: 'langs-0', node: <div style={{ fontSize: 12.5, color: '#666', marginTop: 8, marginBottom: 20, fontFamily: BODY_SANS }}>{dotList(cv.languages, A)}</div> })
       if (cv.attributes?.length) b.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{head('Professional Attributes')}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444', marginBottom: 4 }}>{a}</li>)}</ul></div> })
       extraMainBlocks(cv, (t) => head(t), false, '#444').forEach(bl => b.push(bl))
       return b
