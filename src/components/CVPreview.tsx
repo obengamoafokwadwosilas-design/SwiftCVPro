@@ -123,6 +123,127 @@ function darken(hex: string, _factor?: number): string {
 // ── A "block" is a measurable chunk of CV content ──
 type Block = { key: string; node: React.ReactNode }
 
+// ═══ SHARED PACKING ALGORITHM ═══════════════════════════════════════
+// Extracted so it can run twice: once with hidden-measure-pass heights
+// (fast first paint), then again with GROUND-TRUTH heights measured from
+// the real on-screen document. If the two renders disagree about any
+// block's height — whatever the cause — the second pass self-corrects
+// the page plan, so pages fill the way the real render actually flows.
+const PACK_BOTTOM_SAFETY = 18
+const PACK_TOLERANCE = 22
+
+const packMainPlan = (keys: string[], heights: number[], page1Usable: number, usable: number): number[][] => {
+  const roleKeyOf = (key: string) => { const m = key.match(/^(exp\d+)-/); return m ? m[1] : null }
+  type Unit = { idxs: number[]; h: number; isRole: boolean }
+  const units: Unit[] = []
+  for (let i = 0; i < keys.length; ) {
+    const rk = roleKeyOf(keys[i])
+    if (rk) {
+      const idxs: number[] = []
+      let h = 0
+      while (i < keys.length && roleKeyOf(keys[i]) === rk) { idxs.push(i); h += heights[i] || 0; i++ }
+      units.push({ idxs, h, isRole: true })
+    } else {
+      units.push({ idxs: [i], h: heights[i] || 0, isRole: false })
+      i++
+    }
+  }
+
+  const result: number[][] = []
+  let current: number[] = []
+  let used = 0
+  let limit = page1Usable
+  const isHeading = (i: number) => keys[i].endsWith('-h')
+
+  const placeFlowing = (idxs: number[]) => {
+    for (const i of idxs) {
+      const h = heights[i] || 0
+      if (current.length > 0 && used + h > limit + PACK_TOLERANCE) {
+        result.push(current); current = []; used = 0; limit = usable
+      }
+      current.push(i)
+      used += h
+      if (isHeading(i) && i + 1 < keys.length) {
+        const nextH = heights[i + 1] || 0
+        if (used + nextH > limit && current.length > 1) {
+          current.pop(); result.push(current); current = [i]; used = h; limit = usable
+        }
+      }
+    }
+  }
+
+  for (const u of units) {
+    if (!u.isRole) { placeFlowing(u.idxs); continue }
+    if (used + u.h <= limit + PACK_TOLERANCE) { current.push(...u.idxs); used += u.h; continue }
+    if (u.h <= usable + PACK_TOLERANCE) {
+      if (current.length) { result.push(current); current = []; used = 0 }
+      limit = usable
+      current.push(...u.idxs); used += u.h; continue
+    }
+    placeFlowing(u.idxs)
+  }
+  if (current.length) result.push(current)
+
+  // Widow-tail fix (capacity-checked, both directions)
+  const roleOf = (key: string) => { const m = key.match(/^(exp\d+)-b\d+$/); return m ? m[1] : null }
+  const pageLimit = (p: number) => (p === 0 ? page1Usable : usable)
+  const pageUsed = result.map(pg => pg.reduce((t, i) => t + (heights[i] || 0), 0))
+
+  for (let p = 0; p < result.length - 1; p++) {
+    const prevPage = result[p]
+    const nextPage = result[p + 1]
+    if (!prevPage.length || !nextPage.length) continue
+    const firstIdx = nextPage[0]
+    const rk = roleOf(keys[firstIdx])
+    if (!rk) continue
+    const prevKey = keys[prevPage[prevPage.length - 1]]
+    const sameRole = prevKey === `${rk}-h` || roleOf(prevKey) === rk
+    if (!sameRole) continue
+    let tailLen = 0
+    while (tailLen < nextPage.length && roleOf(keys[nextPage[tailLen]]) === rk) tailLen++
+    if (tailLen <= 2) {
+      const tailH = nextPage.slice(0, tailLen).reduce((t, i) => t + (heights[i] || 0), 0)
+      if (pageUsed[p] + tailH <= pageLimit(p) + PACK_TOLERANCE) {
+        for (let k = 0; k < tailLen; k++) prevPage.push(nextPage.shift() as number)
+        pageUsed[p] += tailH; pageUsed[p + 1] -= tailH
+        continue
+      }
+    }
+    let moved = 0
+    while (moved < 2) {
+      const lastIdx = prevPage[prevPage.length - 1]
+      if (roleOf(keys[lastIdx]) !== rk) break
+      const beforeIdx = prevPage[prevPage.length - 2]
+      const beforeKey = beforeIdx !== undefined ? keys[beforeIdx] : ''
+      if (roleOf(beforeKey) !== rk) break
+      const h = heights[lastIdx] || 0
+      if (pageUsed[p + 1] + h > usable + PACK_TOLERANCE) break
+      prevPage.pop(); nextPage.unshift(lastIdx)
+      pageUsed[p] -= h; pageUsed[p + 1] += h
+      moved++
+    }
+  }
+  for (let p = result.length - 1; p >= 0; p--) { if (result[p].length === 0) result.splice(p, 1) }
+  return result
+}
+
+const packSidePlan = (keys: string[], heights: number[], sLimit: number): number[][] => {
+  const sIsHeading = (i: number) => keys[i].endsWith('-h')
+  const sideResult: number[][] = []
+  let sCur: number[] = []; let sUsed = 0
+  for (let i = 0; i < keys.length; i++) {
+    const h = heights[i] || 0
+    if (sCur.length > 0 && sUsed + h > sLimit + PACK_TOLERANCE) { sideResult.push(sCur); sCur = []; sUsed = 0 }
+    sCur.push(i); sUsed += h
+    if (sIsHeading(i) && i + 1 < keys.length) {
+      const nextH = heights[i + 1] || 0
+      if (sUsed + nextH > sLimit && sCur.length > 1) { sCur.pop(); sideResult.push(sCur); sCur = [i]; sUsed = h }
+    }
+  }
+  if (sCur.length) sideResult.push(sCur)
+  return sideResult
+}
+
 export default function CVPreview({ cv, templateId = 'meridian', accentColor }: { cv: GeneratedCV; templateId?: TemplateId; accentColor?: string | null }) {
   if (!cv) return null
   const design = TEMPLATE_MAP[templateId] || 'meridian'
@@ -230,11 +351,15 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   const sideMeasureRef = useRef<HTMLDivElement>(null)
   const headerRef = useRef<HTMLDivElement>(null)
   const [pages, setPages] = useState<number[][] | null>(null)
+  const screenDocRef = useRef<HTMLDivElement>(null)
+  const limitsRef = useRef<{ page1Usable: number; usable: number; sLimit: number } | null>(null)
+  const correctionsRef = useRef(0)
   const [sidePages, setSidePages] = useState<number[][] | null>(null)
 
   useLayoutEffect(() => {
     let cancelled = false
     let raf = 0
+    correctionsRef.current = 0
 
     function paginate() {
       try {
@@ -256,148 +381,12 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         const headerH = headerRef.current ? headerRef.current.getBoundingClientRect().height : 0
         // Extra breathing room beyond the page's own padding, so content never packs
         // to the literal edge of the printable area — reads like a real printed page.
-        const BOTTOM_SAFETY = 18
-        const usable = (config.pageUsable ?? (PAGE_H - config.contentPadV * 2)) - BOTTOM_SAFETY
+        const usable = (config.pageUsable ?? (PAGE_H - config.contentPadV * 2)) - PACK_BOTTOM_SAFETY
         const page1Usable = Math.max(160, usable - headerH)
-        // Soft-fit tolerance: if a block would only just barely overflow, keep it on
-        // the page rather than breaking early. Closes small avoidable gaps (the
-        // "recruiter never notices a few px" spacing-compression idea) without the
-        // complexity/risk of actually re-rendering blocks at compressed spacing.
-        const TOLERANCE = 22
+        limitsRef.current = { page1Usable, usable, sLimit: PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2 - PACK_BOTTOM_SAFETY }
+        const result = packMainPlan(blocks.map(b => b.key), heights, page1Usable, usable)
 
-        // ── Group blocks into placement UNITS ───────────────────────
-        // A "unit" is either one standalone block, or an entire role (header +
-        // all its bullets) treated atomically for the FIRST placement attempt.
-        // This is the "try whole, fall back to flow" strategy: a role that fits
-        // on one page is placed as a clean, unsplit block — no widows possible.
-        // Only a role too long for any single page gets flowed bullet-by-bullet.
-        const roleKeyOf = (key: string) => { const m = key.match(/^(exp\d+)-/); return m ? m[1] : null }
-        type Unit = { idxs: number[]; h: number; isRole: boolean }
-        const units: Unit[] = []
-        for (let i = 0; i < blocks.length; ) {
-          const rk = roleKeyOf(blocks[i].key)
-          if (rk) {
-            const idxs: number[] = []
-            let h = 0
-            while (i < blocks.length && roleKeyOf(blocks[i].key) === rk) { idxs.push(i); h += heights[i] || 0; i++ }
-            units.push({ idxs, h, isRole: true })
-          } else {
-            units.push({ idxs: [i], h: heights[i] || 0, isRole: false })
-            i++
-          }
-        }
-
-        const result: number[][] = []
-        let current: number[] = []
-        let used = 0
-        let limit = page1Usable
-        const isHeading = (i: number) => blocks[i].key.endsWith('-h')
-
-        const placeFlowing = (idxs: number[]) => {
-          // Bullet-by-bullet placement (the old algorithm), used only when a role
-          // is too long to ever fit on one page — or for non-role units.
-          for (const i of idxs) {
-            const h = heights[i] || 0
-            if (current.length > 0 && used + h > limit + TOLERANCE) {
-              result.push(current); current = []; used = 0; limit = usable
-            }
-            current.push(i)
-            used += h
-            if (isHeading(i) && i + 1 < blocks.length) {
-              const nextH = heights[i + 1] || 0
-              if (used + nextH > limit && current.length > 1) {
-                current.pop(); result.push(current); current = [i]; used = h; limit = usable
-              }
-            }
-          }
-        }
-
-        for (const u of units) {
-          if (!u.isRole) { placeFlowing(u.idxs); continue }
-
-          // Try WHOLE on the current page first.
-          if (used + u.h <= limit + TOLERANCE) {
-            current.push(...u.idxs); used += u.h; continue
-          }
-          // Doesn't fit here — would it fit whole on a FRESH page? If so, break
-          // and place it whole there (this is what avoids widows for normal-
-          // sized roles: no partial placement is ever attempted for them).
-          if (u.h <= usable + TOLERANCE) {
-            if (current.length) { result.push(current); current = []; used = 0 }
-            limit = usable
-            current.push(...u.idxs); used += u.h; continue
-          }
-          // Role is too long for any single page — only now fall back to
-          // flowing it bullet-by-bullet (the widow-tail fix below is the
-          // safety net for whatever falls out of this fallback path).
-          placeFlowing(u.idxs)
-        }
-        if (current.length) result.push(current)
-
-        // ── Widow-tail fix (capacity-checked, both directions) ──────
-        // Goal: a page must not START with the stranded trailing bullet(s) of a
-        // role whose body sits on the previous page. Two bounded rescues:
-        //   A) PULL BACK: move the stranded tail (≤2 bullets) onto the previous
-        //      page — but ONLY if it genuinely fits there. (The earlier version
-        //      skipped this check and caused mid-sentence clipping at page edges.)
-        //   B) PUSH FORWARD: if it can't fit, move the previous page's last
-        //      same-role bullet forward instead, so the widow has company —
-        //      only if the NEXT page can absorb it, and never if that would
-        //      leave the role's heading stranded with zero bullets.
-        // Every move is verified against real page capacity before it happens,
-        // so this can shuffle content but can never overflow a page.
-        const roleOf = (key: string) => { const m = key.match(/^(exp\d+)-b\d+$/); return m ? m[1] : null }
-        const pageLimit = (p: number) => (p === 0 ? page1Usable : usable)
-        const pageUsed = result.map(pg => pg.reduce((t, i) => t + (heights[i] || 0), 0))
-
-        for (let p = 0; p < result.length - 1; p++) {
-          const prevPage = result[p]
-          const nextPage = result[p + 1]
-          if (!prevPage.length || !nextPage.length) continue
-
-          const firstIdx = nextPage[0]
-          const rk = roleOf(blocks[firstIdx].key)
-          if (!rk) continue
-          const prevKey = blocks[prevPage[prevPage.length - 1]].key
-          const sameRole = prevKey === `${rk}-h` || roleOf(prevKey) === rk
-          if (!sameRole) continue // next page starts a NEW role — normal break
-
-          // Count how many leading blocks of nextPage belong to this stranded tail.
-          let tailLen = 0
-          while (tailLen < nextPage.length && roleOf(blocks[nextPage[tailLen]].key) === rk) tailLen++
-
-          // A) PULL BACK — only small tails, only if they truly fit on prevPage.
-          if (tailLen <= 2) {
-            const tailH = nextPage.slice(0, tailLen).reduce((t, i) => t + (heights[i] || 0), 0)
-            if (pageUsed[p] + tailH <= pageLimit(p) + TOLERANCE) {
-              for (let k = 0; k < tailLen; k++) prevPage.push(nextPage.shift() as number)
-              pageUsed[p] += tailH; pageUsed[p + 1] -= tailH
-              continue
-            }
-          }
-
-          // B) PUSH FORWARD — give the widow company by moving prevPage's last
-          // same-role bullet(s) forward (≤2), if the next page can absorb them
-          // and the role keeps at least one bullet with its heading on prevPage.
-          let moved = 0
-          while (moved < 2) {
-            const lastIdx = prevPage[prevPage.length - 1]
-            if (roleOf(blocks[lastIdx].key) !== rk) break
-            const beforeIdx = prevPage[prevPage.length - 2]
-            const beforeKey = beforeIdx !== undefined ? blocks[beforeIdx].key : ''
-            // never leave the heading alone: the block before the one we move
-            // must still be a same-role BULLET (not the heading, not another section)
-            if (roleOf(beforeKey) !== rk) break
-            const h = heights[lastIdx] || 0
-            if (pageUsed[p + 1] + h > usable + TOLERANCE) break // next page can't absorb it
-            prevPage.pop(); nextPage.unshift(lastIdx)
-            pageUsed[p] -= h; pageUsed[p + 1] += h
-            moved++
-          }
-        }
-        for (let p = result.length - 1; p >= 0; p--) { if (result[p].length === 0) result.splice(p, 1) }
-
-        // ── Sidebar pagination (same algorithm, sidebar heights/budget) ──
+        // ── Sidebar pagination (shared algorithm, sidebar heights/budget) ──
         let sideResult: number[][] | null = null
         const sEl = sideMeasureRef.current
         if (config.buildSidebarBlocks && sEl) {
@@ -409,20 +398,8 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
               try { const cs = window.getComputedStyle(c); m = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0) } catch { m = 0 }
               return r.height + m
             })
-            const sLimit = PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2 - BOTTOM_SAFETY
-            const sIsHeading = (i: number) => sideBlocks[i].key.endsWith('-h')
-            sideResult = []
-            let sCur: number[] = []; let sUsed = 0
-            for (let i = 0; i < sideBlocks.length; i++) {
-              const h = sHeights[i] || 0
-              if (sCur.length > 0 && sUsed + h > sLimit + TOLERANCE) { sideResult.push(sCur); sCur = []; sUsed = 0 }
-              sCur.push(i); sUsed += h
-              if (sIsHeading(i) && i + 1 < sideBlocks.length) {
-                const nextH = sHeights[i + 1] || 0
-                if (sUsed + nextH > sLimit && sCur.length > 1) { sCur.pop(); sideResult.push(sCur); sCur = [i]; sUsed = h }
-              }
-            }
-            if (sCur.length) sideResult.push(sCur)
+            const sLimit = PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2 - PACK_BOTTOM_SAFETY
+            sideResult = packSidePlan(sideBlocks.map(b => b.key), sHeights, sLimit)
           }
         }
         if (result.length === 0) result.push(blocks.map((_, i) => i))
@@ -443,6 +420,60 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
     }
     return () => { cancelled = true; if (raf) cancelAnimationFrame(raf) }
   }, [cv, A, config.design]) // eslint-disable-line
+
+  // ═══ GROUND-TRUTH SELF-CORRECTION ═══════════════════════════════
+  // The hidden measure pass gives a fast first plan, but it is a SEPARATE
+  // render — if it disagrees with the real document about any block's height
+  // (fonts, inheritance, wrapping…), pages break in the wrong place: early
+  // (big gaps) or late (clipping). This pass measures the REAL on-screen
+  // document — the same nodes the reader sees — using sibling strides
+  // (nextTop − selfTop), which capture true rendered spacing including
+  // collapsed margins. It re-packs with those truths and corrects the plan
+  // if it differs. Runs at most twice per CV to guarantee no update loops.
+  useLayoutEffect(() => {
+    if (!pages || correctionsRef.current >= 2 || !limitsRef.current) return
+    const root = screenDocRef.current
+    if (!root) return
+    try {
+      const els = Array.from(root.querySelectorAll('[data-bk]')) as HTMLElement[]
+      if (els.length !== blocks.length || blocks.length === 0) return
+      const trueHeights = els.map((el, i) => {
+        const r = el.getBoundingClientRect()
+        if (i + 1 < els.length) {
+          const stride = els[i + 1].getBoundingClientRect().top - r.top
+          // strides can be 0 during odd intermediate layouts; fall back to rect
+          return stride > 0 ? stride : r.height
+        }
+        return r.height
+      })
+      const { page1Usable, usable, sLimit } = limitsRef.current
+      const newMain = packMainPlan(blocks.map(b => b.key), trueHeights, page1Usable, usable)
+
+      let newSide: number[][] | null = null
+      if (config.buildSidebarBlocks && sideBlocks.length) {
+        const sEls = Array.from(root.querySelectorAll('[data-sbk]')) as HTMLElement[]
+        if (sEls.length === sideBlocks.length) {
+          const sTrue = sEls.map((el, i) => {
+            const r = el.getBoundingClientRect()
+            if (i + 1 < sEls.length) {
+              const stride = sEls[i + 1].getBoundingClientRect().top - r.top
+              return stride > 0 ? stride : r.height
+            }
+            return r.height
+          })
+          newSide = packSidePlan(sideBlocks.map(b => b.key), sTrue, sLimit)
+        }
+      }
+
+      const mainChanged = JSON.stringify(newMain) !== JSON.stringify(pages)
+      const sideChanged = newSide !== null && JSON.stringify(newSide) !== JSON.stringify(sidePages)
+      if (mainChanged || sideChanged) {
+        correctionsRef.current++
+        if (mainChanged) setPages(newMain)
+        if (sideChanged) setSidePages(newSide)
+      }
+    } catch { /* correction is best-effort; the first-pass plan still stands */ }
+  }, [pages, sidePages]) // eslint-disable-line
 
   // Hidden measure pass — renders real header + all blocks at exact column width
   const measurePass = (
@@ -487,9 +518,9 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
       {measurePass}
       {/* SCREEN: one continuous document — every block in a single frame, so there
           are no inter-page padding/margin seams and no trailing empty space. */}
-      <div data-screen-doc>
-        <config.Frame cv={cv} A={A} pageIndex={0} sidebarChildren={config.buildSidebarBlocks ? sideBlocks.map(b => <div key={b.key}>{b.node}</div>) : undefined}>
-          {blocks.map(b => <div key={b.key}>{b.node}</div>)}
+      <div data-screen-doc ref={screenDocRef}>
+        <config.Frame cv={cv} A={A} pageIndex={0} sidebarChildren={config.buildSidebarBlocks ? sideBlocks.map(b => <div key={b.key} data-sbk={b.key}>{b.node}</div>) : undefined}>
+          {blocks.map(b => <div key={b.key} data-bk={b.key}>{b.node}</div>)}
         </config.Frame>
       </div>
       {/* PRINT/PDF: the real A4 pages. Captured by buildPdfHtml, hidden on screen. */}
