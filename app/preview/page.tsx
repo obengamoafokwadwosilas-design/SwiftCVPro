@@ -1,1158 +1,1210 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { GeneratedCV, TemplateId, ExportFormat } from '@/types'
-import CVPreview from '@/components/CVPreview'
+import { GeneratedCV, TemplateId, ExtraSection } from '@/types'
+import React, { useRef, useState, useLayoutEffect } from 'react'
 
-// ══════════════════════════════════════════════════════
-// TEMPLATE LIBRARY — Premium first, then ATS, then Academic
-// ══════════════════════════════════════════════════════
-type Formats = 'both' | 'pdf'
-type Category = 'ats' | 'premium' | 'academic'
+// ── Extra sections (Publications, Leadership, Certifications, References, …) ──
+// The model returns cv.extraSections: [{ heading, items[] }]. Each becomes its
+// own heading with bulleted items. References render as tight lines (no bullets)
+// for a dense block. Legacy cv.additionalInfo (labelled string) is converted so
+// older sessions still render.
+const SIDEBAR_HEADS = ['certifications', 'certification', 'memberships', 'membership', 'references', 'reference', 'awards', 'awards & recognition', 'licences', 'licenses', 'professional memberships']
+function isSidebarHead(h: string) { return SIDEBAR_HEADS.includes((h || '').trim().toLowerCase()) }
+function isRefsHead(h: string) { const t = (h || '').trim().toLowerCase(); return t === 'references' || t === 'reference' }
 
-const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; formats: Formats; category: Category; customizable: boolean }[] = [
-  // Curated pagination-safe library. Every design uses the same granular
-  // block structure; only typography, headings and header styling differ.
-  { id: 'vertex',    name: 'Modern Rail',     tag: 'Bold · Clean · Colour Rail',       color: '#e0533d', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'sovereign', name: 'Executive Gold',  tag: 'Prestige · Centered · Corporate',  color: '#b08d3f', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'ascend',    name: 'Corporate Blue',  tag: 'Strong · Colour Bars · Structured',color: '#1d4ed8', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'harbour',   name: 'Refined Teal',    tag: 'Editorial · Elegant · Professional',color: '#0f766e',formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'classic',   name: 'Classic ATS',     tag: 'Traditional · Recruiter Safe',      color: '#1f2937', formats: 'both', category: 'ats',      customizable: false },
-  { id: 'academic',  name: 'Academic',        tag: 'Scholarly · Structured · ATS Safe', color: '#374151', formats: 'both', category: 'academic', customizable: false },
-  // Restored: these run on the exact same shared, hardened pagination engine as
-  // the six above (Paginated / packMainPlan / packSidePlan / zero-tolerance
-  // clamp are global, not per-template) — nothing about their safety differs.
-  { id: 'meridian',  name: 'Meridian',        tag: 'Two-Column · Colour Sidebar',       color: '#0d9488', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'onyx',      name: 'Onyx',            tag: 'Dark Editorial · Gold Accents',     color: '#c9a86a', formats: 'pdf',  category: 'premium',  customizable: true  },
-  { id: 'sterling',  name: 'Sterling',        tag: 'Two-Column · Dark Sidebar',         color: '#c9a86a', formats: 'pdf',  category: 'premium',  customizable: true  },
-  { id: 'slate',     name: 'Slate',           tag: 'Dense · Minimalist · Single-Column',color: '#1a1a1a', formats: 'pdf',  category: 'ats',      customizable: true  },
-  { id: 'verde',     name: 'Verde',           tag: 'Soft Cards · Rounded · Friendly',   color: '#3f9142', formats: 'pdf',  category: 'premium',  customizable: true  },
-  { id: 'crimson',   name: 'Crimson',         tag: 'Magazine Colour Band',              color: '#a01e1e', formats: 'pdf',  category: 'premium',  customizable: true  },
-  { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'pdf',  category: 'premium',  customizable: true  },
-]
-
-// Color swatches for picker
-const COLOR_SWATCHES: { name: string; value: string }[] = [
-  { name: 'Navy',    value: '#0a1f44' },
-  { name: 'Crimson', value: '#a01e1e' },
-  { name: 'Plum',    value: '#3b0a45' },
-  { name: 'Coral',   value: '#dc6e3a' },
-  { name: 'Forest',  value: '#1f5132' },
-  { name: 'Teal',    value: '#0d7d8c' },
-  { name: 'Royal',   value: '#1e3a8a' },
-  { name: 'Bronze',  value: '#8b5e34' },
-]
-
-const PRINT_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Source+Sans+3:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap'
-
-// ══════════════════════════════════════════════════════
-// SANITISE MODEL OUTPUT — the AI returns JSON whose shape isn't
-// guaranteed. Force arrays to be arrays and strings to be strings so
-// no render path (e.bullets.map, fullName.split, etc.) can ever throw.
-// ══════════════════════════════════════════════════════
-// Editor helpers: extraSections <-> labelled-lines text ("Heading: item; item")
-function extraSectionsToText(cv: any): string {
-  const secs = cv?.extraSections as { heading: string; items: string[] }[] | undefined
-  if (secs?.length) return secs.map(s => `${s.heading}: ${s.items.join('; ')}`).join('\n')
-  return cv?.additionalInfo || ''
-}
-function textToExtraSections(text: string): { heading: string; items: string[] }[] {
-  return text.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+function legacyToSections(text?: string): ExtraSection[] {
+  if (!text) return []
+  const lines = String(text).split('\n').map(l => l.trim()).filter(Boolean)
+  const out: ExtraSection[] = []
+  lines.forEach(line => {
     const ci = line.indexOf(':')
-    if (ci > 0) return { heading: line.slice(0, ci).trim(), items: line.slice(ci + 1).split(';').map(x => x.trim()).filter(Boolean) }
-    return { heading: 'Additional Information', items: [line] }
-  }).filter(s => s.items.length)
+    if (ci > 0 && ci <= 32) out.push({ heading: line.slice(0, ci).trim(), items: [line.slice(ci + 1).trim()].filter(Boolean) })
+    else if (out.length) out[out.length - 1].items.push(line)
+    else out.push({ heading: 'Additional Information', items: [line] })
+  })
+  return out
+}
+function getSections(cv: GeneratedCV): ExtraSection[] {
+  const raw = cv as any
+  return (raw.extraSections && raw.extraSections.length) ? raw.extraSections : legacyToSections(raw.additionalInfo)
 }
 
-function normalizeCV(raw: any): GeneratedCV {
-  const arr = (v: any) => (Array.isArray(v) ? v : [])
-  const str = (v: any) => (typeof v === 'string' ? v : v == null ? '' : String(v))
-  return {
-    ...raw,
-    fullName: str(raw?.fullName),
-    // Do not label CVs with an AI-inferred profession/headline.
-    // Keep the field only for cover letters, where the target role is useful.
-    jobTitle: raw?.coverLetterBody ? str(raw?.jobTitle) : '',
-    email: str(raw?.email),
-    phone: str(raw?.phone),
-    location: str(raw?.location),
-    summary: str(raw?.summary),
-    skills: arr(raw?.skills).map(str),
-    attributes: arr(raw?.attributes).map(str),
-    extraSections: arr(raw?.extraSections).map((s: any) => ({ heading: str(s?.heading), items: arr(s?.items).map(str) })).filter((s: any) => s.heading && s.items.length),
-    languages: arr(raw?.languages).map(str),
-    publications: arr(raw?.publications).map(str),
-    research: arr(raw?.research).map(str),
-    teaching: arr(raw?.teaching).map(str),
-    education: arr(raw?.education).map((e: any) => ({
-      ...e,
-      qualification: str(e?.qualification),
-      field: str(e?.field),
-      institution: str(e?.institution),
-      startYear: str(e?.startYear),
-      endYear: str(e?.endYear),
-    })),
-    experience: arr(raw?.experience).map((e: any) => ({
-      ...e,
-      role: str(e?.role),
-      company: str(e?.company),
-      startDate: str(e?.startDate),
-      endDate: str(e?.endDate),
-      bullets: arr(e?.bullets).map(str),
-    })),
-  }
+// Interleave items with a bolder, accent-coloured separator dot (more visible than a plain ·).
+function dotList(items: string[], color: string) {
+  return (items || []).map((it, i) => <React.Fragment key={i}>{it}{i < items.length - 1 && <span style={{ color: color, fontWeight: 700, padding: '0 7px' }}>·</span>}</React.Fragment>)
 }
 
-export default function PreviewPage() {
-  const router = useRouter()
-  const [cv, setCV] = useState<GeneratedCV | null>(null)
-  const [phone, setPhone] = useState('')
-  const [template, setTemplate] = useState<TemplateId>('classic')
-  const [activeTab, setActiveTab] = useState<'preview' | 'edit'>('preview')
-  const [downloading, setDownloading] = useState<ExportFormat | null>(null)
-  const [isCoverLetter, setIsCoverLetter] = useState(false)
-  const [isAcademicCV, setIsAcademicCV] = useState(false)
-  const [cvType, setCvType] = useState<string>('professional')
-  const [pdfOnlyModal, setPdfOnlyModal] = useState(false)
-  const [accentColor, setAccentColor] = useState<string | null>(null)
-  const [showColorPicker, setShowColorPicker] = useState(false)
-  const [showRevision, setShowRevision] = useState(false)
-  const [revisionText, setRevisionText] = useState('')
-  const [freeRevisionUsed, setFreeRevisionUsed] = useState(false)
-  const [isRevising, setIsRevising] = useState(false)
-  const [revisionError, setRevisionError] = useState('')
-  const [showUpsell, setShowUpsell] = useState(false)
-  const [upsellShown, setUpsellShown] = useState(false)
-  const [hasDownloaded, setHasDownloaded] = useState(false)
-  const [showReadyBanner, setShowReadyBanner] = useState(true)
-  const [showChooser, setShowChooser] = useState(false)
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false)
 
-  useEffect(() => {
-    const stored = sessionStorage.getItem('swiftcv_cv')
-    const ph = sessionStorage.getItem('swiftcv_phone')
-    if (!stored) { router.push('/build'); return }
-    try {
-      const parsed = normalizeCV(JSON.parse(stored))
-      setCV(parsed)
-      setBaseCv(parsed)
-      setPhone(ph || '')
-      // Restore a cover letter generated earlier this session (if any)
-      const storedCover = sessionStorage.getItem('swiftcv_coverletter')
-      if (storedCover) { try { setCoverLetter(normalizeCV(JSON.parse(storedCover))) } catch {} }
-      const storedCvType = sessionStorage.getItem('swiftcv_type') || 'professional'
-      setCvType(storedCvType)
-      if (storedCvType === 'cover_letter' || parsed.coverLetterBody) setIsCoverLetter(true)
-      if (storedCvType === 'academic') { setIsAcademicCV(true); setTemplate('academic') }
-      if (storedCvType === 'cover_letter') setTemplate('classic')
-    } catch { router.push('/build') }
-    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [router])
-
-  // Reset accent color when switching templates
-  useEffect(() => {
-    setAccentColor(null)
-    setShowColorPicker(false)
-  }, [template])
-
-  // Ready toast: pause the countdown while hovered (dismissal is driven by the
-  // progress bar's animationEnd below, so there is a single clock).
-  const [bannerPaused, setBannerPaused] = useState(false)
-
-  // ── Cover letter (Stage 2) ──────────────────────────────────
-  const [baseCv, setBaseCv] = useState<GeneratedCV | null>(null)          // always the CV, never the letter
-  const [coverLetter, setCoverLetter] = useState<GeneratedCV | null>(null)
-  const [activeDoc, setActiveDoc] = useState<'cv' | 'cover'>('cv')
-  const [showCoverModal, setShowCoverModal] = useState(false)
-  const [coverGenerating, setCoverGenerating] = useState(false)
-  const [coverJd, setCoverJd] = useState('')
-  const [coverErr, setCoverErr] = useState('')
-  const [coverReadingFile, setCoverReadingFile] = useState(false)
-
-  function updateCV(patch: Partial<GeneratedCV>) {
-    if (!cv) return
-    const updated = { ...cv, ...patch }
-    setCV(updated)
-    if (activeDoc === 'cover') {
-      setCoverLetter(updated)
-      sessionStorage.setItem('swiftcv_coverletter', JSON.stringify(updated))
-    } else {
-      setBaseCv(updated)
-      sessionStorage.setItem('swiftcv_cv', JSON.stringify(updated))
-    }
+// Render one section's body: tight lines for References, bullets otherwise.
+function sectionBody(sec: ExtraSection, color: string) {
+  if (isRefsHead(sec.heading)) {
+    return <div style={{ fontSize: 13.5, lineHeight: 1.5, color }}>{sec.items.map((it, j) => <div key={j} style={{ marginBottom: 2 }}>{it}</div>)}</div>
   }
+  return <ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{sec.items.map((it, j) => <li key={j} style={{ fontSize: 13.5, lineHeight: 1.5, color, marginBottom: 3 }}>{it}</li>)}</ul>
+}
 
-  function showCvDoc() {
-    if (!baseCv) return
-    setActiveDoc('cv'); setCV(baseCv); setIsCoverLetter(false); setActiveTab('preview')
-  }
-  function showCoverDoc() {
-    if (!coverLetter) return
-    setActiveDoc('cover'); setCV(coverLetter); setIsCoverLetter(true); setActiveTab('preview')
-  }
-
-  async function readCoverFile(file: File) {
-    setCoverReadingFile(true); setCoverErr('')
-    try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch('/api/extract-content', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (!res.ok || !data.text) { setCoverErr('Could not read that file. Try pasting the text instead.'); return }
-      setCoverJd(data.text)
-    } catch { setCoverErr('Could not read that file. Try pasting the text instead.') }
-    finally { setCoverReadingFile(false) }
-  }
-
-  async function handleGenerateCover() {
-    const source = baseCv || cv
-    if (!source) return
-    setCoverGenerating(true); setCoverErr('')
-    try {
-      const res = await fetch('/api/generate-cover-letter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv: source, jobDescription: coverJd || undefined, phoneNumber: phone })
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        if (data.error === 'NO_CREDITS') setCoverErr('You\u2019ve used the free cover letter that came with this CV. Add a credit to generate another.')
-        else setCoverErr(data.error || 'Generation failed. Please try again.')
-        return
-      }
-      const letter = normalizeCV(data.coverLetter)
-      setCoverLetter(letter)
-      sessionStorage.setItem('swiftcv_coverletter', JSON.stringify(letter))
-      setShowCoverModal(false); setCoverJd('')
-      setActiveDoc('cover'); setCV(letter); setIsCoverLetter(true); setActiveTab('preview')
-    } catch { setCoverErr('Network error. Please try again.') }
-    finally { setCoverGenerating(false) }
-  }
-
-  async function handleDownloadDocx() {
-    if (!cv) return
-    const tpl = TEMPLATES.find(t => t.id === template)
-    if (tpl?.formats === 'pdf') {
-      setPdfOnlyModal(true)
-      return
-    }
-    setDownloading('docx')
-    try {
-      const res = await fetch('/api/export-docx', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv, templateId: template, accentColor })
-      })
-      if (!res.ok) throw new Error('failed')
-      const blob = await res.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.docx`
-      setHasDownloaded(true)
-      setTimeout(() => { if (!upsellShown && !coverLetter && activeDoc === 'cv') { setShowUpsell(true); setUpsellShown(true) } }, 2000)
-      document.body.appendChild(a); a.click(); a.remove()
-      window.URL.revokeObjectURL(url)
-    } catch { alert('Download failed. Please try again.') }
-    finally { setDownloading(null) }
-  }
-
-  async function handleDownloadPdf() {
-    if (!cv) return
-
-    const printArea = document.getElementById('cv-print-area')
-    if (!printArea) {
-      alert('CV preview not found. Please try again.')
-      return
-    }
-
-    setDownloading('pdf')
-
-    try {
-      // Let webfonts finish and allow the paginator's real-render correction
-      // pass to commit before serialising the document for the PDF service.
-      const fonts = (document as any).fonts
-      if (fonts?.ready && typeof fonts.ready.then === 'function') {
-        await fonts.ready.catch(() => undefined)
-      }
-      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
-
-      const html = buildPdfHtml(printArea.outerHTML, template)
-
-      const res = await fetch('/api/export-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html, fullName: cv.fullName }),
-      })
-
-      if (!res.ok) {
-        const message = await res.text().catch(() => '')
-        throw new Error(message || 'PDF download failed')
-      }
-
-      const blob = await res.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.pdf`
-      setHasDownloaded(true)
-      setTimeout(() => { if (!upsellShown && !coverLetter && activeDoc === 'cv') { setShowUpsell(true); setUpsellShown(true) } }, 2000)
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      window.URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('PDF download failed:', error)
-      alert('PDF download failed. Please try again.')
-    } finally {
-      setDownloading(null)
-    }
-  }
-
-  function buildPdfHtml(cvMarkup: string, _tplId: TemplateId) {
-    // Multi-page engine: each page div is a self-contained A4 with its own sidebar.
-    // @page margin is 0 — the page divs handle their own internal padding.
-    return `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="${PRINT_FONTS_HREF}" />
-  <style>
-    @page { size: A4; margin: 0; }
-    html, body {
-      width: 210mm;
-      margin: 0;
-      padding: 0;
-      background: white;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    * {
-      box-sizing: border-box;
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    ul { list-style-type: disc !important; }
-    ul li { list-style: disc outside !important; display: list-item !important; }
-    #cv-print-area {
-      width: 210mm;
-      max-width: 210mm;
-      margin: 0;
-      padding: 0;
-      background: white;
-    }
-    /* each rendered page = one printed sheet */
-    #cv-print-area > div > div {
-      width: 210mm !important;
-      height: 297mm;
-      margin: 0 !important;
-      page-break-after: always;
-      break-after: page;
-      overflow: hidden;
-    }
-    #cv-print-area > div > div:last-child {
-      page-break-after: auto;
-      break-after: auto;
-    }
-    /* never print any hidden measuring artifacts */
-    [data-measure-pass] { display: none !important; }
-    /* the continuous screen-only doc must never appear in the PDF */
-    [data-screen-doc] { display: none !important; }
-  </style>
-</head>
-<body>
-  ${cvMarkup}
-</body>
-</html>`
-  }
-
-  function handleNewCV() {
-    if (confirm('Start a new CV? Your current CV will be cleared.')) {
-      sessionStorage.removeItem('swiftcv_cv')
-      sessionStorage.removeItem('swiftcv_type')
-      sessionStorage.removeItem('swiftcv_phone')
-      router.push('/build')
-    }
-  }
-
-  if (!cv) return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ width:'40px', height:'40px', border:'3px solid rgba(13,148,136,0.2)', borderTopColor:'#0d9488', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  )
-
-  const currentTpl = TEMPLATES.find(t => t.id === template)
-
-  // ── Template filtering by CV type ──────────────────────
-  const ACADEMIC_ALLOWED: TemplateId[] = ['academic', 'classic', 'sovereign', 'harbour']
-  const COVER_LETTER_ALLOWED: TemplateId[] = ['classic', 'sovereign', 'harbour']
-
-  const visibleTemplates = isCoverLetter
-    ? TEMPLATES.filter(t => COVER_LETTER_ALLOWED.includes(t.id))
-    : isAcademicCV
-      ? TEMPLATES.filter(t => ACADEMIC_ALLOWED.includes(t.id))
-      : TEMPLATES.filter(t => t.category === 'ats' || t.category === 'premium')
-
-  const premiumTemplates = visibleTemplates.filter(t => t.category === 'premium')
-  const atsTemplates = visibleTemplates.filter(t => t.category === 'ats' || t.category === 'academic')
-  const academicTemplates = visibleTemplates.filter(t => t.category === 'academic')
-
-  async function handleRevision() {
-    if (!revisionText.trim()) { setRevisionError('Please describe what you would like changed.'); return }
-    if (!cv) return
-    if (freeRevisionUsed) {
-      // Trigger GH₵5 payment
-      const script = document.createElement('script')
-      script.src = 'https://js.paystack.co/v1/inline.js'
-      script.onload = () => {
-        const handler = (window as any).PaystackPop.setup({
-          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-          email: `${phone.replace('+','')}@swiftcvpro.com`,
-          amount: 500000, // GH₵5
-          currency: 'GHS',
-          ref: `rev_${Date.now()}`,
-          callback: async () => { await doRevision() },
-          onClose: () => {}
-        })
-        handler.openIframe()
-      }
-      document.body.appendChild(script)
-      return
-    }
-    await doRevision()
-  }
-
-  async function doRevision() {
-    if (!cv) return
-    setIsRevising(true)
-    setRevisionError('')
-    try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cvType: sessionStorage.getItem('swiftcv_type') || 'professional',
-          rawContent: JSON.stringify(cv),
-          specialRequests: revisionText,
-          isRevision: true,
-          phoneNumber: phone,
-          lockedName: cv.fullName,
-        })
-      })
-      const data = await res.json()
-      if (data.success && data.cv) {
-        // Preserve locked name
-        data.cv.fullName = cv.fullName
-        const revised = normalizeCV(data.cv)
-        sessionStorage.setItem('swiftcv_cv', JSON.stringify(revised))
-        setCV(revised)
-        setFreeRevisionUsed(true)
-        setShowRevision(false)
-        setRevisionText('')
+// MAIN-column blocks. When routeSidebar is true (two-column templates), short
+// sections (certs/memberships/refs/awards) are skipped here — they go in the sidebar.
+function extraMainBlocks(cv: GeneratedCV, headFn: (t: string) => React.ReactNode, routeSidebar: boolean, color?: string): Block[] {
+  const out: Block[] = []
+  getSections(cv).forEach((sec, i) => {
+    if (!sec || !sec.items || !sec.items.length) return
+    if (routeSidebar && isSidebarHead(sec.heading)) return
+    out.push({ key: `extra-${i}-h`, node: <div style={{ marginBottom: 4 }}>{headFn(sec.heading)}</div> })
+    sec.items.forEach((it, j) => {
+      if (isRefsHead(sec.heading)) {
+        out.push({ key: `extra-${i}-${j}`, node: <div style={{ fontSize: 13.5, lineHeight: 1.5, color: color || '#444', marginBottom: j === sec.items.length - 1 ? 12 : 2 }}>{it}</div> })
       } else {
-        setRevisionError('Something went wrong. Please try again.')
+        out.push({ key: `extra-${i}-${j}`, node: <ul style={{ margin: 0, paddingLeft: 18, marginBottom: j === sec.items.length - 1 ? 12 : 3, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.5, color: color || '#444' }}>{it}</li></ul> })
       }
-    } catch {
-      setRevisionError('Connection error. Please try again.')
+    })
+  })
+  return out
+}
+
+// Short sections destined for a two-column sidebar.
+// Sidebar routing: short factual sections live in the sidebar. The sidebar is
+// now PAGINATED (it flows onto page 2's sidebar), so nothing can be clipped and
+// no capacity budget is needed.
+function extraSidebarSections(cv: GeneratedCV): ExtraSection[] {
+  return getSections(cv).filter(sec => sec && sec.items && sec.items.length && isSidebarHead(sec.heading))
+}// ════════════════════════════════════════════════════════════════
+// CV PREVIEW — TRUE MULTI-PAGE PAGINATION ENGINE
+// Measures content, packs into discrete A4 pages, each page gets its
+// own full-height sidebar. Eliminates the white-gap problem entirely.
+// Same paged DOM feeds both screen preview and PDF export.
+// ════════════════════════════════════════════════════════════════
+
+const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson' | 'atlas'> = {
+  vertex: 'vertex', atelier: 'vertex', editorial: 'vertex',
+  sovereign: 'sovereign', newyork: 'sovereign', executive: 'sovereign',
+  meridian: 'meridian', modern: 'meridian', europass: 'meridian', graduate: 'meridian',
+  ascend: 'ascend',
+  harbour: 'harbour', nordic: 'harbour',
+  classic: 'classic', academic: 'classic', london: 'classic',
+  // PDF-only premium designs
+  onyx: 'onyx', noir: 'onyx', pulse: 'onyx',
+  sterling: 'sterling',
+  slate: 'slate',
+  verde: 'verde',
+  crimson: 'crimson',
+  atlas: 'atlas',
+}
+const DEFAULT_ACCENT: Record<string, string> = {
+  vertex: '#e0533d', sovereign: '#b08d3f', meridian: '#0d9488', ascend: '#1d4ed8', harbour: '#0f766e', classic: '#1a1a1a',
+  onyx: '#c9a86a', sterling: '#c9a86a', slate: '#1a1a1a', verde: '#3f9142', crimson: '#a01e1e', atlas: '#3b82f6',
+}
+// Webfonts FIRST: they render identically in the user's browser (measurement)
+// and in server-side headless Chrome (PDF). System fonts like Cambria don't exist
+// on the Linux PDF server, which made PDF line-wrapping differ from what the
+// paginator measured — the root cause of the gap/clip drift across templates.
+const BODY_SERIF = "'Crimson Text', 'Cambria', Georgia, serif"
+const BODY_SANS = "'Source Sans 3', 'Calibri', 'Segoe UI', sans-serif"
+
+// A4 at 96dpi
+const PAGE_W = 794
+const PAGE_H = 1122
+
+const contact = (cv: GeneratedCV) => [cv.location, cv.phone, cv.email, cv.linkedin].filter(Boolean).join('  •  ')
+const isCL = (cv: GeneratedCV) => !!cv.coverLetterBody
+const initials = (name: string) => name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+
+// Produce a deep, rich version of the accent for 'brand' bands/sidebars.
+// Adapts to the colour's lightness so already-dark accents (navy, plum, forest)
+// stay distinct instead of collapsing into the same near-black.
+function darken(hex: string, _factor?: number): string {
+  const h = hex.replace('#', '')
+  const n = h.length === 3 ? h.split('').map(x => x + x).join('') : h
+  let r = parseInt(n.slice(0, 2), 16)
+  let g = parseInt(n.slice(2, 4), 16)
+  let b = parseInt(n.slice(4, 6), 16)
+  // perceived lightness 0-255
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b
+  // darken more when the colour is light, less when it's already dark
+  // light (lum~200) → mult ~0.42 ; dark (lum~40) → mult ~0.85
+  const mult = Math.min(0.9, Math.max(0.4, 0.4 + (255 - lum) / 255 * 0.5))
+  r = Math.round(r * mult); g = Math.round(g * mult); b = Math.round(b * mult)
+  // ensure a minimum depth floor so text stays readable on it
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+// ── A "block" is a measurable chunk of CV content ──
+type Block = { key: string; node: React.ReactNode }
+
+// ═══ SHARED PACKING ALGORITHM ═══════════════════════════════════════
+// Extracted so it can run twice: once with hidden-measure-pass heights
+// (fast first paint), then again with GROUND-TRUTH heights measured from
+// the real on-screen document. If the two renders disagree about any
+// block's height — whatever the cause — the second pass self-corrects
+// the page plan, so pages fill the way the real render actually flows.
+const PACK_BOTTOM_SAFETY = 18
+// Fitting is strict: a block either fits inside the printable area or moves
+// intact to the next page. Positive overflow tolerance was the reason a final
+// line could be visible only halfway before the page frame clipped it.
+const PACK_TOLERANCE = 0
+// The screen preview and the remote PDF renderer can differ by a few pixels
+// after font rasterisation. The final correction pass reserves this tiny guard
+// so the exported PDF never cuts through a sentence or skill line.
+const FINAL_RENDER_GUARD = 10
+
+const packMainPlan = (keys: string[], heights: number[], page1Usable: number, usable: number, tolerance = PACK_TOLERANCE): number[][] => {
+  const result: number[][] = []
+  let current: number[] = []
+  let used = 0
+  let limit = page1Usable
+  const isHeading = (i: number) => keys[i].endsWith('-h')
+
+  // Flow every block independently. Headings are orphan-protected below, so an
+  // experience header stays with its first bullet, but the entire role is never
+  // pushed wholesale to a fresh page. That wholesale move was the main source
+  // of large, avoidable white gaps.
+  for (let i = 0; i < keys.length; i++) {
+    const h = heights[i] || 0
+    if (current.length > 0 && used + h > limit + tolerance) {
+      result.push(current); current = []; used = 0; limit = usable
     }
-    setIsRevising(false)
+    current.push(i)
+    used += h
+
+    // Never leave a section/role heading alone at the bottom of a page.
+    if (isHeading(i) && i + 1 < keys.length) {
+      const nextH = heights[i + 1] || 0
+      if (used + nextH > limit + tolerance && current.length > 1) {
+        current.pop()
+        used -= h
+        result.push(current)
+        current = [i]
+        used = h
+        limit = usable
+      }
+    }
+  }
+  if (current.length) result.push(current)
+
+  // Widow-tail fix for experience bullets (capacity-checked, both directions).
+  const roleOf = (key: string) => { const m = key.match(/^(exp\d+)-b\d+$/); return m ? m[1] : null }
+  const pageLimit = (p: number) => (p === 0 ? page1Usable : usable)
+  const pageUsed = result.map(pg => pg.reduce((t, i) => t + (heights[i] || 0), 0))
+
+  for (let p = 0; p < result.length - 1; p++) {
+    const prevPage = result[p]
+    const nextPage = result[p + 1]
+    if (!prevPage.length || !nextPage.length) continue
+    const firstIdx = nextPage[0]
+    const rk = roleOf(keys[firstIdx])
+    if (!rk) continue
+    const prevKey = keys[prevPage[prevPage.length - 1]]
+    const sameRole = prevKey === `${rk}-h` || roleOf(prevKey) === rk
+    if (!sameRole) continue
+    let tailLen = 0
+    while (tailLen < nextPage.length && roleOf(keys[nextPage[tailLen]]) === rk) tailLen++
+    if (tailLen <= 2) {
+      const tailH = nextPage.slice(0, tailLen).reduce((t, i) => t + (heights[i] || 0), 0)
+      if (pageUsed[p] + tailH <= pageLimit(p) + tolerance) {
+        for (let k = 0; k < tailLen; k++) prevPage.push(nextPage.shift() as number)
+        pageUsed[p] += tailH; pageUsed[p + 1] -= tailH
+        continue
+      }
+    }
+    let moved = 0
+    while (moved < 2) {
+      const lastIdx = prevPage[prevPage.length - 1]
+      if (roleOf(keys[lastIdx]) !== rk) break
+      const beforeIdx = prevPage[prevPage.length - 2]
+      const beforeKey = beforeIdx !== undefined ? keys[beforeIdx] : ''
+      if (roleOf(beforeKey) !== rk) break
+      const h = heights[lastIdx] || 0
+      if (pageUsed[p + 1] + h > usable + tolerance) break
+      prevPage.pop(); nextPage.unshift(lastIdx)
+      pageUsed[p] -= h; pageUsed[p + 1] += h
+      moved++
+    }
+  }
+  // Balance compact list-style sections across a page break. A single final
+  // education/skills/attribute item stranded at the top of the next page looks
+  // accidental even when it is technically valid. Move one sibling item forward
+  // so the continuation contains at least two items. This never changes the order
+  // and only runs when the destination page still has room.
+  const compactGroupOf = (key: string) => {
+    if (/^edu-\d+$/.test(key)) return 'edu'
+    if (/^skills-\d+$/.test(key)) return 'skills'
+    if (/^attributes-\d+$/.test(key)) return 'attributes'
+    const extra = key.match(/^(extra-\d+)-\d+$/)
+    if (extra) return extra[1]
+    const named = key.match(/^(Publications|Research|Teaching Experience)-\d+$/)
+    return named ? named[1] : null
+  }
+  for (let p = 0; p < result.length - 1; p++) {
+    const left = result[p]
+    const right = result[p + 1]
+    if (!left.length || !right.length) continue
+    const group = compactGroupOf(keys[right[0]])
+    if (!group || compactGroupOf(keys[left[left.length - 1]]) !== group) continue
+    let rightCount = 0
+    while (rightCount < right.length && compactGroupOf(keys[right[rightCount]]) === group) rightCount++
+    if (rightCount !== 1) continue
+    const moveIdx = left[left.length - 1]
+    const beforeIdx = left[left.length - 2]
+    // Keep at least one item with the section heading on the preceding page.
+    if (beforeIdx === undefined || compactGroupOf(keys[beforeIdx]) !== group) continue
+    const moveH = heights[moveIdx] || 0
+    if (pageUsed[p + 1] + moveH > usable + tolerance) continue
+    left.pop(); right.unshift(moveIdx)
+    pageUsed[p] -= moveH; pageUsed[p + 1] += moveH
   }
 
-  return (
-    <div style={{ minHeight:'100vh', background:'#f1f5f9' }}>
-      {/* Load premium fonts for screen + print */}
-      <link rel="stylesheet" href={PRINT_FONTS_HREF} />
+  for (let p = result.length - 1; p >= 0; p--) { if (result[p].length === 0) result.splice(p, 1) }
+  return result
+}
 
-      {/* CRITICAL print CSS — hides everything except the CV, sizes to A4 */}
-      <style>{`
-        @media screen {
-          #cv-print-area { width: 210mm; }
+const packSidePlan = (keys: string[], heights: number[], sLimit: number, tolerance = PACK_TOLERANCE): number[][] => {
+  const sIsHeading = (i: number) => keys[i].endsWith('-h')
+  const sideResult: number[][] = []
+  let sCur: number[] = []; let sUsed = 0
+  for (let i = 0; i < keys.length; i++) {
+    const h = heights[i] || 0
+    if (sCur.length > 0 && sUsed + h > sLimit + tolerance) { sideResult.push(sCur); sCur = []; sUsed = 0 }
+    sCur.push(i); sUsed += h
+    if (sIsHeading(i) && i + 1 < keys.length) {
+      const nextH = heights[i + 1] || 0
+      if (sUsed + nextH > sLimit && sCur.length > 1) { sCur.pop(); sideResult.push(sCur); sCur = [i]; sUsed = h }
+    }
+  }
+  if (sCur.length) sideResult.push(sCur)
+  return sideResult
+}
+
+export default function CVPreview({ cv, templateId = 'meridian', accentColor }: { cv: GeneratedCV; templateId?: TemplateId; accentColor?: string | null }) {
+  if (!cv) return null
+  const design = TEMPLATE_MAP[templateId] || 'meridian'
+  const A = accentColor ? `#${accentColor.replace('#', '')}` : DEFAULT_ACCENT[design]
+
+  // Cover letters never paginate into columns — single flowing page(s)
+  if (isCL(cv)) return <CoverLetter cv={cv} A={A} font={design === 'meridian' || design === 'ascend' ? BODY_SANS : BODY_SERIF} />
+
+  const config = TEMPLATES_CONFIG[design]
+  return <Paginated cv={cv} A={A} config={config} />
+}
+
+// ════════════════════════════════════════════════════════════════
+// TEMPLATE CONFIG — each template defines its frame + how to render blocks
+// ════════════════════════════════════════════════════════════════
+type TemplateConfig = {
+  design: string
+  font: string
+  // content area top/bottom padding inside a page (px) — used to compute usable height
+  contentPadV: number
+  // main content left/right padding
+  mainPad: string
+  // sidebar width (0 = single column)
+  sidebarW: number
+  // exact inner width of main content column (for accurate height measurement)
+  measureW: number
+  sidebarSide: 'left' | 'right' | 'none'
+  // OPTIONAL sidebar pagination: when provided, sidebar content is measured and
+  // packed per page exactly like the main column, flowing onto page 2's sidebar
+  // instead of clipping. sidebarMeasureW = inner width, sidebarPadV = top+bottom padding.
+  buildSidebarBlocks?: (cv: GeneratedCV, A: string) => Block[]
+  sidebarMeasureW?: number
+  sidebarPadV?: number
+  // Exact usable height for page 2+ (when contentPadV*2 doesn't match the actual rendered padding+borders)
+  pageUsable?: number
+  // For templates that wrap Header in an extra coloured banner div (onyx,
+  // verde, crimson) — that wrapper's own padding is invisible to a measurement
+  // that only measures the Header component itself, so page1Usable gets
+  // over-estimated by exactly that padding. This makes the measure pass
+  // apply the SAME padding, so headerH reflects the real space consumed.
+  headerBannerPad?: string
+  // Optional template-specific packing controls. Defaults preserve all existing templates.
+  packTolerance?: number
+  packBottomSafety?: number
+  // render the page frame: header (page 1 only), children = packed main blocks,
+  // sidebarChildren = this page's slice of the paginated sidebar (if enabled)
+  Frame: (p: { cv: GeneratedCV; A: string; pageIndex: number; children: React.ReactNode; sidebarChildren?: React.ReactNode }) => React.ReactElement
+  // build the ordered list of content blocks (main column)
+  buildBlocks: (cv: GeneratedCV, A: string) => Block[]
+  // page-1 header (name/title block) — used in Frame AND measured for accurate pagination
+  Header: (p: { cv: GeneratedCV; A: string }) => React.ReactElement
+}
+
+// shared block builders for single-column-ish bodies
+function sectionHeading(text: string, A: string, style: 'rule' | 'bar' | 'tick' | 'dash' | 'plain' = 'rule') {
+  if (style === 'bar') return <div style={{ background: A, color: '#fff', fontSize: 14, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', padding: '7px 16px', marginBottom: 12 }}>{text}</div>
+  if (style === 'tick') return <div style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#1a2a2a', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ display: 'inline-block', width: 4, height: 16, background: A }} />{text}</div>
+  if (style === 'dash') return <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: '#1c1c1c', marginBottom: 12 }}>— {text}</div>
+  if (style === 'plain') return <div style={{ fontSize: 15.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: A, marginBottom: 12 }}>{text}</div>
+  return <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: A, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 10 }}>{text}</div>
+}
+
+// Pagination-safe body builder used by the curated template library.
+// Every item that may wrap is its own measurable block. This prevents a page
+// boundary from cutting through a bullet, skill row, qualification or reference.
+function summaryChunks(text: string, maxChars = 320): string[] {
+  const cleaned = String(text || '').replace(/\s+/g, ' ').trim()
+  if (!cleaned) return []
+  const sentences = cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map(s => s.trim()).filter(Boolean) || [cleaned]
+  const chunks: string[] = []
+  let current = ''
+  sentences.forEach(sentence => {
+    const candidate = current ? `${current} ${sentence}` : sentence
+    if (current && candidate.length > maxChars) {
+      chunks.push(current)
+      current = sentence
+    } else {
+      current = candidate
+    }
+  })
+  if (current) chunks.push(current)
+  return chunks
+}
+
+function safeBullet(text: string, color = '#333') {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13.5, lineHeight: 1.68, color, marginBottom: 5, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+      <span aria-hidden="true" style={{ flex: '0 0 auto', lineHeight: 1.68 }}>•</span>
+      <span style={{ flex: 1, minWidth: 0 }}>{text}</span>
+    </div>
+  )
+}
+
+function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skillsInline?: boolean }): Block[] {
+  const blocks: Block[] = []
+
+  if (cv.summary) {
+    blocks.push({ key: 'summary-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Profile', A, headStyle)}</div> })
+    const chunks = summaryChunks(cv.summary)
+    chunks.forEach((chunk, i) => blocks.push({
+      key: `summary-${i}`,
+      node: <div style={{ fontSize: 14, lineHeight: 1.78, color: '#333', textAlign: 'justify', marginBottom: i === chunks.length - 1 ? 18 : 6, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{chunk}</div>
+    }))
+  }
+
+  if (cv.experience?.length) {
+    blocks.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Professional Experience', A, headStyle)}</div> })
+    cv.experience.forEach((e, i) => {
+      const dates = [e.startDate, e.endDate].filter(Boolean).join(' – ')
+      blocks.push({
+        key: `exp${i}-h`,
+        node: (
+          <div style={{ marginBottom: 6, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700, minWidth: 0 }}>{e.role}</div>
+              {dates && <div style={{ fontSize: 12.5, color: '#777', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{dates}</div>}
+            </div>
+            {e.company && <div style={{ fontSize: 13.5, color: A, fontWeight: 600, fontStyle: 'italic' }}>{e.company}</div>}
+          </div>
+        )
+      })
+      ;(e.bullets || []).forEach((x, j) => blocks.push({
+        key: `exp${i}-b${j}`,
+        node: <div style={{ marginBottom: j === e.bullets.length - 1 ? 12 : 0 }}>{safeBullet(x)}</div>
+      }))
+    })
+  }
+
+  if (cv.education?.length) {
+    blocks.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Education', A, headStyle)}</div> })
+    cv.education.forEach((e, i) => {
+      const dates = [e.startYear, e.endYear].filter(Boolean).join(' – ')
+      const qualification = `${e.qualification || ''}${e.field ? ` in ${e.field}` : ''}`.trim()
+      blocks.push({
+        key: `edu-${i}`,
+        node: (
+          <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{qualification}</div>
+              <div style={{ fontSize: 13.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div>
+            </div>
+            {dates && <div style={{ fontSize: 12.5, color: '#777', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{dates}</div>}
+          </div>
+        )
+      })
+    })
+  }
+
+  const addNamedList = (title: string, items?: string[]) => {
+    if (!items?.length) return
+    blocks.push({ key: `${title}-h`, node: <div style={{ marginBottom: 4 }}>{sectionHeading(title, A, headStyle)}</div> })
+    items.forEach((x, i) => blocks.push({ key: `${title}-${i}`, node: <div style={{ marginBottom: i === items.length - 1 ? 12 : 0 }}>{safeBullet(x, '#444')}</div> }))
+  }
+  addNamedList('Publications', cv.publications)
+  addNamedList('Research', cv.research)
+  addNamedList('Teaching Experience', cv.teaching)
+
+  if (opts?.skillsInline) {
+    if (cv.skills?.length) {
+      blocks.push({ key: 'skills-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Core Skills', A, headStyle)}</div> })
+      for (let i = 0; i < cv.skills.length; i += 3) {
+        const chunk = cv.skills.slice(i, i + 3)
+        blocks.push({
+          key: `skills-${i / 3}`,
+          node: <div style={{ fontSize: 13.5, color: '#333', lineHeight: 1.85, marginBottom: i + 3 >= cv.skills.length ? 13 : 2, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{dotList(chunk, A)}</div>
+        })
+      }
+    }
+
+    if (cv.attributes?.length) {
+      blocks.push({ key: 'attributes-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Professional Attributes', A, headStyle)}</div> })
+      cv.attributes.forEach((a, i) => blocks.push({
+        key: `attributes-${i}`,
+        node: <div style={{ marginBottom: i === cv.attributes!.length - 1 ? 12 : 0 }}>{safeBullet(a)}</div>
+      }))
+    }
+
+    if (cv.languages?.length) {
+      blocks.push({ key: 'langs-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Languages', A, headStyle)}</div> })
+      for (let i = 0; i < cv.languages.length; i += 4) {
+        const chunk = cv.languages.slice(i, i + 4)
+        blocks.push({
+          key: `langs-${i / 4}`,
+          node: <div style={{ fontSize: 13.5, color: '#333', lineHeight: 1.75, marginBottom: i + 4 >= cv.languages.length ? 13 : 2, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{dotList(chunk, A)}</div>
+        })
+      }
+    }
+  }
+
+  getSections(cv).forEach((sec, i) => {
+    if (!sec?.items?.length) return
+    blocks.push({ key: `extra-${i}-h`, node: <div style={{ marginBottom: 4 }}>{sectionHeading(sec.heading, A, headStyle)}</div> })
+    sec.items.forEach((item, j) => blocks.push({
+      key: `extra-${i}-${j}`,
+      node: isRefsHead(sec.heading)
+        ? <div style={{ fontSize: 13.5, lineHeight: 1.55, color: '#333', marginBottom: j === sec.items.length - 1 ? 12 : 4, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{item}</div>
+        : <div style={{ marginBottom: j === sec.items.length - 1 ? 12 : 0 }}>{safeBullet(item)}</div>
+    }))
+  })
+
+  return blocks
+}
+
+// ════════════════════════════════════════════════════════════════
+// THE PAGINATION ENGINE
+// ════════════════════════════════════════════════════════════════
+function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: TemplateConfig }) {
+  const blocks = config.buildBlocks(cv, A)
+  const sideBlocks = config.buildSidebarBlocks ? config.buildSidebarBlocks(cv, A) : []
+  const measureRef = useRef<HTMLDivElement>(null)
+  const sideMeasureRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLDivElement>(null)
+  const [pages, setPages] = useState<number[][] | null>(null)
+  const screenDocRef = useRef<HTMLDivElement>(null)
+  const limitsRef = useRef<{ page1Usable: number; usable: number; sLimit: number } | null>(null)
+  const correctionsRef = useRef(0)
+  const [sidePages, setSidePages] = useState<number[][] | null>(null)
+
+  useLayoutEffect(() => {
+    let cancelled = false
+    let raf = 0
+    correctionsRef.current = 0
+
+    function paginate() {
+      try {
+        const el = measureRef.current
+        if (!el) return
+        const children = Array.from(el.children) as HTMLElement[]
+        if (children.length !== blocks.length || blocks.length === 0) return
+
+        const heights = children.map(c => {
+          const r = c.getBoundingClientRect()
+          let m = 0
+          try {
+            const cs = window.getComputedStyle(c)
+            m = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0)
+          } catch { m = 0 }
+          return r.height + m
+        })
+
+        const headerH = headerRef.current ? headerRef.current.getBoundingClientRect().height : 0
+        // Extra breathing room beyond the page's own padding, so content never packs
+        // to the literal edge of the printable area — reads like a real printed page.
+        const bottomSafety = config.packBottomSafety ?? PACK_BOTTOM_SAFETY
+        const tolerance = Math.min(0, config.packTolerance ?? PACK_TOLERANCE)
+        const usable = (config.pageUsable ?? (PAGE_H - config.contentPadV * 2)) - bottomSafety
+        const page1Usable = Math.max(160, usable - headerH)
+        limitsRef.current = { page1Usable, usable, sLimit: PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2 - bottomSafety }
+        const result = packMainPlan(blocks.map(b => b.key), heights, page1Usable, usable, tolerance)
+
+        // ── Sidebar pagination (shared algorithm, sidebar heights/budget) ──
+        let sideResult: number[][] | null = null
+        const sEl = sideMeasureRef.current
+        if (config.buildSidebarBlocks && sEl) {
+          const sChildren = Array.from(sEl.children) as HTMLElement[]
+          if (sChildren.length === sideBlocks.length && sideBlocks.length > 0) {
+            const sHeights = sChildren.map(c => {
+              const r = c.getBoundingClientRect()
+              let m = 0
+              try { const cs = window.getComputedStyle(c); m = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0) } catch { m = 0 }
+              return r.height + m
+            })
+            const sLimit = PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2 - bottomSafety
+            sideResult = packSidePlan(sideBlocks.map(b => b.key), sHeights, sLimit, tolerance)
+          }
         }
-        @media print {
-          @page { size: A4; margin: 0; }
-          html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          /* Hide everything by default */
-          body * { visibility: hidden !important; }
-          /* Show only the CV print area and its children */
-          #cv-print-area, #cv-print-area * { visibility: visible !important; }
-          /* Pin the CV to the top-left, full A4 width, no decoration */
-          #cv-print-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            width: 210mm !important;
-            max-width: 210mm !important;
-            border: none !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            background: white !important;
-          }
-          /* Kill the wrapping card's styling on print */
-          #cv-print-area * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .no-print { display: none !important; }
+        if (result.length === 0) result.push(blocks.map((_, i) => i))
+        if (!cancelled) setPages(result)
+        if (!cancelled) setSidePages(sideResult)
+      } catch {
+        // on any measurement error, fall back to single page (never crash the app)
+        if (!cancelled) setPages([blocks.map((_, i) => i)])
+      }
+    }
+
+    const run = () => { raf = requestAnimationFrame(() => { if (!cancelled) paginate() }) }
+    const fonts = (document as any).fonts
+    if (fonts && fonts.ready && typeof fonts.ready.then === 'function') {
+      fonts.ready.then(run).catch(run)
+    } else {
+      run()
+    }
+    return () => { cancelled = true; if (raf) cancelAnimationFrame(raf) }
+  }, [cv, A, config.design]) // eslint-disable-line
+
+  // ═══ GROUND-TRUTH SELF-CORRECTION ═══════════════════════════════
+  // The hidden measure pass gives a fast first plan, but it is a SEPARATE
+  // render — if it disagrees with the real document about any block's height
+  // (fonts, inheritance, wrapping…), pages break in the wrong place: early
+  // (big gaps) or late (clipping). This pass measures the REAL on-screen
+  // document — the same nodes the reader sees — using sibling strides
+  // (nextTop − selfTop), which capture true rendered spacing including
+  // collapsed margins. It re-packs with those truths and corrects the plan
+  // if it differs. Runs at most twice per CV to guarantee no update loops.
+  useLayoutEffect(() => {
+    if (!pages || correctionsRef.current >= 2 || !limitsRef.current) return
+    const root = screenDocRef.current
+    if (!root) return
+    try {
+      const els = Array.from(root.querySelectorAll('[data-bk]')) as HTMLElement[]
+      if (els.length !== blocks.length || blocks.length === 0) return
+      const trueHeights = els.map((el, i) => {
+        const r = el.getBoundingClientRect()
+        if (i + 1 < els.length) {
+          const stride = els[i + 1].getBoundingClientRect().top - r.top
+          // strides can be 0 during odd intermediate layouts; fall back to rect
+          return stride > 0 ? stride : r.height
         }
-      `}</style>
+        return r.height
+      })
+      const { page1Usable, usable, sLimit } = limitsRef.current
+      // Final pass is deliberately stricter than the first measurement pass.
+      // It uses the real rendered block heights, permits no positive overflow,
+      // and keeps a small renderer guard. Therefore a complete bullet/chunk is
+      // moved to the next page instead of being clipped halfway in the PDF.
+      const correctionTolerance = Math.min(0, config.packTolerance ?? PACK_TOLERANCE)
+      const strictPage1Usable = Math.max(120, page1Usable - FINAL_RENDER_GUARD)
+      const strictUsable = Math.max(120, usable - FINAL_RENDER_GUARD)
+      const newMain = packMainPlan(blocks.map(b => b.key), trueHeights, strictPage1Usable, strictUsable, correctionTolerance)
 
-      {/* Load the print fonts in the PREVIEW too: the paginator must measure with
-          the exact fonts the PDF renders with, or line-wrapping (and thus page
-          breaks) drift between screen and PDF. fonts.ready in CVPreview waits on these. */}
-      <link rel="stylesheet" href={PRINT_FONTS_HREF} />
+      let newSide: number[][] | null = null
+      if (config.buildSidebarBlocks && sideBlocks.length) {
+        const sEls = Array.from(root.querySelectorAll('[data-sbk]')) as HTMLElement[]
+        if (sEls.length === sideBlocks.length) {
+          const sTrue = sEls.map((el, i) => {
+            const r = el.getBoundingClientRect()
+            if (i + 1 < sEls.length) {
+              const stride = sEls[i + 1].getBoundingClientRect().top - r.top
+              return stride > 0 ? stride : r.height
+            }
+            return r.height
+          })
+          newSide = packSidePlan(sideBlocks.map(b => b.key), sTrue, Math.max(120, sLimit - FINAL_RENDER_GUARD), correctionTolerance)
+        }
+      }
 
-      {/* ── Redesign motion + polish (screen only) ── */}
-      <style>{`
-        @keyframes scv-pop { from{opacity:0;transform:scale(.4)} to{opacity:1;transform:scale(1)} }
-        @keyframes scv-draw { to{stroke-dashoffset:0} }
-        @keyframes scv-up { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
-        @keyframes scv-scrimIn { from{opacity:0} to{opacity:1} }
-        @keyframes scv-sheetIn { from{opacity:0;transform:translateY(20px) scale(.97)} to{opacity:1;transform:none} }
-        @keyframes scv-optIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
-        @keyframes scv-menuIn { from{opacity:0;transform:scale(.96) translateY(-4px)} to{opacity:1;transform:scale(1) translateY(0)} }
+      const mainChanged = JSON.stringify(newMain) !== JSON.stringify(pages)
+      const sideChanged = newSide !== null && JSON.stringify(newSide) !== JSON.stringify(sidePages)
+      if (mainChanged || sideChanged) {
+        correctionsRef.current++
+        if (mainChanged) setPages(newMain)
+        if (sideChanged) setSidePages(newSide)
+      }
+    } catch { /* correction is best-effort; the first-pass plan still stands */ }
+  }, [pages, sidePages]) // eslint-disable-line
 
-        /* ── ready toast ── */
-        @keyframes scv-toastIn { from{opacity:0;transform:translateY(14px) scale(.96)} to{opacity:1;transform:none} }
-        @keyframes scv-sheen { 0%{transform:translateX(-120%) skewX(-18deg)} 60%,100%{transform:translateX(320%) skewX(-18deg)} }
-        @keyframes scv-timer { from{transform:scaleX(1)} to{transform:scaleX(0)} }
-        .scv-toast-wrap { position:fixed; bottom:24px; right:24px; z-index:120; width:300px; max-width:calc(100vw - 32px); }
-        .scv-toast { position:relative; display:flex; gap:13px; align-items:flex-start; padding:16px 16px 18px;
-          background:linear-gradient(150deg,#ffffff 0%,#f6fefb 100%); border:1px solid rgba(13,148,136,.16);
-          border-radius:16px; overflow:hidden;
-          box-shadow:0 2px 6px rgba(10,15,26,.06), 0 20px 44px -12px rgba(10,15,26,.28);
-          animation:scv-toastIn .42s cubic-bezier(.22,1,.36,1); }
-        .scv-toast::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(#14b8a6,#0a5d55); }
-        .scv-toast-sheen { position:absolute; top:0; bottom:0; left:0; width:40%;
-          background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);
-          animation:scv-sheen 1.1s .35s ease-out both; pointer-events:none; }
-        .scv-toast .scv-check { animation:scv-pop .5s .06s cubic-bezier(.34,1.56,.64,1) both; }
-        .scv-toast .scv-check path { stroke-dasharray:20; stroke-dashoffset:20; animation:scv-draw .4s .34s ease forwards; }
-        .scv-toast .scv-btitle { animation:scv-up .5s .12s cubic-bezier(.22,1,.36,1) both; }
-        .scv-toast .scv-bsub { animation:scv-up .5s .18s cubic-bezier(.22,1,.36,1) both; }
-        .scv-toast .scv-bbtn1 { animation:scv-up .5s .26s cubic-bezier(.22,1,.36,1) both; }
-        .scv-toast .scv-bbtn2 { animation:scv-up .5s .32s cubic-bezier(.22,1,.36,1) both; }
-        .scv-toast-timer { position:absolute; left:0; right:0; bottom:0; height:2.5px; transform-origin:left;
-          background:linear-gradient(90deg,#14b8a6,#0a5d55); animation:scv-timer 6s linear forwards; }
-        .scv-toast-timer[data-paused="true"] { animation-play-state:paused; }
-        .scv-bbtn { transition: transform .16s ease, border-color .16s ease, color .16s ease, background .16s ease; }
-        .scv-bbtn:hover { transform: translateY(-1px); border-color:#0d9488; color:#0a5d55; }
-        .scv-bbtn-primary:hover { background:#0a5d55; color:#fff; }
-
-        .scv-scrim { animation: scv-scrimIn .22s ease; }
-        .scv-sheet { animation: scv-sheetIn .34s cubic-bezier(.22,1,.36,1); }
-        .scv-opt { transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; opacity:0; }
-        .scv-opt:nth-of-type(1) { animation: scv-optIn .4s .08s cubic-bezier(.22,1,.36,1) forwards; }
-        .scv-opt:nth-of-type(2) { animation: scv-optIn .4s .15s cubic-bezier(.22,1,.36,1) forwards; }
-        .scv-opt:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(10,15,26,.06), 0 12px 28px -8px rgba(10,15,26,.16); border-color:#d7dee6; }
-        .scv-opt .scv-go { transition: transform .16s ease; }
-        .scv-opt:hover .scv-go { transform: translateX(3px); }
-        .scv-x { transition:.15s; }
-        .scv-x:hover { background:#f1f5f9; }
-
-        .scv-tpl { transition: transform .16s ease, box-shadow .16s ease, background .16s ease; }
-        .scv-tpl:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(10,15,26,.06), 0 10px 22px -10px rgba(10,15,26,.22); background:#fafbfc; }
-      `}</style>
-
-      <nav className="no-print" style={{ background:'#0a0f1a', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap:'wrap', gap:'10px' }}>
-        <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', fontWeight:600, color:'white' }}>Swift<span style={{ color:'#5eead4' }}>CV</span>Pro</div>
-        <div style={{ display:'flex', background:'rgba(255,255,255,0.08)', borderRadius:'50px', padding:'3px', gap:'2px' }}>
-          <button onClick={() => setActiveTab('preview')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12px', fontWeight:activeTab==='preview'?600:400, background:activeTab==='preview'?'white':'none', color:activeTab==='preview'?'#0a0f1a':'rgba(255,255,255,0.4)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Preview</button>
-          <button onClick={() => setShowChooser(true)} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12px', fontWeight:activeTab==='edit'?600:400, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.4)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
-        </div>
-        <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
-          <button onClick={handleNewCV} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>+ New CV</button>
-          <button onClick={() => { setCoverErr(''); setShowCoverModal(true) }} title="Generate a cover letter from this CV" style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.72)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer', display:'flex', alignItems:'center', gap:'7px' }}><span style={{ color:'#5eead4' }}>✦</span> Cover Letter</button>
-          <div style={{ position:'relative' }}>
-            <button onClick={() => setShowDownloadMenu(v => !v)} disabled={!!downloading} style={{ padding:'8px 16px', background:'rgba(255,255,255,0.1)', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px' }}>
-              {downloading ? '...' : <>↓ Download <span style={{ fontSize:'10px' }}>▾</span></>}
-            </button>
-            {showDownloadMenu && (
-              <div onMouseLeave={() => setShowDownloadMenu(false)} style={{ position:'absolute', top:'calc(100% + 8px)', right:0, background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', boxShadow:'0 12px 30px -6px rgba(10,15,26,0.2)', overflow:'hidden', minWidth:'168px', zIndex:60, animation:'scv-menuIn 0.14s ease', transformOrigin:'top right' }}>
-                <button onClick={() => { setShowDownloadMenu(false); handleDownloadPdf() }} style={{ display:'flex', alignItems:'center', gap:'8px', width:'100%', textAlign:'left', padding:'12px 16px', background:'white', border:'none', borderBottom:'1px solid #f1f5f9', fontSize:'13px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}><DownIcon/> Download PDF</button>
-                <button onClick={() => { setShowDownloadMenu(false); handleDownloadDocx() }} style={{ display:'flex', alignItems:'center', gap:'8px', width:'100%', textAlign:'left', padding:'12px 16px', background:'white', border:'none', fontSize:'13px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}><DownIcon/> Download Word</button>
-              </div>
-            )}
-          </div>
-        </div>
-      </nav>
-
-      {activeTab === 'preview' && showReadyBanner && (
-        <div className="no-print scv-toast-wrap" onMouseEnter={() => setBannerPaused(true)} onMouseLeave={() => setBannerPaused(false)}>
-          <div className="scv-toast">
-            <div className="scv-toast-sheen" />
-            <div className="scv-check" style={{ width:'26px', height:'26px', borderRadius:'50%', background:'linear-gradient(140deg,#14b8a6,#0a5d55)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 12px -2px rgba(13,148,136,0.5)' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div className="scv-btitle" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.02rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.15, color:'#0a0f1a' }}>Great job! Your CV is ready.</div>
-              <div className="scv-bsub" style={{ fontSize:'11.5px', color:'#64748b', marginTop:'1px' }}>Download it from the top bar when you\u2019re ready.</div>
-            </div>
-            <button className="scv-x" onClick={() => setShowReadyBanner(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'3px', display:'flex', borderRadius:'8px', alignSelf:'flex-start' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
-            <div className="scv-toast-timer" data-paused={bannerPaused} onAnimationEnd={() => setShowReadyBanner(false)} />
+  // Hidden measure pass — renders real header + all blocks at exact column width
+  const measurePass = (
+    <div data-measure-pass aria-hidden="true" style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: -99999, top: 0, width: config.measureW, fontFamily: config.font }}>
+      <div ref={headerRef} style={{ width: '100%', boxSizing: 'border-box', padding: config.headerBannerPad ?? 0 }}><config.Header cv={cv} A={A} /></div>
+      {/* flow-root wrappers CONTAIN inner margins, so measured heights include the
+          spacing that would otherwise margin-collapse through and be invisible to the
+          packer (the cause of sidebar bottom-edge clipping). Real render collapses
+          adjacent margins to the max ≤ our counted sum, so we only ever break EARLIER
+          than strictly needed — never later. Safe by construction. */}
+      <div ref={measureRef}>
+        {blocks.map(b => <div key={b.key} style={{ display: 'flow-root' }}>{b.node}</div>)}
+      </div>
+      {config.buildSidebarBlocks && (
+        <div style={{ width: config.sidebarMeasureW ?? 200 }}>
+          <div ref={sideMeasureRef}>
+            {sideBlocks.map(b => <div key={b.key} style={{ display: 'flow-root' }}>{b.node}</div>)}
           </div>
         </div>
       )}
-      <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
-        {!isCoverLetter && (
-          <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'22px 20px', overflowY:'auto', height:'calc(100vh - 57px)' }}>
+    </div>
+  )
 
-            {/* ── COLOUR — always visible, premium ── */}
-            {currentTpl?.customizable && (
-              <div style={{ marginBottom:'22px' }}>
-                <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#94a3b8', marginBottom:'12px' }}>Choose Colour</div>
-                <div style={{ display:'flex', gap:'9px', flexWrap:'wrap' }}>
-                  <button onClick={() => setAccentColor(null)} title="Default" style={{ width:'26px', height:'26px', borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #fff, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0', transition:'all 0.15s' }} />
-                  {COLOR_SWATCHES.map(s => (
-                    <button key={s.value} onClick={() => setAccentColor(s.value)} title={s.name} style={{ width:'26px', height:'26px', borderRadius:'50%', background: s.value, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === s.value ? `0 0 0 2px #fff, 0 0 0 4px ${s.value}` : '0 0 0 1px #e2e8f0', transition:'all 0.15s' }} />
-                  ))}
-                </div>
-              </div>
-            )}
-            <div style={{ height:'1px', background:'#eef2f6', margin:'0 0 18px' }} />
+  // Until pagination resolves, render everything on page 1 (correct for 1-page CVs, no flash)
+  let pagePlan = (pages && pages.length > 0) ? pages : [blocks.map((_, i) => i)]
+  const sidePlan: number[][] = (sidePages && sidePages.length > 0) ? sidePages : (sideBlocks.length ? [sideBlocks.map((_, i) => i)] : [])
+  // If the sidebar needs more pages than the main column, add empty main pages so nothing is lost.
+  if (sidePlan.length > pagePlan.length) {
+    pagePlan = [...pagePlan, ...Array.from({ length: sidePlan.length - pagePlan.length }, () => [] as number[])]
+  }
+  const sideSlice = (pageIndex: number): React.ReactNode =>
+    config.buildSidebarBlocks
+      ? (sidePlan[pageIndex] || []).map(i => sideBlocks[i] ? <div key={sideBlocks[i].key}>{sideBlocks[i].node}</div> : null)
+      : undefined
 
-            <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#94a3b8', marginBottom:'12px' }}>Choose Template</div>
+  return (
+    <div>
+      {/* On screen, hide the paged frames and show only the continuous doc.
+          In print/PDF (buildPdfHtml uses print media) this rule does NOT apply,
+          so the real pages render — the download is unchanged. */}
+      <style>{`@media screen { #cv-print-area > div > div:not([data-screen-doc]):not([data-measure-pass]) { display: none !important; } }`}</style>
+      {measurePass}
+      {/* SCREEN: one continuous document — every block in a single frame, so there
+          are no inter-page padding/margin seams and no trailing empty space. */}
+      <div data-screen-doc ref={screenDocRef}>
+        <config.Frame cv={cv} A={A} pageIndex={0} sidebarChildren={config.buildSidebarBlocks ? sideBlocks.map(b => <div key={b.key} data-sbk={b.key}>{b.node}</div>) : undefined}>
+          {blocks.map(b => <div key={b.key} data-bk={b.key}>{b.node}</div>)}
+        </config.Frame>
+      </div>
+      {/* PRINT/PDF: the real A4 pages. Captured by buildPdfHtml, hidden on screen. */}
+      {pagePlan.map((blockIdxs, pageIndex) => (
+        <config.Frame key={pageIndex} cv={cv} A={A} pageIndex={pageIndex} sidebarChildren={sideSlice(pageIndex)}>
+          {blockIdxs.map(i => blocks[i] ? <div key={blocks[i].key}>{blocks[i].node}</div> : null)}
+        </config.Frame>
+      ))}
+    </div>
+  )
+}
 
-            {/* PREMIUM */}
-            {premiumTemplates.length > 0 && (<>
-              <CategoryHeader>Premium</CategoryHeader>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'9px', margin:'6px 0 16px' }}>
-                {premiumTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
-              </div>
-            </>)}
 
-            {/* ATS */}
-            <CategoryHeader>ATS Templates</CategoryHeader>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'9px', margin:'6px 0 16px' }}>
-              {atsTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
-            </div>
+// ── Paginated sidebar block builders ─────────────────────────────
+// Same content as the old monolithic sidebars, split into measurable blocks
+// (headings keyed "-h" so the packer keeps them with their first item).
+function meridianSidebarBlocks(cv: GeneratedCV, A: string): Block[] {
+  const head = (t: string) => <div style={{ fontSize: 13.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase' as const, borderBottom: '1px solid rgba(255,255,255,0.35)', paddingBottom: 6, marginBottom: 12 }}>{t}</div>
+  const b: Block[] = []
+  b.push({ key: 'sb-contact-h', node: head('Contact') })
+  ;[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).forEach((c, i) => b.push({ key: `sb-contact-${i}`, node: <div style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95, wordBreak: 'break-word' as const, lineHeight: 1.5 }}>{c}</div> }))
+  b.push({ key: 'sb-sp1', node: <div style={{ height: 14 }} /> })
+  if (cv.education?.length) {
+    b.push({ key: 'sb-edu-h', node: head('Education') })
+    cv.education.forEach((e, i) => b.push({ key: `sb-edu-${i}`, node: <div style={{ marginBottom: 11, fontSize: 13.5, opacity: 0.95, lineHeight: 1.45 }}><div style={{ fontWeight: 700 }}>{e.qualification}{e.field ? ` in ${e.field}` : ''}</div><div style={{ opacity: 0.85 }}>{e.institution}</div><div style={{ opacity: 0.7, fontSize: 12 }}>{e.startYear} – {e.endYear}{e.grade ? ` · ${e.grade}` : ''}</div></div> }))
+    b.push({ key: 'sb-sp2', node: <div style={{ height: 14 }} /> })
+  }
+  if (cv.skills?.length) {
+    b.push({ key: 'sb-skills-h', node: head('Skills') })
+    cv.skills.forEach((sk, i) => b.push({ key: `sb-skill-${i}`, node: <div style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95, display: 'flex', gap: 7 }}><span style={{ opacity: 0.7 }}>›</span><span>{sk}</span></div> }))
+    b.push({ key: 'sb-sp3', node: <div style={{ height: 14 }} /> })
+  }
+  if (cv.languages?.length) {
+    b.push({ key: 'sb-lang-h', node: head('Languages') })
+    cv.languages.forEach((l, i) => b.push({ key: `sb-lang-${i}`, node: <div style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95 }}>{l}</div> }))
+    b.push({ key: 'sb-sp4', node: <div style={{ height: 14 }} /> })
+  }
+  extraSidebarSections(cv).forEach((sec, i) => {
+    b.push({ key: `sb-x${i}-h`, node: head(sec.heading) })
+    sec.items.forEach((it, j) => b.push({ key: `sb-x${i}-${j}`, node: <div style={{ fontSize: 13.5, marginBottom: 7, opacity: 0.95, lineHeight: 1.45 }}>{it}</div> }))
+    b.push({ key: `sb-x${i}-sp`, node: <div style={{ height: 14 }} /> })
+  })
+  return b
+}
 
-            {/* ACADEMIC */}
-            {academicTemplates.length > 0 && (<>
-              <CategoryHeader>Academic</CategoryHeader>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'9px', margin:'6px 0 4px' }}>
-                {academicTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => setTemplate(tpl.id)} />)}
-              </div>
-            </>)}
+function sterlingSidebarBlocks(cv: GeneratedCV, A: string): Block[] {
+  const SH = (t: string) => <div style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase' as const, color: '#fff', borderBottom: '1px solid rgba(255,255,255,0.3)', paddingBottom: 5, marginBottom: 10 }}>{t}</div>
+  const b: Block[] = []
+  b.push({ key: 'sb-contact-h', node: SH('Contact') })
+  b.push({ key: 'sb-contact', node: <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 1.7, wordBreak: 'break-word' as const }}>{[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).map((x, i) => <div key={i}>{x}</div>)}</div> })
+  b.push({ key: 'sb-sp1', node: <div style={{ height: 18 }} /> })
+  if (cv.education?.length) {
+    b.push({ key: 'sb-edu-h', node: SH('Education') })
+    cv.education.forEach((e, i) => b.push({ key: `sb-edu-${i}`, node: <div style={{ marginBottom: 10 }}><div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.92)' }}>{e.qualification}{e.field ? ` in ${e.field}` : ''}</div><div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>{e.institution}</div><div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.62)' }}>{e.startYear} – {e.endYear}{e.grade ? ` · ${e.grade}` : ''}</div></div> }))
+    b.push({ key: 'sb-sp2', node: <div style={{ height: 18 }} /> })
+  }
+  if (cv.skills?.length) {
+    b.push({ key: 'sb-skills-h', node: SH('Skills') })
+    cv.skills.forEach((sk, i) => b.push({ key: `sb-skill-${i}`, node: <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 5 }}>{sk}</div> }))
+    b.push({ key: 'sb-sp3', node: <div style={{ height: 18 }} /> })
+  }
+  if (cv.languages?.length) {
+    b.push({ key: 'sb-lang-h', node: SH('Languages') })
+    cv.languages.forEach((l, i) => b.push({ key: `sb-lang-${i}`, node: <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 5 }}>{l}</div> }))
+    b.push({ key: 'sb-sp4', node: <div style={{ height: 18 }} /> })
+  }
+  extraSidebarSections(cv).forEach((sec, i) => {
+    b.push({ key: `sb-x${i}-h`, node: SH(sec.heading) })
+    sec.items.forEach((it, j) => b.push({ key: `sb-x${i}-${j}`, node: <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 5, lineHeight: 1.5 }}>{it}</div> }))
+    b.push({ key: `sb-x${i}-sp`, node: <div style={{ height: 18 }} /> })
+  })
+  return b
+}
 
-          </div>
-        )}
+// ════════════════════════════════════════════════════════════════
+// TEMPLATE CONFIGS
+// ════════════════════════════════════════════════════════════════
+// NOTE: no minHeight here on purpose. On screen, pages collapse to their real
+// content height so an under-filled page leaves no empty gap. The PDF page height
+// is set separately in buildPdfHtml (#cv-print-area > div > div { height: 296mm })
+// inside app/preview/page.tsx, so the download stays full-A4 and unaffected.
+const pageBase: React.CSSProperties = { width: PAGE_W, background: '#fff', margin: '0 auto 24px', boxSizing: 'border-box', position: 'relative', overflow: 'hidden', pageBreakAfter: 'always' }
 
-        <div style={{ padding:'24px', overflowY:'auto', overflowX:'auto', background:'#f1f5f9' }}>
-          {coverLetter && (
-            <div className="no-print" style={{ display:'flex', justifyContent:'center', marginBottom:'18px' }}>
-              <div style={{ display:'inline-flex', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', padding:'4px', boxShadow:'0 2px 8px rgba(10,15,26,0.06)' }}>
-                <button onClick={showCvDoc} style={{ padding:'8px 20px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', background: activeDoc==='cv' ? '#0d9488' : 'transparent', color: activeDoc==='cv' ? 'white' : '#64748b' }}>CV</button>
-                <button onClick={showCoverDoc} style={{ padding:'8px 20px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', background: activeDoc==='cover' ? '#0d9488' : 'transparent', color: activeDoc==='cover' ? 'white' : '#64748b' }}>Cover Letter</button>
-              </div>
-            </div>
-          )}
-          {activeTab === 'preview' ? (
-            <div style={{ background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'visible', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', width:'210mm', maxWidth:'210mm', margin:'0 auto' }}>
-              <div id="cv-print-area">
-                <CVPreview cv={cv} templateId={template} accentColor={accentColor} />
-              </div>
-            </div>
-          ) : (
-            <div style={{ maxWidth:'720px', margin:'0 auto' }}>
-              <button onClick={() => setActiveTab('preview')} className="no-print" style={{ display:'flex', alignItems:'center', gap:'6px', padding:'9px 16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, color:'#0a0f1a', cursor:'pointer', marginBottom:'18px' }}>← Back to preview</button>
-              <CVEditor cv={cv} updateCV={updateCV} />
-            </div>
-          )}
+const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
+  // ── MERIDIAN: teal sidebar left ──
+  meridian: {
+    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40,
+    buildBlocks: (cv, A) => {
+      const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: A, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>{t}<span style={{ flex: 1, height: 2, background: A, opacity: 0.25 }} /></div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 22 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.8, color: '#333', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => {
+          // role header keyed "-h" → the packer keeps it with its first bullet;
+          // bullets are separate blocks so a long role FLOWS across pages instead
+          // of jumping wholesale and leaving a large gap.
+          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 15, fontWeight: 700 }}>{e.role}</div><div style={{ fontSize: 12, color: '#888', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</div></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: j === e.bullets.length - 1 ? 14 : 0, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#333', marginBottom: 5 }}>{x}</li></ul> }))
+        })
+      }
+      // Education is rendered in the sidebar for this two-column template.
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#333' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      if (cv.attributes?.length) b.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{head('Professional Attributes')}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444', marginBottom: 4 }}>{a}</li>)}</ul></div> })
+      extraMainBlocks(cv, (t) => head(t), true, '#444').forEach(bl => b.push(bl))
+      return b
+    },
+    Header: ({ cv, A }) => (<><div style={{ fontSize: 30, fontWeight: 700, lineHeight: 1.1, color: '#1a1a1a', marginBottom: 4 }}>{cv.fullName}</div>{cv.jobTitle && <div style={{ fontSize: 15.5, color: A, fontWeight: 600, letterSpacing: 0.5, marginBottom: 22, textTransform: 'uppercase' }}>{cv.jobTitle}</div>}</>),
+    Frame: ({ cv, A, pageIndex, children, sidebarChildren }) => (
+      <div style={{ ...pageBase, display: 'grid', gridTemplateColumns: '262px 1fr', fontFamily: BODY_SERIF, color: '#1a1a1a', background: `linear-gradient(90deg, ${A} 0, ${A} 262px, #fff 262px, #fff 100%)`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+        <div style={{ color: '#fff', padding: '40px 26px' }}>{sidebarChildren}</div>
+        <div style={{ padding: '40px 32px' }}>
+          {pageIndex === 0 && <TEMPLATES_CONFIG.meridian.Header cv={cv} A={A} />}
+          {children}
         </div>
       </div>
+    ),
+  },
 
-      {/* COVER LETTER MODAL */}
-      {showCoverModal && (
-        <div onClick={() => !coverGenerating && setShowCoverModal(false)} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
-          <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'440px', padding:'22px', boxShadow:'0 1px 3px rgba(10,15,26,0.08), 0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif" }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'6px' }}>
-              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>Generate a cover letter</div>
-              <button onClick={() => !coverGenerating && setShowCoverModal(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
-            </div>
-            <p style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.5, margin:'0 0 16px' }}>We’ll write a cover letter from your CV. Applying for a specific role? Paste or upload the job posting to tailor it — or skip for a strong general letter.</p>
+  // ── PULSE: dark sidebar right ──
+  // ══════════════════════════════════════════════════════════════
+  // PDF-ONLY PREMIUM DESIGNS (Onyx, Sterling, Slate, Verde, Crimson)
+  // ══════════════════════════════════════════════════════════════
 
-            <textarea value={coverJd} onChange={e => setCoverJd(e.target.value)} placeholder="Paste the job description here (optional)…" rows={5} style={{ width:'100%', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'12px 14px', fontSize:'13px', fontFamily:"'DM Sans', sans-serif", resize:'vertical', outline:'none', boxSizing:'border-box' }} />
-
-            <label style={{ display:'inline-flex', alignItems:'center', gap:'7px', marginTop:'10px', fontSize:'12px', color:'#0d9488', fontWeight:600, cursor:'pointer' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              {coverReadingFile ? 'Reading file\u2026' : 'Or upload the job (image, PDF, Word)'}
-              <input type="file" accept="image/*,application/pdf,.doc,.docx" style={{ display:'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) readCoverFile(f) }} />
-            </label>
-
-            {coverErr && <div style={{ marginTop:'12px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'10px 12px' }}>{coverErr}</div>}
-
-            <button onClick={handleGenerateCover} disabled={coverGenerating || coverReadingFile} style={{ width:'100%', marginTop:'16px', padding:'13px', background: coverGenerating ? '#5eead4' : '#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor: coverGenerating ? 'default' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
-              {coverGenerating ? 'Writing your cover letter\u2026' : <><span style={{ color:'#fff' }}>✦</span> Generate Cover Letter</>}
-            </button>
-            <div style={{ textAlign:'center', fontSize:'11px', color:'#94a3b8', marginTop:'10px' }}>Free with your CV · takes about 20 seconds</div>
-          </div>
-        </div>
-      )}
-
-      {/* NEED CHANGES? CHOOSER */}
-      {showChooser && (
-        <div onClick={() => setShowChooser(false)} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
-          <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'392px', padding:'8px', boxShadow:'0 1px 3px rgba(10,15,26,0.08), 0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif" }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'16px 16px 10px' }}>
-              <div>
-                <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, letterSpacing:'0.2px', color:'#0a0f1a' }}>How would you like to make changes?</div>
-                <div style={{ fontSize:'12.5px', color:'#64748b', marginTop:'3px' }}>Pick a path — you can switch anytime.</div>
-              </div>
-              <button className="scv-x" onClick={() => setShowChooser(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', borderRadius:'8px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
-            </div>
-
-            <button className="scv-opt" onClick={() => { setShowChooser(false); setShowRevision(true) }} style={{ position:'relative', display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'0 8px', textAlign:'left', padding:'15px', background:'linear-gradient(140deg,#f0fdf9,#e7fbf5)', border:'1.5px solid rgba(13,148,136,0.4)', borderRadius:'14px', cursor:'pointer' }}>
-              <span style={{ position:'absolute', top:'-9px', left:'17px', font:"700 9px 'DM Sans'", letterSpacing:'1px', color:'#0a5d55', background:'#d7f5ee', padding:'3px 8px', borderRadius:'20px' }}>POPULAR</span>
-              <span style={{ width:'42px', height:'42px', borderRadius:'11px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(140deg,#14b8a6,#0a5d55)', boxShadow:'0 6px 14px -4px rgba(13,148,136,0.55)' }}>
-                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z" fill="#fff"/><circle cx="18.5" cy="4.5" r="1.3" fill="#fff"/><circle cx="5" cy="16" r="1" fill="#fff"/></svg>
-              </span>
-              <span style={{ flex:1 }}>
-                <span style={{ display:'block', fontSize:'14.5px', fontWeight:700, letterSpacing:'-0.1px', color:'#0a0f1a' }}>Edit with AI</span>
-                <span style={{ display:'block', fontSize:'12.5px', color:'#64748b', marginTop:'2px', lineHeight:1.45 }}>Make changes faster with AI.</span>
-              </span>
-              <span className="scv-go" style={{ color:'#0d9488', display:'flex' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
-            </button>
-
-            <button className="scv-opt" onClick={() => { setShowChooser(false); setActiveTab('edit') }} style={{ display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'9px 8px 0', textAlign:'left', padding:'15px', background:'white', border:'1px solid #e7ebf0', borderRadius:'14px', cursor:'pointer' }}>
-              <span style={{ width:'42px', height:'42px', borderRadius:'11px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#f1f5f9' }}>
-                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5M4 20l1.2-4.2L15.3 5.7a1.7 1.7 0 012.4 0l.6.6a1.7 1.7 0 010 2.4L8.2 18.8 4 20z" stroke="#0a0f1a" strokeWidth="1.8" strokeLinejoin="round"/></svg>
-              </span>
-              <span style={{ flex:1 }}>
-                <span style={{ display:'block', fontSize:'14.5px', fontWeight:700, letterSpacing:'-0.1px', color:'#0a0f1a' }}>Edit manually</span>
-                <span style={{ display:'block', fontSize:'12.5px', color:'#64748b', marginTop:'2px', lineHeight:1.45 }}>Edit every section yourself.</span>
-              </span>
-              <span className="scv-go" style={{ color:'#94a3b8', display:'flex' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
-            </button>
-
-            <button className="scv-x" onClick={() => setShowChooser(false)} style={{ display:'block', width:'calc(100% - 16px)', margin:'12px 8px 8px', padding:'12px', background:'white', border:'1px solid #e7ebf0', borderRadius:'50px', fontSize:'13px', fontWeight:500, color:'#64748b', cursor:'pointer' }}>Cancel</button>
-          </div>
-        </div>
-      )}
-
-      {/* REVISION PANEL */}
-      {showRevision && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
-          <div style={{ background:'white', borderRadius:'20px 20px 0 0', padding:'28px 24px 36px', width:'100%', maxWidth:'600px', boxShadow:'0 -8px 40px rgba(0,0,0,0.15)' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
-              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.4rem', fontWeight:600, color:'#0a0f1a' }}>What would you like changed?</div>
-              <button onClick={() => setShowRevision(false)} style={{ background:'none', border:'none', fontSize:'20px', color:'#94a3b8', cursor:'pointer' }}>✕</button>
-            </div>
-            <div style={{ fontSize:'12px', color:'#94a3b8', marginBottom:'12px', fontStyle:'italic' }}>e.g. "Make the summary more confident" · "Add my KNUST degree" · "Remove date of birth"</div>
-            <div style={{ fontSize:'11px', color:'#64748b', background: freeRevisionUsed ? '#fffbeb' : '#f0fdf9', border:`1px solid ${freeRevisionUsed ? 'rgba(245,158,11,0.3)' : 'rgba(13,148,136,0.2)'}`, borderRadius:'8px', padding:'8px 14px', marginBottom:'14px' }}>
-              {freeRevisionUsed ? '⚠️ Your free revision has been used. This revision costs GH₵5.' : '✅ 1 free revision included.'}
-            </div>
-            <textarea value={revisionText} onChange={e => setRevisionText(e.target.value)} placeholder="Describe what you'd like changed..." style={{ width:'100%', padding:'12px 14px', border:'1.5px solid #e2e8f0', borderRadius:'12px', fontFamily:"'DM Sans', sans-serif", fontSize:'14px', color:'#0a0f1a', resize:'none', lineHeight:1.7, minHeight:'100px', marginBottom:'8px' }} />
-            {revisionError && <div style={{ fontSize:'12px', color:'#e24b4a', marginBottom:'10px' }}>{revisionError}</div>}
-            <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
-              <button onClick={() => setShowRevision(false)} style={{ padding:'11px 22px', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'13px', fontWeight:500, color:'#64748b', cursor:'pointer' }}>Cancel</button>
-              <button onClick={handleRevision} disabled={isRevising} style={{ padding:'11px 28px', background: freeRevisionUsed ? '#f59e0b' : '#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', opacity: isRevising ? 0.7 : 1 }}>
-                {isRevising ? 'Regenerating...' : freeRevisionUsed ? 'Pay GH₵5 & Regenerate →' : 'Regenerate →'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* COVER LETTER UPSELL */}
-      {showUpsell && !isCoverLetter && !coverLetter && (
-        <div className="scv-sheet" style={{ position:'fixed', bottom:'24px', right:'24px', zIndex:150, background:'white', borderRadius:'16px', padding:'18px 20px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)', border:'1px solid #e2e8f0', maxWidth:'290px' }}>
-          <button onClick={() => setShowUpsell(false)} style={{ position:'absolute', top:'10px', right:'12px', background:'none', border:'none', fontSize:'16px', color:'#94a3b8', cursor:'pointer' }}>✕</button>
-          <div style={{ fontSize:'1.15rem', fontWeight:600, color:'#0a0f1a', fontFamily:"'Cormorant Garamond', serif", marginBottom:'6px' }}>Add a matching cover letter?</div>
-          <div style={{ fontSize:'12px', color:'#64748b', lineHeight:1.6, marginBottom:'14px' }}>Written from this same CV — tailored to a role, or general. Ready in seconds.</div>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div style={{ fontSize:'12px', fontWeight:700, color:'#0d9488', background:'#f0fdf9', padding:'4px 10px', borderRadius:'20px' }}>Free with your CV</div>
-            <button onClick={() => { setShowUpsell(false); setCoverErr(''); setShowCoverModal(true) }} style={{ padding:'9px 18px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>Generate →</button>
-          </div>
-        </div>
-      )}
-
-      {pdfOnlyModal && (
-        <div onClick={() => setPdfOnlyModal(false)} style={{ position:'fixed', inset:0, background:'rgba(10,15,26,0.7)', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', backdropFilter:'blur(4px)' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'18px', maxWidth:'460px', width:'100%', padding:'30px', boxShadow:'0 25px 80px rgba(0,0,0,0.4)', fontFamily:"'DM Sans', sans-serif" }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'14px' }}>
-              <div style={{ width:'40px', height:'40px', borderRadius:'10px', background:'#fef3c7', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'20px' }}>📄</div>
-              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'22px', fontWeight:600, color:'#0a0f1a' }}>PDF Only Template</div>
-            </div>
-            <div style={{ fontSize:'14px', color:'#475569', lineHeight:1.65, marginBottom:'22px' }}>
-              <strong style={{ color:'#0a0f1a' }}>{currentTpl?.name}</strong> uses rich visual design that Word can&apos;t reproduce. Download as PDF for the full look, or switch to an ATS template:
-            </div>
-            <div style={{ fontSize:'10.5px', color:'#64748b', textTransform:'uppercase', letterSpacing:'1.5px', fontWeight:700, marginBottom:'8px' }}>ATS Templates (PDF + Word)</div>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:'6px', marginBottom:'24px' }}>
-              {TEMPLATES.filter(t => t.formats === 'both' && (isAcademicCV ? true : t.category !== 'academic')).map(t => (
-                <button key={t.id} onClick={() => { setTemplate(t.id); setPdfOnlyModal(false) }} style={{ padding:'7px 14px', borderRadius:'50px', border:'1.5px solid #e2e8f0', background:'white', cursor:'pointer', fontSize:'12px', fontWeight:600, color:'#0a0f1a', display:'flex', alignItems:'center', gap:'6px' }}>
-                  <span style={{ width:'8px', height:'8px', borderRadius:'2px', background:t.color }} />{t.name}
-                </button>
-              ))}
-            </div>
-            <div style={{ display:'flex', gap:'8px' }}>
-              <button onClick={() => setPdfOnlyModal(false)} style={{ flex:1, padding:'12px', background:'#f1f5f9', color:'#0a0f1a', border:'none', borderRadius:'10px', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>Cancel</button>
-              <button onClick={() => { setPdfOnlyModal(false); handleDownloadPdf() }} style={{ flex:1, padding:'12px', background:'#0d9488', color:'white', border:'none', borderRadius:'10px', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>↓ Download PDF</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ══════════════════════════════════════════════════════
-// SVG THUMBNAILS — one per template
-// ══════════════════════════════════════════════════════
-function DownIcon() {
-  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-}
-
-function TemplateThumb({ id }: { id: TemplateId }) {
-  const W = 50, H = 64
-  const wrap: React.CSSProperties = { width: W, height: H, borderRadius: 4, overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.12)', background: 'white', border: '1px solid #e2e8f0' }
-  const lines = (x: number, y: number, w: number, n: number, gap = 2.6, c = '#cbd5e1') =>
-    Array.from({ length: n }).map((_, i) => <rect key={i} x={x} y={y + i * gap} width={w} height="0.8" fill={c} rx="0.4" />)
-
-  // VERTEX — colour rail + two columns
-  if (id === 'vertex') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fff" />
-      <rect x="0" y="0" width="4" height={H} fill="#e0533d" />
-      <text x="9" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="6" fill="#1c1c1c">NAME</text>
-      <rect x="9" y="14" width="9" height="1.4" fill="#e0533d" />
-      <rect x="9" y="20" width="6" height="1" fill="#1c1c1c" />{lines(9, 23, 18, 4)}
-      <rect x="9" y="36" width="6" height="1" fill="#1c1c1c" />{lines(9, 39, 17, 3)}
-      <rect x="31" y="20" width="6" height="1" fill="#1c1c1c" />{lines(31, 23, 14, 5)}
-    </svg></div>
-  )
-  // SOVEREIGN — crest + centered
-  if (id === 'sovereign') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fdfcfa" />
-      <circle cx="25" cy="9" r="4" fill="none" stroke="#b08d3f" strokeWidth="0.8" />
-      <text x="25" y="11" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="3" fill="#1a2238">WB</text>
-      <text x="25" y="19" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="4.5" fill="#1a2238" letterSpacing="1">NAME</text>
-      <line x1="6" y1="23" x2="44" y2="23" stroke="#b08d3f" strokeWidth="0.6" />
-      <rect x="22" y="28" width="6" height="1" fill="#1a2238" />{lines(8, 32, 34, 3)}
-      <rect x="8" y="42" width="6" height="1" fill="#1a2238" />{lines(8, 46, 34, 3)}
-    </svg></div>
-  )
-  // MERIDIAN — teal sidebar, name in main
-  if (id === 'meridian') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fff" />
-      <rect x="0" y="0" width="17" height={H} fill="#0d9488" />
-      <rect x="3" y="6" width="6" height="1" fill="#fff" opacity="0.9" />{lines(3, 9, 10, 3, 2.4, 'rgba(255,255,255,0.6)')}
-      <rect x="3" y="20" width="6" height="1" fill="#fff" opacity="0.9" />{lines(3, 23, 11, 4, 2.4, 'rgba(255,255,255,0.6)')}
-      <text x="21" y="10" fontFamily="serif" fontWeight="700" fontSize="5" fill="#1a1a1a">NAME</text>
-      <rect x="21" y="13" width="10" height="1.2" fill="#0d9488" />{lines(21, 18, 24, 3)}
-      <rect x="21" y="29" width="6" height="1" fill="#0d9488" />{lines(21, 32, 22, 4)}
-    </svg></div>
-  )
-  // ASCEND — colour bar headings
-  if (id === 'ascend') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fff" />
-      <text x="4" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="6" fill="#1a1a1a">NAME</text>
-      <rect x="4" y="14" width="9" height="1.2" fill="#1d4ed8" />
-      <rect x="4" y="20" width="42" height="3.5" fill="#1d4ed8" />{lines(4, 26, 40, 3)}
-      <rect x="4" y="37" width="42" height="3.5" fill="#1d4ed8" />{lines(4, 43, 40, 3)}
-    </svg></div>
-  )
-  // HARBOUR — tick headings, editorial
-  if (id === 'harbour') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fff" />
-      <rect x="4" y="6" width="2" height="9" fill="#0f766e" />
-      <text x="9" y="11" fontFamily="serif" fontWeight="700" fontSize="6" fill="#1a2a2a">NAME</text>
-      <text x="9" y="15" fontFamily="serif" fontStyle="italic" fontSize="3" fill="#0f766e">title</text>
-      <line x1="4" y1="19" x2="46" y2="19" stroke="#d8e0e0" strokeWidth="0.6" />
-      <rect x="4" y="23" width="2" height="3" fill="#0f766e" /><rect x="8" y="23" width="6" height="1" fill="#1a2a2a" />{lines(4, 28, 42, 3)}
-      <rect x="4" y="40" width="2" height="3" fill="#0f766e" /><rect x="8" y="40" width="6" height="1" fill="#1a2a2a" />{lines(4, 45, 42, 3)}
-    </svg></div>
-  )
-  // PULSE — dark sidebar right, pill title
-  // ONYX — dark header band, gold
-  if (id === 'onyx') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fff" />
-      <rect x="0" y="0" width={W} height="18" fill="#15131f" />
-      <text x="4" y="9" fontFamily="serif" fontWeight="800" fontSize="5.5" fill="#fff">NAME</text>
-      <rect x="4" y="12" width="14" height="1.4" fill="#c9a86a" />
-      <rect x="4" y="24" width="6" height="1" fill="#c9a86a" />{lines(4, 27, 42, 3)}
-      <rect x="4" y="40" width="6" height="1" fill="#c9a86a" />{lines(4, 43, 42, 3)}
-    </svg></div>
-  )
-  // STERLING — gold executive, navy sidebar right
-  if (id === 'sterling') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fff" />
-      <rect x="35" y="0" width="15" height={H} fill="#1a2238" />
-      <circle cx="42.5" cy="10" r="3.5" fill="none" stroke="#c9a86a" strokeWidth="0.7" />
-      <text x="4" y="10" fontFamily="serif" fontWeight="700" fontSize="6" fill="#1a2238">NAME</text>
-      <rect x="4" y="13" width="12" height="1" fill="#c9a86a" />
-      <rect x="4" y="20" width="6" height="1" fill="#1a2238" /><rect x="4" y="22" width="9" height="0.6" fill="#c9a86a" />{lines(4, 25, 26, 4)}
-      <rect x="37" y="18" width="5" height="0.8" fill="#c9a86a" />{lines(37, 21, 10, 3, 2.4, 'rgba(255,255,255,0.6)')}
-    </svg></div>
-  )
-  // VERDE — green gradient header, cards
-  if (id === 'verde') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <defs><linearGradient id="vg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#14532d"/><stop offset="1" stopColor="#1f7a44"/></linearGradient></defs>
-      <rect width={W} height={H} fill="#fff" />
-      <rect x="0" y="0" width={W} height="16" fill="url(#vg)" />
-      <text x="4" y="9" fontFamily="serif" fontWeight="700" fontSize="5.5" fill="#fff">NAME</text>
-      <circle cx="5" cy="22" r="1.2" fill="#3f9142" /><rect x="8" y="21" width="6" height="1" fill="#14532d" />
-      <rect x="4" y="26" width="42" height="9" rx="2" fill="#f4f7f4" />{lines(7, 28, 36, 2)}
-      <circle cx="5" cy="40" r="1.2" fill="#3f9142" /><rect x="8" y="39" width="6" height="1" fill="#14532d" />
-    </svg></div>
-  )
-  // CRIMSON — magazine colour band
-  if (id === 'crimson') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fff" />
-      <rect x="0" y="0" width={W} height="3" fill="#a01e1e" />
-      <text x="4" y="13" fontFamily="serif" fontWeight="800" fontSize="6" fill="#1a1a1a">NAME</text>
-      <rect x="4" y="16" width="13" height="3" fill="#a01e1e" />
-      <rect x="4" y="24" width="6" height="1" fill="#a01e1e" /><rect x="4" y="26" width="42" height="0.6" fill="#a01e1e" />{lines(4, 29, 42, 3)}
-      <rect x="4" y="42" width="6" height="1" fill="#a01e1e" />{lines(4, 45, 42, 2)}
-    </svg></div>
-  )
-  // ATLAS — timeline date rail
-  if (id === 'atlas') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fff" />
-      <text x="4" y="10" fontFamily="serif" fontWeight="300" fontSize="6" fill="#0f172a">NA<tspan font-weight="800">ME</tspan></text>
-      <rect x="4" y="13" width="12" height="1" fill="#3b82f6" />
-      <text x="4" y="24" fontFamily="sans-serif" fontWeight="800" fontSize="3.5" fill="#0f172a">26</text>
-      <line x1="13" y1="20" x2="13" y2="34" stroke="#e2e8f0" strokeWidth="1" />
-      <circle cx="13" cy="22" r="1.3" fill="#3b82f6" />
-      <rect x="16" y="21" width="10" height="1" fill="#0f172a" />{lines(16, 24, 28, 3)}
-      <text x="4" y="40" fontFamily="sans-serif" fontWeight="800" fontSize="3.5" fill="#0f172a">20</text>
-      <line x1="13" y1="37" x2="13" y2="46" stroke="#e2e8f0" strokeWidth="1" />
-      <circle cx="13" cy="39" r="1.3" fill="#3b82f6" />
-      <rect x="16" y="38" width="10" height="1" fill="#0f172a" />{lines(16, 41, 28, 2)}
-    </svg></div>
-  )
-  // SLATE — minimal mono
-  if (id === 'slate') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fff" />
-      <text x="6" y="12" fontFamily="serif" fontWeight="300" fontSize="5" fill="#1a1a1a" letterSpacing="1.5">NAME</text>
-      <rect x="6" y="16" width="8" height="1" fill="#1a1a1a" />
-      <rect x="6" y="26" width="7" height="0.8" fill="#1a1a1a" />{lines(6, 29, 38, 3, 3)}
-      <rect x="6" y="44" width="7" height="0.8" fill="#1a1a1a" />{lines(6, 47, 38, 2, 3)}
-    </svg></div>
-  )
-  // ACADEMIC — scholarly
-  if (id === 'academic') return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fff" />
-      <text x="25" y="10" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="5" fill="#374151">NAME</text>
-      <line x1="4" y1="14" x2="46" y2="14" stroke="#374151" strokeWidth="0.6" />
-      <rect x="4" y="19" width="8" height="1" fill="#374151" />{lines(4, 22, 42, 4)}
-      <rect x="4" y="36" width="8" height="1" fill="#374151" />{lines(4, 39, 42, 3)}
-    </svg></div>
-  )
-  // CLASSIC (default) — centered minimal
-  return (
-    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
-      <rect width={W} height={H} fill="#fff" />
-      <text x="25" y="10" textAnchor="middle" fontFamily="sans-serif" fontWeight="700" fontSize="5" fill="#1f2937">NAME</text>
-      <line x1="4" y1="14" x2="46" y2="14" stroke="#1f2937" strokeWidth="0.8" />
-      <rect x="4" y="19" width="7" height="1" fill="#1f2937" />{lines(4, 22, 42, 4)}
-      <rect x="4" y="36" width="7" height="1" fill="#1f2937" />{lines(4, 39, 42, 3)}
-    </svg></div>
-  )
-}
-
-// ══════════════════════════════════════════════════════
-// SIDEBAR UI
-// ══════════════════════════════════════════════════════
-function CategoryHeader({ children }: { children: string }) {
-  return <div style={{ fontSize:'9.5px', fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'#b0bccb', marginBottom:'2px', marginTop:'18px' }}>{children}</div>
-}
-
-function TemplateCard({ tpl, active, onClick }: { tpl: typeof TEMPLATES[0]; active: boolean; onClick: () => void }) {
-  const both = tpl.formats === 'both'
-  return (
-    <div onClick={onClick} className="scv-tpl" title={tpl.tag} style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', gap:'8px', padding:'12px 8px 11px', borderRadius:'12px', background: active ? '#f6fdfb' : '#fff', boxShadow: active ? '0 0 0 1.5px #0d9488' : '0 0 0 1px #eef2f6', cursor:'pointer' }}>
-      {active && <span style={{ position:'absolute', top:'6px', right:'6px', width:'16px', height:'16px', borderRadius:'50%', background:'#0d9488', color:'#fff', fontSize:'9px', fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center' }}>✓</span>}
-      <TemplateThumb id={tpl.id} />
-      <div style={{ textAlign:'center', width:'100%' }}>
-        <div style={{ fontSize:'12px', fontWeight:600, color: active ? '#0d9488' : '#0a0f1a', lineHeight:1.2 }}>{tpl.name}</div>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:'4px', marginTop:'5px', fontSize:'7.5px', fontWeight:700, letterSpacing:'0.4px', padding:'2.5px 7px', borderRadius:'20px', background: both ? '#ecfdf5' : '#fffbeb', color: both ? '#0d9488' : '#b45309' }}>
-          <svg width="8" height="9" viewBox="0 0 12 14" fill="none"><path d="M2 1h5l3 3v9H2V1z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/><path d="M7 1v3h3" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/></svg>
-          {both ? 'PDF · WORD' : 'PDF ONLY'}
-        </div>
+  // ── ONYX: dark editorial header band, gold accents ──
+  onyx: {
+    design: 'onyx', headerBannerPad: '38px 46px 30px', font: BODY_SERIF, contentPadV: 30, pageUsable: 1047, mainPad: '30px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702,
+    buildBlocks: (cv, A) => {
+      const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: A, marginBottom: 10 }}>{t}</div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 22 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => {
+          // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
+          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: darken(A, 0.72) }}>{e.role}</span><span style={{ fontSize: 12, color: '#999', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside', marginBottom: j === e.bullets.length - 1 ? 15 : 0 }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li></ul> }))
+        })
+      }
+      if (cv.education?.length) {
+        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
+        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div><div style={{ fontSize: 14, fontWeight: 700, color: darken(A, 0.72) }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 13.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div><div style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startYear} – {e.endYear}</div></div> }))
+      }
+      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 14 }}>{head('Core Skills')}<div style={{ fontSize: 13.5, color: '#444', lineHeight: 2 }}>{dotList(cv.skills, A)}</div></div> })
+      if (cv.attributes?.length) b.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{head('Professional Attributes')}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444', marginBottom: 4 }}>{a}</li>)}</ul></div> })
+      if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{head('Languages')}<div style={{ fontSize: 13.5, color: '#444' }}>{dotList(cv.languages, A)}</div></div> })
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      extraMainBlocks(cv, (t) => head(t), false, '#444').forEach(bl => b.push(bl))
+      return b
+    },
+    Header: ({ cv, A }) => (<>
+      <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1, color: '#fff' }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 15.5, letterSpacing: 3, textTransform: 'uppercase', color: A, marginTop: 8 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.6)', marginTop: 12 }}>{contact(cv)}</div>
+    </>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+        {pageIndex === 0 && <div style={{ background: darken(A, 0.72), padding: '38px 46px 30px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}><TEMPLATES_CONFIG.onyx.Header cv={cv} A={A} /></div>}
+        <div style={{ padding: pageIndex === 0 ? '30px 46px' : '46px 46px' }}>{children}</div>
       </div>
-    </div>
-  )
-}
+    ),
+  },
 
-// ══════════════════════════════════════════════════════
-// SHARED HELPERS
-// ══════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════
-// EDITOR — with Add/Remove buttons + DOB
-// ══════════════════════════════════════════════════════
-function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<GeneratedCV>) => void }) {
+  // ── STERLING: gold executive, navy sidebar right, monogram ──
+  sterling: {
+    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42,
+    buildBlocks: (cv, A) => {
+      const DARK = darken(A, 0.74)
+      const head = (t: string) => <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: DARK, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12, display: 'inline-block' }}>{t}</div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 20 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => {
+          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: DARK }}>{e.role}</span><span style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: j === e.bullets.length - 1 ? 13 : 0, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#3a3a3a', marginBottom: 5 }}>{x}</li></ul> }))
+        })
+      }
+      // Education is rendered in the sidebar for this two-column template.
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      if (cv.attributes?.length) b.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{head('Professional Attributes')}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444', marginBottom: 4 }}>{a}</li>)}</ul></div> })
+      extraMainBlocks(cv, (t) => head(t), true, '#444').forEach(bl => b.push(bl))
+      return b
+    },
+    Header: ({ cv, A }) => (<>
+      <div style={{ fontSize: 34, fontWeight: 700, color: darken(A, 0.74), letterSpacing: 1 }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 14.5, letterSpacing: 2, textTransform: 'uppercase', color: A, margin: '6px 0 20px' }}>{cv.jobTitle}</div>}
+    </>),
+    Frame: ({ cv, A, pageIndex, children, sidebarChildren }) => {
+      const DARK = darken(A, 0.74)
+      return (
+        <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#22252b', background: `linear-gradient(90deg, #fff 0, #fff 554px, ${DARK} 554px, ${DARK} 100%)`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px' }}>
+            <div style={{ padding: pageIndex === 0 ? '42px 30px 42px 46px' : '46px 30px 42px 46px' }}>
+              {pageIndex === 0 && <TEMPLATES_CONFIG.sterling.Header cv={cv} A={A} />}
+              {children}
+            </div>
+            <div style={{ color: '#fff', padding: '42px 26px' }}>
+              {sidebarChildren}
+            </div>
+          </div>
+        </div>
+      )
+    },
+  },
 
-  function addExperience() {
-    const newExp = {
-      id: `exp_${Date.now()}`,
-      role: '',
-      company: '',
-      startDate: '',
-      endDate: '',
-      bullets: ['']
-    }
-    updateCV({ experience: [...(cv.experience || []), newExp] })
-  }
+  // ── SLATE: minimalist mono, airy whitespace ──
+  slate: {
+    design: 'slate', font: BODY_SERIF, contentPadV: 54, mainPad: '54px 60px', sidebarW: 0, sidebarSide: 'none', measureW: 674,
+    buildBlocks: (cv, A) => {
+      const head = (t: string) => <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: '#1a1a1a', marginBottom: 14 }}>{t}</div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 26 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.9, color: '#555', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => {
+          // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
+          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: '#1a1a1a' }}>{e.role}</span><span style={{ fontSize: 12, color: '#bbb', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: '#888', marginBottom: 6 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside', marginBottom: j === e.bullets.length - 1 ? 16 : 0 }}><li style={{ fontSize: 13.5, lineHeight: 1.75, color: '#555', marginBottom: 5 }}>{x}</li></ul> }))
+        })
+      }
+      if (cv.education?.length) {
+        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
+        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div><div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 13.5, color: '#888' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div><div style={{ fontSize: 12, color: '#bbb', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startYear} – {e.endYear}</div></div> }))
+      }
+      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 18 }}>{head('Skills')}<div style={{ fontSize: 13.5, color: '#555', lineHeight: 2 }}>{dotList(cv.skills, A)}</div></div> })
+      if (cv.attributes?.length) b.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{head('Professional Attributes')}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444', marginBottom: 4 }}>{a}</li>)}</ul></div> })
+      if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 18 }}>{head('Languages')}<div style={{ fontSize: 13.5, color: '#555' }}>{dotList(cv.languages, A)}</div></div> })
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.75, color: '#555' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      extraMainBlocks(cv, (t) => head(t), false, '#444').forEach(bl => b.push(bl))
+      return b
+    },
+    Header: ({ cv }) => (<>
+      <div style={{ fontSize: 30, fontWeight: 300, letterSpacing: 6, textTransform: 'uppercase', color: '#1a1a1a' }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 12.5, letterSpacing: 4, textTransform: 'uppercase', color: '#888', margin: '10px 0 4px' }}>{cv.jobTitle}</div>}
+      <div style={{ width: 36, height: 2, background: '#1a1a1a', margin: '16px 0 28px' }} />
+      <div style={{ fontSize: 12, letterSpacing: 1, color: '#999', marginBottom: 30 }}>{contact(cv)}</div>
+    </>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '54px 60px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.slate.Header cv={cv} A={A} />}
+        {children}
+      </div>
+    ),
+  },
 
-  function removeExperience(idx: number) {
-    if (!confirm('Remove this experience entry?')) return
-    updateCV({ experience: cv.experience.filter((_, i) => i !== idx) })
-  }
+  // ── VERDE: green gradient header, timeline experience, cards ──
+  verde: {
+    design: 'verde', font: BODY_SERIF, contentPadV: 36, pageUsable: 1037, headerBannerPad: '36px 50px 30px', mainPad: '36px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    buildBlocks: (cv, A) => {
+      const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: darken(A, 0.5), marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: A }} />{t}<span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${A}40, transparent)` }} /></div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 22 }}>{head('About Me')}<p style={{ fontSize: 14, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => {
+          // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
+          b.push({ key: `exp${i}-h`, node: <div style={{ background: '#f4f7f4', borderRadius: '10px 10px 0 0', padding: '16px 18px 4px' }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: darken(A, 0.5) }}>{e.role}</span><span style={{ fontSize: 12, color: '#7a8a7a', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 34, listStyleType: 'disc', listStylePosition: 'outside', background: '#f4f7f4', paddingRight: 18, paddingTop: 2, paddingBottom: j === e.bullets.length - 1 ? 14 : 2, borderRadius: j === e.bullets.length - 1 ? '0 0 10px 10px' : 0, marginBottom: j === e.bullets.length - 1 ? 12 : 0 }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li></ul> }))
+        })
+      }
+      if (cv.education?.length) {
+        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
+        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, paddingLeft: 14, borderLeft: `3px solid ${A}` }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 14, fontWeight: 700, color: darken(A, 0.5) }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 12, color: '#7a8a7a', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startYear} – {e.endYear}</div></div><div style={{ fontSize: 13.5, color: '#666' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div> }))
+      }
+      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 14 }}>{head('Skills')}<div style={{ fontSize: 13.5, color: '#444', lineHeight: 2 }}>{dotList(cv.skills, A)}</div></div> })
+      if (cv.attributes?.length) b.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{head('Professional Attributes')}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444', marginBottom: 4 }}>{a}</li>)}</ul></div> })
+      if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{head('Languages')}<div style={{ fontSize: 13.5, color: '#444' }}>{dotList(cv.languages, A)}</div></div> })
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      extraMainBlocks(cv, (t) => head(t), false, '#444').forEach(bl => b.push(bl))
+      return b
+    },
+    Header: ({ cv, A }) => (<>
+      <div style={{ fontSize: 34, fontWeight: 700, color: '#fff' }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.85)', fontWeight: 600, marginTop: 4 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.7)', marginTop: 10 }}>{contact(cv)}</div>
+    </>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+        {pageIndex === 0 && <div style={{ background: `linear-gradient(135deg, ${darken(A, 0.45)}, ${A})`, padding: '36px 50px 30px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}><TEMPLATES_CONFIG.verde.Header cv={cv} A={A} /></div>}
+        <div style={{ padding: pageIndex === 0 ? '32px 50px 40px' : '46px 50px 40px' }}>{children}</div>
+      </div>
+    ),
+  },
 
-  function addEducation() {
-    const newEd = {
-      id: `ed_${Date.now()}`,
-      qualification: '',
-      field: '',
-      institution: '',
-      grade: '',
-      startYear: '',
-      endYear: ''
-    }
-    updateCV({ education: [...(cv.education || []), newEd] })
-  }
+  // ── CRIMSON: magazine colour header band ──
+  crimson: {
+    design: 'crimson', font: BODY_SERIF, contentPadV: 40, pageUsable: 1029, headerBannerPad: '34px 50px 0px', mainPad: '40px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    buildBlocks: (cv, A) => {
+      const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: A, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12 }}>{t}</div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 22 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.8, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => {
+          // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
+          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: '#1a1a1a' }}>{e.role}</span><span style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600, marginBottom: 6 }}>{e.company}</div></div> })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside', marginBottom: j === e.bullets.length - 1 ? 15 : 0 }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444', marginBottom: 4 }}>{x}</li></ul> }))
+        })
+      }
+      if (cv.education?.length) {
+        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
+        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div><div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 13.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div><div style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startYear} – {e.endYear}</div></div> }))
+      }
+      // Crimson-only pagination refinement: split dense sections into measurable
+      // chunks so they can use remaining page space without moving wholesale.
+      if (cv.skills?.length) {
+        b.push({ key: 'skills-h', node: <div style={{ marginBottom: 4 }}>{head('Core Skills')}</div> })
+        for (let i = 0; i < cv.skills.length; i += 5) {
+          const chunk = cv.skills.slice(i, i + 5)
+          b.push({ key: `skills-${i / 5}`, node: <div style={{ fontSize: 13.5, color: '#444', lineHeight: 2, marginBottom: i + 5 >= cv.skills.length ? 14 : 0 }}>{dotList(chunk, A)}</div> })
+        }
+      }
+      if (cv.attributes?.length) {
+        const attributes = cv.attributes
+        b.push({ key: 'attributes-h', node: <div style={{ marginBottom: 4 }}>{head('Professional Attributes')}</div> })
+        attributes.forEach((a, i) => b.push({ key: `attributes-${i}`, node: <ul style={{ margin: 0, paddingLeft: 18, marginBottom: i === attributes.length - 1 ? 14 : 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444' }}>{a}</li></ul> }))
+      }
+      if (cv.languages?.length) {
+        b.push({ key: 'langs-h', node: <div style={{ marginBottom: 4 }}>{head('Languages')}</div> })
+        b.push({ key: 'langs-0', node: <div style={{ fontSize: 13.5, color: '#444', marginBottom: 14 }}>{dotList(cv.languages, A)}</div> })
+      }
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      extraMainBlocks(cv, (t) => head(t), false, '#444').forEach(bl => b.push(bl))
+      return b
+    },
+    Header: ({ cv, A }) => (<>
+      <div style={{ fontSize: 38, fontWeight: 800, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: 1 }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ display: 'inline-block', background: A, color: '#fff', fontSize: 12.5, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', padding: '4px 14px', margin: '10px 0 6px' }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 12.5, color: '#888', marginBottom: 4 }}>{contact(cv)}</div>
+    </>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', borderTop: `8px solid ${A}`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+        {pageIndex === 0 && <div style={{ padding: '34px 50px 0' }}><TEMPLATES_CONFIG.crimson.Header cv={cv} A={A} /></div>}
+        <div style={{ padding: pageIndex === 0 ? '22px 50px 40px' : '46px 50px 40px' }}>{children}</div>
+      </div>
+    ),
+  },
 
-  function removeEducation(idx: number) {
-    if (!confirm('Remove this education entry?')) return
-    updateCV({ education: cv.education.filter((_, i) => i !== idx) })
-  }
 
-  return (
-    <div style={{ maxWidth: '720px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <Sec title="Personal Details">
-        <Grid>
-          <Inp label="Full Name" value={cv.fullName} onChange={v => updateCV({ fullName: v })} />
-          {cv.coverLetterBody && <Inp label="Job Title" value={cv.jobTitle} onChange={v => updateCV({ jobTitle: v })} />}
-          <Inp label="Email" value={cv.email} onChange={v => updateCV({ email: v })} />
-          <Inp label="Phone" value={cv.phone} onChange={v => updateCV({ phone: v })} />
-          <Inp label="Location" value={cv.location} onChange={v => updateCV({ location: v })} />
-          <Inp label="LinkedIn" value={cv.linkedin || ''} onChange={v => updateCV({ linkedin: v })} />
-          <Inp label="Date of Birth (optional)" value={cv.dob || ''} onChange={v => updateCV({ dob: v })} />
-        </Grid>
-      </Sec>
-
-      {(cv.summary !== undefined || cv.coverLetterBody) && (
-        <Sec title={cv.coverLetterBody ? 'Cover Letter' : 'Summary'}>
-          <TA value={cv.coverLetterBody || cv.summary} rows={cv.coverLetterBody ? 12 : 5}
-            onChange={v => cv.coverLetterBody ? updateCV({ coverLetterBody: v }) : updateCV({ summary: v })} />
-        </Sec>
-      )}
-
-      {!cv.coverLetterBody && (
-        <Sec title="Experience" action={<AddBtn onClick={addExperience}>+ Add Experience</AddBtn>}>
-          {cv.experience?.length === 0 || !cv.experience ? (
-            <div style={{ fontSize:'13px', color:'#94a3b8', fontStyle:'italic', padding:'8px 0' }}>No experience yet. Click + to add one.</div>
-          ) : cv.experience.map((exp, idx) => (
-            <div key={exp.id} style={{ background: '#f8fafc', borderRadius: '10px', padding: '14px', marginBottom: '10px', position:'relative' }}>
-              <RemoveBtn onClick={() => removeExperience(idx)} />
-              <Grid>
-                <Inp label="Role" value={exp.role} onChange={v => { const ne=[...cv.experience]; ne[idx]={...exp,role:v}; updateCV({experience:ne}) }} />
-                <Inp label="Company" value={exp.company} onChange={v => { const ne=[...cv.experience]; ne[idx]={...exp,company:v}; updateCV({experience:ne}) }} />
-                <Inp label="Start" value={exp.startDate} onChange={v => { const ne=[...cv.experience]; ne[idx]={...exp,startDate:v}; updateCV({experience:ne}) }} />
-                <Inp label="End" value={exp.endDate} onChange={v => { const ne=[...cv.experience]; ne[idx]={...exp,endDate:v}; updateCV({experience:ne}) }} />
-              </Grid>
-              <div style={{ marginTop: '10px' }}>
-                <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Bullets (one per line)</label>
-                <TA value={exp.bullets.join('\n')} rows={5}
-                  onChange={v => { const ne=[...cv.experience]; ne[idx]={...exp,bullets:v.split('\n').filter(Boolean)}; updateCV({experience:ne}) }} />
+  // ── ATLAS: numbered-free date rail timeline, architectural ──
+  atlas: {
+    design: 'atlas', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    buildBlocks: (cv, A) => {
+      const head = (t: string) => <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#0f172a', marginBottom: 16 }}>{t}</div>
+      const b: Block[] = []
+      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 26 }}><p style={{ fontSize: 14, lineHeight: 1.8, color: '#475569', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+      if (cv.experience?.length) {
+        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
+        cv.experience.forEach((e, i) => {
+          // split with a CONTINUOUS timeline rail: header carries the date + dot;
+          // each bullet block repeats the grid + left border so the rail runs on unbroken.
+          b.push({ key: `exp${i}-h`, node: (
+            <div style={{ display: 'grid', gridTemplateColumns: '54px 1fr', gap: 16 }}>
+              <div style={{ textAlign: 'right', paddingTop: 2 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 800, color: '#0f172a' }}>{e.endDate}</div>
+                <div style={{ fontSize: 11.5, color: '#94a3b8' }}>{e.startDate}</div>
+              </div>
+              <div style={{ borderLeft: `2px solid #e2e8f0`, paddingLeft: 16, position: 'relative', paddingBottom: 4 }}>
+                <div style={{ position: 'absolute', left: -5, top: 4, width: 8, height: 8, borderRadius: '50%', background: A }} />
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>{e.role}</div>
+                <div style={{ fontSize: 13.5, color: A, fontWeight: 700 }}>{e.company}</div>
               </div>
             </div>
-          ))}
-        </Sec>
-      )}
-
-      {!cv.coverLetterBody && (
-        <Sec title="Education" action={<AddBtn onClick={addEducation}>+ Add Education</AddBtn>}>
-          {cv.education?.length === 0 || !cv.education ? (
-            <div style={{ fontSize:'13px', color:'#94a3b8', fontStyle:'italic', padding:'8px 0' }}>No education yet. Click + to add one.</div>
-          ) : cv.education.map((ed, idx) => (
-            <div key={ed.id} style={{ background: '#f8fafc', borderRadius: '10px', padding: '14px', marginBottom: '10px', position:'relative' }}>
-              <RemoveBtn onClick={() => removeEducation(idx)} />
-              <Grid>
-                <Inp label="Qualification" value={ed.qualification} onChange={v => { const ne=[...cv.education]; ne[idx]={...ed,qualification:v}; updateCV({education:ne}) }} />
-                <Inp label="Field" value={ed.field} onChange={v => { const ne=[...cv.education]; ne[idx]={...ed,field:v}; updateCV({education:ne}) }} />
-                <Inp label="Institution" value={ed.institution} onChange={v => { const ne=[...cv.education]; ne[idx]={...ed,institution:v}; updateCV({education:ne}) }} />
-                <Inp label="Grade" value={ed.grade || ''} onChange={v => { const ne=[...cv.education]; ne[idx]={...ed,grade:v}; updateCV({education:ne}) }} />
-                <Inp label="Start Year" value={ed.startYear} onChange={v => { const ne=[...cv.education]; ne[idx]={...ed,startYear:v}; updateCV({education:ne}) }} />
-                <Inp label="End Year" value={ed.endYear} onChange={v => { const ne=[...cv.education]; ne[idx]={...ed,endYear:v}; updateCV({education:ne}) }} />
-              </Grid>
+          ) })
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: (
+            <div style={{ display: 'grid', gridTemplateColumns: '54px 1fr', gap: 16, marginBottom: j === e.bullets.length - 1 ? 18 : 0 }}>
+              <div />
+              <div style={{ borderLeft: `2px solid #e2e8f0`, paddingLeft: 16, paddingBottom: j === e.bullets.length - 1 ? 4 : 0 }}>
+                <ul style={{ margin: 0, paddingLeft: 16, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#475569', marginBottom: 4 }}>{x}</li></ul>
+              </div>
             </div>
-          ))}
-        </Sec>
-      )}
-
-      {cv.skills && (
-        <Sec title="Skills">
-          <TA value={cv.skills.join(', ')} rows={3}
-            onChange={v => updateCV({ skills: v.split(',').map(s=>s.trim()).filter(Boolean) })} />
-          <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'6px' }}>Separate skills with commas</div>
-        </Sec>
-      )}
-
-      {cv.languages !== undefined && (
-        <Sec title="Languages">
-          <TA value={(cv.languages || []).join(', ')} rows={2}
-            onChange={v => updateCV({ languages: v.split(',').map(s=>s.trim()).filter(Boolean) })} />
-          <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'6px' }}>Separate languages with commas</div>
-        </Sec>
-      )}
-
-      <Sec title="Extra Sections (optional)">
-        <TA value={extraSectionsToText(cv)} rows={5}
-          onChange={v => updateCV({ extraSections: textToExtraSections(v), additionalInfo: undefined } as any)} />
-        <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'6px' }}>One section per line as "Heading: item; item; item" — e.g. "Certifications: PMP; Google PM" or "References: Available on request"</div>
-      </Sec>
-    </div>
-  )
-}
-
-function Sec({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div style={{ background:'white', border:'1px solid #e2e8f0', borderRadius:'14px', padding:'20px' }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px' }}>
-        <div style={{ fontSize:'12px', fontWeight:600, letterSpacing:'1.5px', textTransform:'uppercase', color:'#0d9488' }}>{title}</div>
-        {action}
+          ) }))
+        })
+      }
+      if (cv.education?.length) {
+        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
+        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: (
+          <div style={{ display: 'grid', gridTemplateColumns: '54px 1fr', gap: 16, marginBottom: 12 }}>
+            <div style={{ textAlign: 'right', paddingTop: 2 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 800, color: '#0f172a' }}>{e.endYear}</div>
+              <div style={{ fontSize: 11.5, color: '#94a3b8' }}>{e.startYear}</div>
+            </div>
+            <div style={{ borderLeft: `2px solid #e2e8f0`, paddingLeft: 16, position: 'relative' }}>
+              <div style={{ position: 'absolute', left: -5, top: 4, width: 8, height: 8, borderRadius: '50%', background: A }} />
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{e.qualification} in {e.field}</div>
+              <div style={{ fontSize: 13.5, color: '#64748b' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div>
+            </div>
+          </div>
+        ) }))
+      }
+      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 16 }}>{head('Skills')}<div style={{ fontSize: 13.5, color: '#475569', lineHeight: 2, paddingLeft: 70 }}>{dotList(cv.skills, A)}</div></div> })
+      if (cv.attributes?.length) b.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{head('Professional Attributes')}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444', marginBottom: 4 }}>{a}</li>)}</ul></div> })
+      if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 16 }}>{head('Languages')}<div style={{ fontSize: 13.5, color: '#475569', paddingLeft: 70 }}>{dotList(cv.languages, A)}</div></div> })
+      const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 86, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#475569' }}>{x}</li></ul> })) } }
+      ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
+      extraMainBlocks(cv, (t) => head(t), false, '#444').forEach(bl => b.push(bl))
+      return b
+    },
+    Header: ({ cv, A }) => {
+      const first = cv.fullName.split(' ')[0], last = cv.fullName.split(' ').slice(1).join(' ')
+      return (<>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+          <div style={{ fontSize: 40, fontWeight: 300, color: '#0f172a', letterSpacing: 1 }}>{first} <strong style={{ fontWeight: 800 }}>{last}</strong></div>
+          <div style={{ textAlign: 'right', fontSize: 11.5, color: '#94a3b8', lineHeight: 1.6, marginTop: 6 }}>{[cv.phone, cv.email, cv.location, cv.linkedin].filter(Boolean).map((x, i) => <div key={i}>{x}</div>)}</div>
+        </div>
+        {cv.jobTitle && <div style={{ fontSize: 14.5, letterSpacing: 3, textTransform: 'uppercase', color: A, marginBottom: 24 }}>{cv.jobTitle}</div>}
+      </>)
+    },
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '46px 50px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.atlas.Header cv={cv} A={A} />}
+        {children}
       </div>
-      {children}
+    ),
+  },
+  // ── VERTEX: colour rail + two inner columns (paginate the whole body) ──
+  vertex: {
+    design: 'vertex', font: BODY_SERIF, contentPadV: 46, mainPad: '46px', sidebarW: 0, sidebarSide: 'none', measureW: 664, packTolerance: 0, packBottomSafety: 32,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'dash', { skillsInline: true }),
+    Header: ({ cv, A }) => {
+      const first = cv.fullName.split(' ')[0], rest = cv.fullName.split(' ').slice(1).join(' ')
+      return (<>
+        <div style={{ marginBottom: 6 }}><span style={{ fontSize: 42, fontWeight: 800, letterSpacing: -1, lineHeight: 0.95, color: '#1c1c1c', textTransform: 'uppercase' }}>{first} </span><span style={{ fontSize: 42, fontWeight: 300, letterSpacing: -1, color: '#1c1c1c', textTransform: 'uppercase' }}>{rest}</span></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}><div style={{ width: 40, height: 3, background: A }} /><span style={{ fontSize: 15.5, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: A }}>{cv.jobTitle}</span></div>
+        <div style={{ fontSize: 13.5, color: '#777', marginBottom: 30 }}>{contact(cv)}</div>
+      </>)
+    },
+    Frame: ({ cv, A, pageIndex, children }) => {
+      const first = cv.fullName.split(' ')[0], rest = cv.fullName.split(' ').slice(1).join(' ')
+      return (
+        <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', display: 'grid', gridTemplateColumns: '38px 1fr', background: `linear-gradient(90deg, ${A} 0, ${A} 38px, #fff 38px, #fff 100%)`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+          <div />
+          <div style={{ padding: '46px' }}>
+            {pageIndex === 0 && <TEMPLATES_CONFIG.vertex.Header cv={cv} A={A} />}
+            {children}
+          </div>
+        </div>
+      )
+    },
+  },
+
+  // ── SOVEREIGN: centered crest, single column body ──
+  sovereign: {
+    design: 'sovereign', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 54px', sidebarW: 0, sidebarSide: 'none', measureW: 686, packTolerance: 0, packBottomSafety: 32,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'plain', { skillsInline: true }),
+    Header: ({ cv, A }) => {
+      const DARK = '#1a2238'
+      return (<>
+        <div style={{ textAlign: 'center', paddingBottom: 22, borderBottom: `2px solid ${A}`, marginBottom: 8 }}>
+          <div style={{ width: 60, height: 60, margin: '0 auto 14px', border: `2px solid ${A}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: 22, fontWeight: 700, color: DARK, letterSpacing: 1 }}>{initials(cv.fullName)}</span></div>
+          <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase', color: DARK, lineHeight: 1 }}>{cv.fullName}</div>
+          {cv.jobTitle && <div style={{ fontSize: 14.5, letterSpacing: 5, textTransform: 'uppercase', color: A, marginTop: 10, fontWeight: 600 }}>{cv.jobTitle}</div>}
+        </div>
+        <div style={{ textAlign: 'center', fontSize: 12, letterSpacing: 1, color: '#888', marginBottom: 28, fontFamily: BODY_SANS }}>{contact(cv)}</div>
+      </>)
+    },
+    Frame: ({ cv, A, pageIndex, children }) => {
+      const DARK = '#1a2238'
+      return (
+        <div style={{ ...pageBase, background: '#fdfcfa', fontFamily: BODY_SERIF, color: '#22252b', padding: '46px 54px' }}>
+          {pageIndex === 0 && <TEMPLATES_CONFIG.sovereign.Header cv={cv} A={A} />}
+          {children}
+        </div>
+      )
+    },
+  },
+
+  // ── ASCEND: single column, colour-bar headings ──
+  ascend: {
+    design: 'ascend', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 34,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'bar', { skillsInline: true }),
+    Header: ({ cv, A }) => (<>
+      <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 0.5, color: '#1a1a1a', textTransform: 'uppercase', marginBottom: 6 }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 16, color: A, fontWeight: 700, marginBottom: 8 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 13.5, color: '#777', marginBottom: 24 }}>{contact(cv).replace(/•/g, '|')}</div>
+    </>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '44px 46px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.ascend.Header cv={cv} A={A} />}
+        {children}
+      </div>
+    ),
+  },
+
+  // ── HARBOUR: single column, tick headings, editorial ──
+  harbour: {
+    design: 'harbour', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694, packTolerance: 0, packBottomSafety: 32,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'tick', { skillsInline: true }),
+    Header: ({ cv, A }) => (<>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 8 }}>
+        <div style={{ width: 5, alignSelf: 'stretch', background: A, minHeight: 56 }} />
+        <div><div style={{ fontSize: 38, fontWeight: 700, color: '#1a2a2a', lineHeight: 1 }}>{cv.fullName}</div>{cv.jobTitle && <div style={{ fontSize: 17, color: A, fontStyle: 'italic', marginTop: 6 }}>{cv.jobTitle}</div>}</div>
+      </div>
+      <div style={{ fontSize: 13.5, color: '#778080', marginBottom: 18 }}>{contact(cv).replace(/•/g, '   ')}</div>
+      <div style={{ borderBottom: '1px solid #d8e0e0', marginBottom: 22 }} />
+    </>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a2a2a', padding: '46px 50px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.harbour.Header cv={cv} A={A} />}
+        {children}
+      </div>
+    ),
+  },
+
+  // ── CLASSIC: ATS single column ──
+  classic: {
+    design: 'classic', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 48px', sidebarW: 0, sidebarSide: 'none', measureW: 698, packTolerance: 0, packBottomSafety: 32,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'rule', { skillsInline: true }),
+    Header: ({ cv }) => (<div style={{ textAlign: 'center', marginBottom: 22 }}>
+      <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 15, color: '#555', marginBottom: 8 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 12.5, color: '#666' }}>{contact(cv)}</div>
+    </div>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '44px 48px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.classic.Header cv={cv} A={A} />}
+        {children}
+      </div>
+    ),
+  },
+}
+
+// ── Cover letter (flows naturally, no columns) ──
+function CoverLetter({ cv, A, font }: { cv: GeneratedCV; A: string; font: string }) {
+  return (
+    <div style={{ ...pageBase, fontFamily: font, color: '#1a1a1a', padding: '52px 56px' }}>
+      <div style={{ borderBottom: `2px solid ${A}`, paddingBottom: 18, marginBottom: 28 }}>
+        <div style={{ fontSize: 28, fontWeight: 700, color: A, marginBottom: 4 }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ fontSize: 14.5, color: '#666', fontStyle: 'italic', marginBottom: 8 }}>{cv.jobTitle}</div>}
+        <div style={{ fontSize: 12.5, color: '#666', fontFamily: BODY_SANS }}>{contact(cv)}</div>
+      </div>
+      {(cv.coverLetterBody || '').split('\n\n').map((p, i) => <p key={i} style={{ fontSize: 14.5, lineHeight: 1.9, color: '#222', marginBottom: 16, textAlign: 'justify' }}>{p}</p>)}
     </div>
   )
-}
-function AddBtn({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
-  return <button onClick={onClick} style={{ padding:'6px 12px', background:'#f0fdf9', color:'#0d9488', border:'1px solid #5eead4', borderRadius:'8px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>{children}</button>
-}
-function RemoveBtn({ onClick }: { onClick: () => void }) {
-  return <button onClick={onClick} style={{ position:'absolute', top:'10px', right:'10px', width:'24px', height:'24px', borderRadius:'50%', background:'#fee2e2', color:'#dc2626', border:'none', cursor:'pointer', fontSize:'14px', fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }} title="Remove">×</button>
-}
-function Grid({ children }: { children: React.ReactNode }) {
-  return <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:'12px' }}>{children}</div>
-}
-function Inp({ label, value, onChange }: { label:string; value:string; onChange:(v:string)=>void }) {
-  return <div style={{ display:'flex', flexDirection:'column', gap:'4px' }}><label style={{ fontSize:'11px', color:'#64748b', fontWeight:500 }}>{label}</label><input value={value} onChange={e=>onChange(e.target.value)} style={{ padding:'10px 12px', border:'1.5px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', fontFamily:"'DM Sans',sans-serif", outline:'none' }} /></div>
-}
-function TA({ value, onChange, rows=4 }: { value:string; onChange:(v:string)=>void; rows?:number }) {
-  return <textarea value={value} onChange={e=>onChange(e.target.value)} rows={rows} style={{ width:'100%', padding:'12px 14px', border:'1.5px solid #e2e8f0', borderRadius:'8px', fontSize:'13px', fontFamily:"'DM Sans',sans-serif", resize:'vertical', lineHeight:1.5, outline:'none' }} />
 }
