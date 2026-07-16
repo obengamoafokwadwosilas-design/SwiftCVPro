@@ -330,60 +330,144 @@ function sectionHeading(text: string, A: string, style: 'rule' | 'bar' | 'tick' 
   return <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: A, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 10 }}>{text}</div>
 }
 
-// Generic experience/education/skills block builders (used by most templates)
+// Pagination-safe body builder used by the curated template library.
+// Every item that may wrap is its own measurable block. This prevents a page
+// boundary from cutting through a bullet, skill row, qualification or reference.
+function summaryChunks(text: string, maxChars = 320): string[] {
+  const cleaned = String(text || '').replace(/\s+/g, ' ').trim()
+  if (!cleaned) return []
+  const sentences = cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g)?.map(s => s.trim()).filter(Boolean) || [cleaned]
+  const chunks: string[] = []
+  let current = ''
+  sentences.forEach(sentence => {
+    const candidate = current ? `${current} ${sentence}` : sentence
+    if (current && candidate.length > maxChars) {
+      chunks.push(current)
+      current = sentence
+    } else {
+      current = candidate
+    }
+  })
+  if (current) chunks.push(current)
+  return chunks
+}
+
+function safeBullet(text: string, color = '#333') {
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13.5, lineHeight: 1.68, color, marginBottom: 5, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+      <span aria-hidden="true" style={{ flex: '0 0 auto', lineHeight: 1.68 }}>•</span>
+      <span style={{ flex: 1, minWidth: 0 }}>{text}</span>
+    </div>
+  )
+}
+
 function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skillsInline?: boolean }): Block[] {
   const blocks: Block[] = []
-  if (cv.summary) blocks.push({ key: 'summary', node: <div style={{ marginBottom: 18 }}>{sectionHeading('Profile', A, headStyle)}<p style={{ fontSize: 14, lineHeight: 1.8, color: '#333', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
+
+  if (cv.summary) {
+    blocks.push({ key: 'summary-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Profile', A, headStyle)}</div> })
+    const chunks = summaryChunks(cv.summary)
+    chunks.forEach((chunk, i) => blocks.push({
+      key: `summary-${i}`,
+      node: <div style={{ fontSize: 14, lineHeight: 1.78, color: '#333', textAlign: 'justify', marginBottom: i === chunks.length - 1 ? 18 : 6, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{chunk}</div>
+    }))
+  }
+
   if (cv.experience?.length) {
-    // heading is its own block, each experience its own block (so they can split across pages)
     blocks.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Professional Experience', A, headStyle)}</div> })
     cv.experience.forEach((e, i) => {
-      // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
+      const dates = [e.startDate, e.endDate].filter(Boolean).join(' – ')
       blocks.push({
-        key: `exp${i}-h`, node: (
-          <div style={{ marginBottom: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 14.5, fontWeight: 700 }}>{e.role}</div><div style={{ fontSize: 12.5, color: '#888', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</div></div>
-            <div style={{ fontSize: 13.5, color: A, fontWeight: 600, fontStyle: 'italic' }}>{e.company}</div>
+        key: `exp${i}-h`,
+        node: (
+          <div style={{ marginBottom: 6, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 700, minWidth: 0 }}>{e.role}</div>
+              {dates && <div style={{ fontSize: 12.5, color: '#777', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{dates}</div>}
+            </div>
+            {e.company && <div style={{ fontSize: 13.5, color: A, fontWeight: 600, fontStyle: 'italic' }}>{e.company}</div>}
           </div>
         )
       })
-      e.bullets.forEach((x, j) => blocks.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 18, marginBottom: j === e.bullets.length - 1 ? 14 : 0, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#333', marginBottom: 4 }}>{x}</li></ul> }))
+      ;(e.bullets || []).forEach((x, j) => blocks.push({
+        key: `exp${i}-b${j}`,
+        node: <div style={{ marginBottom: j === e.bullets.length - 1 ? 12 : 0 }}>{safeBullet(x)}</div>
+      }))
     })
   }
+
   if (cv.education?.length) {
     blocks.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Education', A, headStyle)}</div> })
-    cv.education.forEach((e, i) => blocks.push({
-      key: `edu-${i}`, node: (
-        <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
-          <div><div style={{ fontSize: 14, fontWeight: 700 }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 13.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div>
-          <div style={{ fontSize: 12.5, color: '#888', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startYear} – {e.endYear}</div>
-        </div>
-      )
-    }))
+    cv.education.forEach((e, i) => {
+      const dates = [e.startYear, e.endYear].filter(Boolean).join(' – ')
+      const qualification = `${e.qualification || ''}${e.field ? ` in ${e.field}` : ''}`.trim()
+      blocks.push({
+        key: `edu-${i}`,
+        node: (
+          <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700 }}>{qualification}</div>
+              <div style={{ fontSize: 13.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div>
+            </div>
+            {dates && <div style={{ fontSize: 12.5, color: '#777', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{dates}</div>}
+          </div>
+        )
+      })
+    })
   }
-  // academic extras
-  const extra = (title: string, items?: string[]) => { if (items?.length) { blocks.push({ key: `${title}-h`, node: <div style={{ marginBottom: 4 }}>{sectionHeading(title, A, headStyle)}</div> }); items.forEach((x, i) => blocks.push({ key: `${title}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 18, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
-  extra('Publications', cv.publications); extra('Research', cv.research); extra('Teaching Experience', cv.teaching)
-  // skills + languages (single-column templates show inline here; sidebar templates put them in sidebar)
+
+  const addNamedList = (title: string, items?: string[]) => {
+    if (!items?.length) return
+    blocks.push({ key: `${title}-h`, node: <div style={{ marginBottom: 4 }}>{sectionHeading(title, A, headStyle)}</div> })
+    items.forEach((x, i) => blocks.push({ key: `${title}-${i}`, node: <div style={{ marginBottom: i === items.length - 1 ? 12 : 0 }}>{safeBullet(x, '#444')}</div> }))
+  }
+  addNamedList('Publications', cv.publications)
+  addNamedList('Research', cv.research)
+  addNamedList('Teaching Experience', cv.teaching)
+
   if (opts?.skillsInline) {
     if (cv.skills?.length) {
       blocks.push({ key: 'skills-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Core Skills', A, headStyle)}</div> })
-      for (let i = 0; i < cv.skills.length; i += 5) {
-        const chunk = cv.skills.slice(i, i + 5)
-        blocks.push({ key: `skills-${i / 5}`, node: <div style={{ fontSize: 13.5, color: '#333', lineHeight: 2, marginBottom: i + 5 >= cv.skills.length ? 14 : 0 }}>{dotList(chunk, A)}</div> })
+      for (let i = 0; i < cv.skills.length; i += 3) {
+        const chunk = cv.skills.slice(i, i + 3)
+        blocks.push({
+          key: `skills-${i / 3}`,
+          node: <div style={{ fontSize: 13.5, color: '#333', lineHeight: 1.85, marginBottom: i + 3 >= cv.skills.length ? 13 : 2, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{dotList(chunk, A)}</div>
+        })
       }
     }
+
     if (cv.attributes?.length) {
-      const attributes = cv.attributes
       blocks.push({ key: 'attributes-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Professional Attributes', A, headStyle)}</div> })
-      attributes.forEach((a, i) => blocks.push({ key: `attributes-${i}`, node: <ul style={{ margin: 0, paddingLeft: 18, marginBottom: i === attributes.length - 1 ? 14 : 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.55, color: '#333' }}>{a}</li></ul> }))
+      cv.attributes.forEach((a, i) => blocks.push({
+        key: `attributes-${i}`,
+        node: <div style={{ marginBottom: i === cv.attributes!.length - 1 ? 12 : 0 }}>{safeBullet(a)}</div>
+      }))
     }
+
     if (cv.languages?.length) {
       blocks.push({ key: 'langs-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Languages', A, headStyle)}</div> })
-      blocks.push({ key: 'langs-0', node: <div style={{ fontSize: 13.5, color: '#333', marginBottom: 14 }}>{dotList(cv.languages, A)}</div> })
+      for (let i = 0; i < cv.languages.length; i += 4) {
+        const chunk = cv.languages.slice(i, i + 4)
+        blocks.push({
+          key: `langs-${i / 4}`,
+          node: <div style={{ fontSize: 13.5, color: '#333', lineHeight: 1.75, marginBottom: i + 4 >= cv.languages.length ? 13 : 2, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{dotList(chunk, A)}</div>
+        })
+      }
     }
   }
-  if (getSections(cv).length) extraMainBlocks(cv, (t) => sectionHeading(t, A, headStyle), false, '#333').forEach(bl => blocks.push(bl))
+
+  getSections(cv).forEach((sec, i) => {
+    if (!sec?.items?.length) return
+    blocks.push({ key: `extra-${i}-h`, node: <div style={{ marginBottom: 4 }}>{sectionHeading(sec.heading, A, headStyle)}</div> })
+    sec.items.forEach((item, j) => blocks.push({
+      key: `extra-${i}-${j}`,
+      node: isRefsHead(sec.heading)
+        ? <div style={{ fontSize: 13.5, lineHeight: 1.55, color: '#333', marginBottom: j === sec.items.length - 1 ? 12 : 4, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{item}</div>
+        : <div style={{ marginBottom: j === sec.items.length - 1 ? 12 : 0 }}>{safeBullet(item)}</div>
+    }))
+  })
+
   return blocks
 }
 
@@ -1000,7 +1084,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   },
   // ── VERTEX: colour rail + two inner columns (paginate the whole body) ──
   vertex: {
-    design: 'vertex', font: BODY_SERIF, contentPadV: 46, mainPad: '46px', sidebarW: 0, sidebarSide: 'none', measureW: 664,
+    design: 'vertex', font: BODY_SERIF, contentPadV: 46, mainPad: '46px', sidebarW: 0, sidebarSide: 'none', measureW: 664, packTolerance: 0, packBottomSafety: 32,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'dash', { skillsInline: true }),
     Header: ({ cv, A }) => {
       const first = cv.fullName.split(' ')[0], rest = cv.fullName.split(' ').slice(1).join(' ')
@@ -1026,42 +1110,8 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── SOVEREIGN: centered crest, single column body ──
   sovereign: {
-    design: 'sovereign', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 54px', sidebarW: 0, sidebarSide: 'none', measureW: 686,
-    buildBlocks: (cv, A) => {
-      const DARK = '#1a2238'
-      const head = (t: string) => <div style={{ marginBottom: 14 }}><span style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: DARK, borderBottom: `1px solid ${A}`, paddingBottom: 4 }}>{t}</span></div>
-      const b: Block[] = []
-      if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 24 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.85, color: '#444', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
-      if (cv.experience?.length) {
-        b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
-        cv.experience.forEach((e, i) => {
-          // split: header (-h, orphan-protected) + per-bullet blocks → roles FLOW across pages
-          b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><span style={{ fontSize: 15.5, fontWeight: 700, color: DARK }}>{e.role}</span><span style={{ fontSize: 12, color: A, fontStyle: 'italic', fontFamily: BODY_SANS }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontStyle: 'italic', marginBottom: 7 }}>{e.company}</div></div> })
-          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside', marginBottom: j === e.bullets.length - 1 ? 16 : 0 }}><li style={{ fontSize: 13.5, lineHeight: 1.75, color: '#444', marginBottom: 5, fontFamily: BODY_SANS }}>{x}</li></ul> }))
-        })
-      }
-      if (cv.education?.length) {
-        b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
-        cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div><div style={{ fontSize: 14, fontWeight: 700, color: DARK }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 13.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div><div style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap', fontFamily: BODY_SANS }}>{e.startYear} – {e.endYear}</div></div> }))
-      }
-      if (cv.skills?.length) {
-        b.push({ key: 'skills-h', node: <div style={{ marginBottom: 4 }}>{head('Expertise')}</div> })
-        for (let i = 0; i < cv.skills.length; i += 5) {
-          const chunk = cv.skills.slice(i, i + 5)
-          b.push({ key: `skills-${i / 5}`, node: <div style={{ fontSize: 13.5, lineHeight: 1.95, color: '#444', fontFamily: BODY_SANS, marginBottom: i + 5 >= cv.skills.length ? (cv.languages?.length ? 0 : 20) : 0 }}>{dotList(chunk, A)}</div> })
-        }
-      }
-      // FIX: Languages now gets its own heading block ('langs-h'), same pattern as
-      // every other section, instead of being appended with no heading — which
-      // previously made it visually read as the tail end of the Expertise list.
-      if (cv.languages?.length) {
-        b.push({ key: 'langs-h', node: <div style={{ marginBottom: 4 }}>{head('Languages')}</div> })
-        b.push({ key: 'langs-0', node: <div style={{ fontSize: 12.5, color: '#666', marginBottom: 20, fontFamily: BODY_SANS }}>{dotList(cv.languages, A)}</div> })
-      }
-      if (cv.attributes?.length) b.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{head('Professional Attributes')}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444', marginBottom: 4 }}>{a}</li>)}</ul></div> })
-      extraMainBlocks(cv, (t) => head(t), false, '#444').forEach(bl => b.push(bl))
-      return b
-    },
+    design: 'sovereign', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 54px', sidebarW: 0, sidebarSide: 'none', measureW: 686, packTolerance: 0, packBottomSafety: 32,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'plain', { skillsInline: true }),
     Header: ({ cv, A }) => {
       const DARK = '#1a2238'
       return (<>
@@ -1086,7 +1136,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── ASCEND: single column, colour-bar headings ──
   ascend: {
-    design: 'ascend', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 4, packBottomSafety: 28,
+    design: 'ascend', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 34,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'bar', { skillsInline: true }),
     Header: ({ cv, A }) => (<>
       <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 0.5, color: '#1a1a1a', textTransform: 'uppercase', marginBottom: 6 }}>{cv.fullName}</div>
@@ -1103,7 +1153,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── HARBOUR: single column, tick headings, editorial ──
   harbour: {
-    design: 'harbour', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    design: 'harbour', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694, packTolerance: 0, packBottomSafety: 32,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'tick', { skillsInline: true }),
     Header: ({ cv, A }) => (<>
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 8 }}>
@@ -1123,7 +1173,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── CLASSIC: ATS single column ──
   classic: {
-    design: 'classic', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 48px', sidebarW: 0, sidebarSide: 'none', measureW: 698,
+    design: 'classic', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 48px', sidebarW: 0, sidebarSide: 'none', measureW: 698, packTolerance: 0, packBottomSafety: 32,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'rule', { skillsInline: true }),
     Header: ({ cv }) => (<div style={{ textAlign: 'center', marginBottom: 22 }}>
       <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>{cv.fullName}</div>
