@@ -7,10 +7,12 @@ const templates: {
   name: string
   desc: string
 }[] = [
-  { id: 'classic', name: 'Classic ATS', desc: 'Safe for all jobs' },
-  { id: 'modern', name: 'Modern Sidebar', desc: 'Clean & stylish' },
-  { id: 'executive', name: 'Executive', desc: 'Premium corporate' },
-  { id: 'editorial', name: 'Editorial', desc: 'Magazine style' }
+  { id: 'classic', name: 'Classic ATS', desc: 'Traditional and recruiter-safe' },
+  { id: 'vertex', name: 'Modern Rail', desc: 'Bold single-column design' },
+  { id: 'sovereign', name: 'Executive Gold', desc: 'Prestige corporate design' },
+  { id: 'ascend', name: 'Corporate Blue', desc: 'Structured colour-bar design' },
+  { id: 'harbour', name: 'Refined Teal', desc: 'Elegant editorial design' },
+  { id: 'academic', name: 'Academic', desc: 'Scholarly and structured' }
 ]
 
 export default function TemplatePicker({
