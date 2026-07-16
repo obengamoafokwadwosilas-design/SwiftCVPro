@@ -12,26 +12,14 @@ type Formats = 'both' | 'pdf'
 type Category = 'ats' | 'premium' | 'academic'
 
 const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; formats: Formats; category: Category; customizable: boolean }[] = [
-  // 💎 Premium — perfect in BOTH PDF and Word
-  { id: 'vertex',    name: 'Vertex',    tag: 'Bold · Colour Rail · Two-Column', color: '#e0533d', formats: 'both', category: 'premium', customizable: true  },
-  { id: 'sovereign', name: 'Sovereign', tag: 'Prestige · Crest · Centered',     color: '#b08d3f', formats: 'both', category: 'premium', customizable: true  },
-  { id: 'meridian',  name: 'Meridian',  tag: 'Teal Sidebar · Modern',           color: '#0d9488', formats: 'both', category: 'premium', customizable: true  },
-  { id: 'ascend',    name: 'Ascend',    tag: 'Corporate · Colour Bars',         color: '#1d4ed8', formats: 'both', category: 'premium', customizable: true  },
-  { id: 'harbour',   name: 'Harbour',   tag: 'Editorial · Refined Serif',       color: '#0f766e', formats: 'both', category: 'premium', customizable: true  },
-
-  // ✨ PDF-only premium — rich designs, PDF download only
-  { id: 'onyx',      name: 'Onyx',      tag: 'Dark Header · Gold · Editorial',  color: '#c9a86a', formats: 'pdf',  category: 'premium', customizable: true  },
-  { id: 'sterling',  name: 'Sterling',  tag: 'Gold Executive · Navy Sidebar',   color: '#c9a86a', formats: 'pdf',  category: 'premium', customizable: true  },
-  { id: 'verde',     name: 'Verde',     tag: 'Green Header · Timeline · Cards',  color: '#3f9142', formats: 'pdf',  category: 'premium', customizable: true  },
-  { id: 'crimson',   name: 'Crimson',   tag: 'Magazine · Colour Band · Bold',   color: '#a01e1e', formats: 'pdf',  category: 'premium', customizable: true  },
-  { id: 'atlas',     name: 'Atlas',     tag: 'Timeline Rail · Dated · Modern',   color: '#3b82f6', formats: 'pdf',  category: 'premium', customizable: true  },
-  { id: 'slate',     name: 'Slate',     tag: 'Minimal · Airy · Understated',    color: '#1a1a1a', formats: 'pdf',  category: 'premium', customizable: false },
-
-  // 🔵 ATS — PDF + Word, recruiter-safe minimal
-  { id: 'classic',  name: 'Classic',   tag: 'Traditional · ATS Safe',          color: '#1f2937', formats: 'both', category: 'ats',     customizable: false },
-
-  // 🎓 Academic — only shows for academic CV type
-  { id: 'academic', name: 'Academic',   tag: 'Scholarly · Structured',         color: '#374151', formats: 'both', category: 'academic', customizable: false },
+  // Curated pagination-safe library. Every design uses the same granular
+  // block structure; only typography, headings and header styling differ.
+  { id: 'vertex',    name: 'Modern Rail',     tag: 'Bold · Clean · Colour Rail',       color: '#e0533d', formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'sovereign', name: 'Executive Gold',  tag: 'Prestige · Centered · Corporate',  color: '#b08d3f', formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'ascend',    name: 'Corporate Blue',  tag: 'Strong · Colour Bars · Structured',color: '#1d4ed8', formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'harbour',   name: 'Refined Teal',    tag: 'Editorial · Elegant · Professional',color: '#0f766e',formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'classic',   name: 'Classic ATS',     tag: 'Traditional · Recruiter Safe',      color: '#1f2937', formats: 'both', category: 'ats',      customizable: false },
+  { id: 'academic',  name: 'Academic',        tag: 'Scholarly · Structured · ATS Safe', color: '#374151', formats: 'both', category: 'academic', customizable: false },
 ]
 
 // Color swatches for picker
@@ -110,7 +98,7 @@ export default function PreviewPage() {
   const router = useRouter()
   const [cv, setCV] = useState<GeneratedCV | null>(null)
   const [phone, setPhone] = useState('')
-  const [template, setTemplate] = useState<TemplateId>('meridian')
+  const [template, setTemplate] = useState<TemplateId>('classic')
   const [activeTab, setActiveTab] = useState<'preview' | 'edit'>('preview')
   const [downloading, setDownloading] = useState<ExportFormat | null>(null)
   const [isCoverLetter, setIsCoverLetter] = useState(false)
@@ -391,7 +379,7 @@ export default function PreviewPage() {
   const currentTpl = TEMPLATES.find(t => t.id === template)
 
   // ── Template filtering by CV type ──────────────────────
-  const ACADEMIC_ALLOWED: TemplateId[] = ['classic', 'academic', 'sovereign', 'harbour']
+  const ACADEMIC_ALLOWED: TemplateId[] = ['academic', 'classic', 'sovereign', 'harbour']
   const COVER_LETTER_ALLOWED: TemplateId[] = ['classic', 'sovereign', 'harbour']
 
   const visibleTemplates = isCoverLetter
