@@ -274,6 +274,14 @@ export default function PreviewPage() {
     setDownloading('pdf')
 
     try {
+      // Let webfonts finish and allow the paginator's real-render correction
+      // pass to commit before serialising the document for the PDF service.
+      const fonts = (document as any).fonts
+      if (fonts?.ready && typeof fonts.ready.then === 'function') {
+        await fonts.ready.catch(() => undefined)
+      }
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+
       const html = buildPdfHtml(printArea.outerHTML, template)
 
       const res = await fetch('/api/export-pdf', {
@@ -342,7 +350,7 @@ export default function PreviewPage() {
     /* each rendered page = one printed sheet */
     #cv-print-area > div > div {
       width: 210mm !important;
-      height: 296mm;
+      height: 297mm;
       margin: 0 !important;
       page-break-after: always;
       break-after: page;
