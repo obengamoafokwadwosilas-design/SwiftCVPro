@@ -1004,7 +1004,13 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
           b.push({ key: `skills-${i / 5}`, node: <div style={{ fontSize: 13.5, lineHeight: 1.95, color: '#444', fontFamily: BODY_SANS, marginBottom: i + 5 >= cv.skills.length ? (cv.languages?.length ? 0 : 20) : 0 }}>{dotList(chunk, A)}</div> })
         }
       }
-      if (cv.languages?.length) b.push({ key: 'langs-0', node: <div style={{ fontSize: 12.5, color: '#666', marginTop: 8, marginBottom: 20, fontFamily: BODY_SANS }}>{dotList(cv.languages, A)}</div> })
+      // FIX: Languages now gets its own heading block ('langs-h'), same pattern as
+      // every other section, instead of being appended with no heading — which
+      // previously made it visually read as the tail end of the Expertise list.
+      if (cv.languages?.length) {
+        b.push({ key: 'langs-h', node: <div style={{ marginBottom: 4 }}>{head('Languages')}</div> })
+        b.push({ key: 'langs-0', node: <div style={{ fontSize: 12.5, color: '#666', marginBottom: 20, fontFamily: BODY_SANS }}>{dotList(cv.languages, A)}</div> })
+      }
       if (cv.attributes?.length) b.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{head('Professional Attributes')}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444', marginBottom: 4 }}>{a}</li>)}</ul></div> })
       extraMainBlocks(cv, (t) => head(t), false, '#444').forEach(bl => b.push(bl))
       return b
