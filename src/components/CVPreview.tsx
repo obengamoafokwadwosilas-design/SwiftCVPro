@@ -213,6 +213,39 @@ const packMainPlan = (keys: string[], heights: number[], page1Usable: number, us
       moved++
     }
   }
+  // Balance compact list-style sections across a page break. A single final
+  // education/skills/attribute item stranded at the top of the next page looks
+  // accidental even when it is technically valid. Move one sibling item forward
+  // so the continuation contains at least two items. This never changes the order
+  // and only runs when the destination page still has room.
+  const compactGroupOf = (key: string) => {
+    if (/^edu-\d+$/.test(key)) return 'edu'
+    if (/^skills-\d+$/.test(key)) return 'skills'
+    if (/^attributes-\d+$/.test(key)) return 'attributes'
+    const extra = key.match(/^(extra-\d+)-\d+$/)
+    if (extra) return extra[1]
+    const named = key.match(/^(Publications|Research|Teaching Experience)-\d+$/)
+    return named ? named[1] : null
+  }
+  for (let p = 0; p < result.length - 1; p++) {
+    const left = result[p]
+    const right = result[p + 1]
+    if (!left.length || !right.length) continue
+    const group = compactGroupOf(keys[right[0]])
+    if (!group || compactGroupOf(keys[left[left.length - 1]]) !== group) continue
+    let rightCount = 0
+    while (rightCount < right.length && compactGroupOf(keys[right[rightCount]]) === group) rightCount++
+    if (rightCount !== 1) continue
+    const moveIdx = left[left.length - 1]
+    const beforeIdx = left[left.length - 2]
+    // Keep at least one item with the section heading on the preceding page.
+    if (beforeIdx === undefined || compactGroupOf(keys[beforeIdx]) !== group) continue
+    const moveH = heights[moveIdx] || 0
+    if (pageUsed[p + 1] + moveH > usable + tolerance) continue
+    left.pop(); right.unshift(moveIdx)
+    pageUsed[p] -= moveH; pageUsed[p + 1] += moveH
+  }
+
   for (let p = result.length - 1; p >= 0; p--) { if (result[p].length === 0) result.splice(p, 1) }
   return result
 }
@@ -455,7 +488,12 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         return r.height
       })
       const { page1Usable, usable, sLimit } = limitsRef.current
-      const newMain = packMainPlan(blocks.map(b => b.key), trueHeights, page1Usable, usable)
+      // Use the same template-specific tolerance in the correction pass as in
+      // the initial measurement pass. Falling back to the global 22px tolerance
+      // here could re-pack strict templates too aggressively and place a heading
+      // or line below the printable page edge.
+      const correctionTolerance = config.packTolerance ?? PACK_TOLERANCE
+      const newMain = packMainPlan(blocks.map(b => b.key), trueHeights, page1Usable, usable, correctionTolerance)
 
       let newSide: number[][] | null = null
       if (config.buildSidebarBlocks && sideBlocks.length) {
@@ -469,7 +507,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
             }
             return r.height
           })
-          newSide = packSidePlan(sideBlocks.map(b => b.key), sTrue, sLimit)
+          newSide = packSidePlan(sideBlocks.map(b => b.key), sTrue, sLimit, correctionTolerance)
         }
       }
 
