@@ -140,6 +140,20 @@ type Block = { key: string; node: React.ReactNode }
 const PACK_BOTTOM_SAFETY = 18
 const PACK_TOLERANCE = 22
 
+// ── FINAL-PASS OVERFLOW GUARD ─────────────────────────────────────
+// The two constants above govern the FAST, forgiving first-paint pack — a
+// positive tolerance is fine there because it's just a preview while fonts
+// finish loading. But the pack that runs once ground-truth (real, on-screen)
+// heights are known is the one that actually decides what ships in the PDF,
+// and it must never let a block's bottom edge cross the printable boundary.
+// So that final pass uses a NEGATIVE tolerance — a safety margin carved out
+// of the page, not added on top of it. `used + blockHeight > limit - margin`
+// instead of `> limit + tolerance`. A block (an experience bullet, an
+// education line, a language line — every block is already indivisible, one
+// bullet/line per block) that doesn't fit inside that stricter limit is
+// pushed whole to the next page instead of being sliced by the page edge.
+const FINAL_SAFETY_MARGIN = 14
+
 const packMainPlan = (keys: string[], heights: number[], page1Usable: number, usable: number, tolerance = PACK_TOLERANCE): number[][] => {
   const result: number[][] = []
   let current: number[] = []
@@ -462,15 +476,35 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
     return () => { cancelled = true; if (raf) cancelAnimationFrame(raf) }
   }, [cv, A, config.design]) // eslint-disable-line
 
-  // ═══ GROUND-TRUTH SELF-CORRECTION ═══════════════════════════════
+  // ═══ GROUND-TRUTH SELF-CORRECTION — STRICT, NO-OVERFLOW FINAL PASS ═══
   // The hidden measure pass gives a fast first plan, but it is a SEPARATE
   // render — if it disagrees with the real document about any block's height
   // (fonts, inheritance, wrapping…), pages break in the wrong place: early
   // (big gaps) or late (clipping). This pass measures the REAL on-screen
   // document — the same nodes the reader sees — using sibling strides
   // (nextTop − selfTop), which capture true rendered spacing including
-  // collapsed margins. It re-packs with those truths and corrects the plan
-  // if it differs. Runs at most twice per CV to guarantee no update loops.
+  // collapsed margins.
+  //
+  // Unlike the first-paint pack (which uses a forgiving +tolerance so an
+  // early, font-loading render doesn't thrash), THIS pass is the one whose
+  // output actually ships to the screen and the PDF, so it packs with a
+  // NEGATIVE tolerance — FINAL_SAFETY_MARGIN carved OUT of the page rather
+  // than slack added on top. A block only lands on a page if the running
+  // total plus that block still fits within (limit − margin). Every block is
+  // already indivisible — one bullet, one education line, one language line
+  // per block — so "doesn't fit" always means "move the WHOLE block to the
+  // next page," never a mid-sentence clip. This is what eliminates the
+  // clipped-bullet failure mode: a bullet that's a few px over the edge no
+  // longer gets accepted onto the page at all.
+  //
+  // Because the heights fed in here are ground-truth (measured from the
+  // actual rendered DOM, not a hidden estimate), a single strict pass is
+  // sufficient — packMainPlan is a deterministic one-pass packer for a fixed
+  // set of heights and a fixed limit, so there's nothing left to converge on.
+  // The effect still re-runs (bounded by correctionsRef, max twice) purely as
+  // a safety net in case something else changes the DOM after this pass
+  // (e.g. a webfont swap finishing later), not because the packing itself is
+  // iterative.
   useLayoutEffect(() => {
     if (!pages || correctionsRef.current >= 2 || !limitsRef.current) return
     const root = screenDocRef.current
@@ -488,12 +522,11 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         return r.height
       })
       const { page1Usable, usable, sLimit } = limitsRef.current
-      // Use the same template-specific tolerance in the correction pass as in
-      // the initial measurement pass. Falling back to the global 22px tolerance
-      // here could re-pack strict templates too aggressively and place a heading
-      // or line below the printable page edge.
-      const correctionTolerance = config.packTolerance ?? PACK_TOLERANCE
-      const newMain = packMainPlan(blocks.map(b => b.key), trueHeights, page1Usable, usable, correctionTolerance)
+      // STRICT final tolerance: negative, i.e. a safety margin subtracted from
+      // the limit rather than slack added to it. This is the guard against the
+      // clipped-bullet bug — see comment above the effect.
+      const strictTolerance = -FINAL_SAFETY_MARGIN
+      const newMain = packMainPlan(blocks.map(b => b.key), trueHeights, page1Usable, usable, strictTolerance)
 
       let newSide: number[][] | null = null
       if (config.buildSidebarBlocks && sideBlocks.length) {
@@ -507,7 +540,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
             }
             return r.height
           })
-          newSide = packSidePlan(sideBlocks.map(b => b.key), sTrue, sLimit, correctionTolerance)
+          newSide = packSidePlan(sideBlocks.map(b => b.key), sTrue, sLimit, strictTolerance)
         }
       }
 
@@ -569,7 +602,11 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
           {blocks.map(b => <div key={b.key} data-bk={b.key}>{b.node}</div>)}
         </config.Frame>
       </div>
-      {/* PRINT/PDF: the real A4 pages. Captured by buildPdfHtml, hidden on screen. */}
+      {/* PRINT/PDF: the real A4 pages, produced from the STRICT plan above.
+          `overflow: hidden` on pageBase (below) stays only as a last-resort
+          net for the one case pagination genuinely can't fix — a single
+          block taller than an entire page — it should not be relied on, and
+          with the strict pass above it should now never fire in practice. */}
       {pagePlan.map((blockIdxs, pageIndex) => (
         <config.Frame key={pageIndex} cv={cv} A={A} pageIndex={pageIndex} sidebarChildren={sideSlice(pageIndex)}>
           {blockIdxs.map(i => blocks[i] ? <div key={blocks[i].key}>{blocks[i].node}</div> : null)}
@@ -1042,8 +1079,8 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
           b.push({ key: `skills-${i / 5}`, node: <div style={{ fontSize: 13.5, lineHeight: 1.95, color: '#444', fontFamily: BODY_SANS, marginBottom: i + 5 >= cv.skills.length ? (cv.languages?.length ? 0 : 20) : 0 }}>{dotList(chunk, A)}</div> })
         }
       }
-      // FIX: Languages now gets its own heading block ('langs-h'), same pattern as
-      // every other section, instead of being appended with no heading — which
+      // Languages gets its own heading block ('langs-h'), same pattern as every
+      // other section, instead of being appended with no heading — which
       // previously made it visually read as the tail end of the Expertise list.
       if (cv.languages?.length) {
         b.push({ key: 'langs-h', node: <div style={{ marginBottom: 4 }}>{head('Languages')}</div> })
