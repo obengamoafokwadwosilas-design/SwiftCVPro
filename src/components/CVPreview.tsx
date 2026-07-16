@@ -243,7 +243,16 @@ export default function CVPreview({ cv, templateId = 'meridian', accentColor }: 
   if (isCL(cv)) return <CoverLetter cv={cv} A={A} font={design === 'meridian' || design === 'ascend' ? BODY_SANS : BODY_SERIF} />
 
   const config = TEMPLATES_CONFIG[design]
-  return <Paginated cv={cv} A={A} config={config} />
+
+  // Do not show a profession/headline beneath the person's name on CVs.
+  // A non-breaking space keeps the original header height, so removing the
+  // visible label does not disturb the pagination that has already been tuned.
+  const cvWithoutVisibleProfession: GeneratedCV = {
+    ...cv,
+    jobTitle: cv.jobTitle ? '\u00A0' : '',
+  }
+
+  return <Paginated cv={cvWithoutVisibleProfession} A={A} config={config} />
 }
 
 // ════════════════════════════════════════════════════════════════
