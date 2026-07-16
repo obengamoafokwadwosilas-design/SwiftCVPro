@@ -73,7 +73,9 @@ function normalizeCV(raw: any): GeneratedCV {
   return {
     ...raw,
     fullName: str(raw?.fullName),
-    jobTitle: str(raw?.jobTitle),
+    // Do not label CVs with an AI-inferred profession/headline.
+    // Keep the field only for cover letters, where the target role is useful.
+    jobTitle: raw?.coverLetterBody ? str(raw?.jobTitle) : '',
     email: str(raw?.email),
     phone: str(raw?.phone),
     location: str(raw?.location),
@@ -1038,7 +1040,7 @@ function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<Gen
       <Sec title="Personal Details">
         <Grid>
           <Inp label="Full Name" value={cv.fullName} onChange={v => updateCV({ fullName: v })} />
-          <Inp label="Job Title" value={cv.jobTitle} onChange={v => updateCV({ jobTitle: v })} />
+          {cv.coverLetterBody && <Inp label="Job Title" value={cv.jobTitle} onChange={v => updateCV({ jobTitle: v })} />}
           <Inp label="Email" value={cv.email} onChange={v => updateCV({ email: v })} />
           <Inp label="Phone" value={cv.phone} onChange={v => updateCV({ phone: v })} />
           <Inp label="Location" value={cv.location} onChange={v => updateCV({ location: v })} />
