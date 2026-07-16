@@ -140,7 +140,7 @@ type Block = { key: string; node: React.ReactNode }
 const PACK_BOTTOM_SAFETY = 18
 const PACK_TOLERANCE = 22
 
-const packMainPlan = (keys: string[], heights: number[], page1Usable: number, usable: number): number[][] => {
+const packMainPlan = (keys: string[], heights: number[], page1Usable: number, usable: number, tolerance = PACK_TOLERANCE): number[][] => {
   const result: number[][] = []
   let current: number[] = []
   let used = 0
@@ -153,7 +153,7 @@ const packMainPlan = (keys: string[], heights: number[], page1Usable: number, us
   // of large, avoidable white gaps.
   for (let i = 0; i < keys.length; i++) {
     const h = heights[i] || 0
-    if (current.length > 0 && used + h > limit + PACK_TOLERANCE) {
+    if (current.length > 0 && used + h > limit + tolerance) {
       result.push(current); current = []; used = 0; limit = usable
     }
     current.push(i)
@@ -162,7 +162,7 @@ const packMainPlan = (keys: string[], heights: number[], page1Usable: number, us
     // Never leave a section/role heading alone at the bottom of a page.
     if (isHeading(i) && i + 1 < keys.length) {
       const nextH = heights[i + 1] || 0
-      if (used + nextH > limit + PACK_TOLERANCE && current.length > 1) {
+      if (used + nextH > limit + tolerance && current.length > 1) {
         current.pop()
         used -= h
         result.push(current)
@@ -193,7 +193,7 @@ const packMainPlan = (keys: string[], heights: number[], page1Usable: number, us
     while (tailLen < nextPage.length && roleOf(keys[nextPage[tailLen]]) === rk) tailLen++
     if (tailLen <= 2) {
       const tailH = nextPage.slice(0, tailLen).reduce((t, i) => t + (heights[i] || 0), 0)
-      if (pageUsed[p] + tailH <= pageLimit(p) + PACK_TOLERANCE) {
+      if (pageUsed[p] + tailH <= pageLimit(p) + tolerance) {
         for (let k = 0; k < tailLen; k++) prevPage.push(nextPage.shift() as number)
         pageUsed[p] += tailH; pageUsed[p + 1] -= tailH
         continue
@@ -207,7 +207,7 @@ const packMainPlan = (keys: string[], heights: number[], page1Usable: number, us
       const beforeKey = beforeIdx !== undefined ? keys[beforeIdx] : ''
       if (roleOf(beforeKey) !== rk) break
       const h = heights[lastIdx] || 0
-      if (pageUsed[p + 1] + h > usable + PACK_TOLERANCE) break
+      if (pageUsed[p + 1] + h > usable + tolerance) break
       prevPage.pop(); nextPage.unshift(lastIdx)
       pageUsed[p] -= h; pageUsed[p + 1] += h
       moved++
@@ -217,13 +217,13 @@ const packMainPlan = (keys: string[], heights: number[], page1Usable: number, us
   return result
 }
 
-const packSidePlan = (keys: string[], heights: number[], sLimit: number): number[][] => {
+const packSidePlan = (keys: string[], heights: number[], sLimit: number, tolerance = PACK_TOLERANCE): number[][] => {
   const sIsHeading = (i: number) => keys[i].endsWith('-h')
   const sideResult: number[][] = []
   let sCur: number[] = []; let sUsed = 0
   for (let i = 0; i < keys.length; i++) {
     const h = heights[i] || 0
-    if (sCur.length > 0 && sUsed + h > sLimit + PACK_TOLERANCE) { sideResult.push(sCur); sCur = []; sUsed = 0 }
+    if (sCur.length > 0 && sUsed + h > sLimit + tolerance) { sideResult.push(sCur); sCur = []; sUsed = 0 }
     sCur.push(i); sUsed += h
     if (sIsHeading(i) && i + 1 < keys.length) {
       const nextH = heights[i + 1] || 0
@@ -269,6 +269,9 @@ type TemplateConfig = {
   sidebarPadV?: number
   // Exact usable height for page 2+ (when contentPadV*2 doesn't match the actual rendered padding+borders)
   pageUsable?: number
+  // Optional template-specific packing controls. Defaults preserve all existing templates.
+  packTolerance?: number
+  packBottomSafety?: number
   // render the page frame: header (page 1 only), children = packed main blocks,
   // sidebarChildren = this page's slice of the paginated sidebar (if enabled)
   Frame: (p: { cv: GeneratedCV; A: string; pageIndex: number; children: React.ReactNode; sidebarChildren?: React.ReactNode }) => React.ReactElement
@@ -384,10 +387,12 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         const headerH = headerRef.current ? headerRef.current.getBoundingClientRect().height : 0
         // Extra breathing room beyond the page's own padding, so content never packs
         // to the literal edge of the printable area — reads like a real printed page.
-        const usable = (config.pageUsable ?? (PAGE_H - config.contentPadV * 2)) - PACK_BOTTOM_SAFETY
+        const bottomSafety = config.packBottomSafety ?? PACK_BOTTOM_SAFETY
+        const tolerance = config.packTolerance ?? PACK_TOLERANCE
+        const usable = (config.pageUsable ?? (PAGE_H - config.contentPadV * 2)) - bottomSafety
         const page1Usable = Math.max(160, usable - headerH)
-        limitsRef.current = { page1Usable, usable, sLimit: PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2 - PACK_BOTTOM_SAFETY }
-        const result = packMainPlan(blocks.map(b => b.key), heights, page1Usable, usable)
+        limitsRef.current = { page1Usable, usable, sLimit: PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2 - bottomSafety }
+        const result = packMainPlan(blocks.map(b => b.key), heights, page1Usable, usable, tolerance)
 
         // ── Sidebar pagination (shared algorithm, sidebar heights/budget) ──
         let sideResult: number[][] | null = null
@@ -401,8 +406,8 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
               try { const cs = window.getComputedStyle(c); m = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0) } catch { m = 0 }
               return r.height + m
             })
-            const sLimit = PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2 - PACK_BOTTOM_SAFETY
-            sideResult = packSidePlan(sideBlocks.map(b => b.key), sHeights, sLimit)
+            const sLimit = PAGE_H - (config.sidebarPadV ?? config.contentPadV) * 2 - bottomSafety
+            sideResult = packSidePlan(sideBlocks.map(b => b.key), sHeights, sLimit, tolerance)
           }
         }
         if (result.length === 0) result.push(blocks.map((_, i) => i))
@@ -833,9 +838,24 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
         b.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{head('Education')}</div> })
         cv.education.forEach((e, i) => b.push({ key: `edu-${i}`, node: <div style={{ marginBottom: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div><div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a' }}>{e.qualification} in {e.field}</div><div style={{ fontSize: 13.5, color: '#666', fontStyle: 'italic' }}>{e.institution}{e.grade ? ` — ${e.grade}` : ''}</div></div><div style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startYear} – {e.endYear}</div></div> }))
       }
-      if (cv.skills?.length) b.push({ key: 'skills', node: <div style={{ marginBottom: 14 }}>{head('Core Skills')}<div style={{ fontSize: 13.5, color: '#444', lineHeight: 2 }}>{dotList(cv.skills, A)}</div></div> })
-      if (cv.attributes?.length) b.push({ key: 'attributes', node: <div style={{ marginBottom: 14 }}>{head('Professional Attributes')}<ul style={{ margin: 0, paddingLeft: 18, listStyleType: 'disc', listStylePosition: 'outside' }}>{cv.attributes.map((a, i) => <li key={i} style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444', marginBottom: 4 }}>{a}</li>)}</ul></div> })
-      if (cv.languages?.length) b.push({ key: 'langs', node: <div style={{ marginBottom: 14 }}>{head('Languages')}<div style={{ fontSize: 13.5, color: '#444' }}>{dotList(cv.languages, A)}</div></div> })
+      // Crimson-only pagination refinement: split dense sections into measurable
+      // chunks so they can use remaining page space without moving wholesale.
+      if (cv.skills?.length) {
+        b.push({ key: 'skills-h', node: <div style={{ marginBottom: 4 }}>{head('Core Skills')}</div> })
+        for (let i = 0; i < cv.skills.length; i += 5) {
+          const chunk = cv.skills.slice(i, i + 5)
+          b.push({ key: `skills-${i / 5}`, node: <div style={{ fontSize: 13.5, color: '#444', lineHeight: 2, marginBottom: i + 5 >= cv.skills.length ? 14 : 0 }}>{dotList(chunk, A)}</div> })
+        }
+      }
+      if (cv.attributes?.length) {
+        const attributes = cv.attributes
+        b.push({ key: 'attributes-h', node: <div style={{ marginBottom: 4 }}>{head('Professional Attributes')}</div> })
+        attributes.forEach((a, i) => b.push({ key: `attributes-${i}`, node: <ul style={{ margin: 0, paddingLeft: 18, marginBottom: i === attributes.length - 1 ? 14 : 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.55, color: '#444' }}>{a}</li></ul> }))
+      }
+      if (cv.languages?.length) {
+        b.push({ key: 'langs-h', node: <div style={{ marginBottom: 4 }}>{head('Languages')}</div> })
+        b.push({ key: 'langs-0', node: <div style={{ fontSize: 13.5, color: '#444', marginBottom: 14 }}>{dotList(cv.languages, A)}</div> })
+      }
       const ex = (t: string, items?: string[]) => { if (items?.length) { b.push({ key: `${t}-h`, node: <div style={{ marginBottom: 4 }}>{head(t)}</div> }); items.forEach((x, i) => b.push({ key: `${t}-${i}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: 4, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#444' }}>{x}</li></ul> })) } }
       ex('Publications', cv.publications); ex('Research', cv.research); ex('Teaching Experience', cv.teaching)
       extraMainBlocks(cv, (t) => head(t), false, '#444').forEach(bl => b.push(bl))
@@ -1013,7 +1033,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── ASCEND: single column, colour-bar headings ──
   ascend: {
-    design: 'ascend', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702,
+    design: 'ascend', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 4, packBottomSafety: 28,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'bar', { skillsInline: true }),
     Header: ({ cv, A }) => (<>
       <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 0.5, color: '#1a1a1a', textTransform: 'uppercase', marginBottom: 6 }}>{cv.fullName}</div>
