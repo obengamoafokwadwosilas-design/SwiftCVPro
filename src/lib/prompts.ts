@@ -32,11 +32,9 @@ MATCH SENIORITY TO EVIDENCE:
 - Judge this conservatively from real signals. A career-changer, someone with a gap, or a returning professional is NOT a student — when unsure, use the normal professional treatment. Never call an experienced person "aspiring".
 
 HEADLINE (jobTitle):
-- For a targeted CV, align the headline to the role being applied for (only where the person's background genuinely supports it).
-- For a general CV, use the most senior or representative title from the person's real history — not merely their latest job.
-- Never invent a title the person has not held.
-- NEVER upgrade or reword an actual job title. If their title is "Principal Administrative Assistant", keep it exactly — do not render it as "Principal Administrative Officer" or anything more senior. Use their real titles verbatim in both the headline and each experience entry.
-- For fresh graduates, students, or entry-level people (see MATCH SENIORITY TO EVIDENCE), leave jobTitle empty — no headline, no label.
+- For every CV, return jobTitle as an empty string. Do not label the person with a profession, occupation, career headline, target role, or inferred designation beneath their name.
+- Actual job titles must still appear exactly as supplied inside the work-experience entries.
+- Cover letters may still use the target role where relevant.
 
 LOCATION INFERENCE:
 - Use any location the user provided verbatim. Never override a provided location.
