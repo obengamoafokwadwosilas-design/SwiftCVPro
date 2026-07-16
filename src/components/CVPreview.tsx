@@ -449,14 +449,20 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
     try {
       const els = Array.from(root.querySelectorAll('[data-bk]')) as HTMLElement[]
       if (els.length !== blocks.length || blocks.length === 0) return
-      const trueHeights = els.map((el, i) => {
+      // Measure each real block directly. Using nextTop - currentTop looked
+      // attractive because it captured collapsed margins, but it could also absorb
+      // grid/flex spacing belonging to the following section and massively inflate
+      // a block's height. That produced pages which appeared half-empty even though
+      // more content could safely fit. The block's own rectangle plus its explicit
+      // margins is stable across all templates and matches the hidden measure pass.
+      const trueHeights = els.map((el) => {
         const r = el.getBoundingClientRect()
-        if (i + 1 < els.length) {
-          const stride = els[i + 1].getBoundingClientRect().top - r.top
-          // strides can be 0 during odd intermediate layouts; fall back to rect
-          return stride > 0 ? stride : r.height
-        }
-        return r.height
+        let margins = 0
+        try {
+          const cs = window.getComputedStyle(el)
+          margins = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0)
+        } catch { margins = 0 }
+        return r.height + margins
       })
       const { page1Usable, usable, sLimit } = limitsRef.current
       const newMain = packMainPlan(blocks.map(b => b.key), trueHeights, page1Usable, usable)
@@ -465,13 +471,14 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
       if (config.buildSidebarBlocks && sideBlocks.length) {
         const sEls = Array.from(root.querySelectorAll('[data-sbk]')) as HTMLElement[]
         if (sEls.length === sideBlocks.length) {
-          const sTrue = sEls.map((el, i) => {
+          const sTrue = sEls.map((el) => {
             const r = el.getBoundingClientRect()
-            if (i + 1 < sEls.length) {
-              const stride = sEls[i + 1].getBoundingClientRect().top - r.top
-              return stride > 0 ? stride : r.height
-            }
-            return r.height
+            let margins = 0
+            try {
+              const cs = window.getComputedStyle(el)
+              margins = (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0)
+            } catch { margins = 0 }
+            return r.height + margins
           })
           newSide = packSidePlan(sideBlocks.map(b => b.key), sTrue, sLimit)
         }
