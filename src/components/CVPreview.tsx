@@ -137,7 +137,14 @@ type Block = { key: string; node: React.ReactNode }
 // the real on-screen document. If the two renders disagree about any
 // block's height — whatever the cause — the second pass self-corrects
 // the page plan, so pages fill the way the real render actually flows.
-const PACK_BOTTOM_SAFETY = 18
+// Raised from 18 to 32 to match the safety margin ChatGPT set explicitly on
+// vertex/sovereign/harbour/classic (34 on ascend). Templates without their own
+// packBottomSafety override — meridian, sterling, slate, atlas — were still on
+// the old 18px default, which left too little runway to absorb the small
+// rendering differences between the browser (where pagination is measured)
+// and Api2Pdf's separate remote Chrome instance (where the PDF is actually
+// rendered) — the direct cause of text clipping at a page's bottom edge.
+const PACK_BOTTOM_SAFETY = 32
 // Fitting is strict: a block either fits inside the printable area or moves
 // intact to the next page. Positive overflow tolerance was the reason a final
 // line could be visible only halfway before the page frame clipped it.
