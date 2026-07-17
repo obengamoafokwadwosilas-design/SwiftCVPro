@@ -20,6 +20,13 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'harbour',   name: 'Refined Teal',    tag: 'Editorial · Elegant · Professional',color: '#0f766e',formats: 'both', category: 'premium',  customizable: true  },
   { id: 'classic',   name: 'Classic ATS',     tag: 'Traditional · Recruiter Safe',      color: '#1f2937', formats: 'both', category: 'ats',      customizable: false },
   { id: 'academic',  name: 'Academic',        tag: 'Scholarly · Structured · ATS Safe', color: '#374151', formats: 'both', category: 'academic', customizable: false },
+  // Restored: these run on the exact same shared, hardened pagination engine as
+  // the six above (Paginated / packMainPlan / packSidePlan / zero-tolerance
+  // clamp are global, not per-template) — nothing about their safety differs.
+  { id: 'meridian',  name: 'Meridian',        tag: 'Two-Column · Colour Sidebar',       color: '#0d9488', formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'sterling',  name: 'Sterling',        tag: 'Two-Column · Dark Sidebar',         color: '#c9a86a', formats: 'pdf',  category: 'premium',  customizable: true  },
+  { id: 'slate',     name: 'Slate',           tag: 'Dense · Minimalist · Single-Column',color: '#1a1a1a', formats: 'pdf',  category: 'ats',      customizable: true  },
+  { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'pdf',  category: 'premium',  customizable: true  },
 ]
 
 // Color swatches for picker
