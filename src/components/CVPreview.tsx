@@ -188,8 +188,18 @@ const packMainPlan = (keys: string[], heights: number[], page1Usable: number, us
   }
   if (current.length) result.push(current)
 
-  // Widow-tail fix for experience bullets (capacity-checked, both directions).
-  const roleOf = (key: string) => { const m = key.match(/^(exp\d+)-b\d+$/); return m ? m[1] : null }
+  // Widow-tail fix (capacity-checked, both directions) — GENERAL, not experience-only.
+  // Recognizes any section built as "{group}-h" heading + "{group}-N" or
+  // "{group}-bN" items (experience roles, skills chunks, summary chunks, and
+  // any future section following the same convention all qualify automatically).
+  const groupOf = (key: string) => {
+    const bm = key.match(/^(.+)-b\d+$/)
+    if (bm) return bm[1]
+    const nm = key.match(/^(.+)-\d+$/)
+    if (nm) return nm[1]
+    return null
+  }
+  const roleOf = groupOf
   const pageLimit = (p: number) => (p === 0 ? page1Usable : usable)
   const pageUsed = result.map(pg => pg.reduce((t, i) => t + (heights[i] || 0), 0))
 
