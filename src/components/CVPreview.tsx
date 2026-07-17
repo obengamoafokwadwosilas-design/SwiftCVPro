@@ -309,6 +309,12 @@ type TemplateConfig = {
   sidebarPadV?: number
   // Exact usable height for page 2+ (when contentPadV*2 doesn't match the actual rendered padding+borders)
   pageUsable?: number
+  // For templates that wrap Header in an extra coloured banner div (onyx,
+  // verde, crimson) — that wrapper's own padding is invisible to a measurement
+  // that only measures the Header component itself, so page1Usable gets
+  // over-estimated by exactly that padding. This makes the measure pass
+  // apply the SAME padding, so headerH reflects the real space consumed.
+  headerBannerPad?: string
   // Optional template-specific packing controls. Defaults preserve all existing templates.
   packTolerance?: number
   packBottomSafety?: number
@@ -617,7 +623,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   // Hidden measure pass — renders real header + all blocks at exact column width
   const measurePass = (
     <div data-measure-pass aria-hidden="true" style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', left: -99999, top: 0, width: config.measureW, fontFamily: config.font }}>
-      <div ref={headerRef} style={{ width: '100%' }}><config.Header cv={cv} A={A} /></div>
+      <div ref={headerRef} style={{ width: '100%', boxSizing: 'border-box', padding: config.headerBannerPad ?? 0 }}><config.Header cv={cv} A={A} /></div>
       {/* flow-root wrappers CONTAIN inner margins, so measured heights include the
           spacing that would otherwise margin-collapse through and be invisible to the
           packer (the cause of sidebar bottom-edge clipping). Real render collapses
@@ -787,7 +793,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── ONYX: dark editorial header band, gold accents ──
   onyx: {
-    design: 'onyx', font: BODY_SERIF, contentPadV: 30, pageUsable: 1047, mainPad: '30px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702,
+    design: 'onyx', headerBannerPad: '38px 46px 30px', font: BODY_SERIF, contentPadV: 30, pageUsable: 1047, mainPad: '30px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: A, marginBottom: 10 }}>{t}</div>
       const b: Block[] = []
@@ -912,7 +918,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── VERDE: green gradient header, timeline experience, cards ──
   verde: {
-    design: 'verde', font: BODY_SERIF, contentPadV: 36, pageUsable: 1037, mainPad: '36px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    design: 'verde', font: BODY_SERIF, contentPadV: 36, pageUsable: 1037, headerBannerPad: '36px 50px 30px', mainPad: '36px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: darken(A, 0.5), marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: A }} />{t}<span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${A}40, transparent)` }} /></div>
       const b: Block[] = []
@@ -952,7 +958,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── CRIMSON: magazine colour header band ──
   crimson: {
-    design: 'crimson', font: BODY_SERIF, contentPadV: 40, pageUsable: 1029, mainPad: '40px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    design: 'crimson', font: BODY_SERIF, contentPadV: 40, pageUsable: 1029, headerBannerPad: '34px 50px 0px', mainPad: '40px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: A, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12 }}>{t}</div>
       const b: Block[] = []
