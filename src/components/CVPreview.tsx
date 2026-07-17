@@ -223,6 +223,15 @@ const packMainPlan = (keys: string[], heights: number[], page1Usable: number, us
         continue
       }
     }
+    // Push-forward is the SAME rescue idea as pull-back, just in the other
+    // direction — so it must be gated the same way: only for a genuinely
+    // SMALL stranding (≤2 items), never for a long list (like several Skills
+    // chunks) that is correctly, normally spanning two pages. Without this
+    // gate, push-forward fired unconditionally whenever a boundary fell
+    // inside ANY grouped section — even a large one with nothing wrong —
+    // and kept yanking extra items off the previous page for zero benefit,
+    // which is exactly what produced the large unnecessary gap.
+    if (tailLen > 2) continue
     let moved = 0
     while (moved < 2) {
       const lastIdx = prevPage[prevPage.length - 1]
