@@ -346,7 +346,7 @@ export default function PreviewPage() {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="${PRINT_FONTS_HREF}" />
   <style>
-    @page { size: A4; margin: ${flow.padTop}px ${flow.padSide}px ${flow.padBottom}px ${flow.padSide}px; }
+    @page { size: A4; margin: ${flow.padTop}px ${flow.padRight}px ${flow.padBottom}px ${flow.padLeft}px; }
     html, body {
       margin: 0;
       padding: 0;

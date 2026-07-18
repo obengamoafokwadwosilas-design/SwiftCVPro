@@ -377,6 +377,20 @@ type TemplateConfig = {
   flowPaginate?: boolean
   // Body text colour for the flow document wrapper (defaults to #1a1a1a).
   flowBodyColor?: string
+  // ── Per-page flow decorations ──────────────────────────────────────────
+  // Edge-anchored decorations that must repeat on EVERY printed sheet. In flow
+  // mode they are rendered as position:fixed elements, which Chrome repaints on
+  // each page in paged media, positioned relative to the full sheet (so they sit
+  // in the @page margin area and bleed to the paper edge exactly like the packed
+  // frames' backgrounds did). This lets single-column templates that carry a
+  // rail / top-bar / full-page tint join the flow engine WITHOUT changing how
+  // they look. Templates whose only decoration is a page-1 full-bleed header
+  // BAND with light text (onyx, verde) are NOT covered by these and stay on the
+  // packer for now.
+  flowPageBg?: string       // full-sheet background tint (e.g. sovereign cream)
+  flowRail?: boolean        // left colour rail in the accent colour (e.g. vertex)
+  flowRailW?: number        // rail width in px (default 38)
+  flowTopBarH?: number      // top accent bar height in px (e.g. crimson 8)
   // render the page frame: header (page 1 only), children = packed main blocks,
   // sidebarChildren = this page's slice of the paginated sidebar (if enabled)
   Frame: (p: { cv: GeneratedCV; A: string; pageIndex: number; children: React.ReactNode; sidebarChildren?: React.ReactNode }) => React.ReactElement
@@ -758,12 +772,22 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
           carries the horizontal padding — hence no vertical padding here. */}
       {config.flowPaginate && (
         <div data-flow-doc style={{ width: '100%', background: '#fff', fontFamily: config.font, color: config.flowBodyColor ?? '#1a1a1a' }}>
-          <config.Header cv={cv} A={A} />
-          {blocks.map(b => (
-            <div key={b.key} data-flow-block="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
-              {b.node}
-            </div>
-          ))}
+          {/* Per-page decorations: position:fixed so the PDF renderer repaints
+              them on every sheet, anchored to the paper edge. Hidden on screen
+              (the whole flow doc is display:none there). z-index 0 keeps them
+              behind the content layer below. */}
+          {config.flowPageBg && <div data-flow-decor style={{ position: 'fixed', inset: 0, background: config.flowPageBg, zIndex: 0 }} />}
+          {config.flowRail && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowRailW ?? 38, background: A, zIndex: 0 }} />}
+          {config.flowTopBarH && <div data-flow-decor style={{ position: 'fixed', left: 0, right: 0, top: 0, height: config.flowTopBarH, background: A, zIndex: 0 }} />}
+          {/* Content layer sits above the decorations. */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <config.Header cv={cv} A={A} />
+            {blocks.map(b => (
+              <div key={b.key} data-flow-block="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
+                {b.node}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -774,14 +798,17 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
 // Read by app/preview/page.tsx's buildPdfHtml to decide, per template, whether
 // to emit the renderer-owned (flow) PDF layout instead of the packed fixed-page
 // layout, and with what @page margins. Returns null for every template still on
-// the packer, so those PDFs are byte-for-byte unchanged.
-export function getFlowPdfConfig(templateId: TemplateId): { padTop: number; padBottom: number; padSide: number } | null {
+// the packer, so those PDFs are byte-for-byte unchanged. padLeft/padRight are
+// separate because a left rail widens only the left margin so the content still
+// clears the rail (matching the packed frame's grid offset).
+export function getFlowPdfConfig(templateId: TemplateId): { padTop: number; padBottom: number; padLeft: number; padRight: number } | null {
   const design = TEMPLATE_MAP[templateId] || 'meridian'
   const config = TEMPLATES_CONFIG[design]
   if (!config?.flowPaginate) return null
   const parts = config.mainPad.split(/\s+/).map(p => parseFloat(p) || 0)
   const padSide = parts.length >= 2 ? parts[1] : (parts[0] || 0)
-  return { padTop: config.contentPadV, padBottom: config.contentPadV, padSide }
+  const railW = config.flowRail ? (config.flowRailW ?? 38) : 0
+  return { padTop: config.contentPadV, padBottom: config.contentPadV, padLeft: padSide + railW, padRight: padSide }
 }
 
 
@@ -1064,7 +1091,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── CRIMSON: magazine colour header band ──
   crimson: {
-    design: 'crimson', font: BODY_SERIF, contentPadV: 40, pageUsable: 1029, headerBannerPad: '34px 50px 0px', mainPad: '40px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    design: 'crimson', font: BODY_SERIF, contentPadV: 40, pageUsable: 1029, headerBannerPad: '34px 50px 0px', mainPad: '40px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694, flowPaginate: true, flowTopBarH: 8,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', color: A, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12 }}>{t}</div>
       const b: Block[] = []
@@ -1196,7 +1223,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   },
   // ── VERTEX: colour rail + two inner columns (paginate the whole body) ──
   vertex: {
-    design: 'vertex', font: BODY_SERIF, contentPadV: 46, mainPad: '46px', sidebarW: 0, sidebarSide: 'none', measureW: 664, packTolerance: 0, packBottomSafety: 32,
+    design: 'vertex', font: BODY_SERIF, contentPadV: 46, mainPad: '46px', sidebarW: 0, sidebarSide: 'none', measureW: 664, packTolerance: 0, packBottomSafety: 32, flowPaginate: true, flowRail: true, flowRailW: 38,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'dash', { skillsInline: true }),
     Header: ({ cv, A }) => {
       const first = cv.fullName.split(' ')[0], rest = cv.fullName.split(' ').slice(1).join(' ')
@@ -1222,7 +1249,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── SOVEREIGN: centered crest, single column body ──
   sovereign: {
-    design: 'sovereign', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 54px', sidebarW: 0, sidebarSide: 'none', measureW: 686, packTolerance: 0, packBottomSafety: 32,
+    design: 'sovereign', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 54px', sidebarW: 0, sidebarSide: 'none', measureW: 686, packTolerance: 0, packBottomSafety: 32, flowPaginate: true, flowPageBg: '#fdfcfa',
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'plain', { skillsInline: true }),
     Header: ({ cv, A }) => {
       const DARK = '#1a2238'
