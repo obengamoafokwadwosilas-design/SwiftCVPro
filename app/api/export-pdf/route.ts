@@ -56,6 +56,7 @@ export async function POST(req: Request) {
         options: {
           printBackground: true,
           preferCSSPageSize: true,
+          delay: 1200,
           margin: {
             top: '0px',
             right: '0px',
