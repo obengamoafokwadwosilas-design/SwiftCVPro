@@ -398,11 +398,10 @@ function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skill
 
   if (cv.summary) {
     blocks.push({ key: 'summary-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Profile', A, headStyle)}</div> })
-    const chunks = summaryChunks(cv.summary)
-    chunks.forEach((chunk, i) => blocks.push({
-      key: `summary-${i}`,
-      node: <div style={{ fontSize: 14, lineHeight: 1.78, color: '#333', textAlign: 'justify', marginBottom: i === chunks.length - 1 ? 18 : 6, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{chunk}</div>
-    }))
+    blocks.push({
+      key: 'summary',
+      node: <p style={{ fontSize: 14, lineHeight: 1.78, color: '#333', textAlign: 'justify', margin: 0, marginBottom: 18 }}>{cv.summary}</p>
+    })
   }
 
   if (cv.experience?.length) {
