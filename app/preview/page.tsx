@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { GeneratedCV, TemplateId, ExportFormat } from '@/types'
-import CVPreview from '@/components/CVPreview'
+import CVPreview, { getFlowPdfConfig } from '@/components/CVPreview'
 
 // ══════════════════════════════════════════════════════
 // TEMPLATE LIBRARY — Premium first, then ATS, then Academic
@@ -324,7 +324,61 @@ export default function PreviewPage() {
     }
   }
 
-  function buildPdfHtml(cvMarkup: string, _tplId: TemplateId) {
+  function buildPdfHtml(cvMarkup: string, tplId: TemplateId) {
+    // Cover letters render through the CoverLetter component (not the paginated
+    // engine), so they have no flow document — never take the flow path for
+    // them, or the flow CSS would hide their content. This mirrors CVPreview's
+    // own isCL(cv) = !!cv.coverLetterBody branch.
+    const flow = cv && !cv.coverLetterBody ? getFlowPdfConfig(tplId) : null
+    if (flow) {
+      // ── Renderer-owned pagination ────────────────────────────────────
+      // For flagged single-column templates, hand the whole document to the
+      // PDF renderer as one continuous flow and let IT choose the page breaks
+      // (break-inside / break-after). The renderer that decides the break is
+      // the one that draws it, so the browser-vs-remote height drift that used
+      // to clip bottom-edge content cannot occur — an over-hanging block is
+      // flowed onto the next sheet instead of being sliced. Per-sheet margins
+      // come from @page; the flow wrapper only holds horizontal padding.
+      return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="${PRINT_FONTS_HREF}" />
+  <style>
+    @page { size: A4; margin: ${flow.padTop}px ${flow.padSide}px ${flow.padBottom}px ${flow.padSide}px; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: white;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    ul { list-style-type: disc !important; }
+    ul li { list-style: disc outside !important; display: list-item !important; }
+    #cv-print-area { margin: 0; padding: 0; background: white; }
+    /* show ONLY the continuous flow document; hide packed frames + artifacts */
+    #cv-print-area > div > div:not([data-flow-doc]) { display: none !important; }
+    [data-measure-pass] { display: none !important; }
+    [data-screen-doc] { display: none !important; }
+    [data-flow-doc] { display: block !important; width: auto !important; background: white; }
+    /* the renderer flows content; these keep atomic blocks whole and headings
+       attached to the item that follows them */
+    [data-flow-block] { break-inside: avoid; page-break-inside: avoid; }
+    [data-flow-head] { break-after: avoid; page-break-after: avoid; }
+  </style>
+</head>
+<body>
+  ${cvMarkup}
+</body>
+</html>`
+    }
+    // ── Packed fixed-page engine (all other templates, unchanged) ──────
     // Multi-page engine: each page div is a self-contained A4 with its own sidebar.
     // @page margin is 0 — the page divs handle their own internal padding.
     return `<!doctype html>

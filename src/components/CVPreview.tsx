@@ -362,6 +362,21 @@ type TemplateConfig = {
   // Optional template-specific packing controls. Defaults preserve all existing templates.
   packTolerance?: number
   packBottomSafety?: number
+  // ── RENDERER-OWNED PAGINATION (flow mode) ──────────────────────────────
+  // When true, the PDF export renders this template as a SINGLE continuous
+  // document and lets the PDF renderer itself choose the page breaks via CSS
+  // (break-inside/break-after), instead of pre-packing blocks into fixed-height
+  // sheets that can clip. Because the engine that decides the break is now the
+  // same engine that draws it, the browser-vs-remote-renderer height drift that
+  // clipped bottom-edge content becomes impossible — a block that doesn't fit is
+  // flowed to the next sheet, never sliced. Only valid for single-column,
+  // plain-background templates whose Frame is "header (page 1) + padded body"
+  // with no per-page decoration (rails, borders, colour bands) and no sidebar.
+  // The on-screen preview and the packer are unaffected — this only changes the
+  // PDF path for flagged templates.
+  flowPaginate?: boolean
+  // Body text colour for the flow document wrapper (defaults to #1a1a1a).
+  flowBodyColor?: string
   // render the page frame: header (page 1 only), children = packed main blocks,
   // sidebarChildren = this page's slice of the paginated sidebar (if enabled)
   Frame: (p: { cv: GeneratedCV; A: string; pageIndex: number; children: React.ReactNode; sidebarChildren?: React.ReactNode }) => React.ReactElement
@@ -735,8 +750,38 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
           {blockIdxs.map(i => blocks[i] ? <div key={blocks[i].key}>{blocks[i].node}</div> : null)}
         </config.Frame>
       ))}
+      {/* PRINT/PDF (flow templates only): a single continuous document the PDF
+          renderer paginates itself via CSS break rules. buildPdfHtml shows this
+          and hides the packed frames above for flow templates; on screen it is
+          hidden by the same rule that hides the packed frames. Vertical page
+          spacing comes from @page margins in buildPdfHtml, so this wrapper only
+          carries the horizontal padding — hence no vertical padding here. */}
+      {config.flowPaginate && (
+        <div data-flow-doc style={{ width: '100%', background: '#fff', fontFamily: config.font, color: config.flowBodyColor ?? '#1a1a1a' }}>
+          <config.Header cv={cv} A={A} />
+          {blocks.map(b => (
+            <div key={b.key} data-flow-block="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
+              {b.node}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
+}
+
+// ── Flow-pagination export config ────────────────────────────────
+// Read by app/preview/page.tsx's buildPdfHtml to decide, per template, whether
+// to emit the renderer-owned (flow) PDF layout instead of the packed fixed-page
+// layout, and with what @page margins. Returns null for every template still on
+// the packer, so those PDFs are byte-for-byte unchanged.
+export function getFlowPdfConfig(templateId: TemplateId): { padTop: number; padBottom: number; padSide: number } | null {
+  const design = TEMPLATE_MAP[templateId] || 'meridian'
+  const config = TEMPLATES_CONFIG[design]
+  if (!config?.flowPaginate) return null
+  const parts = config.mainPad.split(/\s+/).map(p => parseFloat(p) || 0)
+  const padSide = parts.length >= 2 ? parts[1] : (parts[0] || 0)
+  return { padTop: config.contentPadV, padBottom: config.contentPadV, padSide }
 }
 
 
@@ -938,7 +983,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── SLATE: minimalist mono, airy whitespace ──
   slate: {
-    design: 'slate', font: BODY_SERIF, contentPadV: 54, mainPad: '54px 60px', sidebarW: 0, sidebarSide: 'none', measureW: 674,
+    design: 'slate', font: BODY_SERIF, contentPadV: 54, mainPad: '54px 60px', sidebarW: 0, sidebarSide: 'none', measureW: 674, flowPaginate: true,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: '#1a1a1a', marginBottom: 14 }}>{t}</div>
       const b: Block[] = []
@@ -1075,7 +1120,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── ATLAS: numbered-free date rail timeline, architectural ──
   atlas: {
-    design: 'atlas', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    design: 'atlas', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694, flowPaginate: true,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#0f172a', marginBottom: 16 }}>{t}</div>
       const b: Block[] = []
@@ -1203,7 +1248,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── ASCEND: single column, colour-bar headings ──
   ascend: {
-    design: 'ascend', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 34,
+    design: 'ascend', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 34, flowPaginate: true,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'bar', { skillsInline: true }),
     Header: ({ cv, A }) => (<>
       <div style={{ fontSize: 36, fontWeight: 800, letterSpacing: 0.5, color: '#1a1a1a', textTransform: 'uppercase', marginBottom: 6 }}>{cv.fullName}</div>
@@ -1220,7 +1265,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── HARBOUR: single column, tick headings, editorial ──
   harbour: {
-    design: 'harbour', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694, packTolerance: 0, packBottomSafety: 32,
+    design: 'harbour', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694, packTolerance: 0, packBottomSafety: 32, flowPaginate: true, flowBodyColor: '#1a2a2a',
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'tick', { skillsInline: true }),
     Header: ({ cv, A }) => (<>
       <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', marginBottom: 8 }}>
@@ -1240,7 +1285,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── CLASSIC: ATS single column ──
   classic: {
-    design: 'classic', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 48px', sidebarW: 0, sidebarSide: 'none', measureW: 698, packTolerance: 0, packBottomSafety: 32,
+    design: 'classic', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 48px', sidebarW: 0, sidebarSide: 'none', measureW: 698, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'rule', { skillsInline: true }),
     Header: ({ cv }) => (<div style={{ textAlign: 'center', marginBottom: 22 }}>
       <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: 0.5, marginBottom: 4 }}>{cv.fullName}</div>
