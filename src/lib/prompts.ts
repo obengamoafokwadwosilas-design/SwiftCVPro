@@ -367,6 +367,27 @@ Rewrite this section following the user's instruction. Keep the same JSON struct
 Return ONLY the new JSON for this section — no markdown, no explanation.`
 }
 
+// ─────────────────────────────────────────────────────────────
+// PAGINATION-RISK TRIM PROMPT — tightens a handful of specific lines
+// (not a full section) that are shaped like the ones that tend to
+// strand as page orphans: the last item in a role/list running much
+// longer than its siblings. Scoped and surgical — only these lines
+// are touched, everything else in the CV is untouched.
+// ─────────────────────────────────────────────────────────────
+export function buildBulletTrimPrompt(items: { id: string; text: string; context: string; maxWords: number }[]): string {
+  return `You are tightening a handful of individual lines from an otherwise-finished, approved CV. These lines currently run longer than the rest of their section, which reads awkwardly on the printed page. Do NOT change facts, numbers, employers, dates, or meaning — only tighten the wording so it says the same thing more concisely.
+
+For each item below, rewrite it to be AT OR UNDER its word limit while preserving every fact and number and keeping the original confident, specific voice (past-tense action verbs where the item is a bullet). Do not add placeholders and do not invent anything not already present in the current text.
+
+ITEMS TO TIGHTEN:
+${items.map(it => `- id: "${it.id}"\n  context: ${it.context}\n  max words: ${it.maxWords}\n  current: "${it.text}"`).join('\n')}
+
+Return ONLY this JSON, no markdown, no explanation:
+{
+${items.map(it => `  "${it.id}": "rewritten text, at or under ${it.maxWords} words"`).join(',\n')}
+}`
+}
+
 function getSectionOutputFormat(section: string): string {
   if (section === 'summary') return 'Return: { "summary": "rewritten summary" }'
   if (section === 'skills') return 'Return: { "skills": ["skill1", "skill2"] }'

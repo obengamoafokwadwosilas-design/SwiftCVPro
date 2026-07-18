@@ -3,10 +3,100 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { normalizePhone } from '@/lib/credits'
-import { buildGenerationPrompt, CV_SYSTEM_PROMPT } from '@/lib/prompts'
+import { buildGenerationPrompt, buildBulletTrimPrompt, CV_SYSTEM_PROMPT } from '@/lib/prompts'
 import { CVFormData, GeneratedCV } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// ── Pagination-risk pass ──────────────────────────────────────
+// This app has no reliable way to know real page-break positions
+// server-side (running headless Chrome in this Vercel function was
+// already tried for PDF export and abandoned twice in favour of an
+// external renderer — see git history on app/api/export-pdf/route.ts).
+// So instead of detecting real page breaks, this deterministically
+// flags the *shape* of content most likely to strand as a page
+// orphan or widow: the last bullet/item in a role or list running
+// much longer than its siblings. Best-effort only — never blocks
+// or fails CV delivery.
+type RiskyItem = { id: string; text: string; context: string; maxWords: number; set: (text: string) => void }
+
+function wordCount(s: string): number {
+  return (s || '').trim().split(/\s+/).filter(Boolean).length
+}
+
+function flagTrailingOutlier(
+  list: string[] | undefined,
+  idPrefix: string,
+  context: string,
+  hardCap: number,
+  targetMaxWords: number,
+  set: (index: number, text: string) => void,
+  out: RiskyItem[]
+) {
+  if (!list || !list.length) return
+  const lastIdx = list.length - 1
+  const counts = list.map(wordCount)
+  const last = counts[lastIdx]
+  const others = counts.slice(0, lastIdx)
+  const avgOthers = others.length ? others.reduce((a, b) => a + b, 0) / others.length : 0
+  const isTrailingOutlier = others.length >= 1 && last > avgOthers * 1.4 && last > targetMaxWords
+  const isHardOverCap = last > hardCap
+  if (isTrailingOutlier || isHardOverCap) {
+    out.push({
+      id: `${idPrefix}-${lastIdx}`,
+      text: list[lastIdx],
+      context,
+      maxWords: targetMaxWords,
+      set: (text: string) => set(lastIdx, text),
+    })
+  }
+}
+
+function findPaginationRiskyItems(cv: GeneratedCV): RiskyItem[] {
+  const items: RiskyItem[] = []
+
+  cv.experience?.forEach((e, i) => {
+    flagTrailingOutlier(e.bullets, `exp${i}`, `${e.role} at ${e.company}`, 26, 18, (idx, text) => { e.bullets[idx] = text }, items)
+  })
+  if (cv.attributes?.length) {
+    flagTrailingOutlier(cv.attributes, 'attr', 'Professional attribute', 18, 15, (idx, text) => { cv.attributes![idx] = text }, items)
+  }
+  flagTrailingOutlier(cv.publications, 'pub', 'Publication citation', 34, 24, (idx, text) => { cv.publications![idx] = text }, items)
+  flagTrailingOutlier(cv.research, 'res', 'Research item', 34, 24, (idx, text) => { cv.research![idx] = text }, items)
+  flagTrailingOutlier(cv.teaching, 'teach', 'Teaching item', 34, 24, (idx, text) => { cv.teaching![idx] = text }, items)
+  ;((cv as any).extraSections as { heading: string; items: string[] }[] | undefined)?.forEach((sec, i) => {
+    if (!sec?.items?.length) return
+    flagTrailingOutlier(sec.items, `extra${i}`, sec.heading || 'Additional item', 34, 24, (idx, text) => { sec.items[idx] = text }, items)
+  })
+
+  // Cap so the extra call stays small, fast, and genuinely surgical.
+  return items.slice(0, 4)
+}
+
+async function runPaginationRiskPass(cv: GeneratedCV): Promise<void> {
+  const risky = findPaginationRiskyItems(cv)
+  if (!risky.length) return
+
+  const prompt = buildBulletTrimPrompt(risky.map(r => ({ id: r.id, text: r.text, context: r.context, maxWords: r.maxWords })))
+  const call = anthropic.messages.create({
+    model: 'claude-opus-4-7',
+    max_tokens: 800,
+    system: 'You are a precise copy editor. Follow instructions exactly and return only valid JSON.',
+    messages: [{ role: 'user', content: prompt }],
+  })
+  const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('pagination-risk pass timed out')), 12000))
+
+  const message: any = await Promise.race([call, timeout])
+  const rawText = message.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('')
+  const cleaned = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
+  const trimmed = JSON.parse(cleaned)
+
+  risky.forEach(r => {
+    const replacement = trimmed[r.id]
+    if (typeof replacement === 'string' && replacement.trim()) r.set(replacement.trim())
+  })
+  console.log(`[Generate] Pagination-risk pass tightened ${risky.length} item(s)`)
+}
 
 // ⚠️ TESTING MODE — payments bypassed
 // TODO: Remove this and re-enable credits check before going live
@@ -129,6 +219,13 @@ export async function POST(req: NextRequest) {
     } catch {
       console.error('JSON parse failed. First 500 chars:', rawText.substring(0, 500))
       return NextResponse.json({ error: 'CV processing failed. Please try again.' }, { status: 500 })
+    }
+
+    // ── Pagination-risk pass (best-effort, never blocks delivery) ──
+    try {
+      await runPaginationRiskPass(generatedCV)
+    } catch (err) {
+      console.error('Pagination-risk pass failed (non-fatal):', err)
     }
 
     // ── Deduct credit (only when NOT in testing mode) ─
