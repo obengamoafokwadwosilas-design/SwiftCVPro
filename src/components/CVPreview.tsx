@@ -150,9 +150,13 @@ const PACK_BOTTOM_SAFETY = 32
 // line could be visible only halfway before the page frame clipped it.
 const PACK_TOLERANCE = 0
 // The screen preview and the remote PDF renderer can differ by a few pixels
-// after font rasterisation. The final correction pass reserves this tiny guard
-// so the exported PDF never cuts through a sentence or skill line.
-const FINAL_RENDER_GUARD = 10
+// after font rasterisation. The final correction pass reserves this guard so
+// the exported PDF never cuts through a sentence or skill line. Raised from
+// 10 to 18 after a heading was still clipped at a page's bottom edge with
+// the old value — that specific shape is now also closed structurally (see
+// the heading/first-item pairing in packMainPlan), but the extra margin
+// stays as a hedge against the underlying client-vs-remote-renderer drift.
+const FINAL_RENDER_GUARD = 18
 
 const packMainPlan = (keys: string[], heights: number[], page1Usable: number, usable: number, tolerance = PACK_TOLERANCE): number[][] => {
   const result: number[][] = []
@@ -167,13 +171,27 @@ const packMainPlan = (keys: string[], heights: number[], page1Usable: number, us
   // of large, avoidable white gaps.
   for (let i = 0; i < keys.length; i++) {
     const h = heights[i] || 0
-    if (current.length > 0 && used + h > limit + tolerance) {
+    // A heading is checked together with its first following item, not in
+    // isolation. Checking the heading alone let it be placed as the very
+    // first thing on a fresh page even when its first item had no room to
+    // follow — the post-hoc rescue below only ever fires when a heading
+    // lands AFTER other content on the same page (current.length > 1), so a
+    // heading starting a fresh page with nothing before it slipped through
+    // uncaught, leaving it sitting alone with nothing under it. Pairing the
+    // heading with its first item at placement time closes that gap by
+    // construction, and also adds real headroom before a heading is ever
+    // allowed to start a page, which cushions it against the small
+    // client-vs-remote-renderer drift a heading's own height alone would not.
+    const pairedH = (isHeading(i) && i + 1 < keys.length) ? h + (heights[i + 1] || 0) : h
+    if (current.length > 0 && used + pairedH > limit + tolerance) {
       result.push(current); current = []; used = 0; limit = usable
     }
     current.push(i)
     used += h
 
     // Never leave a section/role heading alone at the bottom of a page.
+    // Kept as a secondary safety net for cases the placement-time pairing
+    // above doesn't cover (e.g. a heading with no following item at all).
     if (isHeading(i) && i + 1 < keys.length) {
       const nextH = heights[i + 1] || 0
       if (used + nextH > limit + tolerance && current.length > 1) {
