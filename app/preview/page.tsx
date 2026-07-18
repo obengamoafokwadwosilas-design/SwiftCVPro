@@ -24,9 +24,9 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   // the six above (Paginated / packMainPlan / packSidePlan / zero-tolerance
   // clamp are global, not per-template) — nothing about their safety differs.
   { id: 'meridian',  name: 'Meridian',        tag: 'Two-Column · Colour Sidebar',       color: '#0d9488', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'sterling',  name: 'Sterling',        tag: 'Two-Column · Dark Sidebar',         color: '#c9a86a', formats: 'pdf',  category: 'premium',  customizable: true  },
-  { id: 'slate',     name: 'Slate',           tag: 'Dense · Minimalist · Single-Column',color: '#1a1a1a', formats: 'pdf',  category: 'ats',      customizable: true  },
-  { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'pdf',  category: 'premium',  customizable: true  },
+  { id: 'sterling',  name: 'Sterling',        tag: 'Two-Column · Dark Sidebar',         color: '#c9a86a', formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'slate',     name: 'Slate',           tag: 'Dense · Minimalist · Single-Column',color: '#1a1a1a', formats: 'both', category: 'ats',      customizable: true  },
+  { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'both', category: 'premium',  customizable: true  },
 ]
 
 // Color swatches for picker

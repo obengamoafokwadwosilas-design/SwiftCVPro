@@ -127,6 +127,18 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
     case 'classic':   return buildClassic(cv)
     case 'academic':  return buildSovereign(cv, accentColor)
 
+    // ── Word support for the remaining visible templates ──
+    // These carry PDF-specific visual flourishes (dark sidebar, timeline rail,
+    // dense minimalist type) that Word can only approximate, so each reuses the
+    // closest existing builder rather than a pixel-exact one:
+    //   sterling → Meridian two-column builder (its dark sidebar becomes the
+    //              accent sidebar), slate → Classic single-column, atlas →
+    //              Ascend structured single-column. Word paginates natively, so
+    //              none of these can clip or gap the way a PDF could.
+    case 'sterling':  return buildMeridianV2(cv, accentColor)
+    case 'slate':     return buildClassic(cv)
+    case 'atlas':     return buildAscend(cv, accentColor)
+
     default:
       return buildClassic(cv)
   }
