@@ -139,6 +139,13 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
     case 'slate':     return buildClassic(cv)
     case 'atlas':     return buildAscend(cv, accentColor)
 
+    // ── Newly surfaced designs (Onyx, Verde, Crimson) ──
+    // onyx shares its dark editorial design with pulse/noir; verde and crimson
+    // reuse the structured single-column Ascend builder with their own accent.
+    case 'onyx':      return buildPulse(cv, accentColor)
+    case 'verde':     return buildAscend(cv, accentColor)
+    case 'crimson':   return buildAscend(cv, accentColor)
+
     default:
       return buildClassic(cv)
   }

@@ -27,6 +27,9 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'sterling',  name: 'Sterling',        tag: 'Two-Column · Dark Sidebar',         color: '#c9a86a', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'slate',     name: 'Slate',           tag: 'Dense · Minimalist · Single-Column',color: '#1a1a1a', formats: 'both', category: 'ats',      customizable: true  },
   { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'onyx',      name: 'Onyx',            tag: 'Dark Editorial · Gold Accents',     color: '#c9a86a', formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'verde',     name: 'Verde',           tag: 'Green Gradient · Timeline',         color: '#3f9142', formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'crimson',   name: 'Crimson',         tag: 'Magazine · Colour Band',            color: '#a01e1e', formats: 'both', category: 'premium',  customizable: true  },
 ]
 
 // Color swatches for picker
@@ -347,6 +350,7 @@ export default function PreviewPage() {
   <link rel="stylesheet" href="${PRINT_FONTS_HREF}" />
   <style>
     @page { size: A4; margin: ${flow.padTop}px ${flow.padRight}px ${flow.padBottom}px ${flow.padLeft}px; }
+    ${flow.banded ? '@page :first { margin-top: 0; }' : ''}
     html, body {
       margin: 0;
       padding: 0;

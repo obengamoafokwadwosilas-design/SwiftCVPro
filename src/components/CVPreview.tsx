@@ -391,6 +391,15 @@ type TemplateConfig = {
   flowRail?: boolean        // left colour rail in the accent colour (e.g. vertex)
   flowRailW?: number        // rail width in px (default 38)
   flowTopBarH?: number      // top accent bar height in px (e.g. crimson 8)
+  // Page-1 full-bleed header BAND (onyx, verde): the header renders inside a
+  // coloured band that must span the full paper width on page 1 only. This can't
+  // be a repeating fixed element, so banded templates use a different flow
+  // layout — vertical-only @page margins (so the band bleeds edge-to-edge) with
+  // the body's horizontal padding supplied by an inner wrapper, and @page :first
+  // { margin-top: 0 } so the band sits flush to the top of page 1. flowBandBg
+  // returns the band background for the current accent.
+  flowBand?: boolean
+  flowBandBg?: (A: string) => string
   // render the page frame: header (page 1 only), children = packed main blocks,
   // sidebarChildren = this page's slice of the paginated sidebar (if enabled)
   Frame: (p: { cv: GeneratedCV; A: string; pageIndex: number; children: React.ReactNode; sidebarChildren?: React.ReactNode }) => React.ReactElement
@@ -772,26 +781,55 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
           carries the horizontal padding — hence no vertical padding here. */}
       {config.flowPaginate && (
         <div data-flow-doc style={{ width: '100%', background: '#fff', fontFamily: config.font, color: config.flowBodyColor ?? '#1a1a1a' }}>
-          {/* Per-page decorations: position:fixed so the PDF renderer repaints
-              them on every sheet, anchored to the paper edge. Hidden on screen
-              (the whole flow doc is display:none there). z-index 0 keeps them
-              behind the content layer below. */}
-          {config.flowPageBg && <div data-flow-decor style={{ position: 'fixed', inset: 0, background: config.flowPageBg, zIndex: 0 }} />}
-          {config.flowRail && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowRailW ?? 38, background: A, zIndex: 0 }} />}
-          {config.flowTopBarH && <div data-flow-decor style={{ position: 'fixed', left: 0, right: 0, top: 0, height: config.flowTopBarH, background: A, zIndex: 0 }} />}
-          {/* Content layer sits above the decorations. */}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <config.Header cv={cv} A={A} />
-            {blocks.map(b => (
-              <div key={b.key} data-flow-block="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
-                {b.node}
+          {config.flowBand ? (
+            // Banded templates (onyx, verde): full-bleed page-1 header band, then
+            // horizontally-padded body. @page margins are vertical-only (set in
+            // buildPdfHtml) so the band reaches the paper edges; the body wrapper
+            // supplies the horizontal padding, which then repeats on every sheet.
+            <>
+              <div style={{ background: config.flowBandBg ? config.flowBandBg(A) : darken(A, 0.72), padding: config.headerBannerPad ?? '36px 50px 30px' }}>
+                <config.Header cv={cv} A={A} />
               </div>
-            ))}
-          </div>
+              <div style={{ padding: `0 ${flowPadH(config)}px` }}>
+                {blocks.map(b => (
+                  <div key={b.key} data-flow-block="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
+                    {b.node}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Per-page decorations: position:fixed so the PDF renderer repaints
+                  them on every sheet, anchored to the paper edge. Hidden on screen
+                  (the whole flow doc is display:none there). z-index 0 keeps them
+                  behind the content layer below. */}
+              {config.flowPageBg && <div data-flow-decor style={{ position: 'fixed', inset: 0, background: config.flowPageBg, zIndex: 0 }} />}
+              {config.flowRail && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowRailW ?? 38, background: A, zIndex: 0 }} />}
+              {config.flowTopBarH && <div data-flow-decor style={{ position: 'fixed', left: 0, right: 0, top: 0, height: config.flowTopBarH, background: A, zIndex: 0 }} />}
+              {/* Content layer sits above the decorations. */}
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <config.Header cv={cv} A={A} />
+                {blocks.map(b => (
+                  <div key={b.key} data-flow-block="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
+                    {b.node}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
   )
+}
+
+// Horizontal body padding (px) taken from a template's mainPad — used by the
+// banded flow layout, whose @page margins are vertical-only so the body must
+// supply its own left/right padding.
+function flowPadH(config: TemplateConfig): number {
+  const parts = config.mainPad.split(/\s+/).map(p => parseFloat(p) || 0)
+  return parts.length >= 2 ? parts[1] : (parts[0] || 0)
 }
 
 // ── Flow-pagination export config ────────────────────────────────
@@ -800,15 +838,20 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
 // layout, and with what @page margins. Returns null for every template still on
 // the packer, so those PDFs are byte-for-byte unchanged. padLeft/padRight are
 // separate because a left rail widens only the left margin so the content still
-// clears the rail (matching the packed frame's grid offset).
-export function getFlowPdfConfig(templateId: TemplateId): { padTop: number; padBottom: number; padLeft: number; padRight: number } | null {
+// clears the rail (matching the packed frame's grid offset). `banded` templates
+// use vertical-only page margins (padLeft/padRight 0) so their page-1 header
+// band can bleed to the paper edges; their body padding is applied in React.
+export function getFlowPdfConfig(templateId: TemplateId): { padTop: number; padBottom: number; padLeft: number; padRight: number; banded: boolean } | null {
   const design = TEMPLATE_MAP[templateId] || 'meridian'
   const config = TEMPLATES_CONFIG[design]
   if (!config?.flowPaginate) return null
+  if (config.flowBand) {
+    return { padTop: config.contentPadV, padBottom: config.contentPadV, padLeft: 0, padRight: 0, banded: true }
+  }
   const parts = config.mainPad.split(/\s+/).map(p => parseFloat(p) || 0)
   const padSide = parts.length >= 2 ? parts[1] : (parts[0] || 0)
   const railW = config.flowRail ? (config.flowRailW ?? 38) : 0
-  return { padTop: config.contentPadV, padBottom: config.contentPadV, padLeft: padSide + railW, padRight: padSide }
+  return { padTop: config.contentPadV, padBottom: config.contentPadV, padLeft: padSide + railW, padRight: padSide, banded: false }
 }
 
 
@@ -926,7 +969,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── ONYX: dark editorial header band, gold accents ──
   onyx: {
-    design: 'onyx', headerBannerPad: '38px 46px 30px', font: BODY_SERIF, contentPadV: 30, pageUsable: 1047, mainPad: '30px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702,
+    design: 'onyx', headerBannerPad: '38px 46px 30px', font: BODY_SERIF, contentPadV: 30, pageUsable: 1047, mainPad: '30px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, flowPaginate: true, flowBand: true, flowBandBg: (A) => darken(A, 0.72),
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: A, marginBottom: 10 }}>{t}</div>
       const b: Block[] = []
@@ -1051,7 +1094,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── VERDE: green gradient header, timeline experience, cards ──
   verde: {
-    design: 'verde', font: BODY_SERIF, contentPadV: 36, pageUsable: 1037, headerBannerPad: '36px 50px 30px', mainPad: '36px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694,
+    design: 'verde', font: BODY_SERIF, contentPadV: 36, pageUsable: 1037, headerBannerPad: '36px 50px 30px', mainPad: '36px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694, flowPaginate: true, flowBand: true, flowBandBg: (A) => `linear-gradient(135deg, ${darken(A, 0.45)}, ${A})`,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: darken(A, 0.5), marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 7, height: 7, borderRadius: '50%', background: A }} />{t}<span style={{ flex: 1, height: 1, background: `linear-gradient(90deg, ${A}40, transparent)` }} /></div>
       const b: Block[] = []
