@@ -516,11 +516,20 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   const limitsRef = useRef<{ page1Usable: number; usable: number; sLimit: number } | null>(null)
   const correctionsRef = useRef(0)
   const [sidePages, setSidePages] = useState<number[][] | null>(null)
+  // Signals to the PDF export flow (app/preview/page.tsx) that the ground-truth
+  // self-correction pass below has finished — either it converged (the plan
+  // matches the real render) or it exhausted its 2-round budget. Export waits
+  // for this attribute instead of guessing a fixed number of frames, which is
+  // what let the conservative first-pass plan (see measurePass comment further
+  // down) leak into exported PDFs as unnecessary early page breaks.
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const markPaginationReady = () => { if (wrapperRef.current) wrapperRef.current.setAttribute('data-pagination-ready', 'true') }
 
   useLayoutEffect(() => {
     let cancelled = false
     let raf = 0
     correctionsRef.current = 0
+    if (wrapperRef.current) wrapperRef.current.removeAttribute('data-pagination-ready')
 
     function paginate() {
       try {
@@ -594,12 +603,13 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   // collapsed margins. It re-packs with those truths and corrects the plan
   // if it differs. Runs at most twice per CV to guarantee no update loops.
   useLayoutEffect(() => {
-    if (!pages || correctionsRef.current >= 2 || !limitsRef.current) return
+    if (!pages || !limitsRef.current) return
+    if (correctionsRef.current >= 2) { markPaginationReady(); return }
     const root = screenDocRef.current
-    if (!root) return
+    if (!root) { markPaginationReady(); return }
     try {
       const els = Array.from(root.querySelectorAll('[data-bk]')) as HTMLElement[]
-      if (els.length !== blocks.length || blocks.length === 0) return
+      if (els.length !== blocks.length || blocks.length === 0) { markPaginationReady(); return }
       const trueHeights = els.map((el, i) => {
         const r = el.getBoundingClientRect()
         if (i + 1 < els.length) {
@@ -641,8 +651,16 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         correctionsRef.current++
         if (mainChanged) setPages(newMain)
         if (sideChanged) setSidePages(newSide)
+        // not settled yet — the state update above re-triggers this effect,
+        // which will mark ready once it converges or hits the round cap
+      } else {
+        markPaginationReady()
       }
-    } catch { /* correction is best-effort; the first-pass plan still stands */ }
+    } catch {
+      // correction is best-effort; the first-pass plan still stands, but the
+      // export flow must never wait forever for a signal that will never come
+      markPaginationReady()
+    }
   }, [pages, sidePages]) // eslint-disable-line
 
   // Hidden measure pass — renders real header + all blocks at exact column width
@@ -680,7 +698,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
       : undefined
 
   return (
-    <div>
+    <div ref={wrapperRef}>
       {/* On screen, hide the paged frames and show only the continuous doc.
           In print/PDF (buildPdfHtml uses print media) this rule does NOT apply,
           so the real pages render — the download is unchanged. */}
@@ -1223,7 +1241,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 // ── Cover letter (flows naturally, no columns) ──
 function CoverLetter({ cv, A, font }: { cv: GeneratedCV; A: string; font: string }) {
   return (
-    <div style={{ ...pageBase, fontFamily: font, color: '#1a1a1a', padding: '52px 56px' }}>
+    <div data-pagination-ready="true" style={{ ...pageBase, fontFamily: font, color: '#1a1a1a', padding: '52px 56px' }}>
       <div style={{ borderBottom: `2px solid ${A}`, paddingBottom: 18, marginBottom: 28 }}>
         <div style={{ fontSize: 28, fontWeight: 700, color: A, marginBottom: 4 }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: 14.5, color: '#666', fontStyle: 'italic', marginBottom: 8 }}>{cv.jobTitle}</div>}

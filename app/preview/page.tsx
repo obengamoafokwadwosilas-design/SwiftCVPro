@@ -269,13 +269,28 @@ export default function PreviewPage() {
     setDownloading('pdf')
 
     try {
-      // Let webfonts finish and allow the paginator's real-render correction
-      // pass to commit before serialising the document for the PDF service.
+      // Let webfonts finish loading first — the correction pass below measures
+      // real text, so it needs the real fonts already applied.
       const fonts = (document as any).fonts
       if (fonts?.ready && typeof fonts.ready.then === 'function') {
         await fonts.ready.catch(() => undefined)
       }
-      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()))
+
+      // CVPreview's pagination engine self-corrects its first (conservative)
+      // page-break plan against the real rendered document, then flags
+      // [data-pagination-ready="true"] once that correction has committed.
+      // Serialising outerHTML before that flag appears was capturing the
+      // stale, over-conservative plan — pages breaking earlier than the
+      // content actually needed, even with room left on the page. Poll for
+      // the real signal instead of guessing a fixed number of frames; if it
+      // never arrives (e.g. a cover letter, which has no async pagination
+      // and is marked ready immediately, or an edge-case failure), fall
+      // through after a bounded wait rather than hanging the download.
+      const settleDeadline = Date.now() + 4000
+      while (!printArea.querySelector('[data-pagination-ready="true"]') && Date.now() < settleDeadline) {
+        await new Promise<void>(resolve => setTimeout(resolve, 60))
+      }
 
       const html = buildPdfHtml(printArea.outerHTML, template)
 
