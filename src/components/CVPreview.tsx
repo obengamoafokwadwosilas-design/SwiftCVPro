@@ -1280,7 +1280,13 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   },
   // ── VERTEX: colour rail + two inner columns (paginate the whole body) ──
   vertex: {
-    design: 'vertex', font: BODY_SERIF, contentPadV: 46, mainPad: '46px', sidebarW: 0, sidebarSide: 'none', measureW: 664, packTolerance: 0, packBottomSafety: 32, flowPaginate: true, flowRail: true, flowRailW: 38,
+    // NOTE: vertex stays on the packer (no flowPaginate). Its full-height colour
+    // rail is drawn as a per-page background gradient in Frame — reliable and
+    // edge-aligned. The flow engine can only draw the rail with a position:fixed
+    // element, which Api2Pdf's renderer places relative to the content area, so
+    // the rail landed on top of the text. Packer + the heading-pairing/guard
+    // fixes keeps the rail correct without reintroducing the old gap problem.
+    design: 'vertex', font: BODY_SERIF, contentPadV: 46, mainPad: '46px', sidebarW: 0, sidebarSide: 'none', measureW: 664, packTolerance: 0, packBottomSafety: 32,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'dash', { skillsInline: true }),
     Header: ({ cv, A }) => {
       const first = cv.fullName.split(' ')[0], rest = cv.fullName.split(' ').slice(1).join(' ')
