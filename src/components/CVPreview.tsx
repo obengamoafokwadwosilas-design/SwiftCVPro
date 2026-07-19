@@ -914,7 +914,7 @@ function sterlingSidebarBlocks(cv: GeneratedCV, A: string): Block[] {
   }
   if (cv.skills?.length) {
     b.push({ key: 'sb-skills-h', node: SH('Skills') })
-    cv.skills.forEach((sk, i) => b.push({ key: `sb-skill-${i}`, node: <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 5 }}>{sk}</div> }))
+    cv.skills.forEach((sk, i) => b.push({ key: `sb-skill-${i}`, node: <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginBottom: 5, display: 'flex', gap: 6, lineHeight: 1.45 }}><span aria-hidden="true" style={{ flexShrink: 0 }}>•</span><span>{sk}</span></div> }))
     b.push({ key: 'sb-sp3', node: <div style={{ height: 18 }} /> })
   }
   if (cv.languages?.length) {
