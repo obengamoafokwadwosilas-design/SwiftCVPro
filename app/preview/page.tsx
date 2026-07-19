@@ -14,21 +14,21 @@ type Category = 'ats' | 'premium' | 'academic'
 const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; formats: Formats; category: Category; customizable: boolean }[] = [
   // Curated pagination-safe library. Every design uses the same granular
   // block structure; only typography, headings and header styling differ.
+  // ── PDF + Word, colour-customizable ──
   { id: 'vertex',    name: 'Modern Rail',     tag: 'Bold · Clean · Colour Rail',       color: '#e0533d', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'sovereign', name: 'Executive Gold',  tag: 'Prestige · Centered · Corporate',  color: '#b08d3f', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'ascend',    name: 'Corporate Blue',  tag: 'Strong · Colour Bars · Structured',color: '#1d4ed8', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'harbour',   name: 'Refined Teal',    tag: 'Editorial · Elegant · Professional',color: '#0f766e',formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'classic',   name: 'Classic ATS',     tag: 'Traditional · Recruiter Safe',      color: '#1f2937', formats: 'both', category: 'ats',      customizable: false },
-  { id: 'academic',  name: 'Academic',        tag: 'Scholarly · Structured · ATS Safe', color: '#374151', formats: 'both', category: 'academic', customizable: false },
-  // Restored: these run on the exact same shared, hardened pagination engine as
-  // the six above (Paginated / packMainPlan / packSidePlan / zero-tolerance
-  // clamp are global, not per-template) — nothing about their safety differs.
   { id: 'meridian',  name: 'Meridian',        tag: 'Two-Column · Colour Sidebar',       color: '#0d9488', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'sterling',  name: 'Sterling',        tag: 'Two-Column · Dark Sidebar',         color: '#c9a86a', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'slate',     name: 'Slate',           tag: 'Dense · Minimalist · Single-Column',color: '#1a1a1a', formats: 'both', category: 'ats',      customizable: true  },
-  { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'metro',     name: 'Aurora',          tag: 'Colourful · Bold Header Band',      color: '#7c3aed', formats: 'both', category: 'premium',  customizable: false },
+  { id: 'metro',     name: 'Aurora',          tag: 'Colourful · Bold Header Band',      color: '#7c3aed', formats: 'both', category: 'premium',  customizable: true  },
+  // Prestige keeps its fixed navy + gold identity (not colour-customizable).
   { id: 'prestige',  name: 'Prestige',        tag: 'Executive · Navy & Gold · Centered',color: '#a87b00', formats: 'both', category: 'premium',  customizable: false },
+  { id: 'classic',   name: 'Classic ATS',     tag: 'Traditional · Recruiter Safe',      color: '#1f2937', formats: 'both', category: 'ats',      customizable: true  },
+  { id: 'slate',     name: 'Slate',           tag: 'Dense · Minimalist · Single-Column',color: '#1a1a1a', formats: 'both', category: 'ats',      customizable: true  },
+  { id: 'academic',  name: 'Academic',        tag: 'Scholarly · Structured · ATS Safe', color: '#374151', formats: 'both', category: 'academic', customizable: true  },
+  // ── PDF only (rich layouts Word can't reproduce faithfully) — shown last ──
+  { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'pdf',  category: 'premium',  customizable: true  },
+  { id: 'sterling',  name: 'Sterling',        tag: 'Two-Column · Dark Sidebar',         color: '#c9a86a', formats: 'pdf',  category: 'premium',  customizable: true  },
 ]
 
 // Color swatches for picker
@@ -467,9 +467,11 @@ export default function PreviewPage() {
       ? TEMPLATES.filter(t => ACADEMIC_ALLOWED.includes(t.id))
       : TEMPLATES.filter(t => t.category === 'ats' || t.category === 'premium')
 
-  const premiumTemplates = visibleTemplates.filter(t => t.category === 'premium')
-  const atsTemplates = visibleTemplates.filter(t => t.category === 'ats' || t.category === 'academic')
-  const academicTemplates = visibleTemplates.filter(t => t.category === 'academic')
+  // Within each group, keep PDF+Word templates first and PDF-only ones last.
+  const bothFirst = (a: typeof TEMPLATES[0], b: typeof TEMPLATES[0]) => (a.formats === b.formats ? 0 : a.formats === 'both' ? -1 : 1)
+  const premiumTemplates = visibleTemplates.filter(t => t.category === 'premium').sort(bothFirst)
+  const atsTemplates = visibleTemplates.filter(t => t.category === 'ats' || t.category === 'academic').sort(bothFirst)
+  const academicTemplates = visibleTemplates.filter(t => t.category === 'academic').sort(bothFirst)
 
   async function handleRevision() {
     if (!revisionText.trim()) { setRevisionError('Please describe what you would like changed.'); return }

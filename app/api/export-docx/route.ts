@@ -124,27 +124,22 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
 
     // ── ATS single-column ──
     case 'london':    return buildAscend(cv, accentColor)
-    case 'classic':   return buildClassic(cv)
+    case 'classic':   return buildClassic(cv, accentColor)
     case 'academic':  return buildSovereign(cv, accentColor)
 
-    // ── Word support for the remaining visible templates ──
-    // These carry PDF-specific visual flourishes (dark sidebar, timeline rail,
-    // dense minimalist type) that Word can only approximate, so each reuses the
-    // closest existing builder rather than a pixel-exact one:
-    //   sterling → Meridian two-column builder (its dark sidebar becomes the
-    //              accent sidebar), slate → Classic single-column, atlas →
-    //              Ascend structured single-column. Word paginates natively, so
-    //              none of these can clip or gap the way a PDF could.
-    case 'sterling':  return buildMeridianV2(cv, accentColor)
-    case 'slate':     return buildClassic(cv)
-    case 'atlas':     return buildAscend(cv, accentColor)
-
-    // ── Matched PDF+Word designs (dedicated builders, look identical) ──
-    case 'metro':     return buildAurora(cv, '#7c3aed')
+    // ── Matched single-column designs (dedicated builders, look like the PDF) ──
+    case 'slate':     return buildSlate(cv, accentColor)
+    case 'metro':     return buildAurora(cv, accentColor || '#7c3aed')
     case 'prestige':  return buildExecutive(cv)
 
+    // atlas (timeline rail) and sterling (dark two-column sidebar) are PDF-only —
+    // their layouts can't be faithfully reproduced in Word — so the UI never
+    // requests a .docx for them. These fallbacks exist only for safety.
+    case 'sterling':  return buildMeridianV2(cv, accentColor)
+    case 'atlas':     return buildAscend(cv, accentColor)
+
     default:
-      return buildClassic(cv)
+      return buildClassic(cv, accentColor)
   }
 }
 
@@ -152,17 +147,21 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
 // 1. CLASSIC — Cambria body, centred name, line-divider headers
 // The safest, most universally recruiter-friendly design
 // ═══════════════════════════════════════════════════════
-function buildClassic(cv: GeneratedCV): Document {
+function buildClassic(cv: GeneratedCV, accentColor?: string | null): Document {
+  // Accent tints the section headings + rule; defaults to near-black so the
+  // classic look is unchanged when no colour is picked. Matches the PDF classic
+  // design, whose 'rule' headings use the same accent.
+  const ACCENT = (accentColor || '#1a1a1a').replace('#', '')
   const sectionHead = (text: string) => new Paragraph({
     children: [new TextRun({
       text: text.toUpperCase(),
       bold: true,
       size: SIZE_SECTION_HEAD,
       font: HEADER_FONT,
-      color: '1a1a1a',
+      color: ACCENT,
       characterSpacing: 30
     })],
-    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '1a1a1a' } },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT } },
     spacing: { before: 280, after: 140 }
   })
 
@@ -280,6 +279,110 @@ function buildClassic(cv: GeneratedCV): Document {
 
   // ── ADDITIONAL ──
   extraSectionParagraphs(cv, sectionHead, { size: SIZE_BODY, font: BODY_FONT, color: '1a1a1a' }).forEach(pp => children.push(pp))
+
+  return wrapDoc(children)
+}
+
+// ═══════════════════════════════════════════════════════
+// SLATE — minimalist, left-aligned, wide letter-spacing, no heading rules.
+// Matches the Slate PDF design: monochrome by default, section headings
+// tinted by the accent so the colour picker has a real (subtle) effect.
+// ═══════════════════════════════════════════════════════
+function buildSlate(cv: GeneratedCV, accentColor?: string | null): Document {
+  const ACCENT = (accentColor || '#1a1a1a').replace('#', '')
+  const sectionHead = (text: string) => new Paragraph({
+    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 20, font: BODY_FONT, color: ACCENT, characterSpacing: 70 })],
+    spacing: { before: 320, after: 120 }
+  })
+
+  const children: (Paragraph | Table)[] = []
+
+  // ── HEADER (left-aligned, wide tracking) ──
+  children.push(new Paragraph({
+    children: [new TextRun({ text: cv.fullName.toUpperCase(), size: 40, font: BODY_FONT, color: '1a1a1a', characterSpacing: 120 })],
+    spacing: { after: cv.jobTitle ? 70 : 40 }
+  }))
+  if (cv.jobTitle) children.push(new Paragraph({
+    children: [new TextRun({ text: cv.jobTitle.toUpperCase(), size: 18, font: BODY_FONT, color: '888888', characterSpacing: 80 })],
+    spacing: { after: 90 }
+  }))
+  // Short rule (narrow table cell with a bottom border) — mirrors the PDF's 36px bar.
+  children.push(new Table({
+    width: { size: 700, type: WidthType.DXA }, columnWidths: [700], borders: NO_BORDERS,
+    rows: [new TableRow({ children: [new TableCell({ width: { size: 700, type: WidthType.DXA }, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 10, color: '1a1a1a' } }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] })] })]
+  }))
+  children.push(new Paragraph({
+    children: [new TextRun({ text: contactStr(cv), size: 19, font: BODY_FONT, color: '999999', characterSpacing: 20 })],
+    spacing: { before: 120, after: 240 }
+  }))
+
+  // ── COVER LETTER ──
+  if (cv.coverLetterBody) {
+    cv.coverLetterBody.split('\n\n').forEach(para => children.push(new Paragraph({
+      children: [new TextRun({ text: para, size: SIZE_BODY, font: BODY_FONT, color: '1a1a1a' })],
+      spacing: { after: 200, line: 340 }, alignment: AlignmentType.JUSTIFIED
+    })))
+    return wrapDoc(children)
+  }
+
+  // ── SUMMARY ──
+  if (cv.summary) {
+    children.push(sectionHead('Profile'))
+    children.push(new Paragraph({ children: [new TextRun({ text: cv.summary, size: SIZE_BODY, font: BODY_FONT, color: '555555' })], spacing: { after: 100, line: 360 }, alignment: AlignmentType.JUSTIFIED }))
+  }
+
+  // ── EXPERIENCE ──
+  if (cv.experience?.length) {
+    children.push(sectionHead('Experience'))
+    cv.experience.forEach((exp, idx) => {
+      children.push(new Paragraph({
+        children: [
+          new TextRun({ text: exp.role, bold: true, size: SIZE_ROLE, font: BODY_FONT, color: '1a1a1a' }),
+          new TextRun({ text: '\t', size: SIZE_ROLE }),
+          new TextRun({ text: `${exp.startDate} – ${exp.endDate}`, size: SIZE_DATES, font: BODY_FONT, color: 'bbbbbb', italics: true }),
+        ],
+        tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+        spacing: { before: idx === 0 ? 0 : 220, after: 30 }
+      }))
+      children.push(new Paragraph({ children: [new TextRun({ text: exp.company, size: SIZE_BODY, font: BODY_FONT, color: '888888' })], spacing: { after: 90 } }))
+      exp.bullets.forEach(b => children.push(new Paragraph({
+        numbering: { reference: 'bullets', level: 0 },
+        children: [new TextRun({ text: b, size: SIZE_BULLET, font: BODY_FONT, color: '555555' })],
+        spacing: { after: 70, line: 320 }
+      })))
+    })
+  }
+
+  // ── EDUCATION ──
+  if (cv.education?.length) {
+    children.push(sectionHead('Education'))
+    cv.education.forEach((edu, idx) => {
+      children.push(new Paragraph({
+        children: [
+          new TextRun({ text: `${edu.qualification} in ${edu.field}`, bold: true, size: SIZE_ROLE, font: BODY_FONT, color: '1a1a1a' }),
+          new TextRun({ text: '\t', size: SIZE_ROLE }),
+          new TextRun({ text: `${edu.startYear} – ${edu.endYear}`, size: SIZE_DATES, font: BODY_FONT, color: 'bbbbbb', italics: true }),
+        ],
+        tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+        spacing: { before: idx === 0 ? 0 : 160, after: 30 }
+      }))
+      children.push(new Paragraph({ children: [new TextRun({ text: `${edu.institution}${edu.grade ? ` — ${edu.grade}` : ''}`, size: SIZE_BODY, font: BODY_FONT, color: '888888' })], spacing: { after: 80 } }))
+    })
+  }
+
+  // ── SKILLS ──
+  if (cv.skills?.length) {
+    children.push(sectionHead('Skills'))
+    children.push(new Paragraph({ children: [new TextRun({ text: cv.skills.join('   •   '), size: SIZE_BODY, font: BODY_FONT, color: '555555' })], spacing: { after: 100, line: 360 } }))
+  }
+
+  // ── LANGUAGES ──
+  if (cv.languages?.length) {
+    children.push(sectionHead('Languages'))
+    children.push(new Paragraph({ children: [new TextRun({ text: cv.languages.join('   •   '), size: SIZE_BODY, font: BODY_FONT, color: '555555' })], spacing: { after: 100 } }))
+  }
+
+  extraSectionParagraphs(cv, sectionHead, { size: SIZE_BODY, font: BODY_FONT, color: '555555' }).forEach(pp => children.push(pp))
 
   return wrapDoc(children)
 }
@@ -698,7 +801,7 @@ function buildAcademic(cv: GeneratedCV): Document {
 }
 
 // ── Document wrapper with proper margins ──────────
-function wrapDoc(children: Paragraph[]): Document {
+function wrapDoc(children: (Paragraph | Table)[]): Document {
   return new Document({
     numbering,
     styles: {

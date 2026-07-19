@@ -1062,7 +1062,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   slate: {
     design: 'slate', font: BODY_SERIF, contentPadV: 54, mainPad: '54px 60px', sidebarW: 0, sidebarSide: 'none', measureW: 674, flowPaginate: true,
     buildBlocks: (cv, A) => {
-      const head = (t: string) => <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: '#1a1a1a', marginBottom: 14 }}>{t}</div>
+      const head = (t: string) => <div style={{ fontSize: 12.5, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: A, marginBottom: 14 }}>{t}</div>
       const b: Block[] = []
       if (cv.summary) b.push({ key: 'summary', node: <div style={{ marginBottom: 26 }}>{head('Profile')}<p style={{ fontSize: 14, lineHeight: 1.9, color: '#555', margin: 0, textAlign: 'justify' }}>{cv.summary}</p></div> })
       if (cv.experience?.length) {
