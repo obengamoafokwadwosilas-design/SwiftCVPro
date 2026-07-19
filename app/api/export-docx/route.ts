@@ -5,7 +5,7 @@ import { extraSectionParagraphs } from './_extra'
 import {
   Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle,
   Table, TableRow, TableCell, WidthType, HeightRule, ShadingType,
-  LevelFormat, convertInchesToTwip, TabStopType, TabStopPosition
+  LevelFormat, convertInchesToTwip, TabStopType, TabStopPosition, VerticalAlign
 } from 'docx'
 import { GeneratedCV, TemplateId } from '@/types'
 import { buildVertex, buildSovereign, buildMeridianV2, buildAscend, buildHarbour, buildPulse, buildAurora } from './premium'
@@ -131,6 +131,8 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
     case 'slate':     return buildSlate(cv, accentColor)
     case 'metro':     return buildAurora(cv, accentColor || '#7c3aed')
     case 'prestige':  return buildExecutive(cv)
+    case 'compass':   return buildCompass(cv, accentColor)
+    case 'beacon':    return buildBeacon(cv, accentColor)
 
     // atlas (timeline rail) and sterling (dark two-column sidebar) are PDF-only —
     // their layouts can't be faithfully reproduced in Word — so the UI never
@@ -385,6 +387,81 @@ function buildSlate(cv: GeneratedCV, accentColor?: string | null): Document {
   extraSectionParagraphs(cv, sectionHead, { size: SIZE_BODY, font: BODY_FONT, color: '555555' }).forEach(pp => children.push(pp))
 
   return wrapDoc(children)
+}
+
+// ═══════════════════════════════════════════════════════
+// Shared single-column composer — header + all sections, given a heading
+// renderer (a Paragraph or Table). Used by Compass & Beacon so their bodies
+// are identical and only the heading treatment differs.
+// ═══════════════════════════════════════════════════════
+type ComposeOpts = { center: boolean; bodyFont: string; nameFont: string; nameColor: string; titleUsesAccent: boolean }
+function composeSingleColumn(cv: GeneratedCV, heading: (t: string) => Paragraph | Table, ACCENT: string, opts: ComposeOpts): Document {
+  const align = opts.center ? AlignmentType.CENTER : AlignmentType.LEFT
+  const children: (Paragraph | Table)[] = []
+
+  children.push(new Paragraph({ alignment: align, children: [new TextRun({ text: cv.fullName, bold: true, size: SIZE_NAME, font: opts.nameFont, color: opts.nameColor })], spacing: { after: 60 } }))
+  if (cv.jobTitle) children.push(new Paragraph({ alignment: align, children: [new TextRun({ text: cv.jobTitle, size: SIZE_TITLE, font: opts.bodyFont, color: opts.titleUsesAccent ? ACCENT : '4a4a4a', bold: opts.titleUsesAccent, italics: !opts.titleUsesAccent })], spacing: { after: 80 } }))
+  children.push(new Paragraph({ alignment: align, children: [new TextRun({ text: contactStr(cv), size: SIZE_CONTACT, font: opts.bodyFont, color: '5a5a5a' })], spacing: { after: 240 } }))
+
+  if (cv.coverLetterBody) {
+    cv.coverLetterBody.split('\n\n').forEach(p => children.push(new Paragraph({ children: [new TextRun({ text: p, size: SIZE_BODY, font: opts.bodyFont, color: '1a1a1a' })], spacing: { after: 200, line: 320 }, alignment: AlignmentType.JUSTIFIED })))
+    return wrapDoc(children)
+  }
+
+  const gapB = () => new Paragraph({ spacing: { before: 220 }, children: [new TextRun({ text: '', size: 2 })] })
+  const gapA = () => new Paragraph({ spacing: { after: 90 }, children: [new TextRun({ text: '', size: 2 })] })
+  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'bullets', level: 0 }, children: [new TextRun({ text: t, size: SIZE_BULLET, font: opts.bodyFont, color: '333333' })], spacing: { after: 60, line: 300 } })
+  const sect = (title: string, content: () => void) => { children.push(gapB()); children.push(heading(title)); children.push(gapA()); content() }
+
+  if (cv.summary) sect('Profile', () => children.push(new Paragraph({ children: [new TextRun({ text: cv.summary, size: SIZE_BODY, font: opts.bodyFont, color: '333333' })], spacing: { after: 80, line: 320 }, alignment: AlignmentType.JUSTIFIED })))
+  if (cv.experience?.length) sect('Professional Experience', () => cv.experience.forEach((e, i) => {
+    children.push(new Paragraph({ children: [new TextRun({ text: e.role, bold: true, size: SIZE_ROLE, font: opts.bodyFont, color: '0a0a0a' }), new TextRun({ text: '\t', size: SIZE_ROLE }), new TextRun({ text: `${e.startDate} – ${e.endDate}`, size: SIZE_DATES, font: opts.bodyFont, color: '6a6a6a', italics: true })], tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }], spacing: { before: i === 0 ? 0 : 200, after: 40 } }))
+    children.push(new Paragraph({ children: [new TextRun({ text: e.company, size: SIZE_BODY, font: opts.bodyFont, color: ACCENT, bold: true })], spacing: { after: 80 } }))
+    e.bullets.forEach(b => children.push(bullet(b)))
+  }))
+  if (cv.education?.length) sect('Education', () => cv.education.forEach((e, i) => {
+    children.push(new Paragraph({ children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: SIZE_ROLE, font: opts.bodyFont, color: '0a0a0a' }), new TextRun({ text: '\t', size: SIZE_ROLE }), new TextRun({ text: `${e.startYear} – ${e.endYear}`, size: SIZE_DATES, font: opts.bodyFont, color: '6a6a6a', italics: true })], tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }], spacing: { before: i === 0 ? 0 : 160, after: 40 } }))
+    children.push(new Paragraph({ children: [new TextRun({ text: `${e.institution}${e.grade ? ` — ${e.grade}` : ''}`, size: SIZE_BODY, font: opts.bodyFont, color: '4a4a4a', italics: true })], spacing: { after: 80 } }))
+  }))
+  if (cv.skills?.length) sect('Core Skills', () => children.push(new Paragraph({ children: [new TextRun({ text: cv.skills.join('   •   '), size: SIZE_BODY, font: opts.bodyFont, color: '333333' })], spacing: { after: 100, line: 340 } })))
+  if (cv.languages?.length) sect('Languages', () => children.push(new Paragraph({ children: [new TextRun({ text: cv.languages!.join('   •   '), size: SIZE_BODY, font: opts.bodyFont, color: '333333' })], spacing: { after: 100 } })))
+  if (cv.publications?.length) sect('Publications', () => cv.publications!.forEach(p => children.push(bullet(p))))
+  if (cv.research?.length) sect('Research', () => cv.research!.forEach(r => children.push(bullet(r))))
+  if (cv.teaching?.length) sect('Teaching Experience', () => cv.teaching!.forEach(t => children.push(bullet(t))))
+  extraSectionParagraphs(cv, heading, { size: SIZE_BODY, font: opts.bodyFont, color: '333333' }).forEach(pp => children.push(pp))
+
+  return wrapDoc(children)
+}
+
+// ═══════════════════════════════════════════════════════
+// COMPASS — centred name, headings flanked by rules (matches PDF 'compass')
+// ═══════════════════════════════════════════════════════
+function buildCompass(cv: GeneratedCV, accentColor?: string | null): Document {
+  const ACCENT = (accentColor || '#64748b').replace('#', '')
+  const heading = (text: string) => new Table({
+    width: { size: 10200, type: WidthType.DXA }, columnWidths: [2400, 5400, 2400], borders: NO_BORDERS,
+    rows: [new TableRow({ children: [
+      new TableCell({ width: { size: 2400, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT } }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }),
+      new TableCell({ width: { size: 5400, type: WidthType.DXA }, borders: NO_BORDERS, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 20, font: HEADER_FONT, color: '1a1a1a', characterSpacing: 40 })] })] }),
+      new TableCell({ width: { size: 2400, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT } }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }),
+    ] })]
+  })
+  return composeSingleColumn(cv, heading, ACCENT, { center: true, bodyFont: BODY_FONT, nameFont: NAME_FONT_SERIF, nameColor: '1a1a1a', titleUsesAccent: false })
+}
+
+// ═══════════════════════════════════════════════════════
+// BEACON — centred name, filled "tab" headings + rule (matches PDF 'beacon')
+// ═══════════════════════════════════════════════════════
+function buildBeacon(cv: GeneratedCV, accentColor?: string | null): Document {
+  const ACCENT = (accentColor || '#2563eb').replace('#', '')
+  const heading = (text: string) => new Table({
+    width: { size: 10200, type: WidthType.DXA }, columnWidths: [3200, 7000], borders: NO_BORDERS,
+    rows: [new TableRow({ children: [
+      new TableCell({ width: { size: 3200, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: ACCENT, color: ACCENT }, verticalAlign: VerticalAlign.CENTER, margins: { top: 50, bottom: 50, left: 130, right: 130 }, children: [new Paragraph({ children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 16, color: 'FFFFFF', font: HEADER_FONT, characterSpacing: 20 })] })] }),
+      new TableCell({ width: { size: 7000, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 10, color: ACCENT } }, margins: { left: 120 }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }),
+    ] })]
+  })
+  return composeSingleColumn(cv, heading, ACCENT, { center: true, bodyFont: HEADER_FONT, nameFont: NAME_FONT_SANS, nameColor: '1a2b4a', titleUsesAccent: true })
 }
 
 // ═══════════════════════════════════════════════════════

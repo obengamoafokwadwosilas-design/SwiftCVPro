@@ -75,7 +75,7 @@ function extraSidebarSections(cv: GeneratedCV): ExtraSection[] {
 // Same paged DOM feeds both screen preview and PDF export.
 // ════════════════════════════════════════════════════════════════
 
-const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson' | 'atlas' | 'metro' | 'prestige'> = {
+const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson' | 'atlas' | 'metro' | 'prestige' | 'compass' | 'beacon'> = {
   vertex: 'vertex', atelier: 'vertex', editorial: 'vertex',
   sovereign: 'sovereign', newyork: 'sovereign', executive: 'sovereign',
   meridian: 'meridian', modern: 'meridian', europass: 'meridian', graduate: 'meridian',
@@ -92,11 +92,13 @@ const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend
   // Matched PDF+Word single-column designs
   metro: 'metro',
   prestige: 'prestige',
+  compass: 'compass',
+  beacon: 'beacon',
 }
 const DEFAULT_ACCENT: Record<string, string> = {
   vertex: '#e0533d', sovereign: '#b08d3f', meridian: '#0d9488', ascend: '#1d4ed8', harbour: '#0f766e', classic: '#1a1a1a',
   onyx: '#c9a86a', sterling: '#c9a86a', slate: '#1a1a1a', verde: '#3f9142', crimson: '#a01e1e', atlas: '#3b82f6',
-  metro: '#7c3aed', prestige: '#a87b00',
+  metro: '#7c3aed', prestige: '#a87b00', compass: '#64748b', beacon: '#2563eb',
 }
 // Webfonts FIRST: they render identically in the user's browser (measurement)
 // and in server-side headless Chrome (PDF). System fonts like Cambria don't exist
@@ -414,7 +416,12 @@ type TemplateConfig = {
 }
 
 // shared block builders for single-column-ish bodies
-function sectionHeading(text: string, A: string, style: 'rule' | 'bar' | 'tick' | 'dash' | 'plain' | 'exec' = 'rule') {
+function sectionHeading(text: string, A: string, style: 'rule' | 'bar' | 'tick' | 'dash' | 'plain' | 'exec' | 'compass' | 'beacon' = 'rule') {
+  // Compass: centred heading with a rule flanking each side (matches the Word
+  // buildCompass 3-cell table). Beacon: filled accent "tab" + trailing rule
+  // (matches the Word buildBeacon shaded-cell + border). Both use the accent.
+  if (style === 'compass') return <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}><span style={{ flex: 1, height: 1, background: A }} /><span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#1a1a1a', whiteSpace: 'nowrap' }}>{text}</span><span style={{ flex: 1, height: 1, background: A }} /></div>
+  if (style === 'beacon') return <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}><span style={{ background: A, color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '4px 12px', borderRadius: 3, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>{text}</span><span style={{ flex: 1, height: 2, background: A, opacity: 0.5 }} /></div>
   // Executive style: navy text + gold underline (fixed colours, matches the
   // Word buildExecutive builder exactly so Prestige looks the same in both).
   if (style === 'exec') return <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#0a1a3a', borderBottom: '2px solid #a87b00', paddingBottom: 4, marginBottom: 10 }}>{text}</div>
@@ -1420,6 +1427,42 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     Frame: ({ cv, A, pageIndex, children }) => (
       <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '46px 54px' }}>
         {pageIndex === 0 && <TEMPLATES_CONFIG.prestige.Header cv={cv} A={A} />}
+        {children}
+      </div>
+    ),
+  },
+
+  // ── COMPASS: centred name, section headings flanked by rules ──
+  // Matches the Word buildCompass builder (3-cell table: rule | text | rule).
+  compass: {
+    design: 'compass', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 54px', sidebarW: 0, sidebarSide: 'none', measureW: 686, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'compass', { skillsInline: true }),
+    Header: ({ cv }) => (<div style={{ textAlign: 'center', marginBottom: 24 }}>
+      <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: 1, color: '#1a1a1a', marginBottom: 6 }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 14.5, color: '#555', marginBottom: 8 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 12.5, color: '#666' }}>{contact(cv)}</div>
+    </div>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '46px 54px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.compass.Header cv={cv} A={A} />}
+        {children}
+      </div>
+    ),
+  },
+
+  // ── BEACON: centred name, filled-accent "tab" section headings + rule ──
+  // Matches the Word buildBeacon builder (shaded cell + bordered cell).
+  beacon: {
+    design: 'beacon', font: BODY_SANS, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'beacon', { skillsInline: true }),
+    Header: ({ cv, A }) => (<div style={{ textAlign: 'center', marginBottom: 22 }}>
+      <div style={{ fontSize: 28, fontWeight: 700, color: '#1a2b4a', marginBottom: 5 }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 14.5, color: A, fontWeight: 600, marginBottom: 7 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 12.5, color: '#666' }}>{contact(cv).replace(/•/g, '|')}</div>
+    </div>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SANS, color: '#1a1a1a', padding: '44px 46px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.beacon.Header cv={cv} A={A} />}
         {children}
       </div>
     ),

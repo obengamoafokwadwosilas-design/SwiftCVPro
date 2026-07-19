@@ -26,6 +26,8 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'classic',   name: 'Classic ATS',     tag: 'Traditional · Recruiter Safe',      color: '#1f2937', formats: 'both', category: 'ats',      customizable: true  },
   { id: 'slate',     name: 'Slate',           tag: 'Dense · Minimalist · Single-Column',color: '#1a1a1a', formats: 'both', category: 'ats',      customizable: true  },
   { id: 'academic',  name: 'Academic',        tag: 'Scholarly · Structured · ATS Safe', color: '#374151', formats: 'both', category: 'academic', customizable: true  },
+  { id: 'compass',   name: 'Compass',         tag: 'Centered · Flanked Rules · Clean',   color: '#64748b', formats: 'both', category: 'ats',      customizable: true  },
+  { id: 'beacon',    name: 'Beacon',          tag: 'Tab Headings · Bold · Structured',   color: '#2563eb', formats: 'both', category: 'premium',  customizable: true  },
   // ── PDF only (rich layouts Word can't reproduce faithfully) — shown last ──
   { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'pdf',  category: 'premium',  customizable: true  },
   { id: 'sterling',  name: 'Sterling',        tag: 'Two-Column · Dark Sidebar',         color: '#c9a86a', formats: 'pdf',  category: 'premium',  customizable: true  },
@@ -1053,6 +1055,28 @@ function TemplateThumb({ id }: { id: TemplateId }) {
       <text x="25" y="20" textAnchor="middle" fontFamily="serif" fontStyle="italic" fontSize="3" fill="#a87b00">title</text>
       <rect x="4" y="26" width="7" height="1" fill="#0a1a3a" /><rect x="4" y="28" width="42" height="0.6" fill="#a87b00" />{lines(4, 31, 42, 3)}
       <rect x="4" y="43" width="7" height="1" fill="#0a1a3a" /><rect x="4" y="45" width="42" height="0.6" fill="#a87b00" />{lines(4, 48, 42, 2)}
+    </svg></div>
+  )
+  // COMPASS — centered name, headings flanked by rules
+  if (id === 'compass') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="25" y="11" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="5.5" fill="#1a1a1a">NAME</text>
+      <text x="25" y="17" textAnchor="middle" fontFamily="serif" fontSize="2.8" fill="#666">contact details</text>
+      <line x1="6" y1="25" x2="18" y2="25" stroke="#64748b" strokeWidth="0.6" /><text x="25" y="26.5" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="3" fill="#1a1a1a">EDUCATION</text><line x1="32" y1="25" x2="44" y2="25" stroke="#64748b" strokeWidth="0.6" />
+      {lines(6, 30, 38, 3)}
+      <line x1="6" y1="42" x2="17" y2="42" stroke="#64748b" strokeWidth="0.6" /><text x="25" y="43.5" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="3" fill="#1a1a1a">EXPERIENCE</text><line x1="33" y1="42" x2="44" y2="42" stroke="#64748b" strokeWidth="0.6" />
+      {lines(6, 47, 38, 2)}
+    </svg></div>
+  )
+  // BEACON — centered name, filled tab headings + rule
+  if (id === 'beacon') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="25" y="11" textAnchor="middle" fontFamily="sans-serif" fontWeight="700" fontSize="5.5" fill="#1a2b4a">NAME</text>
+      <text x="25" y="16.5" textAnchor="middle" fontFamily="sans-serif" fontSize="2.8" fill="#2563eb">title</text>
+      <rect x="6" y="22" width="13" height="4" rx="1" fill="#2563eb" /><text x="8" y="25" fontFamily="sans-serif" fontWeight="700" fontSize="2.4" fill="#fff">EDU</text><rect x="20" y="23.6" width="24" height="0.8" fill="#2563eb" opacity="0.5" />{lines(6, 29, 38, 3)}
+      <rect x="6" y="41" width="13" height="4" rx="1" fill="#2563eb" /><text x="8" y="44" fontFamily="sans-serif" fontWeight="700" fontSize="2.4" fill="#fff">EXP</text><rect x="20" y="42.6" width="24" height="0.8" fill="#2563eb" opacity="0.5" />{lines(6, 47, 38, 2)}
     </svg></div>
   )
   // CLASSIC (default) — centered minimal

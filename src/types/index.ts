@@ -27,6 +27,8 @@ export type TemplateId =
   | 'atlas'
   | 'metro'
   | 'prestige'
+  | 'compass'
+  | 'beacon'
 
 export type ExportFormat = 'docx' | 'pdf'
 
