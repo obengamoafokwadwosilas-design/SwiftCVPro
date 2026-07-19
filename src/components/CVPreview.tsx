@@ -942,7 +942,13 @@ const pageBase: React.CSSProperties = { width: PAGE_W, background: '#fff', margi
 const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   // ── MERIDIAN: teal sidebar left ──
   meridian: {
-    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40,
+    // Meridian is two-column (per-page sidebar) so it must stay on the packer —
+    // flow pagination can't place sidebar content per page. To stop the remote
+    // renderer clipping the last bullet at a page's bottom edge, it reserves a
+    // larger bottom safety margin than the shared default (32) so a bullet that
+    // would otherwise straddle the boundary drops cleanly to the next page.
+    // This value is Meridian-only and changes nothing else.
+    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 58,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: A, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>{t}<span style={{ flex: 1, height: 2, background: A, opacity: 0.25 }} /></div>
       const b: Block[] = []
