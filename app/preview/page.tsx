@@ -27,7 +27,7 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'sterling',  name: 'Sterling',        tag: 'Two-Column · Dark Sidebar',         color: '#c9a86a', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'slate',     name: 'Slate',           tag: 'Dense · Minimalist · Single-Column',color: '#1a1a1a', formats: 'both', category: 'ats',      customizable: true  },
   { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'metro',     name: 'Metro',           tag: 'Modern · Blue · Left-Aligned',      color: '#1a56c4', formats: 'both', category: 'ats',      customizable: false },
+  { id: 'metro',     name: 'Aurora',          tag: 'Colourful · Bold Header Band',      color: '#7c3aed', formats: 'both', category: 'premium',  customizable: false },
   { id: 'prestige',  name: 'Prestige',        tag: 'Executive · Navy & Gold · Centered',color: '#a87b00', formats: 'both', category: 'premium',  customizable: false },
 ]
 
@@ -1031,14 +1031,15 @@ function TemplateThumb({ id }: { id: TemplateId }) {
       <rect x="4" y="36" width="8" height="1" fill="#374151" />{lines(4, 39, 42, 3)}
     </svg></div>
   )
-  // METRO — modern, left-aligned, blue accent-rule headings
+  // AURORA (metro) — colourful filled header band + filled section bars
   if (id === 'metro') return (
     <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
       <rect width={W} height={H} fill="#fff" />
-      <text x="4" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="6" fill="#0a0a0a">NAME</text>
-      <text x="4" y="16" fontFamily="sans-serif" fontWeight="600" fontSize="3.2" fill="#1a56c4">title</text>
-      <rect x="4" y="22" width="6" height="1" fill="#1a56c4" /><rect x="4" y="24" width="42" height="0.6" fill="#1a56c4" />{lines(4, 27, 42, 3)}
-      <rect x="4" y="40" width="6" height="1" fill="#1a56c4" /><rect x="4" y="42" width="42" height="0.6" fill="#1a56c4" />{lines(4, 45, 42, 2)}
+      <rect x="4" y="4" width="42" height="15" fill="#7c3aed" />
+      <text x="8" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="5" fill="#fff">NAME</text>
+      <rect x="8" y="14" width="14" height="0.8" fill="#fff" opacity="0.85" />
+      <rect x="4" y="24" width="42" height="3.5" fill="#7c3aed" />{lines(4, 30, 40, 3)}
+      <rect x="4" y="41" width="42" height="3.5" fill="#7c3aed" />{lines(4, 47, 40, 2)}
     </svg></div>
   )
   // PRESTIGE — executive, centered navy name + gold rule

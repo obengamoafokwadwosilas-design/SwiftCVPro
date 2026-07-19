@@ -96,7 +96,7 @@ const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend
 const DEFAULT_ACCENT: Record<string, string> = {
   vertex: '#e0533d', sovereign: '#b08d3f', meridian: '#0d9488', ascend: '#1d4ed8', harbour: '#0f766e', classic: '#1a1a1a',
   onyx: '#c9a86a', sterling: '#c9a86a', slate: '#1a1a1a', verde: '#3f9142', crimson: '#a01e1e', atlas: '#3b82f6',
-  metro: '#1a56c4', prestige: '#a87b00',
+  metro: '#7c3aed', prestige: '#a87b00',
 }
 // Webfonts FIRST: they render identically in the user's browser (measurement)
 // and in server-side headless Chrome (PDF). System fonts like Cambria don't exist
@@ -1377,17 +1377,21 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     ),
   },
 
-  // ── METRO: modern, left-aligned, blue accent-rule headings ──
-  // Fixed blue accent, sans body. Paired 1:1 with the Word buildModern builder
-  // so the .docx is visually the same as the PDF (single-column, Word-safe).
+  // ── AURORA (id: metro): colourful — filled accent header band + filled
+  // accent section bars. Fixed violet, sans body. Matches the Word buildAurora
+  // builder exactly: both use solid colour fills (Word cell/paragraph shading),
+  // so the PDF and .docx look the same. Header band is inset (not full-bleed) to
+  // mirror Word's shaded block, so no banded-flow mode is needed.
   metro: {
     design: 'metro', font: BODY_SANS, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
-    buildBlocks: (cv, A) => commonBlocks(cv, A, 'rule', { skillsInline: true }),
-    Header: ({ cv, A }) => (<>
-      <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: -0.3, color: '#0a0a0a', marginBottom: 4 }}>{cv.fullName}</div>
-      {cv.jobTitle && <div style={{ fontSize: 15.5, color: A, fontWeight: 600, marginBottom: 6 }}>{cv.jobTitle}</div>}
-      <div style={{ fontSize: 13, color: '#5a5a5a', marginBottom: 22 }}>{contact(cv).replace(/•/g, '|')}</div>
-    </>),
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'bar', { skillsInline: true }),
+    Header: ({ cv, A }) => (
+      <div style={{ background: A, padding: '22px 26px', marginBottom: 22, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+        <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: 0.5, color: '#fff', textTransform: 'uppercase' }}>{cv.fullName}</div>
+        {cv.jobTitle && <div style={{ fontSize: 15, color: '#fff', opacity: 0.92, marginTop: 5 }}>{cv.jobTitle}</div>}
+        <div style={{ fontSize: 12.5, color: '#fff', opacity: 0.85, marginTop: 8 }}>{contact(cv).replace(/•/g, '|')}</div>
+      </div>
+    ),
     Frame: ({ cv, A, pageIndex, children }) => (
       <div style={{ ...pageBase, fontFamily: BODY_SANS, color: '#1a1a1a', padding: '44px 46px' }}>
         {pageIndex === 0 && <TEMPLATES_CONFIG.metro.Header cv={cv} A={A} />}

@@ -8,7 +8,7 @@ import {
   LevelFormat, convertInchesToTwip, TabStopType, TabStopPosition
 } from 'docx'
 import { GeneratedCV, TemplateId } from '@/types'
-import { buildVertex, buildSovereign, buildMeridianV2, buildAscend, buildHarbour, buildPulse } from './premium'
+import { buildVertex, buildSovereign, buildMeridianV2, buildAscend, buildHarbour, buildPulse, buildAurora } from './premium'
 
 // ═══════════════════════════════════════════════════════
 // PREMIUM TYPOGRAPHY SYSTEM
@@ -140,7 +140,7 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
     case 'atlas':     return buildAscend(cv, accentColor)
 
     // ── Matched PDF+Word designs (dedicated builders, look identical) ──
-    case 'metro':     return buildModern(cv)
+    case 'metro':     return buildAurora(cv, '#7c3aed')
     case 'prestige':  return buildExecutive(cv)
 
     default:
