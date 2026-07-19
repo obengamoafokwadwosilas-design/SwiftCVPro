@@ -75,7 +75,7 @@ function extraSidebarSections(cv: GeneratedCV): ExtraSection[] {
 // Same paged DOM feeds both screen preview and PDF export.
 // ════════════════════════════════════════════════════════════════
 
-const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson' | 'atlas'> = {
+const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson' | 'atlas' | 'metro' | 'prestige'> = {
   vertex: 'vertex', atelier: 'vertex', editorial: 'vertex',
   sovereign: 'sovereign', newyork: 'sovereign', executive: 'sovereign',
   meridian: 'meridian', modern: 'meridian', europass: 'meridian', graduate: 'meridian',
@@ -89,10 +89,14 @@ const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend
   verde: 'verde',
   crimson: 'crimson',
   atlas: 'atlas',
+  // Matched PDF+Word single-column designs
+  metro: 'metro',
+  prestige: 'prestige',
 }
 const DEFAULT_ACCENT: Record<string, string> = {
   vertex: '#e0533d', sovereign: '#b08d3f', meridian: '#0d9488', ascend: '#1d4ed8', harbour: '#0f766e', classic: '#1a1a1a',
   onyx: '#c9a86a', sterling: '#c9a86a', slate: '#1a1a1a', verde: '#3f9142', crimson: '#a01e1e', atlas: '#3b82f6',
+  metro: '#1a56c4', prestige: '#a87b00',
 }
 // Webfonts FIRST: they render identically in the user's browser (measurement)
 // and in server-side headless Chrome (PDF). System fonts like Cambria don't exist
@@ -410,7 +414,10 @@ type TemplateConfig = {
 }
 
 // shared block builders for single-column-ish bodies
-function sectionHeading(text: string, A: string, style: 'rule' | 'bar' | 'tick' | 'dash' | 'plain' = 'rule') {
+function sectionHeading(text: string, A: string, style: 'rule' | 'bar' | 'tick' | 'dash' | 'plain' | 'exec' = 'rule') {
+  // Executive style: navy text + gold underline (fixed colours, matches the
+  // Word buildExecutive builder exactly so Prestige looks the same in both).
+  if (style === 'exec') return <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#0a1a3a', borderBottom: '2px solid #a87b00', paddingBottom: 4, marginBottom: 10 }}>{text}</div>
   if (style === 'bar') return <div style={{ background: A, color: '#fff', fontSize: 14, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', padding: '7px 16px', marginBottom: 12 }}>{text}</div>
   if (style === 'tick') return <div style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#1a2a2a', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ display: 'inline-block', width: 4, height: 16, background: A }} />{text}</div>
   if (style === 'dash') return <div style={{ fontSize: 14.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: '#1c1c1c', marginBottom: 12 }}>— {text}</div>
@@ -1365,6 +1372,50 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     Frame: ({ cv, A, pageIndex, children }) => (
       <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '44px 48px' }}>
         {pageIndex === 0 && <TEMPLATES_CONFIG.classic.Header cv={cv} A={A} />}
+        {children}
+      </div>
+    ),
+  },
+
+  // ── METRO: modern, left-aligned, blue accent-rule headings ──
+  // Fixed blue accent, sans body. Paired 1:1 with the Word buildModern builder
+  // so the .docx is visually the same as the PDF (single-column, Word-safe).
+  metro: {
+    design: 'metro', font: BODY_SANS, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'rule', { skillsInline: true }),
+    Header: ({ cv, A }) => (<>
+      <div style={{ fontSize: 32, fontWeight: 800, letterSpacing: -0.3, color: '#0a0a0a', marginBottom: 4 }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 15.5, color: A, fontWeight: 600, marginBottom: 6 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 13, color: '#5a5a5a', marginBottom: 22 }}>{contact(cv).replace(/•/g, '|')}</div>
+    </>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SANS, color: '#1a1a1a', padding: '44px 46px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.metro.Header cv={cv} A={A} />}
+        {children}
+      </div>
+    ),
+  },
+
+  // ── PRESTIGE: executive, centered navy name + gold rule, gold accents ──
+  // Fixed navy/gold, serif body. Paired 1:1 with the Word buildExecutive builder.
+  // A is gold so the accent details (company name, job title) match the .docx.
+  prestige: {
+    design: 'prestige', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 54px', sidebarW: 0, sidebarSide: 'none', measureW: 686, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'exec', { skillsInline: true }),
+    Header: ({ cv, A }) => {
+      const NAVY = '#0a1a3a', GOLD = '#a87b00'
+      return (<>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 34, fontWeight: 700, letterSpacing: 1, color: NAVY, marginBottom: 8 }}>{cv.fullName}</div>
+          <div style={{ width: 64, height: 2, background: GOLD, margin: '0 auto 12px' }} />
+          {cv.jobTitle && <div style={{ fontSize: 14.5, color: GOLD, fontStyle: 'italic', marginBottom: 8 }}>{cv.jobTitle}</div>}
+          <div style={{ fontSize: 12.5, color: '#4a4a4a', marginBottom: 26 }}>{contact(cv)}</div>
+        </div>
+      </>)
+    },
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '46px 54px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.prestige.Header cv={cv} A={A} />}
         {children}
       </div>
     ),

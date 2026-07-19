@@ -25,6 +25,8 @@ export type TemplateId =
   | 'verde'
   | 'crimson'
   | 'atlas'
+  | 'metro'
+  | 'prestige'
 
 export type ExportFormat = 'docx' | 'pdf'
 

@@ -27,9 +27,8 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'sterling',  name: 'Sterling',        tag: 'Two-Column · Dark Sidebar',         color: '#c9a86a', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'slate',     name: 'Slate',           tag: 'Dense · Minimalist · Single-Column',color: '#1a1a1a', formats: 'both', category: 'ats',      customizable: true  },
   { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'onyx',      name: 'Onyx',            tag: 'Dark Editorial · Gold Accents',     color: '#c9a86a', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'verde',     name: 'Verde',           tag: 'Green Gradient · Timeline',         color: '#3f9142', formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'crimson',   name: 'Crimson',         tag: 'Magazine · Colour Band',            color: '#a01e1e', formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'metro',     name: 'Metro',           tag: 'Modern · Blue · Left-Aligned',      color: '#1a56c4', formats: 'both', category: 'ats',      customizable: false },
+  { id: 'prestige',  name: 'Prestige',        tag: 'Executive · Navy & Gold · Centered',color: '#a87b00', formats: 'both', category: 'premium',  customizable: false },
 ]
 
 // Color swatches for picker
@@ -1030,6 +1029,27 @@ function TemplateThumb({ id }: { id: TemplateId }) {
       <line x1="4" y1="14" x2="46" y2="14" stroke="#374151" strokeWidth="0.6" />
       <rect x="4" y="19" width="8" height="1" fill="#374151" />{lines(4, 22, 42, 4)}
       <rect x="4" y="36" width="8" height="1" fill="#374151" />{lines(4, 39, 42, 3)}
+    </svg></div>
+  )
+  // METRO — modern, left-aligned, blue accent-rule headings
+  if (id === 'metro') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="4" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="6" fill="#0a0a0a">NAME</text>
+      <text x="4" y="16" fontFamily="sans-serif" fontWeight="600" fontSize="3.2" fill="#1a56c4">title</text>
+      <rect x="4" y="22" width="6" height="1" fill="#1a56c4" /><rect x="4" y="24" width="42" height="0.6" fill="#1a56c4" />{lines(4, 27, 42, 3)}
+      <rect x="4" y="40" width="6" height="1" fill="#1a56c4" /><rect x="4" y="42" width="42" height="0.6" fill="#1a56c4" />{lines(4, 45, 42, 2)}
+    </svg></div>
+  )
+  // PRESTIGE — executive, centered navy name + gold rule
+  if (id === 'prestige') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="25" y="11" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="5.5" fill="#0a1a3a" letterSpacing="0.5">NAME</text>
+      <rect x="19" y="14" width="12" height="1.2" fill="#a87b00" />
+      <text x="25" y="20" textAnchor="middle" fontFamily="serif" fontStyle="italic" fontSize="3" fill="#a87b00">title</text>
+      <rect x="4" y="26" width="7" height="1" fill="#0a1a3a" /><rect x="4" y="28" width="42" height="0.6" fill="#a87b00" />{lines(4, 31, 42, 3)}
+      <rect x="4" y="43" width="7" height="1" fill="#0a1a3a" /><rect x="4" y="45" width="42" height="0.6" fill="#a87b00" />{lines(4, 48, 42, 2)}
     </svg></div>
   )
   // CLASSIC (default) — centered minimal
