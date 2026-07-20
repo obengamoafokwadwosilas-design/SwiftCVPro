@@ -860,7 +860,7 @@ export default function PreviewPage() {
             </div>
             <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'24px', fontWeight:600, color:'#0a0f1a', marginBottom:'12px' }}>PDF-only design</div>
             <div style={{ fontSize:'14px', color:'#475569', lineHeight:1.7, marginBottom:'26px' }}>
-              <strong style={{ color:'#0a0f1a' }}>{currentTpl?.name}</strong> is available in PDF only. Choose another template to download your CV in Word&nbsp;(.docx) format.
+              This design is available in PDF only. Choose another template to download your CV in Word&nbsp;(.docx) format.
             </div>
             <button onClick={() => { setPdfOnlyModal(false); handleDownloadPdf() }} style={{ width:'100%', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'11px', cursor:'pointer', fontWeight:600, fontSize:'14px', marginBottom:'10px' }}>Download PDF</button>
             <button onClick={() => setPdfOnlyModal(false)} style={{ width:'100%', padding:'11px', background:'transparent', color:'#64748b', border:'none', borderRadius:'11px', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>Cancel</button>
