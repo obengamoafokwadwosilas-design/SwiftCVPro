@@ -416,7 +416,17 @@ type TemplateConfig = {
 }
 
 // shared block builders for single-column-ish bodies
-function sectionHeading(text: string, A: string, style: 'rule' | 'bar' | 'tick' | 'dash' | 'plain' | 'exec' | 'compass' | 'beacon' = 'rule') {
+function sectionHeading(text: string, A: string, style: 'rule' | 'bar' | 'tick' | 'dash' | 'plain' | 'exec' | 'compass' | 'beacon' | 'editorial' = 'rule') {
+  // Editorial: heavy accent rule ABOVE a bold accent heading — a magazine
+  // section divider. Both parts live in the content flow (no page-edge
+  // decoration), so this template can use flow pagination. Matches the Word
+  // buildEditorial builder, whose heading is a paragraph with a thick top border.
+  if (style === 'editorial') return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ height: 4, background: A, marginBottom: 8, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }} />
+      <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: 2.5, textTransform: 'uppercase', color: A }}>{text}</div>
+    </div>
+  )
   // Compass: centred heading with a rule flanking each side (matches the Word
   // buildCompass 3-cell table). Beacon: filled accent "tab" + trailing rule
   // (matches the Word buildBeacon shaded-cell + border). Both use the accent.
@@ -1284,36 +1294,35 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       </div>
     ),
   },
-  // ── VERTEX: colour rail + two inner columns (paginate the whole body) ──
+  // ── EDITORIAL (id: vertex): magazine masthead, heavy accent rules ──
+  // Replaces the old colour-rail design, whose full-height page-edge rail forced
+  // it onto the packer (recurring gaps/clips) and broke under position:fixed.
+  // Every decoration here — the masthead bar, the section rules — lives INSIDE
+  // the content flow, so the template runs on the flow engine and paginates
+  // exactly like the other single-column templates: the renderer owns the page
+  // breaks, so content can never be clipped or stranded. Matches the Word
+  // buildEditorial builder (thick top borders + split-weight name).
   vertex: {
-    // NOTE: vertex stays on the packer (no flowPaginate). Its full-height colour
-    // rail is drawn as a per-page background gradient in Frame — reliable and
-    // edge-aligned. The flow engine can only draw the rail with a position:fixed
-    // element, which Api2Pdf's renderer places relative to the content area, so
-    // the rail landed on top of the text. Packer + the heading-pairing/guard
-    // fixes keeps the rail correct without reintroducing the old gap problem.
-    design: 'vertex', font: BODY_SERIF, contentPadV: 46, mainPad: '46px', sidebarW: 0, sidebarSide: 'none', measureW: 664, packTolerance: 0, packBottomSafety: 32,
-    buildBlocks: (cv, A) => commonBlocks(cv, A, 'dash', { skillsInline: true }),
+    design: 'vertex', font: BODY_SERIF, contentPadV: 46, mainPad: '46px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'editorial', { skillsInline: true }),
     Header: ({ cv, A }) => {
       const first = cv.fullName.split(' ')[0], rest = cv.fullName.split(' ').slice(1).join(' ')
       return (<>
-        <div style={{ marginBottom: 6 }}><span style={{ fontSize: 42, fontWeight: 800, letterSpacing: -1, lineHeight: 0.95, color: '#1c1c1c', textTransform: 'uppercase' }}>{first} </span><span style={{ fontSize: 42, fontWeight: 300, letterSpacing: -1, color: '#1c1c1c', textTransform: 'uppercase' }}>{rest}</span></div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}><div style={{ width: 40, height: 3, background: A }} /><span style={{ fontSize: 15.5, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: A }}>{cv.jobTitle}</span></div>
-        <div style={{ fontSize: 13.5, color: '#777', marginBottom: 30 }}>{contact(cv)}</div>
+        <div style={{ height: 7, background: A, marginBottom: 16, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }} />
+        <div style={{ marginBottom: 7 }}>
+          <span style={{ fontSize: 40, fontWeight: 800, letterSpacing: -0.5, lineHeight: 1.05, color: '#1a1a1a', textTransform: 'uppercase' }}>{first} </span>
+          <span style={{ fontSize: 40, fontWeight: 300, letterSpacing: -0.5, lineHeight: 1.05, color: '#1a1a1a', textTransform: 'uppercase' }}>{rest}</span>
+        </div>
+        {cv.jobTitle && <div style={{ fontSize: 14, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: A, marginBottom: 9 }}>{cv.jobTitle}</div>}
+        <div style={{ fontSize: 13, color: '#777', marginBottom: 26 }}>{contact(cv)}</div>
       </>)
     },
-    Frame: ({ cv, A, pageIndex, children }) => {
-      const first = cv.fullName.split(' ')[0], rest = cv.fullName.split(' ').slice(1).join(' ')
-      return (
-        <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', display: 'grid', gridTemplateColumns: '38px 1fr', background: `linear-gradient(90deg, ${A} 0, ${A} 38px, #fff 38px, #fff 100%)`, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-          <div />
-          <div style={{ padding: '46px' }}>
-            {pageIndex === 0 && <TEMPLATES_CONFIG.vertex.Header cv={cv} A={A} />}
-            {children}
-          </div>
-        </div>
-      )
-    },
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '46px 50px' }}>
+        {pageIndex === 0 && <TEMPLATES_CONFIG.vertex.Header cv={cv} A={A} />}
+        {children}
+      </div>
+    ),
   },
 
   // ── SOVEREIGN: centered crest, single column body ──

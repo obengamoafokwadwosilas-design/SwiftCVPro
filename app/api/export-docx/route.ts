@@ -98,7 +98,7 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
     case 'vertex':
     case 'atelier':
     case 'editorial':
-      return buildVertex(cv, accentColor)
+      return buildEditorial(cv, accentColor)
 
     case 'sovereign':
     case 'newyork':
@@ -394,14 +394,20 @@ function buildSlate(cv: GeneratedCV, accentColor?: string | null): Document {
 // renderer (a Paragraph or Table). Used by Compass & Beacon so their bodies
 // are identical and only the heading treatment differs.
 // ═══════════════════════════════════════════════════════
-type ComposeOpts = { center: boolean; bodyFont: string; nameFont: string; nameColor: string; titleUsesAccent: boolean }
+type ComposeOpts = { center: boolean; bodyFont: string; nameFont: string; nameColor: string; titleUsesAccent: boolean; customHeader?: () => (Paragraph | Table)[] }
 function composeSingleColumn(cv: GeneratedCV, heading: (t: string) => Paragraph | Table, ACCENT: string, opts: ComposeOpts): Document {
   const align = opts.center ? AlignmentType.CENTER : AlignmentType.LEFT
   const children: (Paragraph | Table)[] = []
 
-  children.push(new Paragraph({ alignment: align, children: [new TextRun({ text: cv.fullName, bold: true, size: SIZE_NAME, font: opts.nameFont, color: opts.nameColor })], spacing: { after: 60 } }))
-  if (cv.jobTitle) children.push(new Paragraph({ alignment: align, children: [new TextRun({ text: cv.jobTitle, size: SIZE_TITLE, font: opts.bodyFont, color: opts.titleUsesAccent ? ACCENT : '4a4a4a', bold: opts.titleUsesAccent, italics: !opts.titleUsesAccent })], spacing: { after: 80 } }))
-  children.push(new Paragraph({ alignment: align, children: [new TextRun({ text: contactStr(cv), size: SIZE_CONTACT, font: opts.bodyFont, color: '5a5a5a' })], spacing: { after: 240 } }))
+  // customHeader lets a template supply its own masthead (Editorial). Templates
+  // that don't pass one keep the standard name/title/contact header unchanged.
+  if (opts.customHeader) {
+    opts.customHeader().forEach(p => children.push(p))
+  } else {
+    children.push(new Paragraph({ alignment: align, children: [new TextRun({ text: cv.fullName, bold: true, size: SIZE_NAME, font: opts.nameFont, color: opts.nameColor })], spacing: { after: 60 } }))
+    if (cv.jobTitle) children.push(new Paragraph({ alignment: align, children: [new TextRun({ text: cv.jobTitle, size: SIZE_TITLE, font: opts.bodyFont, color: opts.titleUsesAccent ? ACCENT : '4a4a4a', bold: opts.titleUsesAccent, italics: !opts.titleUsesAccent })], spacing: { after: 80 } }))
+    children.push(new Paragraph({ alignment: align, children: [new TextRun({ text: contactStr(cv), size: SIZE_CONTACT, font: opts.bodyFont, color: '5a5a5a' })], spacing: { after: 240 } }))
+  }
 
   if (cv.coverLetterBody) {
     cv.coverLetterBody.split('\n\n').forEach(p => children.push(new Paragraph({ children: [new TextRun({ text: p, size: SIZE_BODY, font: opts.bodyFont, color: '1a1a1a' })], spacing: { after: 200, line: 320 }, alignment: AlignmentType.JUSTIFIED })))
@@ -462,6 +468,37 @@ function buildBeacon(cv: GeneratedCV, accentColor?: string | null): Document {
     ] })]
   })
   return composeSingleColumn(cv, heading, ACCENT, { center: true, bodyFont: HEADER_FONT, nameFont: NAME_FONT_SANS, nameColor: '1a2b4a', titleUsesAccent: true })
+}
+
+// ═══════════════════════════════════════════════════════
+// EDITORIAL — magazine masthead: heavy accent bar, split-weight name, and
+// section headings sitting under a thick accent rule. Matches the PDF
+// 'editorial' design (id: vertex).
+// ═══════════════════════════════════════════════════════
+function buildEditorial(cv: GeneratedCV, accentColor?: string | null): Document {
+  const ACCENT = (accentColor || '#e0533d').replace('#', '')
+  // Thick top border above the heading text = the PDF's accent rule above it.
+  const heading = (text: string) => new Paragraph({
+    border: { top: { style: BorderStyle.SINGLE, size: 24, color: ACCENT } },
+    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 21, font: HEADER_FONT, color: ACCENT, characterSpacing: 50 })],
+    spacing: { before: 300, after: 150 }
+  })
+
+  const first = cv.fullName.split(' ')[0]
+  const rest = cv.fullName.split(' ').slice(1).join(' ')
+  const customHeader = (): (Paragraph | Table)[] => [
+    // Masthead bar — a heavy rule across the top of the document.
+    new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 40, color: ACCENT } }, children: [new TextRun({ text: '', size: 2 })], spacing: { after: 170 } }),
+    // Split-weight name: bold first name, light remainder.
+    new Paragraph({ children: [
+      new TextRun({ text: `${first.toUpperCase()} `, bold: true, size: 46, font: NAME_FONT_SERIF, color: '1a1a1a' }),
+      new TextRun({ text: rest.toUpperCase(), size: 46, font: NAME_FONT_SERIF, color: '1a1a1a' }),
+    ], spacing: { after: 70 } }),
+    ...(cv.jobTitle ? [new Paragraph({ children: [new TextRun({ text: cv.jobTitle.toUpperCase(), bold: true, size: 20, font: HEADER_FONT, color: ACCENT, characterSpacing: 60 })], spacing: { after: 90 } })] : []),
+    new Paragraph({ children: [new TextRun({ text: contactStr(cv), size: SIZE_CONTACT, font: BODY_FONT, color: '777777' })], spacing: { after: 260 } }),
+  ]
+
+  return composeSingleColumn(cv, heading, ACCENT, { center: false, bodyFont: BODY_FONT, nameFont: NAME_FONT_SERIF, nameColor: '1a1a1a', titleUsesAccent: true, customHeader })
 }
 
 // ═══════════════════════════════════════════════════════

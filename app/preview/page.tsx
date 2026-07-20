@@ -15,7 +15,7 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   // Curated pagination-safe library. Every design uses the same granular
   // block structure; only typography, headings and header styling differ.
   // ── PDF + Word, colour-customizable ──
-  { id: 'vertex',    name: 'Modern Rail',     tag: 'Bold · Clean · Colour Rail',       color: '#e0533d', formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'vertex',    name: 'Editorial',       tag: 'Magazine · Bold Rules · Strong Colour', color: '#e0533d', formats: 'both', category: 'premium', customizable: true },
   { id: 'sovereign', name: 'Executive Gold',  tag: 'Prestige · Centered · Corporate',  color: '#b08d3f', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'ascend',    name: 'Corporate Blue',  tag: 'Strong · Colour Bars · Structured',color: '#1d4ed8', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'harbour',   name: 'Refined Teal',    tag: 'Editorial · Elegant · Professional',color: '#0f766e',formats: 'both', category: 'premium',  customizable: true  },
@@ -894,16 +894,15 @@ function TemplateThumb({ id }: { id: TemplateId }) {
   const lines = (x: number, y: number, w: number, n: number, gap = 2.6, c = '#cbd5e1') =>
     Array.from({ length: n }).map((_, i) => <rect key={i} x={x} y={y + i * gap} width={w} height="0.8" fill={c} rx="0.4" />)
 
-  // VERTEX — colour rail + two columns
+  // EDITORIAL (vertex) — magazine masthead bar + heavy section rules
   if (id === 'vertex') return (
     <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
       <rect width={W} height={H} fill="#fff" />
-      <rect x="0" y="0" width="4" height={H} fill="#e0533d" />
-      <text x="9" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="6" fill="#1c1c1c">NAME</text>
-      <rect x="9" y="14" width="9" height="1.4" fill="#e0533d" />
-      <rect x="9" y="20" width="6" height="1" fill="#1c1c1c" />{lines(9, 23, 18, 4)}
-      <rect x="9" y="36" width="6" height="1" fill="#1c1c1c" />{lines(9, 39, 17, 3)}
-      <rect x="31" y="20" width="6" height="1" fill="#1c1c1c" />{lines(31, 23, 14, 5)}
+      <rect x="4" y="5" width="42" height="2.4" fill="#e0533d" />
+      <text x="4" y="15" fontFamily="serif" fontWeight="800" fontSize="6" fill="#1a1a1a">NAME</text>
+      <text x="4" y="20" fontFamily="serif" fontWeight="600" fontSize="2.6" fill="#e0533d">JOB TITLE</text>
+      <rect x="4" y="26" width="42" height="1.4" fill="#e0533d" /><text x="4" y="31" fontFamily="serif" fontWeight="800" fontSize="3" fill="#e0533d">PROFILE</text>{lines(4, 34, 42, 3)}
+      <rect x="4" y="45" width="42" height="1.4" fill="#e0533d" /><text x="4" y="50" fontFamily="serif" fontWeight="800" fontSize="3" fill="#e0533d">EXPERIENCE</text>{lines(4, 53, 42, 2)}
     </svg></div>
   )
   // SOVEREIGN — crest + centered
