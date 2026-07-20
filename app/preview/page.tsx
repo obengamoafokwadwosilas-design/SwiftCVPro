@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { GeneratedCV, TemplateId, ExportFormat } from '@/types'
-import CVPreview, { getFlowPdfConfig, TemplatePreview } from '@/components/CVPreview'
+import CVPreview, { getFlowPdfConfig } from '@/components/CVPreview'
 
 // ══════════════════════════════════════════════════════
 // TEMPLATE LIBRARY — Premium first, then ATS, then Academic
@@ -882,13 +882,212 @@ export default function PreviewPage() {
 }
 
 // ══════════════════════════════════════════════════════
-// ICONS
-// Template previews now render the real template scaled down
-// (TemplatePreview in components/CVPreview.tsx), so there are no
-// hand-drawn thumbnails to keep in sync here.
+// SVG THUMBNAILS — one per template
 // ══════════════════════════════════════════════════════
 function DownIcon() {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+}
+
+function TemplateThumb({ id }: { id: TemplateId }) {
+  const W = 50, H = 64
+  const wrap: React.CSSProperties = { width: W, height: H, borderRadius: 4, overflow: 'hidden', flexShrink: 0, boxShadow: '0 2px 6px rgba(0,0,0,0.12)', background: 'white', border: '1px solid #e2e8f0' }
+  const lines = (x: number, y: number, w: number, n: number, gap = 2.6, c = '#cbd5e1') =>
+    Array.from({ length: n }).map((_, i) => <rect key={i} x={x} y={y + i * gap} width={w} height="0.8" fill={c} rx="0.4" />)
+
+  // EDITORIAL (vertex) — magazine masthead bar + heavy section rules
+  if (id === 'vertex') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="4" y="5" width="42" height="2.4" fill="#e0533d" />
+      <text x="4" y="15" fontFamily="serif" fontWeight="800" fontSize="6" fill="#1a1a1a">NAME</text>
+      <text x="4" y="20" fontFamily="serif" fontWeight="600" fontSize="2.6" fill="#e0533d">JOB TITLE</text>
+      <rect x="4" y="26" width="42" height="1.4" fill="#e0533d" /><text x="4" y="31" fontFamily="serif" fontWeight="800" fontSize="3" fill="#e0533d">PROFILE</text>{lines(4, 34, 42, 3)}
+      <rect x="4" y="45" width="42" height="1.4" fill="#e0533d" /><text x="4" y="50" fontFamily="serif" fontWeight="800" fontSize="3" fill="#e0533d">EXPERIENCE</text>{lines(4, 53, 42, 2)}
+    </svg></div>
+  )
+  // SOVEREIGN — crest + centered
+  if (id === 'sovereign') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fdfcfa" />
+      <circle cx="25" cy="9" r="4" fill="none" stroke="#b08d3f" strokeWidth="0.8" />
+      <text x="25" y="11" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="3" fill="#1a2238">WB</text>
+      <text x="25" y="19" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="4.5" fill="#1a2238" letterSpacing="1">NAME</text>
+      <line x1="6" y1="23" x2="44" y2="23" stroke="#b08d3f" strokeWidth="0.6" />
+      <rect x="22" y="28" width="6" height="1" fill="#1a2238" />{lines(8, 32, 34, 3)}
+      <rect x="8" y="42" width="6" height="1" fill="#1a2238" />{lines(8, 46, 34, 3)}
+    </svg></div>
+  )
+  // MERIDIAN — teal sidebar, name in main
+  if (id === 'meridian') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="0" y="0" width="17" height={H} fill="#0d9488" />
+      <rect x="3" y="6" width="6" height="1" fill="#fff" opacity="0.9" />{lines(3, 9, 10, 3, 2.4, 'rgba(255,255,255,0.6)')}
+      <rect x="3" y="20" width="6" height="1" fill="#fff" opacity="0.9" />{lines(3, 23, 11, 4, 2.4, 'rgba(255,255,255,0.6)')}
+      <text x="21" y="10" fontFamily="serif" fontWeight="700" fontSize="5" fill="#1a1a1a">NAME</text>
+      <rect x="21" y="13" width="10" height="1.2" fill="#0d9488" />{lines(21, 18, 24, 3)}
+      <rect x="21" y="29" width="6" height="1" fill="#0d9488" />{lines(21, 32, 22, 4)}
+    </svg></div>
+  )
+  // ASCEND — colour bar headings
+  if (id === 'ascend') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="4" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="6" fill="#1a1a1a">NAME</text>
+      <rect x="4" y="14" width="9" height="1.2" fill="#1d4ed8" />
+      <rect x="4" y="20" width="42" height="3.5" fill="#1d4ed8" />{lines(4, 26, 40, 3)}
+      <rect x="4" y="37" width="42" height="3.5" fill="#1d4ed8" />{lines(4, 43, 40, 3)}
+    </svg></div>
+  )
+  // HARBOUR — tick headings, editorial
+  if (id === 'harbour') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="4" y="6" width="2" height="9" fill="#0f766e" />
+      <text x="9" y="11" fontFamily="serif" fontWeight="700" fontSize="6" fill="#1a2a2a">NAME</text>
+      <text x="9" y="15" fontFamily="serif" fontStyle="italic" fontSize="3" fill="#0f766e">title</text>
+      <line x1="4" y1="19" x2="46" y2="19" stroke="#d8e0e0" strokeWidth="0.6" />
+      <rect x="4" y="23" width="2" height="3" fill="#0f766e" /><rect x="8" y="23" width="6" height="1" fill="#1a2a2a" />{lines(4, 28, 42, 3)}
+      <rect x="4" y="40" width="2" height="3" fill="#0f766e" /><rect x="8" y="40" width="6" height="1" fill="#1a2a2a" />{lines(4, 45, 42, 3)}
+    </svg></div>
+  )
+  // PULSE — dark sidebar right, pill title
+  // ONYX — dark header band, gold
+  if (id === 'onyx') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="0" y="0" width={W} height="18" fill="#15131f" />
+      <text x="4" y="9" fontFamily="serif" fontWeight="800" fontSize="5.5" fill="#fff">NAME</text>
+      <rect x="4" y="12" width="14" height="1.4" fill="#c9a86a" />
+      <rect x="4" y="24" width="6" height="1" fill="#c9a86a" />{lines(4, 27, 42, 3)}
+      <rect x="4" y="40" width="6" height="1" fill="#c9a86a" />{lines(4, 43, 42, 3)}
+    </svg></div>
+  )
+  // STERLING — gold executive, navy sidebar right
+  if (id === 'sterling') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="35" y="0" width="15" height={H} fill="#1a2238" />
+      <circle cx="42.5" cy="10" r="3.5" fill="none" stroke="#c9a86a" strokeWidth="0.7" />
+      <text x="4" y="10" fontFamily="serif" fontWeight="700" fontSize="6" fill="#1a2238">NAME</text>
+      <rect x="4" y="13" width="12" height="1" fill="#c9a86a" />
+      <rect x="4" y="20" width="6" height="1" fill="#1a2238" /><rect x="4" y="22" width="9" height="0.6" fill="#c9a86a" />{lines(4, 25, 26, 4)}
+      <rect x="37" y="18" width="5" height="0.8" fill="#c9a86a" />{lines(37, 21, 10, 3, 2.4, 'rgba(255,255,255,0.6)')}
+    </svg></div>
+  )
+  // VERDE — green gradient header, cards
+  if (id === 'verde') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <defs><linearGradient id="vg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#14532d"/><stop offset="1" stopColor="#1f7a44"/></linearGradient></defs>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="0" y="0" width={W} height="16" fill="url(#vg)" />
+      <text x="4" y="9" fontFamily="serif" fontWeight="700" fontSize="5.5" fill="#fff">NAME</text>
+      <circle cx="5" cy="22" r="1.2" fill="#3f9142" /><rect x="8" y="21" width="6" height="1" fill="#14532d" />
+      <rect x="4" y="26" width="42" height="9" rx="2" fill="#f4f7f4" />{lines(7, 28, 36, 2)}
+      <circle cx="5" cy="40" r="1.2" fill="#3f9142" /><rect x="8" y="39" width="6" height="1" fill="#14532d" />
+    </svg></div>
+  )
+  // CRIMSON — magazine colour band
+  if (id === 'crimson') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="0" y="0" width={W} height="3" fill="#a01e1e" />
+      <text x="4" y="13" fontFamily="serif" fontWeight="800" fontSize="6" fill="#1a1a1a">NAME</text>
+      <rect x="4" y="16" width="13" height="3" fill="#a01e1e" />
+      <rect x="4" y="24" width="6" height="1" fill="#a01e1e" /><rect x="4" y="26" width="42" height="0.6" fill="#a01e1e" />{lines(4, 29, 42, 3)}
+      <rect x="4" y="42" width="6" height="1" fill="#a01e1e" />{lines(4, 45, 42, 2)}
+    </svg></div>
+  )
+  // ATLAS — timeline date rail
+  if (id === 'atlas') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="4" y="10" fontFamily="serif" fontWeight="300" fontSize="6" fill="#0f172a">NA<tspan font-weight="800">ME</tspan></text>
+      <rect x="4" y="13" width="12" height="1" fill="#3b82f6" />
+      <text x="4" y="24" fontFamily="sans-serif" fontWeight="800" fontSize="3.5" fill="#0f172a">26</text>
+      <line x1="13" y1="20" x2="13" y2="34" stroke="#e2e8f0" strokeWidth="1" />
+      <circle cx="13" cy="22" r="1.3" fill="#3b82f6" />
+      <rect x="16" y="21" width="10" height="1" fill="#0f172a" />{lines(16, 24, 28, 3)}
+      <text x="4" y="40" fontFamily="sans-serif" fontWeight="800" fontSize="3.5" fill="#0f172a">20</text>
+      <line x1="13" y1="37" x2="13" y2="46" stroke="#e2e8f0" strokeWidth="1" />
+      <circle cx="13" cy="39" r="1.3" fill="#3b82f6" />
+      <rect x="16" y="38" width="10" height="1" fill="#0f172a" />{lines(16, 41, 28, 2)}
+    </svg></div>
+  )
+  // SLATE — minimal mono
+  if (id === 'slate') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="6" y="12" fontFamily="serif" fontWeight="300" fontSize="5" fill="#1a1a1a" letterSpacing="1.5">NAME</text>
+      <rect x="6" y="16" width="8" height="1" fill="#1a1a1a" />
+      <rect x="6" y="26" width="7" height="0.8" fill="#1a1a1a" />{lines(6, 29, 38, 3, 3)}
+      <rect x="6" y="44" width="7" height="0.8" fill="#1a1a1a" />{lines(6, 47, 38, 2, 3)}
+    </svg></div>
+  )
+  // ACADEMIC — scholarly
+  if (id === 'academic') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="25" y="10" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="5" fill="#374151">NAME</text>
+      <line x1="4" y1="14" x2="46" y2="14" stroke="#374151" strokeWidth="0.6" />
+      <rect x="4" y="19" width="8" height="1" fill="#374151" />{lines(4, 22, 42, 4)}
+      <rect x="4" y="36" width="8" height="1" fill="#374151" />{lines(4, 39, 42, 3)}
+    </svg></div>
+  )
+  // AURORA (metro) — colourful filled header band + filled section bars
+  if (id === 'metro') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <rect x="4" y="4" width="42" height="15" fill="#7c3aed" />
+      <text x="8" y="11" fontFamily="sans-serif" fontWeight="800" fontSize="5" fill="#fff">NAME</text>
+      <rect x="8" y="14" width="14" height="0.8" fill="#fff" opacity="0.85" />
+      <rect x="4" y="24" width="42" height="3.5" fill="#7c3aed" />{lines(4, 30, 40, 3)}
+      <rect x="4" y="41" width="42" height="3.5" fill="#7c3aed" />{lines(4, 47, 40, 2)}
+    </svg></div>
+  )
+  // PRESTIGE — executive, centered navy name + gold rule
+  if (id === 'prestige') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="25" y="11" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="5.5" fill="#0a1a3a" letterSpacing="0.5">NAME</text>
+      <rect x="19" y="14" width="12" height="1.2" fill="#a87b00" />
+      <text x="25" y="20" textAnchor="middle" fontFamily="serif" fontStyle="italic" fontSize="3" fill="#a87b00">title</text>
+      <rect x="4" y="26" width="7" height="1" fill="#0a1a3a" /><rect x="4" y="28" width="42" height="0.6" fill="#a87b00" />{lines(4, 31, 42, 3)}
+      <rect x="4" y="43" width="7" height="1" fill="#0a1a3a" /><rect x="4" y="45" width="42" height="0.6" fill="#a87b00" />{lines(4, 48, 42, 2)}
+    </svg></div>
+  )
+  // COMPASS — centered name, headings flanked by rules
+  if (id === 'compass') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="25" y="11" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="5.5" fill="#1a1a1a">NAME</text>
+      <text x="25" y="17" textAnchor="middle" fontFamily="serif" fontSize="2.8" fill="#666">contact details</text>
+      <line x1="6" y1="25" x2="18" y2="25" stroke="#64748b" strokeWidth="0.6" /><text x="25" y="26.5" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="3" fill="#1a1a1a">EDUCATION</text><line x1="32" y1="25" x2="44" y2="25" stroke="#64748b" strokeWidth="0.6" />
+      {lines(6, 30, 38, 3)}
+      <line x1="6" y1="42" x2="17" y2="42" stroke="#64748b" strokeWidth="0.6" /><text x="25" y="43.5" textAnchor="middle" fontFamily="serif" fontWeight="700" fontSize="3" fill="#1a1a1a">EXPERIENCE</text><line x1="33" y1="42" x2="44" y2="42" stroke="#64748b" strokeWidth="0.6" />
+      {lines(6, 47, 38, 2)}
+    </svg></div>
+  )
+  // BEACON — centered name, filled tab headings + rule
+  if (id === 'beacon') return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="25" y="11" textAnchor="middle" fontFamily="sans-serif" fontWeight="700" fontSize="5.5" fill="#1a2b4a">NAME</text>
+      <text x="25" y="16.5" textAnchor="middle" fontFamily="sans-serif" fontSize="2.8" fill="#2563eb">title</text>
+      <rect x="6" y="22" width="13" height="4" rx="1" fill="#2563eb" /><text x="8" y="25" fontFamily="sans-serif" fontWeight="700" fontSize="2.4" fill="#fff">EDU</text><rect x="20" y="23.6" width="24" height="0.8" fill="#2563eb" opacity="0.5" />{lines(6, 29, 38, 3)}
+      <rect x="6" y="41" width="13" height="4" rx="1" fill="#2563eb" /><text x="8" y="44" fontFamily="sans-serif" fontWeight="700" fontSize="2.4" fill="#fff">EXP</text><rect x="20" y="42.6" width="24" height="0.8" fill="#2563eb" opacity="0.5" />{lines(6, 47, 38, 2)}
+    </svg></div>
+  )
+  // CLASSIC (default) — centered minimal
+  return (
+    <div style={wrap}><svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      <rect width={W} height={H} fill="#fff" />
+      <text x="25" y="10" textAnchor="middle" fontFamily="sans-serif" fontWeight="700" fontSize="5" fill="#1f2937">NAME</text>
+      <line x1="4" y1="14" x2="46" y2="14" stroke="#1f2937" strokeWidth="0.8" />
+      <rect x="4" y="19" width="7" height="1" fill="#1f2937" />{lines(4, 22, 42, 4)}
+      <rect x="4" y="36" width="7" height="1" fill="#1f2937" />{lines(4, 39, 42, 3)}
+    </svg></div>
+  )
 }
 
 // ══════════════════════════════════════════════════════
@@ -903,7 +1102,7 @@ function TemplateCard({ tpl, active, onClick }: { tpl: typeof TEMPLATES[0]; acti
   return (
     <div onClick={onClick} className="scv-tpl" title={tpl.tag} style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', gap:'8px', padding:'12px 8px 11px', borderRadius:'12px', background: active ? '#f6fdfb' : '#fff', boxShadow: active ? '0 0 0 1.5px #0d9488' : '0 0 0 1px #eef2f6', cursor:'pointer' }}>
       {active && <span style={{ position:'absolute', top:'6px', right:'6px', width:'16px', height:'16px', borderRadius:'50%', background:'#0d9488', color:'#fff', fontSize:'9px', fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center' }}>✓</span>}
-      <TemplatePreview templateId={tpl.id} />
+      <TemplateThumb id={tpl.id} />
       <div style={{ textAlign:'center', width:'100%' }}>
         <div style={{ fontSize:'12px', fontWeight:600, color: active ? '#0d9488' : '#0a0f1a', lineHeight:1.2 }}>{tpl.name}</div>
         <div style={{ display:'inline-flex', alignItems:'center', gap:'4px', marginTop:'5px', fontSize:'7.5px', fontWeight:700, letterSpacing:'0.4px', padding:'2.5px 7px', borderRadius:'20px', background: both ? '#ecfdf5' : '#fffbeb', color: both ? '#0d9488' : '#b45309' }}>
