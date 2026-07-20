@@ -854,26 +854,16 @@ export default function PreviewPage() {
 
       {pdfOnlyModal && (
         <div onClick={() => setPdfOnlyModal(false)} style={{ position:'fixed', inset:0, background:'rgba(10,15,26,0.7)', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', backdropFilter:'blur(4px)' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'18px', maxWidth:'460px', width:'100%', padding:'30px', boxShadow:'0 25px 80px rgba(0,0,0,0.4)', fontFamily:"'DM Sans', sans-serif" }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'14px' }}>
-              <div style={{ width:'40px', height:'40px', borderRadius:'10px', background:'#fef3c7', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'20px' }}>📄</div>
-              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'22px', fontWeight:600, color:'#0a0f1a' }}>PDF Only Template</div>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'18px', maxWidth:'380px', width:'100%', padding:'36px 34px 28px', boxShadow:'0 25px 80px rgba(0,0,0,0.4)', fontFamily:"'DM Sans', sans-serif", textAlign:'center' }}>
+            <div style={{ width:'46px', height:'46px', borderRadius:'50%', background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 18px', color:'#0d9488' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M14 3v5h5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg>
             </div>
-            <div style={{ fontSize:'14px', color:'#475569', lineHeight:1.65, marginBottom:'22px' }}>
-              <strong style={{ color:'#0a0f1a' }}>{currentTpl?.name}</strong> uses rich visual design that Word can&apos;t reproduce. Download as PDF for the full look, or switch to an ATS template:
+            <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'24px', fontWeight:600, color:'#0a0f1a', marginBottom:'12px' }}>PDF-only design</div>
+            <div style={{ fontSize:'14px', color:'#475569', lineHeight:1.7, marginBottom:'26px' }}>
+              <strong style={{ color:'#0a0f1a' }}>{currentTpl?.name}</strong> is available in PDF only. Choose another template to download your CV in Word&nbsp;(.docx) format.
             </div>
-            <div style={{ fontSize:'10.5px', color:'#64748b', textTransform:'uppercase', letterSpacing:'1.5px', fontWeight:700, marginBottom:'8px' }}>ATS Templates (PDF + Word)</div>
-            <div style={{ display:'flex', flexWrap:'wrap', gap:'6px', marginBottom:'24px' }}>
-              {TEMPLATES.filter(t => t.formats === 'both' && (isAcademicCV ? true : t.category !== 'academic')).map(t => (
-                <button key={t.id} onClick={() => { setTemplate(t.id); setPdfOnlyModal(false) }} style={{ padding:'7px 14px', borderRadius:'50px', border:'1.5px solid #e2e8f0', background:'white', cursor:'pointer', fontSize:'12px', fontWeight:600, color:'#0a0f1a', display:'flex', alignItems:'center', gap:'6px' }}>
-                  <span style={{ width:'8px', height:'8px', borderRadius:'2px', background:t.color }} />{t.name}
-                </button>
-              ))}
-            </div>
-            <div style={{ display:'flex', gap:'8px' }}>
-              <button onClick={() => setPdfOnlyModal(false)} style={{ flex:1, padding:'12px', background:'#f1f5f9', color:'#0a0f1a', border:'none', borderRadius:'10px', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>Cancel</button>
-              <button onClick={() => { setPdfOnlyModal(false); handleDownloadPdf() }} style={{ flex:1, padding:'12px', background:'#0d9488', color:'white', border:'none', borderRadius:'10px', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>↓ Download PDF</button>
-            </div>
+            <button onClick={() => { setPdfOnlyModal(false); handleDownloadPdf() }} style={{ width:'100%', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'11px', cursor:'pointer', fontWeight:600, fontSize:'14px', marginBottom:'10px' }}>Download PDF</button>
+            <button onClick={() => setPdfOnlyModal(false)} style={{ width:'100%', padding:'11px', background:'transparent', color:'#64748b', border:'none', borderRadius:'11px', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>Cancel</button>
           </div>
         </div>
       )}
