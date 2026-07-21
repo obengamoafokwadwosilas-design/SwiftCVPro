@@ -478,8 +478,7 @@ export default function BuildPage() {
       )}
 
       {/* ══ SCREEN: PASTE PATH ══════════════════════════════════ */}
-      {screen === 'paste' && (
-        <div style={{ maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
+        <div style={{ display: screen === 'paste' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <StepLabel label="Step 1 of 1" />
           <h1 style={h1Style}>Share Your CV Content</h1>
           <p style={subStyle}>Paste your information below. Don't worry about formatting. Swift will organise everything for you.</p>
@@ -529,11 +528,9 @@ export default function BuildPage() {
             </button>
           </div>
         </div>
-      )}
 
       {/* ══ SCREEN: FORM STEP 1 — PERSONAL ══════════════════════ */}
-      {screen === 'form-1' && (
-        <div style={{ maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
+        <div style={{ display: screen === 'form-1' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           {/* Swift greeting with typing animation */}
           <SwiftGreeting label={meta.label} />
 
@@ -574,11 +571,9 @@ export default function BuildPage() {
             <button onClick={() => go('form-2')} style={btnPrimary}>Next →</button>
           </div>
         </div>
-      )}
 
       {/* ══ SCREEN: FORM STEP 2 — EDUCATION ══════════════════════ */}
-      {screen === 'form-2' && (
-        <div style={{ maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
+        <div style={{ display: screen === 'form-2' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <StepLabel label={`Step 2 of ${meta.totalFormSteps}`} />
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#e6f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
@@ -617,11 +612,9 @@ export default function BuildPage() {
             <button onClick={() => go('form-3')} style={btnPrimary}>Next →</button>
           </div>
         </div>
-      )}
 
       {/* ══ SCREEN: FORM STEP 3 — EXPERIENCE ══════════════════════ */}
-      {screen === 'form-3' && (
-        <div style={{ maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
+        <div style={{ display: screen === 'form-3' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <StepLabel label={`Step 3 of ${meta.totalFormSteps}`} />
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#eeedfe', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg>
@@ -680,11 +673,9 @@ export default function BuildPage() {
             <button onClick={() => go('form-4')} style={btnPrimary}>Next →</button>
           </div>
         </div>
-      )}
 
       {/* ══ SCREEN: FORM STEP 4 — EXTRAS ══════════════════════ */}
-      {screen === 'form-4' && (
-        <div style={{ maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
+        <div style={{ display: screen === 'form-4' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <StepLabel label={`Step 4 of ${meta.totalFormSteps}`} />
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#faeeda', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#854f0b" strokeWidth="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -728,11 +719,9 @@ export default function BuildPage() {
             <button onClick={goFromForm4} style={btnPrimary}>{meta.hasJobStep ? 'Next →' : 'Review Details →'}</button>
           </div>
         </div>
-      )}
 
       {/* ══ SCREEN: FORM STEP 5 — JOB DETAILS ══════════════════════ */}
-      {screen === 'form-5' && (
-        <div style={{ maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
+        <div style={{ display: screen === 'form-5' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <StepLabel label={`Step 5 of ${meta.totalFormSteps}`} />
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: cvType === 'cover_letter' ? '#fbeaf0' : '#e6f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             {cvType === 'cover_letter'
@@ -772,7 +761,6 @@ export default function BuildPage() {
             </button>
           </div>
         </div>
-      )}
 
       {/* ══ SCREEN: SUMMARY ══════════════════════════════════ */}
       {screen === 'summary' && (
