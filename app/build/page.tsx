@@ -48,7 +48,11 @@ export default function BuildPage() {
   const router = useRouter()
 
   // ── Screen state ──────────────────────────────
-  const [screen, setScreen] = useState<Screen>('type')
+  // Info first: the flow opens on the input method, not a CV-type gate. The
+  // type is chosen after the user has entered their details (see the 'type'
+  // screen), so nobody has to make a decision before they can start.
+  const [screen, setScreen] = useState<Screen>('method')
+  const [typeChosen, setTypeChosen] = useState(false)
   const [cvType, setCvType] = useState<CVType>('professional')
   const [inputMethod, setInputMethod] = useState<'paste' | 'form'>('paste')
   const [pasteInputMode, setPasteInputMode] = useState<'paste' | 'upload'>('paste')
@@ -150,8 +154,16 @@ export default function BuildPage() {
     else go('form-1')
   }
 
+  // The job-details step is always offered (it's skippable), because the CV
+  // type — which used to decide whether it appeared — isn't chosen until later.
   function goFromForm4() {
-    if (meta.hasJobStep) go('form-5')
+    go('form-5')
+  }
+
+  // After the type is picked: the paste path already collected the phone, so it
+  // generates directly; the guided path goes to the review screen.
+  function goAfterType() {
+    if (inputMethod === 'paste') handleGenerate()
     else go('summary')
   }
 
@@ -344,106 +356,64 @@ export default function BuildPage() {
   // ─────────────────────────────────────────────
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #f0fdf9 0%, #f8fafc 40%, #fefdfb 100%)' }}>
-      <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
+      {/* Info first (1), choose the document (2), review & generate (3) */}
+      <Nav step={screen === 'method' ? 1 : screen === 'type' ? 2 : screen === 'summary' ? 3 : 1} />
 
-      {/* ══ SCREEN: CV TYPE ══════════════════════════════════ */}
+      {/* ══ SCREEN: CHOOSE DOCUMENT (after the info is in) ══════════ */}
       {screen === 'type' && (
-        <div style={{ maxWidth: '760px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '8px', lineHeight: 1.1 }}>
-            Select a <span style={{ color: '#0d9488' }}>CV Type</span>
+        <div style={{ maxWidth: '720px', margin: '0 auto', padding: '52px 24px 80px' }}>
+          <StepLabel label="Last step" />
+          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '8px', lineHeight: 1.15 }}>
+            What should we <span style={{ color: '#0d9488' }}>create?</span>
           </h1>
-          <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '36px', fontWeight: 300, lineHeight: 1.7 }}>Choose the option that best fits your goals.</p>
+          <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '32px', fontWeight: 300, lineHeight: 1.7 }}>We have your details. Choose the document to build from them.</p>
 
-          {/* CV TYPES — the actual answer to "what CV type" — get equal top billing. */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '18px' }}>
+          <div style={{ display: 'grid', gap: '12px', marginBottom: '28px' }}>
             {([
-              {
-                id: 'professional' as CVType, recommended: true,
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg>,
-                iconBg: '#e1f5ee', name: 'Professional CV', desc: 'For most job applications and any industry.', cta: 'Choose Professional CV'
-              },
-              {
-                id: 'academic' as CVType, recommended: false,
-                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>,
-                iconBg: '#eeedfe', name: 'Academic CV', desc: 'For research roles, postgraduate applications, and lecturing positions.', cta: 'Choose Academic CV'
-              },
-            ] as any[]).map((card: any) => (
-              <div
-                key={card.id}
-                onClick={() => { setCvType(card.id); go('method') }}
-                style={{
-                  position: 'relative', background: 'white', display: 'flex', flexDirection: 'column',
-                  border: card.recommended ? '2px solid #0d9488' : '1px solid #e2e8f0',
-                  borderRadius: '18px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s, box-shadow 0.2s'
-                }}
-                onMouseEnter={e => {
-                  const el = e.currentTarget as HTMLDivElement
-                  if (card.recommended) el.style.boxShadow = '0 0 0 4px rgba(13,148,136,0.1)'
-                  else el.style.borderColor = '#0d9488'
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget as HTMLDivElement
-                  el.style.boxShadow = 'none'
-                  if (!card.recommended) el.style.borderColor = '#e2e8f0'
-                }}
-              >
-                {card.recommended && (
-                  <div style={{ position: 'absolute', top: '-12px', left: '18px', background: '#0d9488', color: 'white', fontSize: '10.5px', fontWeight: 600, padding: '3px 12px', borderRadius: '100px' }}>★ Recommended</div>
-                )}
-                <div style={{ width: '42px', height: '42px', borderRadius: '11px', background: card.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>{card.icon}</div>
-                <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.2rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '6px' }}>{card.name}</div>
-                <div style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.65, fontWeight: 300, marginBottom: '16px', flex: 1 }}>{card.desc}</div>
-                <button style={{
-                  width: '100%', border: 'none', borderRadius: '100px', padding: '10px 0', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer',
-                  background: card.recommended ? '#0d9488' : 'transparent',
-                  color: card.recommended ? 'white' : '#0a0f1a',
-                  ...(card.recommended ? {} : { border: '0.5px solid #e2e8f0' })
-                }}>{card.cta} →</button>
-              </div>
-            ))}
+              { id: 'professional' as CVType, name: 'Professional CV', desc: 'For most job applications, any industry.',
+                icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg> },
+              { id: 'academic' as CVType, name: 'Academic CV', desc: 'For research roles, postgraduate applications and lecturing.',
+                icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> },
+              { id: 'cover_letter' as CVType, name: 'Cover Letter', desc: 'A personalised letter that makes the case for you.',
+                icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> },
+            ] as any[]).map((card: any) => {
+              const selected = typeChosen && cvType === card.id
+              return (
+                <button
+                  key={card.id}
+                  onClick={() => { setCvType(card.id); setTypeChosen(true) }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '15px', width: '100%', textAlign: 'left' as const,
+                    background: selected ? '#f6fdfb' : 'white', cursor: 'pointer',
+                    border: selected ? '2px solid #0d9488' : '1px solid #e7ebf0',
+                    borderRadius: '16px', padding: selected ? '17px 19px' : '18px 20px',
+                    fontFamily: "'DM Sans', sans-serif", transition: 'border-color 0.15s, background 0.15s',
+                  }}
+                >
+                  <span style={{ width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? '#0d9488' : '#f1f5f9', color: selected ? '#fff' : '#64748b' }}>{card.icon}</span>
+                  <span style={{ flex: 1 }}>
+                    <span style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: '1.18rem', fontWeight: 600, color: '#0a0f1a' }}>{card.name}</span>
+                    <span style={{ display: 'block', fontSize: '12.5px', color: '#64748b', marginTop: '2px', lineHeight: 1.5, fontWeight: 300 }}>{card.desc}</span>
+                  </span>
+                  <span style={{ width: '21px', height: '21px', flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? '#0d9488' : 'transparent', border: selected ? 'none' : '1.5px solid #e2e8f0' }}>
+                    {selected && <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </span>
+                </button>
+              )
+            })}
           </div>
 
-          {/* Divider — signals a category change, not a third peer option */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '4px 0 16px' }}>
-            <div style={{ flex: 1, height: '0.5px', background: '#e2e8f0' }} />
-            <span style={{ fontSize: '12px', color: '#94a3b8' }}>Need something else instead?</span>
-            <div style={{ flex: 1, height: '0.5px', background: '#e2e8f0' }} />
-          </div>
+          <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
-          {/* COVER LETTER — a different document, not a third CV type, so it's
-              visually set apart below rather than styled as a peer of the two above. */}
-          <div
-            onClick={() => { setCvType('cover_letter'); go('method') }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '14px', background: 'white',
-              border: '1px solid #e2e8f0', borderRadius: '16px', padding: '14px 18px',
-              cursor: 'pointer', marginBottom: '16px', transition: 'border-color 0.2s'
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#0d9488' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#e2e8f0' }}
-          >
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fbeaf0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.05rem', fontWeight: 600, color: '#0a0f1a' }}>Cover Letter</div>
-              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 300 }}>A personalised letter that introduces you and makes the case for you.</div>
-            </div>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#0a0f1a', whiteSpace: 'nowrap' as const, border: '0.5px solid #e2e8f0', borderRadius: '100px', padding: '9px 18px' }}>Choose Cover Letter →</div>
-          </div>
-
-          {/* Helper */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', background: '#f8fafc', border: '0.5px solid #e2e8f0', borderRadius: '14px', padding: '14px 16px' }}>
-            <div style={{ width: '28px', height: '28px', background: '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            </div>
-            <p style={{ fontSize: '13px', color: '#475569', lineHeight: 1.65, fontWeight: 300 }}>
-              <strong style={{ fontWeight: 600, color: '#0a0f1a' }}>Not sure which to pick?</strong> Choose Professional CV — it works for most job applications and can be used anywhere.
-            </p>
-          </div>
-
-          <div style={{ marginTop: '24px' }}>
-            <a href="/build" onClick={(e) => { e.preventDefault(); window.history.back() }} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '11px 20px', background: 'white', border: '2px solid #185fa5', borderRadius: '50px', fontSize: '13px', fontWeight: 600, color: '#185fa5', cursor: 'pointer', textDecoration: 'none', fontFamily: "'DM Sans', sans-serif" }}>← Back</a>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' as const }}>
+            <button onClick={() => go(inputMethod === 'paste' ? 'paste' : 'form-5')} style={btnBack}>← Back</button>
+            <button
+              onClick={goAfterType}
+              disabled={!typeChosen || isGenerating}
+              style={{ ...btnPrimary, opacity: (!typeChosen || isGenerating) ? 0.45 : 1, cursor: (!typeChosen || isGenerating) ? 'not-allowed' : 'pointer' }}
+            >
+              {isGenerating ? 'Generating…' : inputMethod === 'paste' ? `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'}` : 'Continue'}
+            </button>
           </div>
         </div>
       )}
@@ -523,9 +493,7 @@ export default function BuildPage() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
             <button onClick={() => go('method')} style={btnBack}>← Back</button>
-            <button onClick={handleGenerate} disabled={isGenerating} style={{ ...btnPrimary, opacity: isGenerating ? 0.6 : 1 }}>
-              {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
-            </button>
+            <button onClick={() => go('type')} style={btnPrimary}>Next →</button>
           </div>
         </div>
 
@@ -586,7 +554,7 @@ export default function BuildPage() {
             <textarea ref={refs.education} style={TA(110)} rows={5} placeholder="Write your education and certifications here..." />
 
             {/* Academic optional expand */}
-            {cvType === 'academic' && (
+            {(
               <>
                 <button onClick={() => setShowAcademicEdu(v => !v)} style={{ marginTop: '12px', ...expandToggleStyle }}>
                   <span>{showAcademicEdu ? '−' : '＋'} Add academic details (GPA, Thesis, Research)</span>
@@ -640,7 +608,7 @@ export default function BuildPage() {
             <textarea ref={refs.experience} style={TA(110)} rows={5} placeholder="Write your work experience here..." />
 
             {/* Academic experience expand */}
-            {cvType === 'academic' && (
+            {(
               <>
                 <button onClick={() => setShowAcademicExp(v => !v)} style={{ marginTop: '12px', ...expandToggleStyle }}>
                   <span>{showAcademicExp ? '−' : '＋'} Add academic activities (Publications, Teaching, Conferences)</span>
@@ -694,7 +662,7 @@ export default function BuildPage() {
             </div>
 
             {/* Academic extras expand */}
-            {cvType === 'academic' && (
+            {(
               <>
                 <button onClick={() => setShowAcademicExtras(v => !v)} style={{ ...expandToggleStyle, marginBottom: '10px' }}>
                   <span>{showAcademicExtras ? '−' : '＋'} Add academic extras (Grants, Supervision, ORCID)</span>
@@ -749,16 +717,11 @@ export default function BuildPage() {
             )}
           </div>
 
-          <button onClick={() => go('summary')} style={btnSkip}>Skip job details →</button>
-
-          <PhoneAndPrice phone={phoneNumber} setPhone={setPhoneNumber} />
-          <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
+          <button onClick={() => go('type')} style={btnSkip}>Skip job details →</button>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
             <button onClick={() => go('form-4')} style={btnBack}>← Back</button>
-            <button onClick={handleGenerate} disabled={isGenerating} style={{ ...btnPrimary, opacity: isGenerating ? 0.6 : 1 }}>
-              {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
-            </button>
+            <button onClick={() => go('type')} style={btnPrimary}>Next →</button>
           </div>
         </div>
 
@@ -793,7 +756,7 @@ export default function BuildPage() {
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={() => go(meta.hasJobStep ? 'form-5' : 'form-4')} style={btnBack}>← Back</button>
+            <button onClick={() => go('type')} style={btnBack}>← Back</button>
             <button onClick={handleGenerate} disabled={isGenerating} style={{ ...btnPrimary, opacity: isGenerating ? 0.6 : 1 }}>
               {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
