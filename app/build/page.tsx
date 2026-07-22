@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import { CVType } from '@/types'
 import { PACKAGES } from '@/lib/packages'
+import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed } from '@/lib/buildSeed'
 
 // ─────────────────────────────────────────────────────────────
 // LOADING SCREEN DATA
@@ -64,6 +65,10 @@ export default function BuildPage() {
   // Pricing modal: shown when the user has no credits and must buy a package.
   const [showPricing, setShowPricing] = useState(false)
   const [payPhone, setPayPhone] = useState('')
+  // Set only on the "popup blocked, opened a new tab instead" fallback path —
+  // shows a manual "Verify Payment" prompt until the user confirms they paid.
+  const [paymentPending, setPaymentPending] = useState<{ reference: string } | null>(null)
+  const [verifyingPayment, setVerifyingPayment] = useState(false)
   const [uploadedJD, setUploadedJD] = useState<File | null>(null)
   const [jdInputMode, setJdInputMode] = useState<'paste' | 'upload'>('paste')
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -128,6 +133,18 @@ export default function BuildPage() {
     if (t && ['professional','targeted','academic','cover_letter'].includes(t)) setCvType(t)
   }, [])
 
+  // ── Restore a build seed, if one is waiting ───────────────────
+  // Two unrelated flows leave this page and come back with a seed saved in
+  // sessionStorage (see lib/buildSeed.ts): an in-app-browser Paystack
+  // checkout round trip (via /payment-return), and "Duplicate" from CV
+  // history. Both are handled by this one check — restore whatever is
+  // there, then clear it so a stale seed can't reapply on a later visit.
+  useEffect(() => {
+    const seed = loadBuildSeed()
+    if (seed) { applyBuildSeed(seed); clearBuildSeed() }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // ── Loading animation ─────────────────────────
   useEffect(() => {
     if (!isGenerating) { setLoadingPct(0); setLoadingStep(0); return }
@@ -184,6 +201,80 @@ export default function BuildPage() {
   // The document type is step 1, so choosing it leads into how to share info.
   function goAfterType() {
     go('method')
+  }
+
+  // ── Build seed: capture / restore ──────────────────────────────
+  // Snapshot everything currently typed. Used right before an in-app-browser
+  // Paystack redirect (see triggerPaystack) and — later — by "Duplicate" in
+  // CV history. Uploaded FILES (a paste-path CV, or a JD upload) cannot be
+  // serialised into sessionStorage; if the current content came from an
+  // uploaded file rather than pasted text, this captures nothing for that
+  // field and the restored screen will simply ask for it again — validate()
+  // already handles that case correctly, so no extra UI is needed for it.
+  function captureBuildSeed(landingScreen: 'summary' | 'type'): BuildSeed {
+    return {
+      cvType,
+      inputMethod,
+      phoneNumber,
+      pasteContent: inputMethod === 'paste' && pasteInputMode === 'paste' ? (refs.paste.current?.value || undefined) : undefined,
+      clarifyNotes: inputMethod === 'paste' ? (refs.clarify.current?.value || undefined) : undefined,
+      form: inputMethod === 'form' ? {
+        fullName: refs.fullName.current?.value || undefined,
+        phone: refs.phone.current?.value || undefined,
+        email: refs.email.current?.value || undefined,
+        location: refs.location.current?.value || undefined,
+        dob: refs.dob.current?.value || undefined,
+        nationality: refs.nationality.current?.value || undefined,
+        linkedin: refs.linkedin.current?.value || undefined,
+        education: refs.education.current?.value || undefined,
+        gpa: refs.gpa.current?.value || undefined,
+        thesis: refs.thesis.current?.value || undefined,
+        research: refs.research.current?.value || undefined,
+        experience: refs.experience.current?.value || undefined,
+        publications: refs.publications.current?.value || undefined,
+        teaching: refs.teaching.current?.value || undefined,
+        conferences: refs.conferences.current?.value || undefined,
+        extras: refs.extras.current?.value || undefined,
+        grants: refs.grants.current?.value || undefined,
+        supervision: refs.supervision.current?.value || undefined,
+        orcid: refs.orcid.current?.value || undefined,
+        jobTitle: refs.jobTitle.current?.value || undefined,
+        company: refs.company.current?.value || undefined,
+      } : undefined,
+      jobDescription: needsJD
+        ? (inputMethod === 'paste' ? (refs.jdPaste.current?.value || undefined) : (refs.jobDesc.current?.value || undefined))
+        : undefined,
+      whyRole: cvType === 'cover_letter' ? (refs.whyRole.current?.value || undefined) : undefined,
+      landingScreen,
+    }
+  }
+
+  function applyBuildSeed(seed: BuildSeed) {
+    setCvType(seed.cvType)
+    setInputMethod(seed.inputMethod)
+    if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
+    // All screens are always mounted (hidden via display:none — see the data-
+    // loss fix elsewhere in this file), so refs already exist; still defer one
+    // frame so the state updates above have applied before we touch inputs.
+    requestAnimationFrame(() => {
+      const setVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
+        if (v !== undefined && ref.current) ref.current.value = v
+      }
+      if (seed.pasteContent) { setPasteInputMode('paste'); setVal(refs.paste, seed.pasteContent) }
+      setVal(refs.clarify, seed.clarifyNotes)
+      if (seed.form) {
+        const f = seed.form
+        setVal(refs.fullName, f.fullName); setVal(refs.phone, f.phone); setVal(refs.email, f.email); setVal(refs.location, f.location)
+        setVal(refs.dob, f.dob); setVal(refs.nationality, f.nationality); setVal(refs.linkedin, f.linkedin)
+        setVal(refs.education, f.education); setVal(refs.gpa, f.gpa); setVal(refs.thesis, f.thesis); setVal(refs.research, f.research)
+        setVal(refs.experience, f.experience); setVal(refs.publications, f.publications); setVal(refs.teaching, f.teaching); setVal(refs.conferences, f.conferences)
+        setVal(refs.extras, f.extras); setVal(refs.grants, f.grants); setVal(refs.supervision, f.supervision); setVal(refs.orcid, f.orcid)
+        setVal(refs.jobTitle, f.jobTitle); setVal(refs.company, f.company)
+      }
+      if (seed.jobDescription) { setJdInputMode('paste'); setVal(refs.jdPaste, seed.jobDescription); setVal(refs.jobDesc, seed.jobDescription) }
+      setVal(refs.whyRole, seed.whyRole)
+    })
+    go(seed.landingScreen)
   }
 
   // ── File extract ──────────────────────────────
@@ -325,6 +416,8 @@ export default function BuildPage() {
         sessionStorage.setItem('swiftcv_cv', JSON.stringify(data.cv))
         sessionStorage.setItem('swiftcv_type', cvType)
         sessionStorage.setItem('swiftcv_phone', normalizedPhone)
+        if (data.historyId) sessionStorage.setItem('swiftcv_history_id', String(data.historyId))
+        else sessionStorage.removeItem('swiftcv_history_id')
         router.push('/preview')
         return
       }
@@ -349,6 +442,8 @@ export default function BuildPage() {
       sessionStorage.setItem('swiftcv_cv', JSON.stringify(data.cv))
       sessionStorage.setItem('swiftcv_type', cvType)
       sessionStorage.setItem('swiftcv_phone', normalizedPhone)
+      if (data.historyId) sessionStorage.setItem('swiftcv_history_id', String(data.historyId))
+      else sessionStorage.removeItem('swiftcv_history_id')
       router.push('/preview')
     } catch {
       setIsGenerating(false)
@@ -356,30 +451,113 @@ export default function BuildPage() {
     }
   }
 
-  function triggerPaystack(normalizedPhone: string, pkg: typeof PACKAGES[number]) {
-    const script = document.createElement('script')
-    script.src = 'https://js.paystack.co/v1/inline.js'
-    script.onload = () => {
-      const handler = (window as any).PaystackPop.setup({
-        key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-        email: `${normalizedPhone.replace('+', '')}@swiftcvpro.com`,
-        amount: pkg.amount, // pesewas (GH₵1 = 100)
-        currency: 'GHS',
-        ref: `scv_${Date.now()}_${normalizedPhone.slice(-4)}`,
-        // The webhook is the source of truth: it reads these and credits both
-        // counters. phone_number is the key the webhook already expects.
-        metadata: { phone_number: normalizedPhone, cvType, package: pkg.id, cv_credits: pkg.cv, cl_credits: pkg.cl },
-        callback: async () => {
-          setIsGenerating(true)
-          // Give the webhook a moment to land the credits before generating.
-          await new Promise(r => setTimeout(r, 2500))
-          await doGenerate(normalizedPhone)
-        },
-        onClose: () => setError({ title: 'Payment cancelled', msg: 'Payment was not completed. Your CV has not been generated. Try again whenever you are ready.', type: 'payment' })
+  // In-app browsers (WhatsApp/Facebook/Instagram/etc.'s built-in webview) are
+  // known to break iframe-based popups — they get sent to Paystack's real
+  // hosted checkout page instead, and back to /payment-return afterwards.
+  function isInAppBrowser(): boolean {
+    if (typeof navigator === 'undefined') return false
+    return /FBAN|FBAV|Instagram|Line\/|Twitter|WhatsApp|MicroMessenger/i.test(navigator.userAgent || '')
+  }
+
+  async function confirmPayment(reference: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/verify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference }),
       })
-      handler.openIframe()
+      const data = await res.json()
+      if (!data.success) {
+        setError({ title: 'Payment not confirmed', msg: data.error || 'We could not confirm your payment. If you completed it, wait a moment and try "Verify Payment" again.', type: 'payment' })
+        return false
+      }
+      return true
+    } catch {
+      setError({ title: 'Connection error', msg: 'Could not verify your payment. Please check your internet and try again.', type: 'network' })
+      return false
     }
-    document.body.appendChild(script)
+  }
+
+  // Popup blocked (or PaystackPop itself failed to load) → open the real
+  // hosted page in a new tab and let the user come back and click Verify,
+  // rather than failing the purchase outright.
+  function openHostedFallback(authorizationUrl: string, reference: string) {
+    const popup = window.open(authorizationUrl, '_blank', 'width=500,height=700')
+    if (!popup) {
+      // Even a new tab was blocked — this browser leaves us no choice but to
+      // navigate the current tab away, so persist state first, same as the
+      // in-app-browser path.
+      saveBuildSeed(captureBuildSeed('summary'))
+      window.location.assign(authorizationUrl)
+      return
+    }
+    setPaymentPending({ reference })
+  }
+
+  async function triggerPaystack(normalizedPhone: string, pkg: typeof PACKAGES[number]) {
+    setError(null)
+    try {
+      const res = await fetch('/api/initiate-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: normalizedPhone, packageId: pkg.id }),
+      })
+      const data = await res.json()
+      if (!data.success) {
+        setError({ title: 'Could not start payment', msg: data.error || 'Please try again.', type: 'payment' })
+        return
+      }
+
+      if (isInAppBrowser()) {
+        saveBuildSeed(captureBuildSeed('summary'))
+        window.location.assign(data.authorization_url)
+        return
+      }
+
+      const openPopup = () => {
+        const PaystackPop = (window as any).PaystackPop
+        if (!PaystackPop) { openHostedFallback(data.authorization_url, data.reference); return }
+        try {
+          const instance = new PaystackPop()
+          instance.resumeTransaction(data.access_code, {
+            onSuccess: async () => {
+              setIsGenerating(true)
+              const ok = await confirmPayment(data.reference)
+              if (ok) await doGenerate(normalizedPhone)
+              else setIsGenerating(false)
+            },
+            onCancel: () => setError({ title: 'Payment cancelled', msg: 'Payment was not completed. Your CV has not been generated. Try again whenever you are ready.', type: 'payment' }),
+            onError: () => openHostedFallback(data.authorization_url, data.reference),
+          })
+        } catch {
+          openHostedFallback(data.authorization_url, data.reference)
+        }
+      }
+
+      if ((window as any).PaystackPop) {
+        openPopup()
+      } else {
+        const script = document.createElement('script')
+        script.src = 'https://js.paystack.co/v2/inline.js'
+        script.onload = openPopup
+        script.onerror = () => openHostedFallback(data.authorization_url, data.reference)
+        document.body.appendChild(script)
+      }
+    } catch {
+      setError({ title: 'Connection error', msg: 'Could not start payment. Please check your internet and try again.', type: 'network' })
+    }
+  }
+
+  async function handleManualVerify() {
+    if (!paymentPending) return
+    setVerifyingPayment(true)
+    const ok = await confirmPayment(paymentPending.reference)
+    setVerifyingPayment(false)
+    if (ok) {
+      setPaymentPending(null)
+      setIsGenerating(true)
+      await doGenerate(phoneNumber)
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -783,8 +961,21 @@ export default function BuildPage() {
           <PhoneAndPrice phone={phoneNumber} setPhone={setPhoneNumber} />
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
+          {paymentPending && (
+            <div style={{ background: '#fffbf5', border: '1.5px solid #f59e0b', borderRadius: '14px', padding: '16px 18px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px' }}>Complete payment in the window that opened</div>
+              <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '12px', lineHeight: 1.6 }}>Once you&apos;ve paid, click below to confirm — your CV will generate right after.</div>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
+                <button onClick={handleManualVerify} disabled={verifyingPayment} style={{ ...btnPrimary, opacity: verifyingPayment ? 0.6 : 1 }}>
+                  {verifyingPayment ? 'Checking…' : 'Verify Payment'}
+                </button>
+                <button onClick={() => setPaymentPending(null)} style={btnBackTop}>Cancel</button>
+              </div>
+            </div>
+          )}
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={handleGenerate} disabled={isGenerating} style={{ ...btnPrimary, opacity: isGenerating ? 0.6 : 1 }}>
+            <button onClick={handleGenerate} disabled={isGenerating || !!paymentPending} style={{ ...btnPrimary, opacity: (isGenerating || paymentPending) ? 0.6 : 1 }}>
               {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
           </div>

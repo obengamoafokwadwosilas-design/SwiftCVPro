@@ -5,6 +5,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { normalizePhone } from '@/lib/credits'
 import { buildGenerationPrompt, buildBulletTrimPrompt, CV_SYSTEM_PROMPT } from '@/lib/prompts'
 import { CVFormData, GeneratedCV } from '@/types'
+import { supabaseAdmin } from '@/lib/supabase'
+import type { BuildSeed } from '@/lib/buildSeed'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -96,6 +98,73 @@ async function runPaginationRiskPass(cv: GeneratedCV): Promise<void> {
     if (typeof replacement === 'string' && replacement.trim()) r.set(replacement.trim())
   })
   console.log(`[Generate] Pagination-risk pass tightened ${risky.length} item(s)`)
+}
+
+// ── Save every generation to history ──────────────────────────
+// Every CV a user generates is kept permanently (never expires) so it can be
+// previewed, re-downloaded for free, or duplicated into a fresh tailored
+// generation later. template_id/accent_color aren't known yet at this point
+// (template choice happens on the preview page, after generation) — they're
+// filled in via /api/cv-history/update-template once the user picks one;
+// this row is saved with a sensible default so it's never missing entirely
+// even if the user closes the tab before reaching the preview page.
+// raw_input is saved in the same shape the builder itself understands
+// (BuildSeed), so "Duplicate" can feed it straight back into the builder.
+async function saveToHistory(
+  phone: string,
+  cvType: string,
+  formData: CVFormData | undefined,
+  rawContent: string | undefined,
+  jobDescription: string | undefined,
+  generatedCV: GeneratedCV
+): Promise<number | null> {
+  try {
+    const rawInput: BuildSeed = formData
+      ? {
+          cvType: (formData.cvType || cvType || 'professional') as BuildSeed['cvType'],
+          inputMethod: 'form',
+          phoneNumber: phone,
+          form: {
+            fullName: formData.fullName, phone: formData.phone, email: formData.email, location: formData.location,
+            dob: formData.dob, nationality: formData.nationality, linkedin: formData.linkedin,
+            education: formData.education, gpa: formData.gpa, thesis: formData.thesis, research: formData.research,
+            experience: formData.experience, publications: formData.publications, teaching: formData.teaching, conferences: formData.conferences,
+            extras: formData.extras, grants: formData.grants, supervision: formData.supervision, orcid: formData.orcid,
+            jobTitle: formData.jobTitle_target, company: formData.company,
+          },
+          jobDescription: formData.jobDescription,
+          whyRole: formData.whyRole,
+          landingScreen: 'type',
+        }
+      : {
+          cvType: (cvType || 'professional') as BuildSeed['cvType'],
+          inputMethod: 'paste',
+          phoneNumber: phone,
+          pasteContent: rawContent,
+          jobDescription,
+          landingScreen: 'type',
+        }
+
+    const { data, error } = await supabaseAdmin
+      .from('cv_history')
+      .insert({
+        phone_number: phone,
+        cv_type: rawInput.cvType,
+        template_id: 'meridian',
+        accent_color: null,
+        label: null,
+        generated_cv: generatedCV,
+        raw_input: rawInput,
+      })
+      .select('id')
+      .single()
+
+    if (error) { console.error('saveToHistory insert error (non-fatal):', error); return null }
+    return data?.id ?? null
+  } catch (err) {
+    console.error('saveToHistory failed (non-fatal):', err)
+    return null
+  }
 }
 
 // ⚠️ TESTING MODE — payments bypassed
@@ -249,8 +318,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Save to history (best-effort, never blocks delivery) ──
+    const historyId = await saveToHistory(phone, cvType, formData, rawContent, jobDescription, generatedCV)
+
     console.log(`[Generate] ✅ Success for ${phone}`)
-    return NextResponse.json({ success: true, cv: generatedCV })
+    return NextResponse.json({ success: true, cv: generatedCV, historyId })
 
   } catch (error: any) {
     console.error('Unhandled generate error:', error)

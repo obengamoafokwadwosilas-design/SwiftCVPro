@@ -1,12 +1,17 @@
 'use client'
 
+import { useState } from 'react'
+import CVHistoryModal from './CVHistoryModal'
+
 interface NavProps {
   step?: 1 | 2 | 3
   rightSlot?: React.ReactNode
 }
 
 export default function Nav({ step, rightSlot }: NavProps) {
+  const [showHistory, setShowHistory] = useState(false)
   return (
+    <>
     <nav style={{
       background: '#0a0f1a',
       padding: '16px 48px',
@@ -53,17 +58,24 @@ export default function Nav({ step, rightSlot }: NavProps) {
         </div>
       )}
 
-      {rightSlot || (
-        <div style={{
-          fontSize: '11px',
-          letterSpacing: '2px',
-          textTransform: 'uppercase',
-          color: 'rgba(255,255,255,0.3)',
-          fontWeight: 500
-        }}>
-          {step ? `Step ${step} of 3` : ''}
-        </div>
-      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
+        <button onClick={() => setShowHistory(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.55)' }}>
+          My CVs
+        </button>
+        {rightSlot || (
+          <div style={{
+            fontSize: '11px',
+            letterSpacing: '2px',
+            textTransform: 'uppercase',
+            color: 'rgba(255,255,255,0.3)',
+            fontWeight: 500
+          }}>
+            {step ? `Step ${step} of 3` : ''}
+          </div>
+        )}
+      </div>
     </nav>
+    <CVHistoryModal open={showHistory} onClose={() => setShowHistory(false)} />
+    </>
   )
 }

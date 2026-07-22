@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { addCredits, grantCoverLetterCredit, normalizePhone } from '@/lib/credits'
+import { creditPackageIfNew, normalizePhone } from '@/lib/credits'
 import { packageByAmount } from '@/lib/packages'
 
 export async function POST(req: NextRequest) {
@@ -32,6 +32,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No phone number' }, { status: 400 })
     }
     const phone = normalizePhone(phoneNumber)
+    const reference: string | undefined = event.data?.reference
+    if (!reference) {
+      console.error('No reference in webhook payload — cannot guard against double-crediting')
+      return NextResponse.json({ error: 'No reference' }, { status: 400 })
+    }
 
     // Resolve the package from the amount PAYSTACK confirms was charged — never
     // from client metadata — so a tampered request can't claim more than it paid.
@@ -43,12 +48,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unrecognised package amount' }, { status: 400 })
     }
 
-    // Grant CV credits, then cover-letter credits (only if the pack includes any).
-    const okCv = await addCredits(phone, pkg.cv)
-    const okCl = pkg.cl > 0 ? await grantCoverLetterCredit(phone, pkg.cl) : true
-    if (!okCv || !okCl) {
-      console.error(`Failed to add credits for ${phone} (pkg ${pkg.id}, cv:${okCv} cl:${okCl})`)
-      return NextResponse.json({ error: 'Failed to add credits' }, { status: 500 })
+    // Shared with /api/verify-payment — whichever confirmation path reaches
+    // this first wins; the other becomes a harmless no-op (see credits.ts).
+    const result = await creditPackageIfNew(phone, reference, pkg, amount)
+    if (result.duplicate) {
+      console.log(`Webhook: reference ${reference} already processed, skipping`)
+      return NextResponse.json({ received: true, duplicate: true })
+    }
+    if (!result.credited) {
+      console.error(`Failed to credit ${phone} (pkg ${pkg.id}, ref ${reference}): ${result.error}`)
+      return NextResponse.json({ error: result.error || 'Failed to add credits' }, { status: 500 })
     }
 
     console.log(`Package ${pkg.id} → ${phone}: +${pkg.cv} CV, +${pkg.cl} cover-letter`)

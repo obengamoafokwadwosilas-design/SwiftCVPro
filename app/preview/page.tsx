@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { GeneratedCV, TemplateId, ExportFormat } from '@/types'
 import CVPreview, { getFlowPdfConfig, TemplatePreview } from '@/components/CVPreview'
+import CVHistoryModal from '@/components/CVHistoryModal'
 
 // ══════════════════════════════════════════════════════
 // TEMPLATE LIBRARY — Premium first, then ATS, then Academic
@@ -129,6 +130,7 @@ export default function PreviewPage() {
   const [showReadyBanner, setShowReadyBanner] = useState(true)
   const [showChooser, setShowChooser] = useState(false)
   const [showDownloadMenu, setShowDownloadMenu] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
 
   useEffect(() => {
     const stored = sessionStorage.getItem('swiftcv_cv')
@@ -158,6 +160,19 @@ export default function PreviewPage() {
     setAccentColor(null)
     setShowColorPicker(false)
   }, [template])
+
+  // Keep the saved history row's template/colour in sync with whatever is
+  // currently on screen. Fire-and-forget: this is bookkeeping, never blocks
+  // the UI, and only applies to CVs (cover letters aren't saved to history).
+  useEffect(() => {
+    const historyId = sessionStorage.getItem('swiftcv_history_id')
+    if (!historyId || !phone || isCoverLetter) return
+    fetch('/api/cv-history/update-template', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber: phone, historyId: Number(historyId), templateId: template, accentColor }),
+    }).catch(() => { /* best-effort — never surface this to the user */ })
+  }, [template, accentColor, phone, isCoverLetter])
 
   // Ready toast: pause the countdown while hovered (dismissal is driven by the
   // progress bar's animationEnd below, so there is a single clock).
@@ -446,6 +461,7 @@ export default function PreviewPage() {
       sessionStorage.removeItem('swiftcv_cv')
       sessionStorage.removeItem('swiftcv_type')
       sessionStorage.removeItem('swiftcv_phone')
+      sessionStorage.removeItem('swiftcv_history_id')
       router.push('/build')
     }
   }
@@ -649,6 +665,7 @@ export default function PreviewPage() {
           <button onClick={() => setActiveTab('edit')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12px', fontWeight:activeTab==='edit'?600:400, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.4)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
         </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
+          <button onClick={() => setShowHistoryModal(true)} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>My CVs</button>
           <button onClick={handleNewCV} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.6)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer' }}>+ New CV</button>
           <button onClick={() => { setCoverErr(''); setShowCoverModal(true) }} title="Generate a cover letter from this CV" style={{ padding:'8px 14px', background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.72)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:'50px', fontSize:'12px', fontWeight:500, cursor:'pointer', display:'flex', alignItems:'center', gap:'7px' }}><span style={{ color:'#5eead4' }}>✦</span> Cover Letter</button>
           <div style={{ position:'relative' }}>
@@ -871,6 +888,8 @@ export default function PreviewPage() {
           </div>
         </div>
       )}
+
+      <CVHistoryModal open={showHistoryModal} onClose={() => setShowHistoryModal(false)} />
     </div>
   )
 }
