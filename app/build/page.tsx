@@ -161,6 +161,21 @@ export default function BuildPage() {
     else go('summary')
   }
 
+  // One consistent Back, top-left (the pattern Resume Now and BetterCV use).
+  // Keeping it in a single place means the bottom row holds only the primary
+  // action, so there is no duplicated control competing for attention.
+  const backTargets: Partial<Record<Screen, Screen>> = {
+    method: 'type',
+    paste: 'method',
+    'form-1': 'method',
+    'form-2': 'form-1',
+    'form-3': 'form-2',
+    'form-4': 'form-3',
+    'form-5': 'form-4',
+    summary: meta.hasJobStep ? 'form-5' : 'form-4',
+  }
+  const backTo = backTargets[screen]
+
   // The document type is step 1, so choosing it leads into how to share info.
   function goAfterType() {
     go('method')
@@ -246,6 +261,13 @@ export default function BuildPage() {
 
       if (inputMethod === 'form') {
         const r = refs
+        // The guided path now uses the same JD component as the paste path, so
+        // read it the same way — including extracting an uploaded posting.
+        if (needsJD) {
+          jobDescription = jdInputMode === 'upload' && uploadedJD
+            ? await extractFile(uploadedJD)
+            : refs.jdPaste.current?.value || ''
+        }
         // Build structured CVFormData for the prompt builder
         const formData = {
           cvType,
@@ -272,7 +294,7 @@ export default function BuildPage() {
           orcid: r.orcid.current?.value || undefined,
           // Job targeting
           company: r.company.current?.value || undefined,
-          jobDescription: needsJD ? (r.jobDesc.current?.value || undefined) : undefined,
+          jobDescription: needsJD ? (jobDescription || undefined) : undefined,
           whyRole: cvType === 'cover_letter' ? (r.whyRole.current?.value || undefined) : undefined,
         }
         // Pass as formData to the API — it will use buildGenerationPrompt
@@ -358,6 +380,15 @@ export default function BuildPage() {
       {/* Choose the document (1), how to share info (2), fill in & generate (3) */}
       <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
 
+      {backTo && (
+        <div style={{ maxWidth: '760px', margin: '0 auto', padding: '22px 24px 0' }}>
+          <button onClick={() => go(backTo)} style={btnBackTop}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Back
+          </button>
+        </div>
+      )}
+
       {/* ══ SCREEN: CHOOSE DOCUMENT ══════════════════════════════════ */}
       {screen === 'type' && (
         <div style={{ maxWidth: '720px', margin: '0 auto', padding: '52px 24px 80px' }}>
@@ -438,7 +469,6 @@ export default function BuildPage() {
             ))}
           </div>
 
-          <button onClick={() => go('type')} style={btnBack}>← Back</button>
         </div>
       )}
 
@@ -482,8 +512,7 @@ export default function BuildPage() {
           <PhoneAndPrice phone={phoneNumber} setPhone={setPhoneNumber} />
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={() => go('method')} style={btnBack}>← Back</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
             <button onClick={handleGenerate} disabled={isGenerating} style={{ ...btnPrimary, opacity: isGenerating ? 0.6 : 1 }}>
               {isGenerating ? 'Generating…' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
@@ -527,8 +556,7 @@ export default function BuildPage() {
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-            <button onClick={() => go('method')} style={btnBack}>← Back</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
             <button onClick={() => go('form-2')} style={btnPrimary}>Next →</button>
           </div>
         </div>
@@ -568,8 +596,7 @@ export default function BuildPage() {
           </div>
 
           <button onClick={() => go('form-3')} style={{ ...btnSkip }}>Skip this section →</button>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-            <button onClick={() => go('form-1')} style={btnBack}>← Back</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
             <button onClick={() => go('form-3')} style={btnPrimary}>Next →</button>
           </div>
         </div>
@@ -629,8 +656,7 @@ export default function BuildPage() {
           </div>
 
           <button onClick={() => go('form-4')} style={btnSkip}>Skip this section →</button>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-            <button onClick={() => go('form-2')} style={btnBack}>← Back</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
             <button onClick={() => go('form-4')} style={btnPrimary}>Next →</button>
           </div>
         </div>
@@ -675,8 +701,7 @@ export default function BuildPage() {
           </div>
 
           <button onClick={goFromForm4} style={btnSkip}>Skip this section →</button>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-            <button onClick={() => go('form-3')} style={btnBack}>← Back</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
             <button onClick={goFromForm4} style={btnPrimary}>{meta.hasJobStep ? 'Next →' : 'Review Details →'}</button>
           </div>
         </div>
@@ -698,9 +723,10 @@ export default function BuildPage() {
               <Field label={`Job Title${cvType === 'cover_letter' ? ' *' : ''}`} placeholder="e.g. Staff Nurse" fieldRef={refs.jobTitle} />
               <Field label={`Company Name${cvType === 'cover_letter' ? ' *' : ''}`} placeholder="e.g. Korle Bu Hospital" fieldRef={refs.company} />
             </div>
+            {/* Same job-posting component as the paste path, so the guided flow
+                can upload a PDF/Word/image posting instead of only pasting. */}
             <div style={{ marginBottom: '12px' }}>
-              <label style={labelStyle}>Job advert or description <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 400 }}>Optional but recommended</span></label>
-              <textarea ref={refs.jobDesc} style={{ ...TA(100), marginTop: '5px' }} rows={5} placeholder={cvType === 'cover_letter' ? 'Paste the job posting — we\'ll tailor the letter to match it exactly...' : 'Paste the full job posting here — we\'ll match your CV to it exactly...'} />
+              <JDSection method={jdInputMode} setMethod={setJdInputMode} pasteRef={refs.jdPaste} uploadedFile={uploadedJD} setUploadedFile={setUploadedJD} cvType={cvType} />
             </div>
             {cvType === 'cover_letter' && (
               <div>
@@ -712,8 +738,7 @@ export default function BuildPage() {
 
           <button onClick={() => go('summary')} style={btnSkip}>Skip job details →</button>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={() => go('form-4')} style={btnBack}>← Back</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
             <button onClick={() => go('summary')} style={btnPrimary}>Review Details →</button>
           </div>
         </div>
@@ -748,8 +773,7 @@ export default function BuildPage() {
           <PhoneAndPrice phone={phoneNumber} setPhone={setPhoneNumber} />
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={() => go(meta.hasJobStep ? 'form-5' : 'form-4')} style={btnBack}>← Back</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
             <button onClick={handleGenerate} disabled={isGenerating} style={{ ...btnPrimary, opacity: isGenerating ? 0.6 : 1 }}>
               {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
@@ -852,6 +876,8 @@ const btnSkip: React.CSSProperties = { fontSize: '12px', color: '#94a3b8', backg
 const TA = (minH: number): React.CSSProperties => ({ width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', resize: 'none', lineHeight: 1.65, minHeight: minH ? `${minH}px` : undefined, transition: 'border-color 0.2s' })
 const btnPrimary: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '14px 36px', background: 'linear-gradient(135deg, #0d9488, #0f766e)', border: 'none', borderRadius: '50px', fontSize: '14px', fontWeight: 600, color: 'white', cursor: 'pointer', letterSpacing: '0.3px', boxShadow: '0 8px 28px rgba(13,148,136,0.35)', transition: 'all 0.2s' }
 const btnBack: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '13px 22px', background: 'white', border: '2px solid #185fa5', borderRadius: '50px', fontSize: '13px', fontWeight: 600, color: '#185fa5', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
+// Quiet top-left back link — a navigation affordance, not a competing action.
+const btnBackTop: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 4px', background: 'none', border: 'none', fontSize: '13.5px', fontWeight: 600, color: '#0d9488', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
 
 // ─────────────────────────────────────────────────────────────
 // SUB-COMPONENTS
