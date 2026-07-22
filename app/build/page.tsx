@@ -48,10 +48,10 @@ export default function BuildPage() {
   const router = useRouter()
 
   // ── Screen state ──────────────────────────────
-  // Info first: the flow opens on the input method, not a CV-type gate. The
-  // type is chosen after the user has entered their details (see the 'type'
-  // screen), so nobody has to make a decision before they can start.
-  const [screen, setScreen] = useState<Screen>('method')
+  // Type first: knowing the document up front lets the rest of the flow adapt —
+  // academic extras only for academics, job details only where relevant, and a
+  // cover-letter user never wades through CV-only fields.
+  const [screen, setScreen] = useState<Screen>('type')
   const [typeChosen, setTypeChosen] = useState(false)
   const [cvType, setCvType] = useState<CVType>('professional')
   const [inputMethod, setInputMethod] = useState<'paste' | 'form'>('paste')
@@ -154,17 +154,14 @@ export default function BuildPage() {
     else go('form-1')
   }
 
-  // The job-details step is always offered (it's skippable), because the CV
-  // type — which used to decide whether it appeared — isn't chosen until later.
   function goFromForm4() {
-    go('form-5')
+    if (meta.hasJobStep) go('form-5')
+    else go('summary')
   }
 
-  // After the type is picked: the paste path already collected the phone, so it
-  // generates directly; the guided path goes to the review screen.
+  // The document type is step 1, so choosing it leads into how to share info.
   function goAfterType() {
-    if (inputMethod === 'paste') handleGenerate()
-    else go('summary')
+    go('method')
   }
 
   // ── File extract ──────────────────────────────
@@ -356,17 +353,16 @@ export default function BuildPage() {
   // ─────────────────────────────────────────────
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #f0fdf9 0%, #f8fafc 40%, #fefdfb 100%)' }}>
-      {/* Info first (1), choose the document (2), review & generate (3) */}
-      <Nav step={screen === 'method' ? 1 : screen === 'type' ? 2 : screen === 'summary' ? 3 : 1} />
+      {/* Choose the document (1), how to share info (2), fill in & generate (3) */}
+      <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
 
-      {/* ══ SCREEN: CHOOSE DOCUMENT (after the info is in) ══════════ */}
+      {/* ══ SCREEN: CHOOSE DOCUMENT ══════════════════════════════════ */}
       {screen === 'type' && (
         <div style={{ maxWidth: '720px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <StepLabel label="Last step" />
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '8px', lineHeight: 1.15 }}>
             What should we <span style={{ color: '#0d9488' }}>create?</span>
           </h1>
-          <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '32px', fontWeight: 300, lineHeight: 1.7 }}>We have your details. Choose the document to build from them.</p>
+          <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '32px', fontWeight: 300, lineHeight: 1.7 }}>Choose the document you need — we’ll tailor everything to it.</p>
 
           <div style={{ display: 'grid', gap: '12px', marginBottom: '28px' }}>
             {([
@@ -403,16 +399,13 @@ export default function BuildPage() {
             })}
           </div>
 
-          <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={() => go(inputMethod === 'paste' ? 'paste' : 'form-5')} style={btnBack}>← Back</button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button
               onClick={goAfterType}
-              disabled={!typeChosen || isGenerating}
-              style={{ ...btnPrimary, opacity: (!typeChosen || isGenerating) ? 0.45 : 1, cursor: (!typeChosen || isGenerating) ? 'not-allowed' : 'pointer' }}
+              disabled={!typeChosen}
+              style={{ ...btnPrimary, opacity: typeChosen ? 1 : 0.45, cursor: typeChosen ? 'pointer' : 'not-allowed' }}
             >
-              {isGenerating ? 'Generating…' : inputMethod === 'paste' ? `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'}` : 'Continue'}
+              Continue →
             </button>
           </div>
         </div>
@@ -428,8 +421,8 @@ export default function BuildPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
             {([
-              { id: 'paste' as const, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, iconBg: '#e1f5ee', title: 'Upload or paste old CV', desc: 'Copy from your old CV or upload a file directly.' },
-              { id: 'form' as const,  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>, iconBg: '#e6f1fb', title: 'Chat with Swift', desc: 'Answer guided questions. Perfect if starting from scratch.' },
+              { id: 'paste' as const, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, iconBg: '#e1f5ee', title: 'I already have a CV', desc: 'Upload your existing CV or paste it in — we’ll rebuild it.' },
+              { id: 'form' as const,  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>, iconBg: '#e6f1fb', title: 'Start from scratch', desc: 'Our AI will guide you through creating a perfect CV.' },
             ] as any[]).map((opt: any) => (
               <div key={opt.id} onClick={() => { setInputMethod(opt.id as 'paste' | 'form'); goFromMethod(opt.id as 'paste' | 'form') }}
                 style={{ background: opt.id === 'form' ? '#f0f7ff' : 'white', border: opt.id === 'form' ? '2px solid #185fa5' : `${inputMethod === 'paste' ? '2px solid #0d9488' : '1px solid #e2e8f0'}`, borderRadius: '16px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column', gap: '10px' }}
@@ -493,7 +486,9 @@ export default function BuildPage() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
             <button onClick={() => go('method')} style={btnBack}>← Back</button>
-            <button onClick={() => go('type')} style={btnPrimary}>Next →</button>
+            <button onClick={handleGenerate} disabled={isGenerating} style={{ ...btnPrimary, opacity: isGenerating ? 0.6 : 1 }}>
+              {isGenerating ? 'Generating…' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
+            </button>
           </div>
         </div>
 
@@ -554,7 +549,7 @@ export default function BuildPage() {
             <textarea ref={refs.education} style={TA(110)} rows={5} placeholder="Write your education and certifications here..." />
 
             {/* Academic optional expand */}
-            {(
+            {cvType === 'academic' && (
               <>
                 <button onClick={() => setShowAcademicEdu(v => !v)} style={{ marginTop: '12px', ...expandToggleStyle }}>
                   <span>{showAcademicEdu ? '−' : '＋'} Add academic details (GPA, Thesis, Research)</span>
@@ -608,7 +603,7 @@ export default function BuildPage() {
             <textarea ref={refs.experience} style={TA(110)} rows={5} placeholder="Write your work experience here..." />
 
             {/* Academic experience expand */}
-            {(
+            {cvType === 'academic' && (
               <>
                 <button onClick={() => setShowAcademicExp(v => !v)} style={{ marginTop: '12px', ...expandToggleStyle }}>
                   <span>{showAcademicExp ? '−' : '＋'} Add academic activities (Publications, Teaching, Conferences)</span>
@@ -662,7 +657,7 @@ export default function BuildPage() {
             </div>
 
             {/* Academic extras expand */}
-            {(
+            {cvType === 'academic' && (
               <>
                 <button onClick={() => setShowAcademicExtras(v => !v)} style={{ ...expandToggleStyle, marginBottom: '10px' }}>
                   <span>{showAcademicExtras ? '−' : '＋'} Add academic extras (Grants, Supervision, ORCID)</span>
@@ -717,11 +712,11 @@ export default function BuildPage() {
             )}
           </div>
 
-          <button onClick={() => go('type')} style={btnSkip}>Skip job details →</button>
+          <button onClick={() => go('summary')} style={btnSkip}>Skip job details →</button>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
             <button onClick={() => go('form-4')} style={btnBack}>← Back</button>
-            <button onClick={() => go('type')} style={btnPrimary}>Next →</button>
+            <button onClick={() => go('summary')} style={btnPrimary}>Review Details →</button>
           </div>
         </div>
 
@@ -756,7 +751,7 @@ export default function BuildPage() {
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={() => go('type')} style={btnBack}>← Back</button>
+            <button onClick={() => go(meta.hasJobStep ? 'form-5' : 'form-4')} style={btnBack}>← Back</button>
             <button onClick={handleGenerate} disabled={isGenerating} style={{ ...btnPrimary, opacity: isGenerating ? 0.6 : 1 }}>
               {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
