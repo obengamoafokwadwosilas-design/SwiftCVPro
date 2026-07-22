@@ -529,7 +529,7 @@ export default function BuildPage() {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
           <h1 style={h1Style}>Personal Details</h1>
-          <p style={subStyle}>Tell me who you are. These will appear at the top of your CV.</p>
+          <p style={subStyle}>Your name and contact details — these appear at the top of your CV.</p>
 
           <div style={cardStyle}>
             <Field label="Full name *" placeholder="e.g. Kwame Mensah" fieldRef={refs.fullName} />
@@ -568,7 +568,7 @@ export default function BuildPage() {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
           </div>
           <h1 style={h1Style}>Education & Certifications</h1>
-          <p style={subStyle}>Tell me about your schools, courses, and training.</p>
+          <p style={subStyle}>Your schools, courses, and professional training.</p>
 
           <div style={cardStyle}>
             <ExBox text={'BSc Nursing, University of Cape Coast, 2018–2022\nCertificate in Critical Care Nursing, 2024\nWASSCE, St Thomas Aquinas SHS, 2018'} />
@@ -608,7 +608,7 @@ export default function BuildPage() {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg>
           </div>
           <h1 style={h1Style}>Work Experience</h1>
-          <p style={subStyle}>Tell me about your jobs, internships, national service, or volunteer roles.</p>
+          <p style={subStyle}>Your jobs, internships, national service, and volunteer roles.</p>
 
           <div style={cardStyle}>
             <ExBox text={'Staff Nurse – Korle Bu Teaching Hospital – 2022 to Present\nSales Assistant – Melcom – 2020–2021\nNational Service – GRA Kumasi – 2019–2020'} />
@@ -716,7 +716,7 @@ export default function BuildPage() {
             }
           </div>
           <h1 style={h1Style}>{cvType === 'cover_letter' ? 'The Role You\'re Applying For' : 'The Role You\'re Targeting'}</h1>
-          <p style={subStyle}>{cvType === 'cover_letter' ? 'Tell me about the position. This helps me write a compelling, tailored letter.' : 'Tell me about the job. The more you share, the better we can tailor your CV.'}</p>
+          <p style={subStyle}>{cvType === 'cover_letter' ? 'Add the role to produce a compelling, tailored letter.' : 'Add the role to tailor your CV to it — the more detail, the sharper the result.'}</p>
 
           <div style={cardStyle}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
