@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import CVHistoryModal from './CVHistoryModal'
+import HeaderMenu from './HeaderMenu'
 
 interface NavProps {
   step?: 1 | 2 | 3
@@ -58,10 +59,10 @@ export default function Nav({ step, rightSlot }: NavProps) {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '18px' }}>
-        <button onClick={() => setShowHistory(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.55)' }}>
-          My CVs
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <HeaderMenu items={[
+          { label: 'My CVs', onClick: () => setShowHistory(true), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+        ]} />
         {rightSlot || (
           <div style={{
             fontSize: '11px',
