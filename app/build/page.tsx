@@ -473,17 +473,9 @@ export default function BuildPage() {
             <UploadZone label="Drop your CV here, or click to browse" hint="PDF · Word (.docx) · Text (.txt) · or a photo of your CV" onFile={setUploadedCV} file={uploadedCV} />
           )}
 
-          <div style={cardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <div style={cardTitleStyle}>Anything to add or clarify?</div>
-              <span style={optBadge}>Optional</span>
-            </div>
-            <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const, color: '#cbd5e1', marginBottom: '6px' }}>Example</div>
-            <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: '#64748b', fontStyle: 'italic', marginBottom: '12px', border: '1px solid #f1f5f9', lineHeight: 1.8 }}>
-              {`"I was promoted to Senior Manager in 2023" · "Please emphasise my leadership experience" · "Remove my national service — too old"`}
-            </div>
+          <Collapsible title="Anything to add or clarify?" hint="Corrections or emphasis — e.g. “I was promoted in 2023”." badge="Optional">
             <textarea ref={refs.clarify} style={TA(70)} rows={3} placeholder="Type any special requests — or leave blank..." />
-          </div>
+          </Collapsible>
 
           {needsJD && <JDSection method={jdInputMode} setMethod={setJdInputMode} pasteRef={refs.jdPaste} uploadedFile={uploadedJD} setUploadedFile={setUploadedJD} cvType={cvType} />}
 
@@ -815,49 +807,31 @@ export default function BuildPage() {
 // ─────────────────────────────────────────────────────────────
 // SWIFT GREETING — typing animation
 // ─────────────────────────────────────────────────────────────
+// Calm greeting with a single subtle fade-in. The old version typed itself out
+// character by character, which made the reader wait to read — a gimmick that
+// costs a second of dead time on every visit. It also introduced a "Swift"
+// persona that no longer exists anywhere else in the flow.
 function SwiftGreeting({ label }: { label: string }) {
-  const [displayed, setDisplayed] = useState('')
-  const [done, setDone] = useState(false)
-  const fullText = `Hi, I'm Swift 👋\nI'll help you build your ${label} today.\nKindly provide the following information.`
-
+  const [shown, setShown] = useState(false)
   useEffect(() => {
-    setDisplayed('')
-    setDone(false)
-    let i = 0
-    const interval = setInterval(() => {
-      i++
-      setDisplayed(fullText.slice(0, i))
-      if (i >= fullText.length) {
-        clearInterval(interval)
-        setDone(true)
-      }
-    }, 28)
-    return () => clearInterval(interval)
+    setShown(false)
+    const t = setTimeout(() => setShown(true), 30)
+    return () => clearTimeout(t)
   }, [label])
 
-  const lines = displayed.split('\n')
-
   return (
-    <div style={{ background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.15)', borderRadius: '14px', padding: '14px 18px', marginBottom: '28px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+    <div style={{
+      background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.15)', borderRadius: '14px',
+      padding: '15px 18px', marginBottom: '28px', display: 'flex', alignItems: 'center', gap: '13px',
+      opacity: shown ? 1 : 0,
+      transform: shown ? 'translateY(0)' : 'translateY(6px)',
+      transition: 'opacity 0.45s ease, transform 0.45s ease',
+    }}>
       <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M20 6L9 17l-5-5"/></svg>
       </div>
-      <div style={{ fontSize: '14px', color: '#0a0f1a', lineHeight: 1.7 }}>
-        {lines.map((line, i) => (
-          <span key={i}>
-            {i === 1 ? (
-              <>
-                {line.replace(`I'll help you build your ${label} today.`, '').trim()}
-                {line.includes(label) && (
-                  <>I'll help you build your <strong>{label}</strong> today.</>
-                )}
-                {!line.includes(label) && line}
-              </>
-            ) : line}
-            {i < lines.length - 1 && <br />}
-          </span>
-        ))}
-        {!done && <span style={{ display: 'inline-block', width: '2px', height: '14px', background: '#0d9488', marginLeft: '2px', verticalAlign: 'middle', animation: 'blink 0.7s step-end infinite' }} />}
+      <div style={{ fontSize: '14px', color: '#0a0f1a', lineHeight: 1.6 }}>
+        Let&apos;s build your <strong>{label}</strong>. Fill in the details below — we&apos;ll handle the writing and formatting.
       </div>
     </div>
   )
@@ -909,33 +883,56 @@ function Field({ label, placeholder, fieldRef }: { label: string; placeholder: s
   )
 }
 
+// A quiet, collapsed row that opens on click. Optional inputs live in here so
+// each screen reads as one clear task, with extras available rather than shouting.
+function Collapsible({ title, hint, badge, defaultOpen = false, children }: { title: string; hint?: string; badge?: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div style={{ border: '1px solid #e7ebf0', borderRadius: '14px', background: 'white', marginBottom: '14px', overflow: 'hidden' }}>
+      <button onClick={() => setOpen(v => !v)}
+        style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '15px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' as const, fontFamily: "'DM Sans', sans-serif" }}>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a' }}>{title}</span>
+          {hint && <span style={{ display: 'block', fontSize: '12px', color: '#94a3b8', marginTop: '2px', fontWeight: 300, lineHeight: 1.5 }}>{hint}</span>}
+        </span>
+        {badge && <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#94a3b8', flexShrink: 0 }}>{badge}</span>}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {open && <div style={{ padding: '0 18px 18px' }}>{children}</div>}
+    </div>
+  )
+}
+
 function JDSection({ method, setMethod, pasteRef, uploadedFile, setUploadedFile, cvType }: any) {
   const required = cvType === 'cover_letter'
   return (
-    <div style={{ background: '#fffbf5', border: '2px dashed #f59e0b', borderRadius: '18px', padding: '24px', marginBottom: '16px' }}>
-      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.3rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' as const }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.9" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="#b45309" stroke="none"/></svg>
-        Job Description
-        <span style={{ fontSize: '10px', fontWeight: 600, background: '#fef9c3', color: '#854d0e', padding: '3px 10px', borderRadius: '20px', fontFamily: "'DM Sans', sans-serif" }}>{required ? 'Required for Cover Letter' : 'Optional — we\u2019ll tailor your CV to it'}</span>
-      </div>
-      <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.65, marginBottom: '14px', fontWeight: 300 }}>
-        {required
-          ? 'Paste or upload the job posting so we can tailor your letter to match exactly what the employer wants.'
-          : 'Applying for a specific job? Paste or upload the posting (text, image, PDF or Word) and we\u2019ll tailor your CV to it. Skip this for a strong general CV.'}
-      </p>
+    <Collapsible
+      title={required ? 'Add the job posting' : 'Applying for a specific role?'}
+      hint={required
+        ? 'We’ll tailor your letter to match what the employer is asking for.'
+        : 'Paste or upload the posting and we’ll tailor your CV to it.'}
+      badge={required ? 'Recommended' : 'Optional'}
+      defaultOpen={required}
+    >
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-        {[{id:'paste',label:'✎ Paste text'},{id:'upload',label:'↑ Upload file'}].map(opt => (
-          <button key={opt.id} onClick={() => setMethod(opt.id)}
-            style={{ padding: '12px', border: `2px solid ${method === opt.id ? '#0d9488' : '#e2e8f0'}`, borderRadius: '12px', background: method === opt.id ? '#f0fdf9' : 'white', color: method === opt.id ? '#0f766e' : '#64748b', fontWeight: method === opt.id ? 700 : 500, fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-            {opt.label} {method === opt.id ? '✓' : ''}
-          </button>
-        ))}
+        {([
+          { id: 'upload', label: 'Upload a file', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg> },
+          { id: 'paste', label: 'Paste text', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5M4 20l1.2-4.2L15.3 5.7a1.7 1.7 0 012.4 0l.6.6a1.7 1.7 0 010 2.4L8.2 18.8 4 20z" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"/></svg> },
+        ] as any[]).map((opt: any) => {
+          const on = method === opt.id
+          return (
+            <button key={opt.id} onClick={() => setMethod(opt.id)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: `1.5px solid ${on ? '#0d9488' : '#e7ebf0'}`, borderRadius: '12px', background: on ? '#f0fdf9' : 'white', color: on ? '#0f766e' : '#64748b', fontWeight: on ? 600 : 500, fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'border-color 0.15s, background 0.15s' }}>
+              {opt.icon}{opt.label}
+            </button>
+          )
+        })}
       </div>
       {method === 'paste'
         ? <textarea ref={pasteRef} style={TA(110)} rows={5} placeholder="Paste job posting or describe the role here..." />
         : <UploadZone label="Drop the job posting here, or click to browse" hint="PDF · Word · Image (screenshot)" onFile={setUploadedFile} file={uploadedFile} />
       }
-    </div>
+    </Collapsible>
   )
 }
 
@@ -948,12 +945,11 @@ function PhoneAndPrice({ phone, setPhone }: { phone: string; setPhone: (v: strin
         <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. 0551234567  or  +233551234567"
           style={{ width: '100%', padding: '13px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', transition: 'border-color 0.2s', display: 'block' }} />
       </div>
-      <div style={{ background: 'linear-gradient(135deg, #f0fdf9, #ecfdf5)', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '18px', padding: '20px 24px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: '12px' }}>
-        <div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#0a0f1a' }}>GH₵ 35</div>
-          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>One-time payment · No subscription</div>
-        </div>
-        <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.8 }}>✓ 7 premium templates · ✓ Word + PDF download<br/>✓ Instant delivery · ✓ No subscription</div>
+      {/* Price only — the feature list that used to sit here was landing-page
+          copy in the middle of a build flow, and it was stale (7 vs 14 templates). */}
+      <div style={{ background: 'linear-gradient(135deg, #f0fdf9, #ecfdf5)', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '18px', padding: '18px 24px', marginBottom: '16px', display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' as const }}>
+        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0a0f1a' }}>GH₵ 35</div>
+        <div style={{ fontSize: '12.5px', color: '#64748b' }}>one-time · no subscription</div>
       </div>
     </>
   )
