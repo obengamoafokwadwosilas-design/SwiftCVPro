@@ -55,7 +55,9 @@ export default function BuildPage() {
   const [typeChosen, setTypeChosen] = useState(false)
   const [cvType, setCvType] = useState<CVType>('professional')
   const [inputMethod, setInputMethod] = useState<'paste' | 'form'>('paste')
-  const [pasteInputMode, setPasteInputMode] = useState<'paste' | 'upload'>('paste')
+  // Default to upload: this screen is reached from "I already have a CV", so a
+  // file is the expected input. Pasting is one tap away.
+  const [pasteInputMode, setPasteInputMode] = useState<'paste' | 'upload'>('upload')
   const [uploadedCV, setUploadedCV] = useState<File | null>(null)
   const [uploadedJD, setUploadedJD] = useState<File | null>(null)
   const [jdInputMode, setJdInputMode] = useState<'paste' | 'upload'>('paste')
@@ -444,15 +446,21 @@ export default function BuildPage() {
         <div style={{ display: screen === 'paste' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <StepLabel label="Step 1 of 1" />
           <h1 style={h1Style}>Share Your CV Content</h1>
-          <p style={subStyle}>Paste your information below. Don't worry about formatting. Swift will organise everything for you.</p>
+          <p style={subStyle}>Upload your CV or paste it in. Don&apos;t worry about formatting — we&apos;ll organise everything for you.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-            {[{id:'paste',label:'✎ Paste text'},{id:'upload',label:'↑ Upload file'}].map(opt => (
-              <button key={opt.id} onClick={() => setPasteInputMode(opt.id as any)}
-                style={{ padding: '12px', border: `2px solid ${opt.id === 'upload' ? '#185fa5' : pasteInputMode === 'paste' ? '#0d9488' : '#e2e8f0'}`, borderRadius: '12px', background: opt.id === 'upload' ? '#eff6ff' : pasteInputMode === 'paste' ? '#f0fdf9' : 'white', color: opt.id === 'upload' ? '#185fa5' : pasteInputMode === 'paste' ? '#0f766e' : '#64748b', fontWeight: pasteInputMode === opt.id ? 700 : 500, fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-                {opt.label} {pasteInputMode === opt.id ? '✓' : ''}
-              </button>
-            ))}
+            {([
+              { id: 'upload', label: 'Upload a file', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg> },
+              { id: 'paste', label: 'Paste text', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5M4 20l1.2-4.2L15.3 5.7a1.7 1.7 0 012.4 0l.6.6a1.7 1.7 0 010 2.4L8.2 18.8 4 20z" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"/></svg> },
+            ] as any[]).map((opt: any) => {
+              const on = pasteInputMode === opt.id
+              return (
+                <button key={opt.id} onClick={() => setPasteInputMode(opt.id as any)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: `1.5px solid ${on ? '#0d9488' : '#e7ebf0'}`, borderRadius: '12px', background: on ? '#f0fdf9' : 'white', color: on ? '#0f766e' : '#64748b', fontWeight: on ? 600 : 500, fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'border-color 0.15s, background 0.15s' }}>
+                  {opt.icon}{opt.label}
+                </button>
+              )
+            })}
           </div>
 
           {pasteInputMode === 'paste' ? (
@@ -462,9 +470,7 @@ export default function BuildPage() {
               <textarea ref={refs.paste} style={TA(180)} rows={8} placeholder="Paste your CV content here — any format is fine..." />
             </div>
           ) : (
-            <div style={cardStyle}>
-              <UploadZone label="Click to upload or drag and drop" hint="PDF · Word (.docx) · Text (.txt)" onFile={setUploadedCV} file={uploadedCV} />
-            </div>
+            <UploadZone label="Drop your CV here, or click to browse" hint="PDF · Word (.docx) · Text (.txt) · or a photo of your CV" onFile={setUploadedCV} file={uploadedCV} />
           )}
 
           <div style={cardStyle}>
@@ -908,7 +914,8 @@ function JDSection({ method, setMethod, pasteRef, uploadedFile, setUploadedFile,
   return (
     <div style={{ background: '#fffbf5', border: '2px dashed #f59e0b', borderRadius: '18px', padding: '24px', marginBottom: '16px' }}>
       <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.3rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' as const }}>
-        🎯 Job Description
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="1.9" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="#b45309" stroke="none"/></svg>
+        Job Description
         <span style={{ fontSize: '10px', fontWeight: 600, background: '#fef9c3', color: '#854d0e', padding: '3px 10px', borderRadius: '20px', fontFamily: "'DM Sans', sans-serif" }}>{required ? 'Required for Cover Letter' : 'Optional — we\u2019ll tailor your CV to it'}</span>
       </div>
       <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.65, marginBottom: '14px', fontWeight: 300 }}>
@@ -926,7 +933,7 @@ function JDSection({ method, setMethod, pasteRef, uploadedFile, setUploadedFile,
       </div>
       {method === 'paste'
         ? <textarea ref={pasteRef} style={TA(110)} rows={5} placeholder="Paste job posting or describe the role here..." />
-        : <UploadZone label="Upload the job posting" hint="PDF · Word · Image (screenshot)" onFile={setUploadedFile} file={uploadedFile} />
+        : <UploadZone label="Drop the job posting here, or click to browse" hint="PDF · Word · Image (screenshot)" onFile={setUploadedFile} file={uploadedFile} />
       }
     </div>
   )
@@ -978,26 +985,41 @@ function ErrorDisplay({ error, onRetry, onDismiss }: { error: any; onRetry: () =
 
 function UploadZone({ label, hint, onFile, file }: { label: string; hint: string; onFile: (f: File | null) => void; file: File | null }) {
   const ref = useRef<HTMLInputElement>(null)
+  const [dragging, setDragging] = useState(false)
+
   if (file) return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', background: '#f0fdf9', border: '1.5px solid #0d9488', borderRadius: '12px' }}>
-      <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#0d9488', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700, flexShrink: 0 }}>✓</div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '2px' }}>{file.name}</div>
-        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 300 }}>Ready — AI will read this when you generate</div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px', background: '#f0fdf9', border: '1.5px solid #0d9488', borderRadius: '14px' }}>
+      <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </div>
-      <button onClick={() => onFile(null)} style={{ fontSize: '12px', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{file.name}</div>
+        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 300 }}>Ready — we’ll read this when you generate</div>
+      </div>
+      <button onClick={() => onFile(null)} style={{ fontSize: '12px', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Remove</button>
     </div>
   )
+
+  const pick = (f?: File | null) => { if (f) onFile(f) }
   return (
-    <div onClick={() => ref.current?.click()}
-      style={{ border: '2px dashed #cbd5e1', borderRadius: '14px', padding: '36px 24px', textAlign: 'center', cursor: 'pointer', background: '#f8fafc', transition: 'all 0.2s' }}
-      onMouseEnter={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = '#0d9488'; el.style.background = '#f0fdf9' }}
-      onMouseLeave={e => { const el = e.currentTarget as HTMLDivElement; el.style.borderColor = '#cbd5e1'; el.style.background = '#f8fafc' }}
+    <div
+      onClick={() => ref.current?.click()}
+      onDragOver={e => { e.preventDefault(); if (!dragging) setDragging(true) }}
+      onDragLeave={e => { e.preventDefault(); setDragging(false) }}
+      onDrop={e => { e.preventDefault(); setDragging(false); pick(e.dataTransfer.files?.[0]) }}
+      style={{
+        border: `2px dashed ${dragging ? '#0d9488' : '#dbe2ea'}`, borderRadius: '16px',
+        padding: '38px 24px', textAlign: 'center', cursor: 'pointer',
+        background: dragging ? '#f0fdf9' : '#fcfdfe', transition: 'border-color 0.15s, background 0.15s',
+      }}
     >
-      <div style={{ fontSize: '28px', marginBottom: '10px', color: '#94a3b8' }}>↑</div>
-      <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '6px' }}>{label}</div>
-      <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 300 }}>{hint}</div>
-      <input ref={ref} type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) onFile(e.target.files[0]) }} />
+      <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: dragging ? '#0d9488' : '#eef4f8', color: dragging ? '#fff' : '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', transition: 'background 0.15s, color 0.15s' }}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"/></svg>
+      </div>
+      <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '5px' }}>{label}</div>
+      <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 300, marginBottom: '16px' }}>{hint}</div>
+      <span style={{ display: 'inline-block', padding: '10px 26px', background: '#0d9488', color: 'white', borderRadius: '50px', fontSize: '13px', fontWeight: 600 }}>Browse files</span>
+      <input ref={ref} type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }} onChange={e => pick(e.target.files?.[0])} />
     </div>
   )
 }
