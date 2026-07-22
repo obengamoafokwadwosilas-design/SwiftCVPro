@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import { CVType } from '@/types'
+import { PACKAGES } from '@/lib/packages'
 
 // ─────────────────────────────────────────────────────────────
 // LOADING SCREEN DATA
@@ -44,6 +45,7 @@ const CV_TYPE_META: Record<CVType, { label: string; shortLabel: string; hasJobSt
   cover_letter: { label: 'Cover Letter',    shortLabel: 'Cover Letter',    hasJobStep: true,  totalFormSteps: 5 },
 }
 
+
 export default function BuildPage() {
   const router = useRouter()
 
@@ -59,6 +61,9 @@ export default function BuildPage() {
   // file is the expected input. Pasting is one tap away.
   const [pasteInputMode, setPasteInputMode] = useState<'paste' | 'upload'>('upload')
   const [uploadedCV, setUploadedCV] = useState<File | null>(null)
+  // Pricing modal: shown when the user has no credits and must buy a package.
+  const [showPricing, setShowPricing] = useState(false)
+  const [payPhone, setPayPhone] = useState('')
   const [uploadedJD, setUploadedJD] = useState<File | null>(null)
   const [jdInputMode, setJdInputMode] = useState<'paste' | 'upload'>('paste')
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -231,7 +236,9 @@ export default function BuildPage() {
       const creditData = await creditRes.json()
       if (!creditData.hasCredits) {
         setIsGenerating(false)
-        triggerPaystack(creditData.phoneNumber || phoneNumber)
+        // No credits → let them choose a package before paying.
+        setPayPhone(creditData.phoneNumber || phoneNumber)
+        setShowPricing(true)
         return
       }
       await doGenerate(creditData.phoneNumber)
@@ -349,19 +356,22 @@ export default function BuildPage() {
     }
   }
 
-  function triggerPaystack(normalizedPhone: string) {
+  function triggerPaystack(normalizedPhone: string, pkg: typeof PACKAGES[number]) {
     const script = document.createElement('script')
     script.src = 'https://js.paystack.co/v1/inline.js'
     script.onload = () => {
       const handler = (window as any).PaystackPop.setup({
         key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
         email: `${normalizedPhone.replace('+', '')}@swiftcvpro.com`,
-        amount: 3500000,
+        amount: pkg.amount, // pesewas (GH₵1 = 100)
         currency: 'GHS',
         ref: `scv_${Date.now()}_${normalizedPhone.slice(-4)}`,
-        metadata: { phone: normalizedPhone, cvType },
+        // The webhook is the source of truth: it reads these and credits both
+        // counters. phone_number is the key the webhook already expects.
+        metadata: { phone_number: normalizedPhone, cvType, package: pkg.id, cv_credits: pkg.cv, cl_credits: pkg.cl },
         callback: async () => {
           setIsGenerating(true)
+          // Give the webhook a moment to land the credits before generating.
           await new Promise(r => setTimeout(r, 2500))
           await doGenerate(normalizedPhone)
         },
@@ -781,6 +791,37 @@ export default function BuildPage() {
         </div>
       )}
 
+      {/* ══ PRICING MODAL ══════════════════════════════════ */}
+      {showPricing && (
+        <div onClick={() => setShowPricing(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(8,13,24,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '22px', width: '100%', maxWidth: '440px', padding: '28px 26px', boxShadow: '0 25px 80px rgba(0,0,0,0.4)', fontFamily: "'DM Sans', sans-serif", maxHeight: '92vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 600, color: '#0a0f1a', lineHeight: 1.15 }}>Choose your package</div>
+              <button onClick={() => setShowPricing(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', display: 'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+            </div>
+            <p style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '18px', lineHeight: 1.6 }}>One-time payment · no subscription. Credits never expire.</p>
+
+            <div style={{ display: 'grid', gap: '11px' }}>
+              {PACKAGES.map(pkg => (
+                <button key={pkg.id} onClick={() => { setShowPricing(false); triggerPaystack(payPhone, pkg) }}
+                  style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
+                    background: pkg.recommended ? '#f6fdfb' : 'white', border: pkg.recommended ? '2px solid #0d9488' : '1px solid #e7ebf0',
+                    borderRadius: '16px', padding: pkg.recommended ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
+                  {pkg.recommended && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: '#0d9488', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>BEST VALUE</span>}
+                  <span style={{ flex: 1 }}>
+                    <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: '#0a0f1a' }}>{pkg.name}</span>
+                    <span style={{ display: 'block', fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>{pkg.blurb}</span>
+                  </span>
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 700, color: pkg.recommended ? '#0d9488' : '#0a0f1a', whiteSpace: 'nowrap' as const }}>GH₵{pkg.price}</span>
+                </button>
+              ))}
+            </div>
+
+            <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '16px', textAlign: 'center' as const, lineHeight: 1.5 }}>Secure payment via Paystack · MTN MoMo, Vodafone Cash & card</p>
+          </div>
+        </div>
+      )}
+
       {/* ══ LOADING OVERLAY ══════════════════════════════════ */}
       {isGenerating && (
         <div style={{ position: 'fixed', inset: 0, background: '#0a0f1a', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '32px' }}>
@@ -971,11 +1012,11 @@ function PhoneAndPrice({ phone, setPhone }: { phone: string; setPhone: (v: strin
         <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. 0551234567  or  +233551234567"
           style={{ width: '100%', padding: '13px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', transition: 'border-color 0.2s', display: 'block' }} />
       </div>
-      {/* Price only — the feature list that used to sit here was landing-page
-          copy in the middle of a build flow, and it was stale (7 vs 14 templates). */}
+      {/* Packages are chosen at checkout (the pricing modal), so this shows the
+          entry price rather than a single fixed one. */}
       <div style={{ background: 'linear-gradient(135deg, #f0fdf9, #ecfdf5)', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '18px', padding: '18px 24px', marginBottom: '16px', display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' as const }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0a0f1a' }}>GH₵ 35</div>
-        <div style={{ fontSize: '12.5px', color: '#64748b' }}>one-time · no subscription</div>
+        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0a0f1a' }}>From GH₵29</div>
+        <div style={{ fontSize: '12.5px', color: '#64748b' }}>one-time · no subscription · credits never expire</div>
       </div>
     </>
   )
