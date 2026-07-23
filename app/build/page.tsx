@@ -1203,12 +1203,6 @@ function PhoneAndPrice({ phone, setPhone }: { phone: string; setPhone: (v: strin
         <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. 0551234567  or  +233551234567"
           style={{ width: '100%', padding: '13px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', transition: 'border-color 0.2s', display: 'block' }} />
       </div>
-      {/* Packages are chosen at checkout (the pricing modal), so this shows the
-          entry price rather than a single fixed one. */}
-      <div style={{ background: 'linear-gradient(135deg, #f0fdf9, #ecfdf5)', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '18px', padding: '18px 24px', marginBottom: '16px', display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' as const }}>
-        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0a0f1a' }}>From GH₵29</div>
-        <div style={{ fontSize: '12.5px', color: '#64748b' }}>one-time · no subscription · credits never expire</div>
-      </div>
     </>
   )
 }
