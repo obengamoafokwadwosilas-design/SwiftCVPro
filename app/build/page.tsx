@@ -601,9 +601,11 @@ export default function BuildPage() {
       {/* Choose the document (1), how to share info (2), fill in & generate (3) */}
       <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
 
-      {backTo && (
+      {/* Back — moves one screen back within the flow, or out to the home
+          page from the very first (type) screen so it's never a dead end. */}
+      {(backTo || screen === 'type') && (
         <div style={{ maxWidth: '760px', margin: '0 auto', padding: '22px 24px 0' }}>
-          <button onClick={() => go(backTo)} style={btnBackTop}>
+          <button onClick={() => backTo ? go(backTo) : router.push('/')} style={btnBackTop}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Back
           </button>
