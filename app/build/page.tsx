@@ -209,34 +209,24 @@ export default function BuildPage() {
   const backTo = backTargets[screen]
 
   // The document type is step 1, so choosing it leads into how to share info.
-  async function goAfterType() {
+  function goAfterType() {
     setTypeErr('')
     if (!typeChosen) { setTypeErr('Please choose what to create.'); return }
     const digits = phoneNumber.replace(/\D/g, '')
     if (digits.length < 9) { setTypeErr('Please enter a valid phone number.'); return }
-    // Check the balance now so the info screens can show what they have left.
-    // Non-blocking for no-credit users: they still build, and pay at Generate.
-    // A timeout guards against a slow/cold check — we never trap the user on
-    // "Checking…"; a failed or slow check just means no badge (the Generate
-    // step re-checks authoritatively anyway).
-    setCheckingCredits(true)
-    try {
-      const controller = new AbortController()
-      const t = setTimeout(() => controller.abort(), 6000)
-      const res = await fetch('/api/check-credits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber }),
-        signal: controller.signal,
-      })
-      clearTimeout(t)
-      const d = await res.json()
-      setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 })
-    } catch {
-      setCreditBalance(null)
-    }
-    setCheckingCredits(false)
+    // Advance instantly — no waiting, no "checking" state. The balance is
+    // fetched in the background purely so the info screens can show what's
+    // left; if it's slow or fails, the user never notices (Generate re-checks
+    // authoritatively anyway).
     go('method')
+    fetch('/api/check-credits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber }),
+    })
+      .then(res => res.json())
+      .then(d => setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 }))
+      .catch(() => setCreditBalance(null))
   }
 
   // ── Build seed: capture / restore ──────────────────────────────
@@ -674,29 +664,28 @@ export default function BuildPage() {
             })}
           </div>
 
-          {/* Phone — collected up front so credits (which are linked to it) are
-              known before they start, and shown back to them as they build. */}
-          <div style={{ background: 'white', border: '1px solid #e7ebf0', borderRadius: '16px', padding: '20px 22px', marginBottom: '18px' }}>
-            <label style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: '1.15rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px' }}>Your phone number</label>
-            <p style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '12px', fontWeight: 300, lineHeight: 1.6 }}>Your credits are linked to this number. Returning customers with credits skip payment automatically.</p>
+          {/* Phone — collected up front (credits are linked to it) but kept
+              deliberately understated so it never competes with the choice
+              above. A single slim field, small label, no card, no blurb. */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>Your phone number</label>
             <input
               value={phoneNumber}
               onChange={e => { setPhoneNumber(e.target.value); if (typeErr) setTypeErr('') }}
               onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
               placeholder="e.g. 0551234567  or  +233551234567"
-              style={{ width: '100%', padding: '13px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', display: 'block' }}
+              style={{ width: '100%', padding: '12px 15px', border: `1px solid ${typeErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '12px', background: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', display: 'block' }}
             />
+            {typeErr && <div style={{ fontSize: '12.5px', color: '#dc2626', marginTop: '8px', fontWeight: 500 }}>{typeErr}</div>}
           </div>
-
-          {typeErr && <div style={{ fontSize: '13px', color: '#dc2626', marginBottom: '14px', fontWeight: 500 }}>{typeErr}</div>}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button
               onClick={goAfterType}
-              disabled={!typeChosen || checkingCredits}
-              style={{ ...btnPrimary, opacity: (!typeChosen || checkingCredits) ? 0.45 : 1, cursor: (!typeChosen || checkingCredits) ? 'not-allowed' : 'pointer' }}
+              disabled={!typeChosen}
+              style={{ ...btnPrimary, opacity: !typeChosen ? 0.45 : 1, cursor: !typeChosen ? 'not-allowed' : 'pointer' }}
             >
-              {checkingCredits ? 'Checking…' : 'Continue →'}
+              Continue →
             </button>
           </div>
         </div>
