@@ -55,7 +55,9 @@ export default function BuildPage() {
   // academic extras only for academics, job details only where relevant, and a
   // cover-letter user never wades through CV-only fields.
   const [screen, setScreen] = useState<Screen>('type')
-  const [typeChosen, setTypeChosen] = useState(false)
+  // Professional CV is the common case, so it's selected by default — the user
+  // can switch, but never has to make a choice just to move forward.
+  const [typeChosen, setTypeChosen] = useState(true)
   // Phone + credit balance are collected up front (on the type screen) now.
   // creditBalance is null until we've checked; once known, the info screens
   // show a "what you have left" badge when there's anything to show.
@@ -213,6 +215,7 @@ export default function BuildPage() {
     setTypeErr('')
     if (!typeChosen) { setTypeErr('Please choose what to create.'); return }
     const digits = phoneNumber.replace(/\D/g, '')
+    if (!phoneNumber.trim()) { setTypeErr('Please enter your phone number.'); return }
     if (digits.length < 9) { setTypeErr('Please enter a valid phone number.'); return }
     // Advance instantly — no waiting, no "checking" state. The balance is
     // fetched in the background purely so the info screens can show what's
@@ -676,7 +679,9 @@ export default function BuildPage() {
               placeholder="e.g. 0551234567  or  +233551234567"
               style={{ width: '100%', padding: '12px 15px', border: `1px solid ${typeErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '12px', background: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', display: 'block' }}
             />
-            {typeErr && <div style={{ fontSize: '12.5px', color: '#dc2626', marginTop: '8px', fontWeight: 500 }}>{typeErr}</div>}
+            {typeErr
+              ? <div style={{ fontSize: '12.5px', color: '#dc2626', marginTop: '8px', fontWeight: 500 }}>{typeErr}</div>
+              : <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontWeight: 300 }}>Your account is linked to this phone number.</div>}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
