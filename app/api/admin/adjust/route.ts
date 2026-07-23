@@ -20,12 +20,24 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { phoneNumber, mode } = body
     if (!phoneNumber) return NextResponse.json({ error: 'Phone number required' }, { status: 400 })
-    if (mode !== 'add' && mode !== 'set') {
-      return NextResponse.json({ error: 'mode must be "add" or "set"' }, { status: 400 })
+    if (mode !== 'add' && mode !== 'set' && mode !== 'reset') {
+      return NextResponse.json({ error: 'mode must be "add", "set" or "reset"' }, { status: 400 })
     }
     const phone = normalizePhone(phoneNumber)
 
-    if (mode === 'set') {
+    if (mode === 'reset') {
+      // Destructive — require an explicit typed confirmation, same guard the UI
+      // shows ("Type RESET"). resetType picks which counter(s) go to zero.
+      if (body.confirm !== 'RESET') {
+        return NextResponse.json({ error: 'Type RESET to confirm' }, { status: 400 })
+      }
+      const rt = body.resetType || 'credits'
+      const fields: { credits?: number; coverLetterCredits?: number } = {}
+      if (rt === 'credits' || rt === 'both') fields.credits = 0
+      if (rt === 'coverLetters' || rt === 'both') fields.coverLetterCredits = 0
+      const ok = await adminSetCredits(phone, fields)
+      if (!ok) return NextResponse.json({ error: 'Reset failed' }, { status: 500 })
+    } else if (mode === 'set') {
       const setCv = num(body.setCv)
       const setCl = num(body.setCl)
       if (setCv === undefined && setCl === undefined) {
