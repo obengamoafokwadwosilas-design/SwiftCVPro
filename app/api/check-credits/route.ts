@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { normalizePhone } from '@/lib/credits'
+import { normalizePhone, getCredits } from '@/lib/credits'
 
 export async function POST(req: NextRequest) {
   // Normalise the phone up front so we can echo it back even on the error path,
@@ -14,7 +14,6 @@ export async function POST(req: NextRequest) {
     }
     phone = normalizePhone(phoneNumber)
 
-    const { getCredits } = await import('@/lib/credits')
     const credits = await getCredits(phone)
     return NextResponse.json({ hasCredits: credits > 0, credits, phoneNumber: phone })
 

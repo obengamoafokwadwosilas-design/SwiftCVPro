@@ -41,6 +41,22 @@ export async function hasCredits(phoneNumber: string): Promise<boolean> {
   return (await getCredits(phoneNumber)) > 0
 }
 
+// Admin-only: overwrite a phone's balances to exact values (not a delta).
+// Used by the /admin panel's "set" action. Direct upsert is fine here — the
+// admin panel is single-operator and low-concurrency, unlike the customer
+// payment paths that must stay race-safe via the RPCs above.
+export async function adminSetCredits(
+  phoneNumber: string,
+  fields: { credits?: number; coverLetterCredits?: number }
+): Promise<boolean> {
+  const phone = normalizePhone(phoneNumber)
+  const row: Record<string, unknown> = { phone_number: phone, updated_at: new Date().toISOString() }
+  if (fields.credits !== undefined) row.credits = Math.max(0, Math.floor(fields.credits))
+  if (fields.coverLetterCredits !== undefined) row.cover_letter_credits = Math.max(0, Math.floor(fields.coverLetterCredits))
+  const { error } = await supabaseAdmin.from('cv_credits').upsert(row, { onConflict: 'phone_number' })
+  return !error
+}
+
 // ── Cover-letter entitlement ─────────────────────────────────────
 // A separate counter from the main CV credits. Granted (1) whenever a
 // paid CV is generated; redeemed by the "+ Cover Letter" flow so the
