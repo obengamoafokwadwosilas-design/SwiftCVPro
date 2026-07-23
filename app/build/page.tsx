@@ -56,6 +56,11 @@ export default function BuildPage() {
   // cover-letter user never wades through CV-only fields.
   const [screen, setScreen] = useState<Screen>('type')
   const [typeChosen, setTypeChosen] = useState(false)
+  // Phone + credit balance are collected up front (on the type screen) now.
+  // creditBalance is null until we've checked; once known, the info screens
+  // show a "what you have left" badge when there's anything to show.
+  const [typeErr, setTypeErr] = useState('')
+  const [creditBalance, setCreditBalance] = useState<{ cv: number; cl: number } | null>(null)
   const [cvType, setCvType] = useState<CVType>('professional')
   const [inputMethod, setInputMethod] = useState<'paste' | 'form'>('paste')
   // Default to upload: this screen is reached from "I already have a CV", so a
@@ -204,7 +209,33 @@ export default function BuildPage() {
   const backTo = backTargets[screen]
 
   // The document type is step 1, so choosing it leads into how to share info.
-  function goAfterType() {
+  async function goAfterType() {
+    setTypeErr('')
+    if (!typeChosen) { setTypeErr('Please choose what to create.'); return }
+    const digits = phoneNumber.replace(/\D/g, '')
+    if (digits.length < 9) { setTypeErr('Please enter a valid phone number.'); return }
+    // Check the balance now so the info screens can show what they have left.
+    // Non-blocking for no-credit users: they still build, and pay at Generate.
+    // A timeout guards against a slow/cold check — we never trap the user on
+    // "Checking…"; a failed or slow check just means no badge (the Generate
+    // step re-checks authoritatively anyway).
+    setCheckingCredits(true)
+    try {
+      const controller = new AbortController()
+      const t = setTimeout(() => controller.abort(), 6000)
+      const res = await fetch('/api/check-credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber }),
+        signal: controller.signal,
+      })
+      clearTimeout(t)
+      const d = await res.json()
+      setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 })
+    } catch {
+      setCreditBalance(null)
+    }
+    setCheckingCredits(false)
     go('method')
   }
 
@@ -586,6 +617,20 @@ export default function BuildPage() {
         </div>
       )}
 
+      {/* Credit balance — shown on the info screens once we know it, and only
+          when there's something to show (no clutter for no-credit users). */}
+      {screen !== 'type' && screen !== 'method' && creditBalance && (creditBalance.cv > 0 || creditBalance.cl > 0) && (
+        <div style={{ maxWidth: '640px', margin: '22px auto 0', padding: '0 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'linear-gradient(135deg, #f0fdf9, #ecfdf5)', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '12px', padding: '11px 16px' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span style={{ fontSize: '13px', color: '#0f766e', fontWeight: 500 }}>
+              You have {creditBalance.cv} CV credit{creditBalance.cv === 1 ? '' : 's'}
+              {creditBalance.cl > 0 ? ` and ${creditBalance.cl} cover-letter credit${creditBalance.cl === 1 ? '' : 's'}` : ''} left — no payment needed.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* ══ SCREEN: CHOOSE DOCUMENT ══════════════════════════════════ */}
       {screen === 'type' && (
         <div style={{ maxWidth: '720px', margin: '0 auto', padding: '52px 24px 80px' }}>
@@ -629,13 +674,29 @@ export default function BuildPage() {
             })}
           </div>
 
+          {/* Phone — collected up front so credits (which are linked to it) are
+              known before they start, and shown back to them as they build. */}
+          <div style={{ background: 'white', border: '1px solid #e7ebf0', borderRadius: '16px', padding: '20px 22px', marginBottom: '18px' }}>
+            <label style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: '1.15rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px' }}>Your phone number</label>
+            <p style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '12px', fontWeight: 300, lineHeight: 1.6 }}>Your credits are linked to this number. Returning customers with credits skip payment automatically.</p>
+            <input
+              value={phoneNumber}
+              onChange={e => { setPhoneNumber(e.target.value); if (typeErr) setTypeErr('') }}
+              onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
+              placeholder="e.g. 0551234567  or  +233551234567"
+              style={{ width: '100%', padding: '13px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', display: 'block' }}
+            />
+          </div>
+
+          {typeErr && <div style={{ fontSize: '13px', color: '#dc2626', marginBottom: '14px', fontWeight: 500 }}>{typeErr}</div>}
+
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button
               onClick={goAfterType}
-              disabled={!typeChosen}
-              style={{ ...btnPrimary, opacity: typeChosen ? 1 : 0.45, cursor: typeChosen ? 'pointer' : 'not-allowed' }}
+              disabled={!typeChosen || checkingCredits}
+              style={{ ...btnPrimary, opacity: (!typeChosen || checkingCredits) ? 0.45 : 1, cursor: (!typeChosen || checkingCredits) ? 'not-allowed' : 'pointer' }}
             >
-              Continue →
+              {checkingCredits ? 'Checking…' : 'Continue →'}
             </button>
           </div>
         </div>
@@ -706,7 +767,6 @@ export default function BuildPage() {
 
           {needsJD && <JDSection method={jdInputMode} setMethod={setJdInputMode} pasteRef={refs.jdPaste} uploadedFile={uploadedJD} setUploadedFile={setUploadedJD} cvType={cvType} />}
 
-          <PhoneAndPrice phone={phoneNumber} setPhone={setPhoneNumber} />
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
@@ -967,7 +1027,6 @@ export default function BuildPage() {
             </div>
           ))}
 
-          <PhoneAndPrice phone={phoneNumber} setPhone={setPhoneNumber} />
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
           {paymentPending && (
@@ -1200,19 +1259,6 @@ function JDSection({ method, setMethod, pasteRef, uploadedFile, setUploadedFile,
         : <UploadZone label="Drop the job posting here, or click to browse" hint="PDF · Word · Image (screenshot)" onFile={setUploadedFile} file={uploadedFile} />
       }
     </Collapsible>
-  )
-}
-
-function PhoneAndPrice({ phone, setPhone }: { phone: string; setPhone: (v: string) => void }) {
-  return (
-    <>
-      <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '18px', padding: '24px', marginBottom: '14px', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }}>
-        <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.25rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '6px' }}>Your Phone Number</div>
-        <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px', fontWeight: 300, lineHeight: 1.65 }}>Your credits are linked to your phone number. Returning users with credits skip payment automatically.</p>
-        <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="e.g. 0551234567  or  +233551234567"
-          style={{ width: '100%', padding: '13px 16px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', transition: 'border-color 0.2s', display: 'block' }} />
-      </div>
-    </>
   )
 }
 
