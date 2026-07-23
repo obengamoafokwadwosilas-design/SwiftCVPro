@@ -3,9 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { normalizePhone } from '@/lib/credits'
 
-// ⚠️ TESTING MODE — always returns hasCredits: true
-// TODO: Remove this before going live
-const TESTING_MODE = true
+const TESTING_MODE = false
 
 export async function POST(req: NextRequest) {
   try {

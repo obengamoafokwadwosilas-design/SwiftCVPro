@@ -9,7 +9,7 @@ import { CVFormData, GeneratedCV } from '@/types'
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 // ⚠️ Keep in step with app/api/generate/route.ts
-const TESTING_MODE = true
+const TESTING_MODE = false
 
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
 const RATE_LIMIT_MAX = 20

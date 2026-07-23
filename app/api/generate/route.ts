@@ -169,7 +169,7 @@ async function saveToHistory(
 
 // ⚠️ TESTING MODE — payments bypassed
 // TODO: Remove this and re-enable credits check before going live
-const TESTING_MODE = true
+const TESTING_MODE = false
 
 // Rate limiter
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
