@@ -3,30 +3,26 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { normalizePhone } from '@/lib/credits'
 
-const TESTING_MODE = false
-
 export async function POST(req: NextRequest) {
+  // Normalise the phone up front so we can echo it back even on the error path,
+  // and so a failure below fails CLOSED (no credits) instead of open.
+  let phone = ''
   try {
     const { phoneNumber } = await req.json()
     if (!phoneNumber) {
       return NextResponse.json({ error: 'Phone number required' }, { status: 400 })
     }
+    phone = normalizePhone(phoneNumber)
 
-    const phone = normalizePhone(phoneNumber)
-
-    if (TESTING_MODE) {
-      // Skip Supabase entirely — just say yes
-      return NextResponse.json({ hasCredits: true, credits: 999, phoneNumber: phone })
-    }
-
-    // Production: real Supabase check
     const { getCredits } = await import('@/lib/credits')
     const credits = await getCredits(phone)
     return NextResponse.json({ hasCredits: credits > 0, credits, phoneNumber: phone })
 
   } catch (error) {
     console.error('Check credits error:', error)
-    // In testing mode, fail open so generation still works
-    return NextResponse.json({ hasCredits: true, credits: 999, phoneNumber: '' })
+    // Fail CLOSED: if we can't confirm credits, report none so the build page
+    // shows the payment modal rather than silently letting a free generation
+    // through. /api/generate is the authoritative gate and also blocks here.
+    return NextResponse.json({ hasCredits: false, credits: 0, phoneNumber: phone })
   }
 }
