@@ -73,6 +73,11 @@ export default function BuildPage() {
   const [jdInputMode, setJdInputMode] = useState<'paste' | 'upload'>('paste')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  // Separate from isGenerating: the quick pre-flight credit check. Kept apart so
+  // the full-screen "generating" animation never shows before we've confirmed
+  // the user actually has credits (otherwise a no-credit user briefly sees a
+  // generation screen, which reads as "it generated for free").
+  const [checkingCredits, setCheckingCredits] = useState(false)
   const [error, setError] = useState<{ title: string; msg: string; type: 'payment' | 'input' | 'server' | 'network' } | null>(null)
 
   // Academic optional expands
@@ -317,7 +322,7 @@ export default function BuildPage() {
       setError(msgs[validErr] || { title: 'Something missing', msg: 'Please check your details and try again.', type: 'input' })
       return
     }
-    setIsGenerating(true)
+    setCheckingCredits(true)
     try {
       const creditRes = await fetch('/api/check-credits', {
         method: 'POST',
@@ -325,16 +330,20 @@ export default function BuildPage() {
         body: JSON.stringify({ phoneNumber })
       })
       const creditData = await creditRes.json()
+      setCheckingCredits(false)
       if (!creditData.hasCredits) {
-        setIsGenerating(false)
-        // No credits → let them choose a package before paying.
+        // No credits → let them choose a package before paying. We deliberately
+        // never showed the generating animation, so this goes straight to the
+        // pricing modal with nothing misleading in between.
         setPayPhone(creditData.phoneNumber || phoneNumber)
         setShowPricing(true)
         return
       }
+      // Credits confirmed — only now start the generation animation.
+      setIsGenerating(true)
       await doGenerate(creditData.phoneNumber)
     } catch {
-      setIsGenerating(false)
+      setCheckingCredits(false)
       setError({ title: 'Connection error', msg: 'Could not connect to the server. Please check your internet and try again.', type: 'network' })
     }
   }
@@ -701,8 +710,8 @@ export default function BuildPage() {
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={handleGenerate} disabled={isGenerating} style={{ ...btnPrimary, opacity: isGenerating ? 0.6 : 1 }}>
-              {isGenerating ? 'Generating…' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
+            <button onClick={handleGenerate} disabled={isGenerating || checkingCredits} style={{ ...btnPrimary, opacity: (isGenerating || checkingCredits) ? 0.6 : 1 }}>
+              {checkingCredits ? 'Checking…' : isGenerating ? 'Generating…' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
           </div>
         </div>
@@ -975,8 +984,8 @@ export default function BuildPage() {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={handleGenerate} disabled={isGenerating || !!paymentPending} style={{ ...btnPrimary, opacity: (isGenerating || paymentPending) ? 0.6 : 1 }}>
-              {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
+            <button onClick={handleGenerate} disabled={isGenerating || checkingCredits || !!paymentPending} style={{ ...btnPrimary, opacity: (isGenerating || checkingCredits || paymentPending) ? 0.6 : 1 }}>
+              {checkingCredits ? 'Checking…' : isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
           </div>
         </div>
