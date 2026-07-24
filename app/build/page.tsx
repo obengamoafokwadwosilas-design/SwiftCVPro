@@ -43,8 +43,14 @@ const CV_TYPE_META: Record<CVType, { label: string; shortLabel: string; hasJobSt
   professional: { label: 'Professional CV', shortLabel: 'Professional CV', hasJobStep: true,  totalFormSteps: 5 },
   targeted:     { label: 'Targeted CV',     shortLabel: 'Targeted CV',     hasJobStep: true,  totalFormSteps: 5 },
   academic:     { label: 'Academic CV',     shortLabel: 'Academic CV',     hasJobStep: false, totalFormSteps: 4 },
-  cover_letter: { label: 'Cover Letter',    shortLabel: 'Cover Letter',    hasJobStep: true,  totalFormSteps: 5 },
+  cover_letter: { label: 'Cover Letter',    shortLabel: 'Cover Letter',    hasJobStep: true,  totalFormSteps: 3 },
 }
+
+// A cover letter is not a CV, so it doesn't walk the CV-shaped path. It needs
+// four things — who you are, your background, the role, and why you want it —
+// which is three screens, not five. Education and Skills are skipped: a
+// ~300-word letter draws on a summary of your background, not a full breakdown.
+const COVER_LETTER_PATH: Screen[] = ['form-1', 'form-3', 'form-5']
 
 
 export default function BuildPage() {
@@ -104,6 +110,16 @@ export default function BuildPage() {
   // JD is available/captured for everything except Academic. It is optional for
   // Professional (tailor if given) and only genuinely required for cover letters.
   const needsJD = cvType !== 'academic'
+
+  const isCoverLetter = cvType === 'cover_letter'
+  // Display step number: cover letters follow COVER_LETTER_PATH, so form-3 is
+  // "Step 2" for them and "Step 3" for everyone else.
+  const stepNo = (s: Screen) => isCoverLetter ? COVER_LETTER_PATH.indexOf(s) + 1 : Number(s.split('-')[1])
+  // Where "Next" goes from a given step, honouring the shorter letter path.
+  const nextAfter = (s: Screen): Screen =>
+    isCoverLetter
+      ? COVER_LETTER_PATH[COVER_LETTER_PATH.indexOf(s) + 1] || 'summary'
+      : (s === 'form-1' ? 'form-2' : s === 'form-2' ? 'form-3' : s === 'form-3' ? 'form-4' : 'form-5')
 
   // ── Refs ──────────────────────────────────────
   const refs = {
@@ -203,9 +219,9 @@ export default function BuildPage() {
     paste: 'method',
     'form-1': 'method',
     'form-2': 'form-1',
-    'form-3': 'form-2',
+    'form-3': isCoverLetter ? 'form-1' : 'form-2',
     'form-4': 'form-3',
-    'form-5': 'form-4',
+    'form-5': isCoverLetter ? 'form-3' : 'form-4',
     summary: meta.hasJobStep ? 'form-5' : 'form-4',
   }
   const backTo = backTargets[screen]
@@ -790,7 +806,7 @@ export default function BuildPage() {
           {/* Swift greeting with typing animation */}
           <SwiftGreeting label={meta.label} />
 
-          <StepLabel label={`Step 1 of ${meta.totalFormSteps}`} />
+          <StepLabel label={`Step ${stepNo('form-1')} of ${meta.totalFormSteps}`} />
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
@@ -823,13 +839,14 @@ export default function BuildPage() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-            <button onClick={() => go('form-2')} style={btnPrimary}>Next →</button>
+            <button onClick={() => go(nextAfter('form-1'))} style={btnPrimary}>Next →</button>
           </div>
         </div>
 
       {/* ══ SCREEN: FORM STEP 2 — EDUCATION ══════════════════════ */}
         <div style={{ display: screen === 'form-2' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <StepLabel label={`Step 2 of ${meta.totalFormSteps}`} />
+          {/* Not on the cover-letter path — no step number would make sense. */}
+          {!isCoverLetter && <StepLabel label={`Step 2 of ${meta.totalFormSteps}`} />}
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#e6f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
           </div>
@@ -869,29 +886,38 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: FORM STEP 3 — EXPERIENCE ══════════════════════ */}
         <div style={{ display: screen === 'form-3' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <StepLabel label={`Step 3 of ${meta.totalFormSteps}`} />
+          <StepLabel label={`Step ${stepNo('form-3')} of ${meta.totalFormSteps}`} />
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#eeedfe', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg>
           </div>
-          <h1 style={h1Style}>Work Experience</h1>
-          <p style={subStyle}>Your jobs, internships, national service, and volunteer roles.</p>
+          <h1 style={h1Style}>{isCoverLetter ? 'Your Background' : 'Work Experience'}</h1>
+          <p style={subStyle}>{isCoverLetter
+            ? 'Your experience, education and achievements — whatever makes your case. A few lines is enough.'
+            : 'Your jobs, internships, national service, and volunteer roles.'}</p>
 
           <div style={cardStyle}>
-            <ExBox text={'Staff Nurse – Korle Bu Teaching Hospital – 2022 to Present\nSales Assistant – Melcom – 2020–2021\nNational Service – GRA Kumasi – 2019–2020'} />
+            <ExBox text={isCoverLetter
+              ? 'Staff Nurse – Korle Bu Teaching Hospital – 2022 to Present\nBSc Nursing, University of Cape Coast, 2018–2022\nCut patient handover errors by 30% on my ward'
+              : 'Staff Nurse – Korle Bu Teaching Hospital – 2022 to Present\nSales Assistant – Melcom – 2020–2021\nNational Service – GRA Kumasi – 2019–2020'} />
 
-            {/* Collapsible duties tip */}
-            <button onClick={() => setShowDutiesTip(v => !v)} style={{ ...tipToggleStyle, marginBottom: '10px' }}>
-              <span>Want to add job duties? Click to see how →</span>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showDutiesTip ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            {showDutiesTip && (
-              <div style={{ background: '#f0fdf9', borderLeft: '3px solid #0d9488', borderRadius: '0 8px 8px 0', padding: '10px 14px', marginBottom: '10px', fontSize: '12px', color: '#0f6e56', lineHeight: 1.7 }}>
-                Adding duties is completely optional — our AI will write them for you. If you'd like to add your own, list them under each role:<br/><br/>
-                <em>Staff Nurse – Korle Bu – 2022 to Present<br/>– Administered medication to 30+ patients daily<br/>– Managed ward records and patient handovers</em>
-              </div>
+            {/* Collapsible duties tip — CV-specific, so not shown on the
+                cover-letter background step. */}
+            {!isCoverLetter && (
+              <>
+                <button onClick={() => setShowDutiesTip(v => !v)} style={{ ...tipToggleStyle, marginBottom: '10px' }}>
+                  <span>Want to add job duties? Click to see how →</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showDutiesTip ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                {showDutiesTip && (
+                  <div style={{ background: '#f0fdf9', borderLeft: '3px solid #0d9488', borderRadius: '0 8px 8px 0', padding: '10px 14px', marginBottom: '10px', fontSize: '12px', color: '#0f6e56', lineHeight: 1.7 }}>
+                    Adding duties is completely optional — our AI will write them for you. If you&apos;d like to add your own, list them under each role:<br/><br/>
+                    <em>Staff Nurse – Korle Bu – 2022 to Present<br/>– Administered medication to 30+ patients daily<br/>– Managed ward records and patient handovers</em>
+                  </div>
+                )}
+              </>
             )}
 
-            <textarea ref={refs.experience} style={TA(110)} rows={5} placeholder="Write your work experience here..." />
+            <textarea ref={refs.experience} style={TA(110)} rows={5} placeholder={isCoverLetter ? 'Write your background here — roles, education, achievements...' : 'Write your work experience here...'} />
 
             {/* Academic experience expand */}
             {cvType === 'academic' && (
@@ -921,15 +947,15 @@ export default function BuildPage() {
             )}
           </div>
 
-          <button onClick={() => go('form-4')} style={btnSkip}>Skip this section →</button>
+          <button onClick={() => go(nextAfter('form-3'))} style={btnSkip}>Skip this section →</button>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-            <button onClick={() => go('form-4')} style={btnPrimary}>Next →</button>
+            <button onClick={() => go(nextAfter('form-3'))} style={btnPrimary}>Next →</button>
           </div>
         </div>
 
       {/* ══ SCREEN: FORM STEP 4 — EXTRAS ══════════════════════ */}
         <div style={{ display: screen === 'form-4' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <StepLabel label={`Step 4 of ${meta.totalFormSteps}`} />
+          {!isCoverLetter && <StepLabel label={`Step 4 of ${meta.totalFormSteps}`} />}
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#faeeda', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#854f0b" strokeWidth="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </div>
@@ -974,7 +1000,9 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: FORM STEP 5 — JOB DETAILS ══════════════════════ */}
         <div style={{ display: screen === 'form-5' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <StepLabel label={`Step 5 of ${meta.totalFormSteps}`} />
+          {/* Academic has no job step, so this screen is never reached there and
+              a step number would be nonsense ("Step 5 of 4"). */}
+          {meta.hasJobStep && <StepLabel label={`Step ${stepNo('form-5')} of ${meta.totalFormSteps}`} />}
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: cvType === 'cover_letter' ? '#fbeaf0' : '#e6f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             {cvType === 'cover_letter'
               ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -1015,7 +1043,7 @@ export default function BuildPage() {
           <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
           </div>
-          <h1 style={{ ...h1Style, marginBottom: '6px' }}>Ready To Build Your CV</h1>
+          <h1 style={{ ...h1Style, marginBottom: '6px' }}>{isCoverLetter ? 'Ready To Write Your Letter' : 'Ready To Build Your CV'}</h1>
           <p style={{ ...subStyle, marginBottom: '28px' }}>Review your details before we generate.</p>
 
           {/* Summary blocks — only show sections with content */}
@@ -1023,7 +1051,7 @@ export default function BuildPage() {
             { title: 'Document Type', val: meta.label, editScreen: 'type' as Screen, alwaysShow: true },
             { title: 'Personal Details', val: [refs.fullName.current?.value, refs.phone.current?.value, refs.email.current?.value, refs.location.current?.value].filter(Boolean).join(' · '), editScreen: 'form-1' as Screen },
             { title: 'Education', val: refs.education.current?.value || '', editScreen: 'form-2' as Screen },
-            { title: 'Work Experience', val: refs.experience.current?.value || '', editScreen: 'form-3' as Screen },
+            { title: isCoverLetter ? 'Your Background' : 'Work Experience', val: refs.experience.current?.value || '', editScreen: 'form-3' as Screen },
             { title: 'Skills & Extras', val: refs.extras.current?.value || '', editScreen: 'form-4' as Screen },
             ...(meta.hasJobStep ? [{ title: 'Target Role', val: [refs.jobTitle.current?.value, refs.company.current?.value].filter(Boolean).join(' at '), editScreen: 'form-5' as Screen }] : []),
           ].filter(b => (b as any).alwaysShow || b.val).map(b => (
