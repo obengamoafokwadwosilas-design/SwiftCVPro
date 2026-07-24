@@ -378,9 +378,22 @@ export default function BuildPage() {
       let jobDescription = ''
 
       if (inputMethod === 'paste') {
-        rawContent = pasteInputMode === 'upload' && uploadedCV
-          ? await extractFile(uploadedCV)
+        const fromUpload = pasteInputMode === 'upload' && !!uploadedCV
+        rawContent = fromUpload
+          ? await extractFile(uploadedCV as File)
           : refs.paste.current?.value || ''
+
+        // A CV that yields almost no text is either an unreadable scan, a
+        // wrong/blank file, or a few stray words pasted in. Generating from
+        // that produces a useless CV, so stop here and say what to do.
+        if (rawContent.replace(/\s+/g, ' ').trim().length < 80) {
+          setIsGenerating(false)
+          setError(fromUpload
+            ? { title: 'We couldn’t read enough from that file', msg: 'It may be a scanned image, password-protected, or not a CV. Try a clearer photo, a text-based PDF or Word file — or paste your details in instead.', type: 'input' }
+            : { title: 'Not enough detail yet', msg: 'Add more about your education, work experience and skills so we have something to build from.', type: 'input' })
+          return
+        }
+
         const clarify = refs.clarify.current?.value?.trim()
         if (clarify) rawContent += '\n\nADDITIONAL NOTES:\n' + clarify
         if (needsJD) {
@@ -1258,23 +1271,30 @@ function JDSection({ method, setMethod, pasteRef, uploadedFile, setUploadedFile,
   )
 }
 
+// A restrained inline notice: white card, thin accent rule, line icon, and
+// quiet text actions. Deliberately no emoji or coloured pills — those read as
+// toyish next to the rest of the page.
 function ErrorDisplay({ error, onRetry, onDismiss }: { error: any; onRetry: () => void; onDismiss: () => void }) {
   if (!error) return null
-  const icons: Record<string, string> = { payment: '💳', input: '📋', server: '⚙️', network: '🌐' }
-  const colors: Record<string, string> = { payment: '#f59e0b', input: '#3b82f6', server: '#ef4444', network: '#8b5cf6' }
-  const bgColors: Record<string, string> = { payment: '#fffbeb', input: '#eff6ff', server: '#fef2f2', network: '#f5f3ff' }
-  const c = colors[error.type] || '#ef4444'
+  // Validation ("fix this") is amber; genuine failures are red.
+  const c = error.type === 'server' ? '#b91c1c' : error.type === 'network' ? '#b45309' : error.type === 'payment' ? '#b45309' : '#a16207'
+  const icon = error.type === 'network'
+    ? <path d="M1 1l22 22M16.7 16.7A6 6 0 007.3 7.3M5 12.5a10 10 0 013-2.2M12 20h.01" strokeLinecap="round" />
+    : error.type === 'payment'
+      ? <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /></>
+      : <><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" strokeLinecap="round" /></>
+
   return (
-    <div style={{ background: bgColors[error.type] || '#fef2f2', border: `1px solid ${c}30`, borderRadius: '16px', padding: '20px', marginBottom: '16px', animation: 'fadeIn 0.3s ease' }}>
-      <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-        <div style={{ width: '42px', height: '42px', borderRadius: '50%', background: `${c}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>{icons[error.type] || '❌'}</div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: '#111', marginBottom: '4px' }}>{error.title}</div>
-          <div style={{ fontSize: '13px', color: '#475569', lineHeight: 1.6, marginBottom: '14px' }}>{error.msg}</div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' as const }}>
-            <button onClick={onRetry} style={{ padding: '8px 18px', background: c, color: 'white', border: 'none', borderRadius: '50px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer' }}>Try Again</button>
-            <button onClick={onDismiss} style={{ padding: '8px 18px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '50px', fontSize: '12.5px', fontWeight: 500, color: '#64748b', cursor: 'pointer' }}>Dismiss</button>
-            <a href="https://wa.me/233559519783?text=Hi,%20I%20need%20help%20with%20SwiftCVPro" target="_blank" rel="noopener noreferrer" style={{ padding: '8px 18px', background: '#dcfce7', color: '#166534', borderRadius: '50px', fontSize: '12.5px', fontWeight: 600, textDecoration: 'none' }}>💬 WhatsApp Support</a>
+    <div style={{ background: 'white', border: '1px solid #e7ebf0', borderLeft: `3px solid ${c}`, borderRadius: '12px', padding: '16px 18px', marginBottom: '16px', animation: 'fadeIn 0.25s ease' }}>
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.7" style={{ flexShrink: 0, marginTop: '1px' }}>{icon}</svg>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '3px' }}>{error.title}</div>
+          <div style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.65 }}>{error.msg}</div>
+          <div style={{ display: 'flex', gap: '18px', alignItems: 'center', flexWrap: 'wrap' as const, marginTop: '13px' }}>
+            <button onClick={onRetry} style={{ padding: '8px 16px', background: '#0a0f1a', color: 'white', border: 'none', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Try again</button>
+            <button onClick={onDismiss} style={{ background: 'none', border: 'none', padding: 0, fontSize: '12.5px', fontWeight: 500, color: '#64748b', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Dismiss</button>
+            <a href="https://wa.me/233559519783?text=Hi,%20I%20need%20help%20with%20SwiftCVPro" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12.5px', fontWeight: 500, color: '#94a3b8', textDecoration: 'none', marginLeft: 'auto' }}>Need help?</a>
           </div>
         </div>
       </div>
@@ -1282,9 +1302,13 @@ function ErrorDisplay({ error, onRetry, onDismiss }: { error: any; onRetry: () =
   )
 }
 
+const ACCEPTED_EXTS = ['pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png', 'webp']
+const MAX_UPLOAD_MB = 10
+
 function UploadZone({ label, hint, onFile, file }: { label: string; hint: string; onFile: (f: File | null) => void; file: File | null }) {
   const ref = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
+  const [fileErr, setFileErr] = useState('')
 
   if (file) return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px', background: '#f0fdf9', border: '1.5px solid #0d9488', borderRadius: '14px' }}>
@@ -1299,15 +1323,36 @@ function UploadZone({ label, hint, onFile, file }: { label: string; hint: string
     </div>
   )
 
-  const pick = (f?: File | null) => { if (f) onFile(f) }
+  // Catch a wrong or unusable file at the moment it's chosen, rather than
+  // letting it fail later during extraction.
+  const pick = (f?: File | null) => {
+    if (!f) return
+    const ext = (f.name.split('.').pop() || '').toLowerCase()
+    if (!ACCEPTED_EXTS.includes(ext)) {
+      setFileErr(`“${f.name}” isn’t a supported file type. Upload a PDF, Word document, text file, or a photo.`)
+      return
+    }
+    if (f.size === 0) {
+      setFileErr('That file is empty. Please check it and try again.')
+      return
+    }
+    if (f.size > MAX_UPLOAD_MB * 1024 * 1024) {
+      setFileErr(`That file is ${(f.size / 1024 / 1024).toFixed(1)}MB — the limit is ${MAX_UPLOAD_MB}MB.`)
+      return
+    }
+    setFileErr('')
+    onFile(f)
+  }
+
   return (
+    <>
     <div
       onClick={() => ref.current?.click()}
       onDragOver={e => { e.preventDefault(); if (!dragging) setDragging(true) }}
       onDragLeave={e => { e.preventDefault(); setDragging(false) }}
       onDrop={e => { e.preventDefault(); setDragging(false); pick(e.dataTransfer.files?.[0]) }}
       style={{
-        border: `2px dashed ${dragging ? '#0d9488' : '#dbe2ea'}`, borderRadius: '16px',
+        border: `2px dashed ${dragging ? '#0d9488' : fileErr ? '#fca5a5' : '#dbe2ea'}`, borderRadius: '16px',
         padding: '38px 24px', textAlign: 'center', cursor: 'pointer',
         background: dragging ? '#f0fdf9' : '#fcfdfe', transition: 'border-color 0.15s, background 0.15s',
       }}
@@ -1318,7 +1363,14 @@ function UploadZone({ label, hint, onFile, file }: { label: string; hint: string
       <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '5px' }}>{label}</div>
       <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 300, marginBottom: '16px' }}>{hint}</div>
       <span style={{ display: 'inline-block', padding: '10px 26px', background: '#0d9488', color: 'white', borderRadius: '50px', fontSize: '13px', fontWeight: 600 }}>Browse files</span>
-      <input ref={ref} type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }} onChange={e => pick(e.target.files?.[0])} />
+      <input ref={ref} type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }} onChange={e => { pick(e.target.files?.[0]); e.target.value = '' }} />
     </div>
+    {fileErr && (
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginTop: '10px' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="1.8" style={{ flexShrink: 0, marginTop: '1px' }}><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" strokeLinecap="round" /></svg>
+        <span style={{ fontSize: '12.5px', color: '#dc2626', lineHeight: 1.6, fontWeight: 500 }}>{fileErr}</span>
+      </div>
+    )}
+    </>
   )
 }
