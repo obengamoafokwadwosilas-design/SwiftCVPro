@@ -34,14 +34,17 @@ export default function Nav({ step, rightSlot }: NavProps) {
         }}>
           Swift<span style={{ color: '#5eead4' }}>CV</span>Pro
         </div>
+        {/* Secondary text on the dark bar was at 0.28 opacity and 9px, which
+            was effectively unreadable. Lifted for legibility while staying
+            clearly secondary to the wordmark. */}
         <div style={{
-          fontSize: '9px',
-          fontWeight: 300,
-          color: 'rgba(255,255,255,0.28)',
+          fontSize: '9.5px',
+          fontWeight: 400,
+          color: 'rgba(255,255,255,0.55)',
           letterSpacing: '1.8px',
           textTransform: 'uppercase'
         }}>
-          Expertly Crafted. Instantly Delivered.
+          CV Writing, Simplified.
         </div>
       </div>
 
@@ -52,7 +55,7 @@ export default function Nav({ step, rightSlot }: NavProps) {
               height: '3px',
               width: s === step ? '40px' : '24px',
               borderRadius: '2px',
-              background: s === step ? '#14b8a6' : 'rgba(255,255,255,0.1)',
+              background: s === step ? '#14b8a6' : 'rgba(255,255,255,0.22)',
               transition: 'all 0.3s'
             }} />
           ))}
@@ -68,7 +71,7 @@ export default function Nav({ step, rightSlot }: NavProps) {
             fontSize: '11px',
             letterSpacing: '2px',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.3)',
+            color: 'rgba(255,255,255,0.62)',
             fontWeight: 500
           }}>
             {step ? `Step ${step} of 3` : ''}

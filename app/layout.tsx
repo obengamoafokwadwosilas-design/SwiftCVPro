@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'SwiftCVPro — Expertly Crafted. Instantly Delivered.',
+  title: 'SwiftCVPro — CV Writing, Simplified.',
   description: 'AI-powered CV builder for Ghanaian professionals. Generate, edit and download a professional CV in seconds.',
 }
 

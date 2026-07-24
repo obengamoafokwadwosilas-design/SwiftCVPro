@@ -761,7 +761,7 @@ export default function BuildPage() {
           <h1 style={h1Style}>Share Your CV Content</h1>
           {/* Name the document they'll get, so there's no doubt what this input
               is being turned into. */}
-          <p style={subStyle}>Upload your CV or paste it in as text — we&apos;ll pull out the details and build your {meta.label.toLowerCase()}. Don&apos;t worry about formatting.</p>
+          <p style={subStyle}>Upload your CV or paste it in as text — we&apos;ll create your {meta.label}.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
             {([
