@@ -653,7 +653,7 @@ export default function BuildPage() {
                 icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg> },
               { id: 'academic' as CVType, name: 'Academic CV', desc: 'For research roles, postgraduate applications and lecturing.',
                 icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> },
-              { id: 'cover_letter' as CVType, name: 'Cover Letter', desc: 'A personalised letter that makes the case for you.',
+              { id: 'cover_letter' as CVType, name: 'Cover Letter', desc: 'A tailored letter that explains why you’re the right candidate for the job.',
                 icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> },
             ] as any[]).map((card: any) => {
               const selected = typeChosen && cvType === card.id
@@ -686,7 +686,7 @@ export default function BuildPage() {
               deliberately understated so it never competes with the choice
               above. A single slim field, small label, no card, no blurb. */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>Your phone number</label>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>Enter your phone number</label>
             <input
               value={phoneNumber}
               onChange={e => { setPhoneNumber(e.target.value); if (typeErr) setTypeErr('') }}
