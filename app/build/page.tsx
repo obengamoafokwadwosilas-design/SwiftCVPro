@@ -759,7 +759,9 @@ export default function BuildPage() {
         <div style={{ display: screen === 'paste' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <StepLabel label="Step 1 of 1" />
           <h1 style={h1Style}>Share Your CV Content</h1>
-          <p style={subStyle}>Upload your CV or paste it in. Don&apos;t worry about formatting — we&apos;ll organise everything for you.</p>
+          {/* Name the document they'll get, so there's no doubt what this input
+              is being turned into. */}
+          <p style={subStyle}>Upload your CV or paste it in as text — we&apos;ll pull out the details and build your {meta.label.toLowerCase()}. Don&apos;t worry about formatting.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
             {([
@@ -786,8 +788,19 @@ export default function BuildPage() {
             <UploadZone label="Drop your CV here, or click to browse" hint="PDF · Word (.docx) · Text (.txt) · or a photo of your CV" onFile={setUploadedCV} file={uploadedCV} />
           )}
 
-          <Collapsible title="Anything to add or clarify?" hint="Corrections or emphasis — e.g. “I was promoted in 2023”." badge="Optional">
-            <textarea ref={refs.clarify} style={TA(70)} rows={3} placeholder="Type any special requests — or leave blank..." />
+          {/* The prompt for extra detail is worded for the document being made —
+              a letter wants strengths and motivation, an academic CV wants
+              research and teaching, a CV wants corrections and emphasis. */}
+          <Collapsible
+            title="Anything to add or clarify?"
+            hint={isCoverLetter
+              ? 'Add achievements, strengths, or details you want highlighted — e.g. “I led the team that cut waiting times by half”.'
+              : cvType === 'academic'
+                ? 'Research, teaching or publications to emphasise — e.g. “Highlight my work on climate adaptation”.'
+                : 'Corrections or emphasis — e.g. “I was promoted in 2023”.'}
+            badge="Optional"
+          >
+            <textarea ref={refs.clarify} style={TA(70)} rows={3} placeholder={isCoverLetter ? 'What should the letter emphasise? — or leave blank...' : 'Type any special requests — or leave blank...'} />
           </Collapsible>
 
           {needsJD && <JDSection method={jdInputMode} setMethod={setJdInputMode} pasteRef={refs.jdPaste} uploadedFile={uploadedJD} setUploadedFile={setUploadedJD} cvType={cvType} />}
@@ -854,7 +867,9 @@ export default function BuildPage() {
           <p style={subStyle}>Your schools, courses, and professional training.</p>
 
           <div style={cardStyle}>
-            <ExBox text={'BSc Nursing, University of Cape Coast, 2018–2022\nCertificate in Critical Care Nursing, 2024\nWASSCE, St Thomas Aquinas SHS, 2018'} />
+            <ExBox text={cvType === 'academic'
+              ? 'PhD Development Economics, University of Ghana, 2020–2024\nMPhil Economics, KNUST, 2017–2019\nBA Economics (First Class), University of Cape Coast, 2013–2017'
+              : 'BSc Nursing, University of Cape Coast, 2018–2022\nCertificate in Critical Care Nursing, 2024\nWASSCE, St Thomas Aquinas SHS, 2018'} />
             <textarea ref={refs.education} style={TA(110)} rows={5} placeholder="Write your education and certifications here..." />
 
             {/* Academic optional expand */}
@@ -890,15 +905,19 @@ export default function BuildPage() {
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#eeedfe', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg>
           </div>
-          <h1 style={h1Style}>{isCoverLetter ? 'Your Background' : 'Work Experience'}</h1>
+          <h1 style={h1Style}>{isCoverLetter ? 'Your Background' : cvType === 'academic' ? 'Academic & Professional Experience' : 'Work Experience'}</h1>
           <p style={subStyle}>{isCoverLetter
             ? 'Your experience, education and achievements — whatever makes your case. A few lines is enough.'
-            : 'Your jobs, internships, national service, and volunteer roles.'}</p>
+            : cvType === 'academic'
+              ? 'Your lecturing, research and other appointments.'
+              : 'Your jobs, internships, national service, and volunteer roles.'}</p>
 
           <div style={cardStyle}>
             <ExBox text={isCoverLetter
               ? 'Staff Nurse – Korle Bu Teaching Hospital – 2022 to Present\nBSc Nursing, University of Cape Coast, 2018–2022\nCut patient handover errors by 30% on my ward'
-              : 'Staff Nurse – Korle Bu Teaching Hospital – 2022 to Present\nSales Assistant – Melcom – 2020–2021\nNational Service – GRA Kumasi – 2019–2020'} />
+              : cvType === 'academic'
+                ? 'Lecturer – Dept. of Economics, KNUST – 2022 to Present\nGraduate Teaching Assistant – University of Ghana – 2020–2022\nResearch Assistant – ISSER, Legon – 2019–2020'
+                : 'Staff Nurse – Korle Bu Teaching Hospital – 2022 to Present\nSales Assistant – Melcom – 2020–2021\nNational Service – GRA Kumasi – 2019–2020'} />
 
             {/* Collapsible duties tip — CV-specific, so not shown on the
                 cover-letter background step. */}
@@ -965,11 +984,23 @@ export default function BuildPage() {
           <div style={cardStyle}>
             <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const, color: '#94a3b8', marginBottom: '7px' }}>Example</div>
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px', fontSize: '12px', color: '#64748b', lineHeight: 1.9, fontStyle: 'italic' }}>
-              <strong style={{ color: '#475569', fontStyle: 'normal' }}>Technical Skills:</strong> AutoCAD, Python, QuickBooks<br/>
-              <strong style={{ color: '#475569', fontStyle: 'normal' }}>Languages:</strong> Twi, French<br/>
-              <strong style={{ color: '#475569', fontStyle: 'normal' }}>Leadership:</strong> SRC President, UPSA, 2015<br/>
-              <strong style={{ color: '#475569', fontStyle: 'normal' }}>Award:</strong> Best Employee, MTN Ghana, 2023<br/>
-              <strong style={{ color: '#475569', fontStyle: 'normal' }}>Reference:</strong> Mr Kwadwo Asante, Manager, Diamond King Ventures, 0256677189
+              {cvType === 'academic' ? (
+                <>
+                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Research Skills:</strong> Stata, R, NVivo, survey design<br/>
+                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Languages:</strong> English, Twi, French<br/>
+                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Membership:</strong> Ghana Economic Association, 2021–present<br/>
+                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Award:</strong> Vice-Chancellor&apos;s Award for Research Excellence, 2023<br/>
+                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Referee:</strong> Prof. Ama Boateng, Dept. of Economics, University of Ghana
+                </>
+              ) : (
+                <>
+                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Technical Skills:</strong> AutoCAD, Python, QuickBooks<br/>
+                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Languages:</strong> Twi, French<br/>
+                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Leadership:</strong> SRC President, UPSA, 2015<br/>
+                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Award:</strong> Best Employee, MTN Ghana, 2023<br/>
+                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Reference:</strong> Mr Kwadwo Asante, Manager, Diamond King Ventures, 0256677189
+                </>
+              )}
             </div>
 
             {/* Academic extras expand */}
@@ -1268,12 +1299,14 @@ function Collapsible({ title, hint, badge, defaultOpen = false, children }: { ti
 
 function JDSection({ method, setMethod, pasteRef, uploadedFile, setUploadedFile, cvType }: any) {
   const required = cvType === 'cover_letter'
+  // "Job advert / vacancy" is the everyday term here — clearer than the
+  // American "job posting".
   return (
     <Collapsible
-      title={required ? 'Add the job posting' : 'Applying for a specific role?'}
+      title={required ? 'Add the job advert or vacancy' : 'Applying for a specific role?'}
       hint={required
         ? 'We’ll tailor your letter to match what the employer is asking for.'
-        : 'Paste or upload the posting and we’ll tailor your CV to it.'}
+        : 'Paste or upload the job advert and we’ll tailor your CV to it.'}
       badge={required ? 'Recommended' : 'Optional'}
       defaultOpen={required}
     >
@@ -1292,8 +1325,8 @@ function JDSection({ method, setMethod, pasteRef, uploadedFile, setUploadedFile,
         })}
       </div>
       {method === 'paste'
-        ? <textarea ref={pasteRef} style={TA(110)} rows={5} placeholder="Paste job posting or describe the role here..." />
-        : <UploadZone label="Drop the job posting here, or click to browse" hint="PDF · Word · Image (screenshot)" onFile={setUploadedFile} file={uploadedFile} />
+        ? <textarea ref={pasteRef} style={TA(110)} rows={5} placeholder="Paste the job advert or describe the role here..." />
+        : <UploadZone label="Drop the job advert here, or click to browse" hint="PDF · Word · Image (screenshot)" onFile={setUploadedFile} file={uploadedFile} />
       }
     </Collapsible>
   )
