@@ -1305,6 +1305,29 @@ function ErrorDisplay({ error, onRetry, onDismiss }: { error: any; onRetry: () =
 const ACCEPTED_EXTS = ['pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png', 'webp']
 const MAX_UPLOAD_MB = 10
 
+// A filename extension is trivially spoofable — renaming song.mp3 to cv.pdf
+// passes any extension check. So we also read the file's first bytes and
+// confirm they match the format it claims to be. Everything here is a
+// well-known file signature ("magic bytes").
+const at = (b: Uint8Array, bytes: number[], offset = 0) => bytes.every((v, i) => b[offset + i] === v)
+
+const SIGNATURES: Record<string, { label: string; check: (b: Uint8Array) => boolean }> = {
+  pdf:  { label: 'PDF', check: b => at(b, [0x25, 0x50, 0x44, 0x46]) },                              // %PDF
+  png:  { label: 'PNG image', check: b => at(b, [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) },
+  jpg:  { label: 'JPEG image', check: b => at(b, [0xFF, 0xD8, 0xFF]) },
+  jpeg: { label: 'JPEG image', check: b => at(b, [0xFF, 0xD8, 0xFF]) },
+  webp: { label: 'WebP image', check: b => at(b, [0x52, 0x49, 0x46, 0x46]) && at(b, [0x57, 0x45, 0x42, 0x50], 8) }, // RIFF….WEBP
+  // .docx is a ZIP container; accept the three valid ZIP headers.
+  docx: { label: 'Word document', check: b => at(b, [0x50, 0x4B, 0x03, 0x04]) || at(b, [0x50, 0x4B, 0x05, 0x06]) || at(b, [0x50, 0x4B, 0x07, 0x08]) },
+  // Legacy .doc is an OLE2 compound file; also allow ZIP in case a .docx was
+  // saved with a .doc name, which is common and still readable.
+  doc:  { label: 'Word document', check: b => at(b, [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1]) || at(b, [0x50, 0x4B, 0x03, 0x04]) },
+  // Plain text has no signature. Accept a Unicode BOM, otherwise just reject
+  // anything containing NUL bytes — the clearest sign it's actually binary.
+  txt:  { label: 'text file', check: b =>
+            at(b, [0xEF, 0xBB, 0xBF]) || at(b, [0xFF, 0xFE]) || at(b, [0xFE, 0xFF]) || !b.includes(0) },
+}
+
 function UploadZone({ label, hint, onFile, file }: { label: string; hint: string; onFile: (f: File | null) => void; file: File | null }) {
   const ref = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -1325,7 +1348,7 @@ function UploadZone({ label, hint, onFile, file }: { label: string; hint: string
 
   // Catch a wrong or unusable file at the moment it's chosen, rather than
   // letting it fail later during extraction.
-  const pick = (f?: File | null) => {
+  const pick = async (f?: File | null) => {
     if (!f) return
     const ext = (f.name.split('.').pop() || '').toLowerCase()
     if (!ACCEPTED_EXTS.includes(ext)) {
@@ -1339,6 +1362,20 @@ function UploadZone({ label, hint, onFile, file }: { label: string; hint: string
     if (f.size > MAX_UPLOAD_MB * 1024 * 1024) {
       setFileErr(`That file is ${(f.size / 1024 / 1024).toFixed(1)}MB — the limit is ${MAX_UPLOAD_MB}MB.`)
       return
+    }
+    // Verify the contents actually match the extension (see SIGNATURES).
+    const sig = SIGNATURES[ext]
+    if (sig) {
+      try {
+        const head = new Uint8Array(await f.slice(0, 16).arrayBuffer())
+        if (!sig.check(head)) {
+          setFileErr(`This file isn’t a valid ${sig.label}. It may have been renamed or is damaged — please upload the original.`)
+          return
+        }
+      } catch {
+        setFileErr('We couldn’t read that file. Please try another one.')
+        return
+      }
     }
     setFileErr('')
     onFile(f)
@@ -1363,7 +1400,8 @@ function UploadZone({ label, hint, onFile, file }: { label: string; hint: string
       <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '5px' }}>{label}</div>
       <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 300, marginBottom: '16px' }}>{hint}</div>
       <span style={{ display: 'inline-block', padding: '10px 26px', background: '#0d9488', color: 'white', borderRadius: '50px', fontSize: '13px', fontWeight: 600 }}>Browse files</span>
-      <input ref={ref} type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }} onChange={e => { pick(e.target.files?.[0]); e.target.value = '' }} />
+      <input ref={ref} type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }}
+        onChange={e => { const el = e.target; pick(el.files?.[0]).finally(() => { el.value = '' }) }} />
     </div>
     {fileErr && (
       <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginTop: '10px' }}>
