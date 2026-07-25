@@ -189,6 +189,18 @@ export default function PreviewPage() {
   const [coverErr, setCoverErr] = useState('')
   const [coverReadingFile, setCoverReadingFile] = useState(false)
 
+  // A few seconds after the "Your CV is ready" toast (which runs ~6s), gently
+  // surface the cover-letter offer on its own — so it's discovered even by
+  // people who never download. Only for a CV (never when viewing a letter),
+  // only if one hasn't been made yet, and only once. It's the same dismissable
+  // bottom-right card the download path shows; if the user makes a letter or
+  // dismisses first, the timer is cleared / the card's render guards hide it.
+  useEffect(() => {
+    if (!cv || isCoverLetter || cvType === 'cover_letter' || coverLetter || upsellShown) return
+    const t = setTimeout(() => { setShowUpsell(true); setUpsellShown(true) }, 7000)
+    return () => clearTimeout(t)
+  }, [cv, isCoverLetter, cvType, coverLetter, upsellShown])
+
   function updateCV(patch: Partial<GeneratedCV>) {
     if (!cv) return
     const updated = { ...cv, ...patch }
