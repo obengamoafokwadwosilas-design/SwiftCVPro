@@ -24,7 +24,7 @@ export default function Nav({ step, rightSlot }: NavProps) {
       zIndex: 50,
       borderBottom: '1px solid rgba(255,255,255,0.06)'
     }}>
-      <div>
+      <a href="/" title="Back to home" style={{ textDecoration: 'none', display: 'block' }}>
         <div style={{
           fontFamily: "'Cormorant Garamond', serif",
           fontSize: '1.4rem',
@@ -46,7 +46,7 @@ export default function Nav({ step, rightSlot }: NavProps) {
         }}>
           CV Writing, Simplified.
         </div>
-      </div>
+      </a>
 
       {step && (
         <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
