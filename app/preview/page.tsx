@@ -533,7 +533,7 @@ export default function PreviewPage() {
         const handler = (window as any).PaystackPop.setup({
           key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
           email: `${phone.replace('+','')}@swiftcvpro.com`,
-          amount: 500000, // GH₵5
+          amount: 500, // GH₵5 — Paystack amounts are in pesewas (GH₵1 = 100)
           currency: 'GHS',
           ref: `rev_${Date.now()}`,
           callback: async () => { await doRevision() },
