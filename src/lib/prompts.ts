@@ -232,8 +232,12 @@ ${jobDescription || 'No advert provided — write a strong, role-appropriate gen
 ${whyRole ? `\nWHY THE CANDIDATE WANTS THIS ROLE (use authentically):\n${whyRole}` : ''}
 
 GHANAIAN APPLICATION-LETTER STYLE — this is the exact convention to follow:
-- SUBJECT LINE: a bold, ALL-CAPS heading naming the role, e.g. "APPLICATION FOR THE POSITION OF ${(jobTitle || 'THE ADVERTISED ROLE').toUpperCase()}" (use "APPLICATION FOR APPOINTMENT AS …" if that reads more naturally for the role). Put this in "clSubject".
-- OPENING: begin formally and directly — "I respectfully submit my application for the position of ${jobTitle || 'the advertised role'}${company ? ` at ${company}` : ''}, as advertised." This traditional opening is CORRECT here; do NOT avoid it.
+- SUBJECT LINE (put in "clSubject", bold ALL-CAPS): ${(jobTitle && jobTitle.trim())
+    ? `name the role — "APPLICATION FOR THE POSITION OF ${jobTitle.toUpperCase()}" (or "APPLICATION FOR APPOINTMENT AS …" if it reads better).`
+    : `no specific role was given, so use a GENERAL heading — "APPLICATION FOR EMPLOYMENT" (acceptable alternatives: "JOB APPLICATION", "APPLICATION FOR A VACANT POSITION", "APPLICATION FOR CONSIDERATION"). Do NOT invent a job title.`}
+- OPENING: begin formally and directly — ${(jobTitle && jobTitle.trim())
+    ? `"I respectfully submit my application for the position of ${jobTitle}${company ? ` at ${company}` : ''}, as advertised."`
+    : `"I respectfully submit my application for employment${company ? ` at ${company}` : ''}, and would be glad to be considered for any suitable vacancy."`} This traditional opening is CORRECT here; do NOT avoid it.
 - BODY (2–3 paragraphs): current/most recent role and what it has given you; then your qualifications and key strengths that fit the role; draw only on the details provided. Formal, measured, respectful — never chatty, never salesy, no American buzzwords or clichés.
 - CLOSING PARAGRAPH: express gratitude for consideration and reference the attachments, e.g. "I would be grateful for the opportunity to be considered. Please find attached my curriculum vitae and supporting documents for your kind consideration." End the body with a short "Thank you for your time and consideration." line.
 

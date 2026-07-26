@@ -42,6 +42,11 @@ export function formatLetterDate(d: Date = new Date()): string {
   return `${day}${suffix} ${month}, ${d.getFullYear()}`
 }
 
+// Role-specific heading when we know the role; a general one otherwise
+// (Ghanaian letters commonly use "APPLICATION FOR EMPLOYMENT" when applying
+// generally rather than to a named vacancy). The subject is editable, so the
+// user can switch to any variant they prefer.
 export function defaultSubject(jobTitle?: string): string {
-  return `APPLICATION FOR THE POSITION OF ${(jobTitle || 'THE ADVERTISED ROLE').toUpperCase()}`
+  const t = (jobTitle || '').trim()
+  return t ? `APPLICATION FOR THE POSITION OF ${t.toUpperCase()}` : 'APPLICATION FOR EMPLOYMENT'
 }
