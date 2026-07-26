@@ -379,6 +379,36 @@ export default function PreviewPage() {
     // engine), so they have no flow document — never take the flow path for
     // them, or the flow CSS would hide their content. This mirrors CVPreview's
     // own isCL(cv) = !!cv.coverLetterBody branch.
+    // ── Cover letter: one flowing formal letter, NOT the packed CV engine ──
+    // The letter renders as a single page div whose children are the sender
+    // block, recipient block and paragraphs. The packed engine's
+    // "#cv-print-area > div > div { width:210mm; height:297mm; break-after }"
+    // rule would turn every one of those blocks into its own full A4 page —
+    // so cover letters get their own minimal wrapper: A4 sheet, the letter's
+    // own padding as margins, content free to flow (and spill to a 2nd sheet
+    // if long) rather than being sliced or clipped.
+    if (cv?.coverLetterBody) {
+      return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="${PRINT_FONTS_HREF}" />
+  <style>
+    @page { size: A4; margin: 0; }
+    html, body { width: 210mm; margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #cv-print-area { width: 210mm; max-width: 210mm; margin: 0; padding: 0; background: white; }
+    /* the letter page: fill the sheet width, flow naturally, never clip */
+    #cv-print-area > div { width: 210mm !important; min-height: 297mm; height: auto !important; margin: 0 !important; overflow: visible !important; }
+  </style>
+</head>
+<body>
+  ${cvMarkup}
+</body>
+</html>`
+    }
+
     const flow = cv && !cv.coverLetterBody ? getFlowPdfConfig(tplId) : null
     if (flow) {
       // ── Renderer-owned pagination ────────────────────────────────────
