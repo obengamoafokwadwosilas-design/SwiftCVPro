@@ -10,6 +10,7 @@ import {
 import { GeneratedCV, TemplateId } from '@/types'
 import { buildVertex, buildSovereign, buildMeridianV2, buildAscend, buildHarbour, buildPulse, buildAurora } from './premium'
 import { formatLetterDate } from '@/lib/coverLetter'
+import { rateLimit, clientIp } from '@/lib/rateLimit'
 
 // ═══════════════════════════════════════════════════════
 // PREMIUM TYPOGRAPHY SYSTEM
@@ -66,6 +67,11 @@ const contactStr = (cv: GeneratedCV): string => {
 // ═══════════════════════════════════════════════════════
 export async function POST(req: NextRequest) {
   try {
+    const rl = rateLimit(`export-docx:${clientIp(req)}`, 40, 10 * 60 * 1000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Too many downloads in a short time. Please wait a moment and try again.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
+    }
+
     const { cv, templateId, accentColor } = await req.json() as { cv: GeneratedCV; templateId: TemplateId; accentColor?: string | null }
     if (!cv) return NextResponse.json({ error: 'No CV data' }, { status: 400 })
 

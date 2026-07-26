@@ -1051,6 +1051,18 @@ function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<Gen
         </Grid>
       </Sec>
 
+      {cv.coverLetterBody && (
+        <Sec title="Letter Details">
+          <Inp label="Subject line" value={cv.clSubject || ''} onChange={v => updateCV({ clSubject: v.toUpperCase() })} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: 10 }}>
+            <label style={{ fontSize: '11px', color: '#64748b', fontWeight: 500 }}>Recipient — one line each (e.g. The HR Manager, Company, P.O. Box, City)</label>
+            <TA
+              value={(cv.clRecipient || []).join('\n')} rows={4}
+              onChange={v => updateCV({ clRecipient: v.split('\n').map(s => s.trim()).filter(Boolean) })} />
+          </div>
+        </Sec>
+      )}
+
       {(cv.summary !== undefined || cv.coverLetterBody) && (
         <Sec title={cv.coverLetterBody ? 'Cover Letter' : 'Summary'}>
           <TA value={cv.coverLetterBody || cv.summary} rows={cv.coverLetterBody ? 12 : 5}

@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
+import { rateLimit, clientIp } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
+
+// Generous for a real user (re-downloads, trying templates) but caps scripted
+// abuse of our paid API2PDF account.
+const EXPORT_MAX = 40
+const EXPORT_WINDOW_MS = 10 * 60 * 1000
+const MAX_HTML_BYTES = 600_000  // a real CV/letter is well under this
 
 type Body = {
   html?: string
@@ -27,10 +34,20 @@ function safeFileName(name: string) {
 
 export async function POST(req: Request) {
   try {
+    const rl = rateLimit(`export-pdf:${clientIp(req)}`, EXPORT_MAX, EXPORT_WINDOW_MS)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Too many downloads in a short time. Please wait a moment and try again.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
+    }
+
     const { html, fullName }: Body = await req.json()
 
     if (!html) {
       return NextResponse.json({ error: 'No CV HTML received.' }, { status: 400 })
+    }
+    // Only render our own documents — not an arbitrary HTML→PDF service. Our
+    // output always wraps the document in #cv-print-area.
+    if (html.length > MAX_HTML_BYTES || !html.includes('cv-print-area')) {
+      return NextResponse.json({ error: 'Invalid document.' }, { status: 400 })
     }
 
     const apiKey = process.env.API2PDF_API_KEY
