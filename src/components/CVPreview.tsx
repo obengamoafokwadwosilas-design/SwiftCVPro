@@ -1,6 +1,7 @@
 'use client'
 
 import { GeneratedCV, TemplateId, ExtraSection } from '@/types'
+import { formatLetterDate } from '@/lib/coverLetter'
 import React, { useRef, useState, useLayoutEffect } from 'react'
 
 // ── Extra sections (Publications, Leadership, Certifications, References, …) ──
@@ -1565,16 +1566,43 @@ export function TemplatePreview({ templateId, width = 92 }: { templateId: Templa
   )
 }
 
-// ── Cover letter (flows naturally, no columns) ──
-function CoverLetter({ cv, A, font }: { cv: GeneratedCV; A: string; font: string }) {
+// ── Cover letter — traditional Ghanaian formal application letter ──
+// Plain, ready-to-submit: sender block (right), today's date, recipient block,
+// bold subject, salutation, justified body, and a signed-off name. No accent
+// colour or decorative header — Ghanaian application letters are plain.
+function CoverLetter({ cv, font }: { cv: GeneratedCV; A: string; font: string }) {
+  const senderLines = [cv.location, cv.email && `Email: ${cv.email}`, cv.phone && `Tel: ${cv.phone}`].filter(Boolean) as string[]
+  const recipient = cv.clRecipient && cv.clRecipient.length ? cv.clRecipient : ['The Human Resource Manager']
   return (
-    <div data-pagination-ready="true" style={{ ...pageBase, fontFamily: font, color: '#1a1a1a', padding: '52px 56px' }}>
-      <div style={{ borderBottom: `2px solid ${A}`, paddingBottom: 18, marginBottom: 28 }}>
-        <div style={{ fontSize: 28, fontWeight: 700, color: A, marginBottom: 4 }}>{cv.fullName}</div>
-        {cv.jobTitle && <div style={{ fontSize: 14.5, color: '#666', fontStyle: 'italic', marginBottom: 8 }}>{cv.jobTitle}</div>}
-        <div style={{ fontSize: 12.5, color: '#666', fontFamily: BODY_SANS }}>{contact(cv)}</div>
+    <div data-pagination-ready="true" style={{ ...pageBase, fontFamily: font, color: '#1a1a1a', padding: '56px 64px', fontSize: 13.5, lineHeight: 1.75 }}>
+      {/* Sender block + date, right-aligned */}
+      <div style={{ textAlign: 'right', marginBottom: 26 }}>
+        <div style={{ fontWeight: 700 }}>{cv.fullName}</div>
+        {senderLines.map((l, i) => <div key={i} style={{ fontSize: 12.5, color: '#333' }}>{l}</div>)}
+        <div style={{ marginTop: 16, fontSize: 12.5, color: '#333' }}>{formatLetterDate()}</div>
       </div>
-      {(cv.coverLetterBody || '').split('\n\n').map((p, i) => <p key={i} style={{ fontSize: 14.5, lineHeight: 1.9, color: '#222', marginBottom: 16, textAlign: 'justify' }}>{p}</p>)}
+
+      {/* Recipient block, left */}
+      <div style={{ marginBottom: 22 }}>
+        {recipient.map((l, i) => <div key={i} style={{ fontWeight: i === 0 ? 600 : 400 }}>{l}</div>)}
+      </div>
+
+      {/* Salutation */}
+      <div style={{ marginBottom: 16 }}>{cv.clSalutation || 'Dear Sir/Madam,'}</div>
+
+      {/* Subject — bold, underlined */}
+      {cv.clSubject && (
+        <div style={{ fontWeight: 700, textDecoration: 'underline', marginBottom: 18, letterSpacing: 0.2 }}>{cv.clSubject}</div>
+      )}
+
+      {/* Body — justified */}
+      {(cv.coverLetterBody || '').split('\n\n').map((p, i) => (
+        <p key={i} style={{ margin: '0 0 14px', textAlign: 'justify' }}>{p}</p>
+      ))}
+
+      {/* Sign-off */}
+      <div style={{ marginTop: 26 }}>{cv.clSignOff || 'Yours faithfully,'}</div>
+      <div style={{ marginTop: 34, fontWeight: 700, textTransform: 'uppercase' }}>{cv.fullName}</div>
     </div>
   )
 }

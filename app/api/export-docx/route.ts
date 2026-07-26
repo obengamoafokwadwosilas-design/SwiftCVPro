@@ -9,6 +9,7 @@ import {
 } from 'docx'
 import { GeneratedCV, TemplateId } from '@/types'
 import { buildVertex, buildSovereign, buildMeridianV2, buildAscend, buildHarbour, buildPulse, buildAurora } from './premium'
+import { formatLetterDate } from '@/lib/coverLetter'
 
 // ═══════════════════════════════════════════════════════
 // PREMIUM TYPOGRAPHY SYSTEM
@@ -84,6 +85,11 @@ export async function POST(req: NextRequest) {
 }
 
 function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: string | null): Document {
+  // A cover letter is a plain formal letter — the template choice is irrelevant,
+  // so every cover letter uses one traditional Ghanaian layout regardless of
+  // the templateId sent.
+  if (cv.coverLetterBody) return buildFormalCoverLetter(cv)
+
   // Map each premium template to its signature accent for the flagship builder
   const accentFor: Partial<Record<TemplateId, string>> = {
     meridian: '0a1f44',
@@ -143,6 +149,56 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
     default:
       return buildClassic(cv, accentColor)
   }
+}
+
+// ═══════════════════════════════════════════════════════
+// COVER LETTER — traditional Ghanaian formal application letter.
+// Sender block (right) + today's date, recipient block, bold underlined
+// subject, salutation, justified body, and a signed-off name. Plain by
+// design — must match the on-screen/PDF layout in CVPreview.tsx.
+// ═══════════════════════════════════════════════════════
+function buildFormalCoverLetter(cv: GeneratedCV): Document {
+  const FONT = 'Cambria'
+  const right = (text: string, opts: { bold?: boolean } = {}) =>
+    new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 40 }, children: [new TextRun({ text, font: FONT, size: 22, bold: opts.bold })] })
+  const line = (text: string, opts: { bold?: boolean; after?: number } = {}) =>
+    new Paragraph({ spacing: { after: opts.after ?? 40 }, children: [new TextRun({ text, font: FONT, size: 22, bold: opts.bold })] })
+
+  const children: Paragraph[] = []
+
+  // Sender block + date (right-aligned)
+  children.push(right(cv.fullName, { bold: true }))
+  if (cv.location) children.push(right(cv.location))
+  if (cv.email) children.push(right(`Email: ${cv.email}`))
+  if (cv.phone) children.push(right(`Tel: ${cv.phone}`))
+  children.push(new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { before: 160, after: 260 }, children: [new TextRun({ text: formatLetterDate(), font: FONT, size: 22 })] }))
+
+  // Recipient block (left)
+  const recipient = cv.clRecipient?.length ? cv.clRecipient : ['The Human Resource Manager']
+  recipient.forEach((l, i) => children.push(line(l, { bold: i === 0 })))
+
+  // Salutation
+  children.push(new Paragraph({ spacing: { before: 200, after: 200 }, children: [new TextRun({ text: cv.clSalutation || 'Dear Sir/Madam,', font: FONT, size: 22 })] }))
+
+  // Subject — bold + underlined
+  if (cv.clSubject) {
+    children.push(new Paragraph({ spacing: { after: 220 }, children: [new TextRun({ text: cv.clSubject, font: FONT, size: 22, bold: true, underline: {} })] }))
+  }
+
+  // Body — justified
+  ;(cv.coverLetterBody || '').split('\n\n').forEach(p =>
+    children.push(new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: { after: 200, line: 320 }, children: [new TextRun({ text: p, font: FONT, size: 22 })] })))
+
+  // Sign-off + name
+  children.push(new Paragraph({ spacing: { before: 220, after: 400 }, children: [new TextRun({ text: cv.clSignOff || 'Yours faithfully,', font: FONT, size: 22 })] }))
+  children.push(new Paragraph({ children: [new TextRun({ text: (cv.fullName || '').toUpperCase(), font: FONT, size: 22, bold: true })] }))
+
+  return new Document({
+    sections: [{
+      properties: { page: { margin: { top: convertInchesToTwip(1), bottom: convertInchesToTwip(1), left: convertInchesToTwip(1), right: convertInchesToTwip(1) } } },
+      children,
+    }],
+  })
 }
 
 // ═══════════════════════════════════════════════════════

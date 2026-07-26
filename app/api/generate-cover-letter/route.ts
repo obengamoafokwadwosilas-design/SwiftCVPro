@@ -146,6 +146,15 @@ export async function POST(req: NextRequest) {
     coverLetter.location = cv.location
     coverLetter.linkedin = cv.linkedin
 
+    // Formal Ghanaian frame — company from the target role if given; no
+    // addressee/address is collected on this path, so sensible defaults apply.
+    const { buildCoverLetterFrame, defaultSubject } = await import('@/lib/coverLetter')
+    const frame = buildCoverLetterFrame({ company })
+    coverLetter.clRecipient = frame.clRecipient
+    coverLetter.clSalutation = frame.clSalutation
+    coverLetter.clSignOff = frame.clSignOff
+    coverLetter.clSubject = (coverLetter.clSubject?.trim() || defaultSubject(coverLetter.jobTitle)).toUpperCase()
+
     // ── Redeem one cover-letter credit ──
     if (!TESTING_MODE) {
       try {

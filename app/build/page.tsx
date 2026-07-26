@@ -153,6 +153,8 @@ export default function BuildPage() {
     company: useRef<HTMLInputElement>(null),
     jobDesc: useRef<HTMLTextAreaElement>(null),
     whyRole: useRef<HTMLTextAreaElement>(null),
+    addressee: useRef<HTMLInputElement>(null),
+    companyAddress: useRef<HTMLInputElement>(null),
   }
 
   // ── URL param pre-select ──────────────────────
@@ -456,6 +458,9 @@ export default function BuildPage() {
           company: r.company.current?.value || undefined,
           jobDescription: needsJD ? (jobDescription || undefined) : undefined,
           whyRole: cvType === 'cover_letter' ? (r.whyRole.current?.value || undefined) : undefined,
+          // Cover-letter recipient (formal Ghanaian address block)
+          addressee: cvType === 'cover_letter' ? (r.addressee.current?.value || undefined) : undefined,
+          companyAddress: cvType === 'cover_letter' ? (r.companyAddress.current?.value || undefined) : undefined,
         }
         // Pass as formData to the API — it will use buildGenerationPrompt
         const res = await fetch('/api/generate', {
@@ -1046,8 +1051,17 @@ export default function BuildPage() {
           <div style={cardStyle}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
               <Field label={`Job Title${cvType === 'cover_letter' ? ' *' : ''}`} placeholder="e.g. Staff Nurse" fieldRef={refs.jobTitle} />
-              <Field label={`Company Name${cvType === 'cover_letter' ? ' *' : ''}`} placeholder="e.g. Korle Bu Hospital" fieldRef={refs.company} />
+              <Field label={`${cvType === 'cover_letter' ? 'Employer / Institution' : 'Company Name'}${cvType === 'cover_letter' ? ' *' : ''}`} placeholder="e.g. Korle Bu Hospital" fieldRef={refs.company} />
             </div>
+            {/* Formal address block for the letter — optional; sensible
+                defaults ("The Human Resource Manager", "Dear Sir/Madam,") are
+                used when left blank, so there are never empty placeholders. */}
+            {cvType === 'cover_letter' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <Field label="Addressed to (optional)" placeholder="e.g. The Human Resource Manager" fieldRef={refs.addressee} />
+                <Field label="Employer address (optional)" placeholder="e.g. P. O. Box GP 667, Accra" fieldRef={refs.companyAddress} />
+              </div>
+            )}
             {/* Same job-posting component as the paste path, so the guided flow
                 can upload a PDF/Word/image posting instead of only pasting. */}
             <div style={{ marginBottom: '12px' }}>

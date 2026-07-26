@@ -68,6 +68,10 @@ export interface CVFormData {
   // Job targeting fields
   jobTitle_target?: string
   company?: string
+
+  // Cover-letter recipient (all optional) — for the formal Ghanaian address block
+  addressee?: string        // e.g. "The Human Resource Manager", "The Registrar"
+  companyAddress?: string   // e.g. "P. O. Box GP 667, Accra"
 }
 
 export interface GeneratedExperience {
@@ -110,6 +114,14 @@ export interface GeneratedCV {
   languages?: string[]
   additionalInfo?: string
   coverLetterBody?: string
+  // ── Cover-letter structured parts (traditional Ghanaian formal layout) ──
+  // Only present on cover letters. The body stays in coverLetterBody; these
+  // give the letter its formal frame so it renders ready-to-submit. The date
+  // is not stored — it's filled with today's date at render time.
+  clSubject?: string        // bold subject line, e.g. "APPLICATION FOR THE POSITION OF …"
+  clRecipient?: string[]    // recipient block lines: addressee, institution, address…
+  clSalutation?: string     // e.g. "Dear Sir/Madam,"
+  clSignOff?: string        // e.g. "Yours faithfully,"
   publications?: string[]
   research?: string[]
   teaching?: string[]

@@ -294,6 +294,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'CV processing failed. Please try again.' }, { status: 500 })
     }
 
+    // ── Cover letter: build the formal Ghanaian frame around the AI's body ──
+    // Recipient block, salutation and sign-off are constructed from the inputs
+    // (never invented), and a subject is guaranteed even if the model omitted it.
+    if (isCoverLetterDoc) {
+      const { buildCoverLetterFrame, defaultSubject } = await import('@/lib/coverLetter')
+      const frame = buildCoverLetterFrame({
+        addressee: formData?.addressee,
+        company: formData?.company,
+        companyAddress: formData?.companyAddress,
+      })
+      generatedCV.clRecipient = frame.clRecipient
+      generatedCV.clSalutation = frame.clSalutation
+      generatedCV.clSignOff = frame.clSignOff
+      if (!generatedCV.clSubject?.trim()) generatedCV.clSubject = defaultSubject(generatedCV.jobTitle)
+      generatedCV.clSubject = generatedCV.clSubject.toUpperCase()
+    }
+
     // ── Pagination-risk pass (best-effort, never blocks delivery) ──
     try {
       await runPaginationRiskPass(generatedCV)

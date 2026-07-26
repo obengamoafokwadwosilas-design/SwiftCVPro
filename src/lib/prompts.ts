@@ -157,7 +157,7 @@ function buildUserInfoBlock(formData: CVFormData): string {
 // TYPE INSTRUCTIONS
 // ─────────────────────────────────────────────────────────────
 function getTypeInstructions(formData: CVFormData): string {
-  const { cvType, jobDescription, company, whyRole } = formData
+  const { cvType, jobDescription, company, whyRole, jobTitle } = formData
 
   switch (cvType) {
 
@@ -223,23 +223,27 @@ CRITICAL: Never fabricate publications, conference presentations, awards, or aff
 
 
     case 'cover_letter':
-      return `TASK: Write a powerful, personalised cover letter — NOT a CV.
+      return `TASK: Write a formal application letter in the standard GHANAIAN style — NOT a CV, and NOT an American-style cover letter.
 
-THE JOB:
-${jobDescription || 'No job description provided — write a strong general cover letter.'}
-${company ? `\nCOMPANY: ${company}` : ''}
-${whyRole ? `\nWHY THE CANDIDATE WANTS THIS ROLE (use this authentically):\n${whyRole}` : ''}
+THE ROLE: ${jobTitle || 'the advertised position'}
+${company ? `EMPLOYER: ${company}` : ''}
+THE JOB / ADVERT:
+${jobDescription || 'No advert provided — write a strong, role-appropriate general application letter.'}
+${whyRole ? `\nWHY THE CANDIDATE WANTS THIS ROLE (use authentically):\n${whyRole}` : ''}
 
-LETTER STRUCTURE (4 paragraphs):
-- Para 1 (Hook): State the role being applied for. Open with a specific, attention-grabbing statement about fit — quantified achievement preferred. Avoid "I am writing to apply for..." clichés.
-- Para 2 (Why You): 2-3 specific, quantified achievements that directly map to what the role requires. Show, don't tell.
-- Para 3 (Why Them): If company name provided, show genuine knowledge of/interest in the employer. If no company, focus on value brought to any employer in this field.
-- Para 4 (Close): Clear, confident call to action. Available to discuss. Thank them.
+GHANAIAN APPLICATION-LETTER STYLE — this is the exact convention to follow:
+- SUBJECT LINE: a bold, ALL-CAPS heading naming the role, e.g. "APPLICATION FOR THE POSITION OF ${(jobTitle || 'THE ADVERTISED ROLE').toUpperCase()}" (use "APPLICATION FOR APPOINTMENT AS …" if that reads more naturally for the role). Put this in "clSubject".
+- OPENING: begin formally and directly — "I respectfully submit my application for the position of ${jobTitle || 'the advertised role'}${company ? ` at ${company}` : ''}, as advertised." This traditional opening is CORRECT here; do NOT avoid it.
+- BODY (2–3 paragraphs): current/most recent role and what it has given you; then your qualifications and key strengths that fit the role; draw only on the details provided. Formal, measured, respectful — never chatty, never salesy, no American buzzwords or clichés.
+- CLOSING PARAGRAPH: express gratitude for consideration and reference the attachments, e.g. "I would be grateful for the opportunity to be considered. Please find attached my curriculum vitae and supporting documents for your kind consideration." End the body with a short "Thank you for your time and consideration." line.
 
-LENGTH: 250-320 words. Tight, professional, never rambling.
-TONE: Confident, warm, professional. Never desperate, never generic.
-NO PLACEHOLDERS: Never output blanks like [Company Name], [Position], [Date], or [Hiring Manager]. If a detail wasn't provided, write around it naturally so the letter reads as complete and ready to send. When no job description is given, produce a strong role-agnostic letter built from the candidate's own strengths — finished, not a template with holes.
-OUTPUT NOTE: Put the entire letter body into "coverLetterBody". Still include name, contact, jobTitle in JSON.`
+LENGTH: 220–320 words for the body. Formal Ghanaian register.
+NO PLACEHOLDERS: never output blanks like [Company], [Position], [Address] or [Hiring Manager]. Write around anything not provided so the letter is complete and ready to submit.
+
+OUTPUT NOTES:
+- "coverLetterBody": ONLY the body paragraphs (opening through the thank-you line), separated by \\n\\n. Do NOT include the subject line, the salutation ("Dear …"), the sign-off ("Yours faithfully"), the recipient address, or the sender's own details — those are laid out separately by the template.
+- "clSubject": the bold ALL-CAPS subject line described above.
+- Also fill name, contact and jobTitle as normal.`
 
     default:
       return ''
@@ -263,7 +267,8 @@ function getOutputFormat(cvType: CVType): string {
   "education": [],
   "skills": [],
   "languages": [],
-  "coverLetterBody": "Full cover letter text — 4 paragraphs separated by \\n\\n. Start directly with paragraph 1, no greeting line."
+  "clSubject": "Bold ALL-CAPS subject line, e.g. APPLICATION FOR THE POSITION OF ACCOUNTS OFFICER",
+  "coverLetterBody": "Body paragraphs only, separated by \\n\\n — no subject, no salutation, no sign-off, no addresses."
 }`
   }
 
