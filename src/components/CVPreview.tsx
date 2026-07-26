@@ -954,12 +954,20 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   // ── MERIDIAN: teal sidebar left ──
   meridian: {
     // Meridian is two-column (per-page sidebar) so it must stay on the packer —
-    // flow pagination can't place sidebar content per page. To stop the remote
-    // renderer clipping the last bullet at a page's bottom edge, it reserves a
-    // larger bottom safety margin than the shared default (32) so a bullet that
-    // would otherwise straddle the boundary drops cleanly to the next page.
-    // This value is Meridian-only and changes nothing else.
-    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 58,
+    // flow pagination can't place sidebar content per page. Every other design
+    // moved to flow, where the PDF renderer owns the breaks and clipping is
+    // impossible by construction; Meridian and Sterling are the last two whose
+    // pages are pre-packed here and then hard-clipped by the fixed-height,
+    // overflow:hidden page box in buildPdfHtml. That makes them the only two
+    // exposed to browser-vs-remote-renderer drift: we measure locally, Api2Pdf
+    // renders on its own Chrome, and if its text comes out even slightly taller
+    // the last block is sliced mid-line.
+    // At the old safety of 58 the worst-case page left just 59px (5.5%) of
+    // runway — inside the range font rasterisation alone can shift. 110 lifts
+    // that to ~111px (~11%), comfortably past realistic drift. Cost is a little
+    // more bottom whitespace, which reads as normal page margin; the benefit is
+    // that a bullet can no longer be cut in half. See PACK_BOTTOM_SAFETY.
+    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 110,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: A, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>{t}<span style={{ flex: 1, height: 2, background: A, opacity: 0.25 }} /></div>
       const b: Block[] = []
@@ -1040,7 +1048,14 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── STERLING: gold executive, navy sidebar right, monogram ──
   sterling: {
-    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42,
+    // Like Meridian, Sterling is two-column and stays on the packer, so it is
+    // hard-clipped by the fixed-height page box and exposed to the same
+    // browser-vs-remote-renderer drift. It was the WORST of the two: with no
+    // packBottomSafety override it fell back to the shared default of 32,
+    // leaving a worst-case page just 36px (3.3%) short of the clip boundary —
+    // less than font rasterisation alone can move things. 110 gives it ~114px
+    // (~11%) of runway, matching Meridian.
+    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42, packBottomSafety: 110,
     buildBlocks: (cv, A) => {
       const DARK = darken(A, 0.74)
       const head = (t: string) => <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: DARK, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12, display: 'inline-block' }}>{t}</div>
