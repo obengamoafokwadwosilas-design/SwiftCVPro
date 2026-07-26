@@ -81,15 +81,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Too many attempts. Please wait ${mins} minutes and try again.` }, { status: 429 })
     }
 
-    // ── Authorise: free entitlement first, then a paid credit ──
-    let source: 'entitlement' | 'credit' | 'testing' = 'testing'
+    // ── Authorise: a cover letter needs a cover-letter credit ──
+    // Cover-letter credits are their own currency and a CV credit does NOT
+    // substitute for one, so a Silver-CV buyer with no cover-letter credit is
+    // asked to buy Cover Letter Pro (GH₵15) or the Gold pack instead.
     if (!TESTING_MODE) {
       try {
-        const { hasCoverLetterCredit, hasCredits } = await import('@/lib/credits')
-        if (await hasCoverLetterCredit(phone)) source = 'entitlement'
-        else if (await hasCredits(phone)) source = 'credit'
-        else {
-          return NextResponse.json({ error: 'NO_CREDITS', message: 'No credits found. Please complete payment first.' }, { status: 402 })
+        const { hasCoverLetterCredit } = await import('@/lib/credits')
+        if (!(await hasCoverLetterCredit(phone))) {
+          return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a cover-letter credit. Buy Cover Letter Pro (GH₵15) or the Gold pack.' }, { status: 402 })
         }
       } catch (err) {
         console.error('Cover-letter auth error:', err)
@@ -146,18 +146,17 @@ export async function POST(req: NextRequest) {
     coverLetter.location = cv.location
     coverLetter.linkedin = cv.linkedin
 
-    // ── Redeem exactly one unit from whichever source authorised it ──
+    // ── Redeem one cover-letter credit ──
     if (!TESTING_MODE) {
       try {
-        const credits = await import('@/lib/credits')
-        if (source === 'entitlement') await credits.deductCoverLetterCredit(phone)
-        else if (source === 'credit') await credits.deductCredit(phone)
+        const { deductCoverLetterCredit } = await import('@/lib/credits')
+        await deductCoverLetterCredit(phone)
       } catch (err) {
         console.error('Cover-letter redemption error (non-fatal):', err)
       }
     }
 
-    return NextResponse.json({ success: true, coverLetter, source })
+    return NextResponse.json({ success: true, coverLetter })
   } catch (error: any) {
     console.error('Unhandled cover-letter error:', error)
     return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 })

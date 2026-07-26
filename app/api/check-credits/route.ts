@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   // and so a failure below fails CLOSED (no credits) instead of open.
   let phone = ''
   try {
-    const { phoneNumber } = await req.json()
+    const { phoneNumber, cvType } = await req.json()
     if (!phoneNumber) {
       return NextResponse.json({ error: 'Phone number required' }, { status: 400 })
     }
@@ -18,7 +18,11 @@ export async function POST(req: NextRequest) {
       getCredits(phone),
       getCoverLetterCredits(phone),
     ])
-    return NextResponse.json({ hasCredits: credits > 0, credits, coverLetterCredits, phoneNumber: phone })
+    // hasCredits means "has the credit THIS document needs": a cover letter
+    // spends a cover-letter credit, everything else spends a CV credit.
+    const isCoverLetter = cvType === 'cover_letter'
+    const hasCredits = isCoverLetter ? coverLetterCredits > 0 : credits > 0
+    return NextResponse.json({ hasCredits, credits, coverLetterCredits, phoneNumber: phone })
 
   } catch (error) {
     console.error('Check credits error:', error)

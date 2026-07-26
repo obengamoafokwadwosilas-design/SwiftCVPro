@@ -188,6 +188,11 @@ export default function PreviewPage() {
   const [coverJd, setCoverJd] = useState('')
   const [coverErr, setCoverErr] = useState('')
   const [coverReadingFile, setCoverReadingFile] = useState(false)
+  // Cover-letter credit balance for this phone, so the offer tells the truth:
+  // "Included" when a pack already paid for one, or the GH₵15 price when not.
+  // null = not checked yet.
+  const [clCredits, setClCredits] = useState<number | null>(null)
+  const coverIncluded = (clCredits ?? 0) > 0
 
   // A few seconds after the "Your CV is ready" toast (which runs ~6s), gently
   // surface the cover-letter offer on its own — so it's discovered even by
@@ -200,6 +205,19 @@ export default function PreviewPage() {
     const t = setTimeout(() => { setShowUpsell(true); setUpsellShown(true) }, 7000)
     return () => clearTimeout(t)
   }, [cv, isCoverLetter, cvType, coverLetter, upsellShown])
+
+  // Fetch the cover-letter balance once we know the phone, to label the offer
+  // honestly (Included vs GH₵15). Best-effort; on failure we just omit the tag.
+  useEffect(() => {
+    if (!phone || isCoverLetter) return
+    fetch('/api/check-credits', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber: phone }),
+    })
+      .then(r => r.json())
+      .then(d => setClCredits(typeof d.coverLetterCredits === 'number' ? d.coverLetterCredits : 0))
+      .catch(() => {})
+  }, [phone, isCoverLetter, coverLetter])
 
   function updateCV(patch: Partial<GeneratedCV>) {
     if (!cv) return
@@ -248,7 +266,7 @@ export default function PreviewPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        if (data.error === 'NO_CREDITS') setCoverErr('You\u2019ve used the free cover letter that came with this CV. Add a credit to generate another.')
+        if (data.error === 'NO_CREDITS') setCoverErr('You don\u2019t have a cover-letter credit. Get Cover Letter Pro (GH\u20b515) or the Gold pack, then come back and generate it here.')
         else setCoverErr(data.error || 'Generation failed. Please try again.')
         return
       }
@@ -809,7 +827,7 @@ export default function PreviewPage() {
             <button onClick={handleGenerateCover} disabled={coverGenerating || coverReadingFile} style={{ width:'100%', marginTop:'16px', padding:'13px', background: coverGenerating ? '#5eead4' : '#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor: coverGenerating ? 'default' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
               {coverGenerating ? 'Writing your cover letter\u2026' : <><span style={{ color:'#fff' }}>✦</span> Generate Cover Letter</>}
             </button>
-            <div style={{ textAlign:'center', fontSize:'11px', color:'#94a3b8', marginTop:'10px' }}>Free with your CV · takes about 20 seconds</div>
+            <div style={{ textAlign:'center', fontSize:'11px', color:'#94a3b8', marginTop:'10px' }}>{coverIncluded ? 'Included in your pack' : 'GH₵15'} · takes about 20 seconds</div>
           </div>
         </div>
       )}
@@ -885,7 +903,7 @@ export default function PreviewPage() {
           <div style={{ fontSize:'1.15rem', fontWeight:600, color:'#0a0f1a', fontFamily:"'Cormorant Garamond', serif", marginBottom:'6px' }}>Add a matching cover letter?</div>
           <div style={{ fontSize:'12px', color:'#64748b', lineHeight:1.6, marginBottom:'14px' }}>Written from this same CV — tailored to a role, or general. Ready in seconds.</div>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div style={{ fontSize:'12px', fontWeight:700, color:'#0d9488', background:'#f0fdf9', padding:'4px 10px', borderRadius:'20px' }}>Free with your CV</div>
+            <div style={{ fontSize:'12px', fontWeight:700, color:'#0d9488', background:'#f0fdf9', padding:'4px 10px', borderRadius:'20px' }}>{coverIncluded ? 'Included in your pack' : 'GH₵15'}</div>
             <button onClick={() => { setShowUpsell(false); setCoverErr(''); setShowCoverModal(true) }} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'9px 18px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>Generate<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
           </div>
         </div>

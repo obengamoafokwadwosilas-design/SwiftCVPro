@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import { CVType } from '@/types'
-import { PACKAGES } from '@/lib/packages'
+import { PACKAGES, packagesForDoc } from '@/lib/packages'
 import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed } from '@/lib/buildSeed'
 
 // ─────────────────────────────────────────────────────────────
@@ -241,7 +241,7 @@ export default function BuildPage() {
     fetch('/api/check-credits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber }),
+      body: JSON.stringify({ phoneNumber, cvType }),
     })
       .then(res => res.json())
       .then(d => setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 }))
@@ -367,7 +367,7 @@ export default function BuildPage() {
       const creditRes = await fetch('/api/check-credits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber })
+        body: JSON.stringify({ phoneNumber, cvType })
       })
       const creditData = await creditRes.json()
       setCheckingCredits(false)
@@ -1129,12 +1129,14 @@ export default function BuildPage() {
             <p style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '18px', lineHeight: 1.6 }}>One-time payment · no subscription. Credits never expire.</p>
 
             <div style={{ display: 'grid', gap: '11px' }}>
-              {PACKAGES.map(pkg => (
+              {/* Only the packages that grant the credit this document needs. */}
+              {packagesForDoc(cvType === 'cover_letter').map(pkg => (
                 <button key={pkg.id} onClick={() => { setShowPricing(false); triggerPaystack(payPhone, pkg) }}
                   style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
                     background: pkg.recommended ? '#f6fdfb' : 'white', border: pkg.recommended ? '2px solid #0d9488' : '1px solid #e7ebf0',
                     borderRadius: '16px', padding: pkg.recommended ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
                   {pkg.recommended && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: '#0d9488', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>BEST VALUE</span>}
+                  <span style={{ fontSize: '20px', flexShrink: 0 }}>{pkg.emoji}</span>
                   <span style={{ flex: 1 }}>
                     <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: '#0a0f1a' }}>{pkg.name}</span>
                     <span style={{ display: 'block', fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>{pkg.blurb}</span>

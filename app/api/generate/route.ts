@@ -220,11 +220,15 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Credits check (BYPASSED IN TESTING MODE) ──
+    // Type-aware: a cover letter needs a cover-letter credit; a CV needs a CV
+    // credit. The two are separate currencies (see packages.ts) and never
+    // substitute for each other.
+    const isCoverLetterDoc = cvType === 'cover_letter'
     if (!TESTING_MODE) {
-      const { hasCredits, deductCredit } = await import('@/lib/credits')
+      const { hasCredits, hasCoverLetterCredit } = await import('@/lib/credits')
       let creditAvailable = false
       try {
-        creditAvailable = await hasCredits(phone)
+        creditAvailable = isCoverLetterDoc ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
       } catch (err) {
         console.error('Credits check error:', err)
         return NextResponse.json({
@@ -297,24 +301,17 @@ export async function POST(req: NextRequest) {
       console.error('Pagination-risk pass failed (non-fatal):', err)
     }
 
-    // ── Deduct credit (only when NOT in testing mode) ─
+    // ── Deduct the credit this document actually used ─
+    // A cover letter spends a cover-letter credit; a CV spends a CV credit.
+    // (We no longer hand out a free cover letter with every CV — a cover
+    // letter is only ever covered by a package that paid for one.)
     if (!TESTING_MODE) {
       try {
-        const { deductCredit } = await import('@/lib/credits')
-        await deductCredit(phone)
+        const { deductCredit, deductCoverLetterCredit } = await import('@/lib/credits')
+        if (isCoverLetterDoc) await deductCoverLetterCredit(phone)
+        else await deductCredit(phone)
       } catch (err) {
         console.error('Credit deduction error (non-fatal):', err)
-      }
-    }
-
-    // ── Grant one free cover-letter entitlement per paid CV ──
-    // Only for actual CVs (not when the generated document IS a cover letter).
-    if (!TESTING_MODE && cvType !== 'cover_letter' && !generatedCV.coverLetterBody) {
-      try {
-        const { grantCoverLetterCredit } = await import('@/lib/credits')
-        await grantCoverLetterCredit(phone)
-      } catch (err) {
-        console.error('Cover-letter grant error (non-fatal):', err)
       }
     }
 
