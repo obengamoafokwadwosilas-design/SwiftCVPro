@@ -192,6 +192,21 @@ export default function PreviewPage() {
   // advert. The job-description field only appears for 'targeted', so the
   // default path stays one click.
   const [coverMode, setCoverMode] = useState<'general' | 'targeted'>('general')
+
+  // ── "Protect your CVs with a PIN" nudge ──────────────────────────
+  // There are no accounts: anyone who knows a phone number can open that
+  // number's CV history. The PIN closes that, but almost nobody sets one from
+  // the history modal because they meet it before they own anything. So we ask
+  // once, right after a download — the point of maximum ownership.
+  const [pinSet, setPinSet] = useState<boolean | null>(null)   // null = unknown
+  const [showPinNudge, setShowPinNudge] = useState(false)
+  const [pinNudgeDone, setPinNudgeDone] = useState(false)      // asked once per session
+  const [showPinModal, setShowPinModal] = useState(false)
+  const [pinValue, setPinValue] = useState('')
+  const [pinEmail, setPinEmail] = useState('')
+  const [pinSaving, setPinSaving] = useState(false)
+  const [pinErr, setPinErr] = useState('')
+  const [pinSaved, setPinSaved] = useState(false)
   // Cover-letter credit balance for this phone, so the offer tells the truth:
   // "Included" when a pack already paid for one, or the GH₵15 price when not.
   // null = not checked yet.
@@ -222,6 +237,49 @@ export default function PreviewPage() {
       .then(d => setClCredits(typeof d.coverLetterCredits === 'number' ? d.coverLetterCredits : 0))
       .catch(() => {})
   }, [phone, isCoverLetter, coverLetter])
+
+  // Does this number already have a PIN? Decides whether the nudge is relevant.
+  useEffect(() => {
+    if (!phone) return
+    fetch('/api/cv-pin/status', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber: phone }),
+    })
+      .then(r => r.json())
+      .then(d => setPinSet(!!d.pin_set))
+      .catch(() => { /* unknown — we simply never nudge */ })
+  }, [phone])
+
+  // Ask after a download: they've just received the thing they paid for, so
+  // "keep it safe" lands. Skipped while the cover-letter offer is on screen so
+  // the two never stack — the next download gets another chance.
+  useEffect(() => {
+    if (!hasDownloaded || pinNudgeDone || pinSet !== false || !phone) return
+    const t = setTimeout(() => {
+      if (showUpsell || showCoverModal) return
+      setShowPinNudge(true); setPinNudgeDone(true)
+    }, 2600)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasDownloaded, pinSet, phone, pinNudgeDone])
+
+  async function savePin() {
+    setPinErr('')
+    if (!/^\d{4}$/.test(pinValue)) { setPinErr('Your PIN must be exactly 4 digits.'); return }
+    if (!pinEmail.trim().includes('@')) { setPinErr('Enter a valid email so your PIN can be recovered.'); return }
+    setPinSaving(true)
+    try {
+      const res = await fetch('/api/cv-pin/set', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phone, pin: pinValue, email: pinEmail.trim() }),
+      })
+      const d = await res.json()
+      if (!res.ok) { setPinErr(d.error || 'Could not save your PIN.'); return }
+      setPinSet(true); setPinSaved(true)
+      setTimeout(() => { setShowPinModal(false); setPinSaved(false); setPinValue(''); setPinEmail('') }, 1400)
+    } catch { setPinErr('Connection error. Please try again.') }
+    finally { setPinSaving(false) }
+  }
 
   function updateCV(patch: Partial<GeneratedCV>) {
     if (!cv) return
@@ -979,6 +1037,61 @@ export default function PreviewPage() {
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <div style={{ fontSize:'12px', fontWeight:700, color:'#0d9488', background:'#f0fdf9', padding:'4px 10px', borderRadius:'20px' }}>{coverIncluded ? 'Included in your pack' : 'GH₵15'}</div>
             <button onClick={() => { setShowUpsell(false); setCoverErr(''); setShowCoverModal(true) }} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'9px 18px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>Generate<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+          </div>
+        </div>
+      )}
+
+      {/* PIN NUDGE — shown once, just after a download */}
+      {showPinNudge && !showPinModal && (
+        <div className="scv-sheet no-print" style={{ position:'fixed', bottom:'24px', right:'24px', zIndex:150, background:'white', borderRadius:'16px', padding:'18px 20px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)', border:'1px solid #e2e8f0', maxWidth:'300px' }}>
+          <button onClick={() => setShowPinNudge(false)} style={{ position:'absolute', top:'10px', right:'12px', background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+          <div style={{ display:'flex', alignItems:'center', gap:'9px', marginBottom:'6px' }}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.9"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+            <div style={{ fontSize:'1.12rem', fontWeight:600, color:'#0a0f1a', fontFamily:"'Cormorant Garamond', serif" }}>Protect your CVs</div>
+          </div>
+          <div style={{ fontSize:'12px', color:'#64748b', lineHeight:1.6, marginBottom:'14px' }}>Right now anyone who knows your number could open your CV history. Add a 4-digit PIN — it takes a moment.</div>
+          <div style={{ display:'flex', alignItems:'center', gap:'14px' }}>
+            <button onClick={() => { setPinErr(''); setShowPinModal(true) }} style={{ padding:'9px 18px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>Set a PIN</button>
+            <button onClick={() => setShowPinNudge(false)} style={{ background:'none', border:'none', padding:0, fontSize:'12px', fontWeight:500, color:'#64748b', cursor:'pointer' }}>Not now</button>
+          </div>
+        </div>
+      )}
+
+      {/* PIN SETTER */}
+      {showPinModal && (
+        <div onClick={() => !pinSaving && setShowPinModal(false)} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:220, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+          <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'400px', padding:'24px', boxShadow:'0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif" }}>
+            {pinSaved ? (
+              <div style={{ textAlign:'center', padding:'14px 0' }}>
+                <div style={{ width:'46px', height:'46px', borderRadius:'50%', background:'#0d9488', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+                <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.3rem', fontWeight:600, color:'#0a0f1a' }}>Your CVs are protected</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'4px' }}>
+                  <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>Set your PIN</div>
+                  <button onClick={() => !pinSaving && setShowPinModal(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+                </div>
+                <p style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.55, margin:'0 0 16px' }}>You&apos;ll enter this whenever you open <strong style={{ color:'#0a0f1a', fontWeight:600 }}>My CVs</strong> on {phone || 'your number'}.</p>
+
+                <label style={{ display:'block', fontSize:'11px', fontWeight:600, color:'#94a3b8', letterSpacing:'0.6px', textTransform:'uppercase', marginBottom:'6px' }}>4-digit PIN</label>
+                <input value={pinValue} onChange={e => setPinValue(e.target.value.replace(/\D/g,'').slice(0,4))} inputMode="numeric" placeholder="••••" autoFocus
+                  style={{ width:'100%', padding:'12px 15px', border:'1px solid #e2e8f0', borderRadius:'12px', fontSize:'18px', letterSpacing:'8px', fontFamily:"'DM Sans', sans-serif", textAlign:'center', outline:'none', boxSizing:'border-box' }} />
+
+                <label style={{ display:'block', fontSize:'11px', fontWeight:600, color:'#94a3b8', letterSpacing:'0.6px', textTransform:'uppercase', margin:'14px 0 6px' }}>Email for recovery</label>
+                <input value={pinEmail} onChange={e => setPinEmail(e.target.value)} type="email" placeholder="you@example.com"
+                  style={{ width:'100%', padding:'12px 15px', border:'1px solid #e2e8f0', borderRadius:'12px', fontSize:'13.5px', fontFamily:"'DM Sans', sans-serif", outline:'none', boxSizing:'border-box' }} />
+                <div style={{ fontSize:'11.5px', color:'#94a3b8', marginTop:'6px', lineHeight:1.5 }}>Used only to send you a code if you forget the PIN.</div>
+
+                {pinErr && <div style={{ marginTop:'12px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'10px 12px' }}>{pinErr}</div>}
+
+                <button onClick={savePin} disabled={pinSaving} style={{ width:'100%', marginTop:'16px', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor: pinSaving ? 'default' : 'pointer', opacity: pinSaving ? 0.7 : 1 }}>
+                  {pinSaving ? 'Saving…' : 'Save PIN'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
