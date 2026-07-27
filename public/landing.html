@@ -314,8 +314,9 @@ section { padding:100px 0; }
 /* ── PRICING ── */
 .pricing-section { background:var(--white); }
 .pricing-grid { display:grid; grid-template-columns:1fr; gap:20px; max-width:680px; margin:0 auto; }
-@media(min-width:600px){ .pricing-grid{grid-template-columns:1fr 1fr;} }
-.price-card { background:var(--off-white); border:1px solid var(--gray-200); border-radius:24px; padding:36px 30px; transition:all 0.4s var(--ease); }
+@media(min-width:600px){ .pricing-grid{grid-template-columns:1fr 1fr; max-width:820px;} }
+.price-card { position:relative; background:var(--off-white); border:1px solid var(--gray-200); border-radius:24px; padding:36px 30px; transition:all 0.4s var(--ease); }
+.price-badge { position:absolute; top:-11px; left:30px; background:var(--teal); color:var(--white); font-size:0.62rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; padding:5px 12px; border-radius:100px; }
 .price-card:hover { box-shadow:0 24px 80px rgba(0,0,0,0.08); transform:translateY(-4px); }
 .price-card-hero { border-color:var(--teal); border-width:2px; }
 .price-card-hero:hover { box-shadow:0 24px 80px rgba(13,148,136,0.15); }
@@ -913,37 +914,67 @@ body.light-hero .hero {
     <div class="section-head reveal">
       <span class="section-eyebrow">Pricing</span>
       <h2 class="section-title">Affordable Pricing. No Subscription.</h2>
-      <p class="section-sub">Pay once. Download instantly. No hidden fees, no monthly charges.</p>
+      <p class="section-sub">Pay once. Download instantly. No hidden fees, no monthly charges. Credits never expire.</p>
     </div>
     <div class="pricing-grid">
-      <div class="price-card price-card-hero reveal rd1">
-        <span class="price-type">Single CV</span>
-        <div class="price-amount"><span class="price-currency">GH₵</span><span>35</span><span class="price-per">/ CV</span></div>
-        <p class="price-desc">Everything you need for one professional CV.</p>
+
+      <div class="price-card reveal rd1">
+        <span class="price-type">🥈 Silver CV</span>
+        <div class="price-amount"><span class="price-currency">GH₵</span><span>29</span></div>
+        <p class="price-desc">1 Professional CV.</p>
         <ul class="price-features">
-          <li>ATS Optimized</li>
-          <li>Professionally Structured</li>
-          <li>PDF Download</li>
-          <li>Word Download</li>
-          <li>Instant Delivery</li>
-          <li>Premium Template Selection</li>
+          <li>1 CV credit</li>
+          <li>ATS optimised</li>
+          <li>PDF &amp; Word download</li>
+          <li>Premium template selection</li>
+          <li>Free re-downloads, any time</li>
         </ul>
-        <a href="/build" class="price-btn solid">Build My CV →</a>
+        <a href="/build" class="price-btn outline">Build My CV →</a>
       </div>
-      <div class="price-card reveal rd2">
-        <span class="price-type">Cover Letter</span>
-        <div class="price-amount"><span class="price-currency">GH₵</span><span>10</span><span class="price-per">/ letter</span></div>
-        <p class="price-desc">A compelling letter written for the job you want.</p>
+
+      <div class="price-card price-card-hero reveal rd2">
+        <span class="price-badge">Best value</span>
+        <span class="price-type">⭐ Gold Application Pack</span>
+        <div class="price-amount"><span class="price-currency">GH₵</span><span>49</span></div>
+        <p class="price-desc">2 CVs + 1 Cover Letter.</p>
         <ul class="price-features">
-          <li>Tailored To Job Role</li>
-          <li>Professional Format</li>
-          <li>Recruiter Friendly</li>
-          <li>Instant Download</li>
-          <li>Written In Your Voice</li>
-          <li>Perfect Add-On To Your CV</li>
+          <li>2 CV credits</li>
+          <li>1 cover-letter credit</li>
+          <li>Tailor each CV to a different job</li>
+          <li>PDF &amp; Word download</li>
+          <li>Free re-downloads, any time</li>
+        </ul>
+        <a href="/build" class="price-btn solid">Get Gold →</a>
+      </div>
+
+      <div class="price-card reveal rd3">
+        <span class="price-type">✉️ Cover Letter Pro</span>
+        <div class="price-amount"><span class="price-currency">GH₵</span><span>15</span></div>
+        <p class="price-desc">Cover letter only.</p>
+        <ul class="price-features">
+          <li>1 cover-letter credit</li>
+          <li>Formal Ghanaian layout</li>
+          <li>Tailored to a role, or general</li>
+          <li>PDF &amp; Word download</li>
+          <li>Free re-downloads, any time</li>
         </ul>
         <a href="/build?type=cover_letter" class="price-btn outline">Build My Letter →</a>
       </div>
+
+      <div class="price-card reveal rd4">
+        <span class="price-type">👑 Platinum Career Pack</span>
+        <div class="price-amount"><span class="price-currency">GH₵</span><span>99</span></div>
+        <p class="price-desc">4 CVs + 4 Cover Letters.</p>
+        <ul class="price-features">
+          <li>4 CV credits</li>
+          <li>4 cover-letter credits</li>
+          <li>Best price per document</li>
+          <li>PDF &amp; Word download</li>
+          <li>Free re-downloads, any time</li>
+        </ul>
+        <a href="/build" class="price-btn outline">Get Platinum →</a>
+      </div>
+
     </div>
   </div>
 </section>
@@ -1287,7 +1318,7 @@ body.light-hero .hero {
     <h2 class="cta-title reveal">Your Next Job Starts With<br>the <em>Right CV.</em></h2>
     <p class="cta-sub reveal rd1">Paste your details. We write it. You download it. In under a minute.</p>
     <a href="/build" class="cta-btn reveal rd2">Build My CV Now <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-    <p class="cta-note reveal rd3">GH₵20 · No subscription · Instant download</p>
+    <p class="cta-note reveal rd3">From GH₵29 · No subscription · Instant download</p>
   </div>
 </section>
 
