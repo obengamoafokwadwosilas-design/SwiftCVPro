@@ -102,11 +102,24 @@ const DEFAULT_ACCENT: Record<string, string> = {
   metro: '#7c3aed', prestige: '#a87b00', compass: '#64748b', beacon: '#2563eb',
 }
 // Webfonts FIRST: they render identically in the user's browser (measurement)
-// and in server-side headless Chrome (PDF). System fonts like Cambria don't exist
-// on the Linux PDF server, which made PDF line-wrapping differ from what the
-// paginator measured — the root cause of the gap/clip drift across templates.
-const BODY_SERIF = "'Crimson Text', 'Cambria', Georgia, serif"
-const BODY_SANS = "'Source Sans 3', 'Calibri', 'Segoe UI', sans-serif"
+// and in server-side headless Chrome (PDF).
+//
+// The FALLBACKS matter just as much, and used to be the real bug. The PDF is
+// rendered by Api2Pdf's Linux Chrome with `display=swap`, so if the webfont is
+// slow or fails the page is laid out in the next font on this list — and the
+// paginator's plan, measured here with the webfont, no longer matches. Measured
+// against Crimson Text on identical text:
+//     Cambria +19.8%   Georgia +19.8%   <- what used to be next in line
+//     Times New Roman 0%   Liberation Serif 0%   generic serif 0%
+// A ~20% swell is far beyond any page's bottom safety margin, so the last block
+// on a page was pushed past the fixed-height page box and hard-clipped. Same
+// story for sans: Calibri came out -16.4% against Source Sans 3.
+// The stacks below are metric-compatible all the way down, so a failed webfont
+// changes the typeface but NOT the line count — the page plan stays valid and
+// nothing can be clipped. Times New Roman covers Windows/macOS, Liberation
+// Serif covers the Linux PDF box, and the generic keyword backstops both.
+const BODY_SERIF = "'Crimson Text', 'Times New Roman', 'Liberation Serif', serif"
+const BODY_SANS = "'Source Sans 3', 'Segoe UI', Arial, 'Liberation Sans', sans-serif"
 
 // A4 at 96dpi
 const PAGE_W = 794
@@ -962,12 +975,13 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     // exposed to browser-vs-remote-renderer drift: we measure locally, Api2Pdf
     // renders on its own Chrome, and if its text comes out even slightly taller
     // the last block is sliced mid-line.
-    // At the old safety of 58 the worst-case page left just 59px (5.5%) of
-    // runway — inside the range font rasterisation alone can shift. 110 lifts
-    // that to ~111px (~11%), comfortably past realistic drift. Cost is a little
-    // more bottom whitespace, which reads as normal page margin; the benefit is
-    // that a bullet can no longer be cut in half. See PACK_BOTTOM_SAFETY.
-    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 110,
+    // The safety margin is GUARANTEED dead space at the foot of every page, so
+    // it is kept modest. Briefly raised to 110 to outrun the font-fallback
+    // swell, which bought ~114px of white space per page and still could not
+    // cover a ~20% swing; that swell is now fixed at source in BODY_SERIF, so
+    // 58 is back — enough for ordinary sub-pixel drift, small enough that pages
+    // still fill. See PACK_BOTTOM_SAFETY.
+    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 58,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: A, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>{t}<span style={{ flex: 1, height: 2, background: A, opacity: 0.25 }} /></div>
       const b: Block[] = []
@@ -1052,10 +1066,12 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     // hard-clipped by the fixed-height page box and exposed to the same
     // browser-vs-remote-renderer drift. It was the WORST of the two: with no
     // packBottomSafety override it fell back to the shared default of 32,
-    // leaving a worst-case page just 36px (3.3%) short of the clip boundary —
-    // less than font rasterisation alone can move things. 110 gives it ~114px
-    // (~11%) of runway, matching Meridian.
-    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42, packBottomSafety: 110,
+    // leaving a worst-case page just 36px (3.3%) short of the clip boundary.
+    // Now set explicitly to 58, matching Meridian: the font-fallback swell that
+    // actually caused the clipping is fixed at source in BODY_SERIF, so this
+    // only has to absorb ordinary sub-pixel drift, and a bigger value would
+    // just be dead space at the foot of every page.
+    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42, packBottomSafety: 58,
     buildBlocks: (cv, A) => {
       const DARK = darken(A, 0.74)
       const head = (t: string) => <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: DARK, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12, display: 'inline-block' }}>{t}</div>
