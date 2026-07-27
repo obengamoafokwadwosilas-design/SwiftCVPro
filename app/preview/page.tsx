@@ -192,6 +192,20 @@ export default function PreviewPage() {
   // advert. The job-description field only appears for 'targeted', so the
   // default path stays one click.
   const [coverMode, setCoverMode] = useState<'general' | 'targeted'>('general')
+  // Generation takes ~20s with no progress signal from the API, so the bar is
+  // time-based: it eases towards 90% over the expected wait and only completes
+  // when the letter actually arrives. It never sits still (which reads as
+  // "frozen") and never claims to be finished early.
+  const [coverPct, setCoverPct] = useState(0)
+  useEffect(() => {
+    if (!coverGenerating) { setCoverPct(0); return }
+    const started = Date.now()
+    const id = setInterval(() => {
+      const t = (Date.now() - started) / 1000
+      setCoverPct(Math.min(90, Math.round(90 * (1 - Math.exp(-t / 9)))))
+    }, 200)
+    return () => clearInterval(id)
+  }, [coverGenerating])
 
   // ── "Protect your CVs with a PIN" nudge ──────────────────────────
   // There are no accounts: anyone who knows a phone number can open that
@@ -786,11 +800,13 @@ export default function PreviewPage() {
             dead end even if someone misses the menu. */}
         <a href="/" title="Back to home" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', fontWeight:600, color:'white', textDecoration:'none', cursor:'pointer' }}>Swift<span style={{ color:'#5eead4' }}>CV</span>Pro</a>
         <div style={{ display:'flex', background:'rgba(255,255,255,0.08)', borderRadius:'50px', padding:'3px', gap:'2px' }}>
-          <button onClick={() => setActiveTab('preview')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12px', fontWeight:activeTab==='preview'?600:400, background:activeTab==='preview'?'white':'none', color:activeTab==='preview'?'#0a0f1a':'rgba(255,255,255,0.4)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Preview</button>
+          {/* Inactive tab was rgba(255,255,255,0.4) at weight 400 — near
+              invisible on the dark bar, so people could not find Edit. */}
+          <button onClick={() => setActiveTab('preview')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12.5px', fontWeight:activeTab==='preview'?600:500, background:activeTab==='preview'?'white':'none', color:activeTab==='preview'?'#0a0f1a':'rgba(255,255,255,0.72)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Preview</button>
           {/* "Edit with AI" is dropped for now: Edit goes straight to manual
               editing. The chooser + AI-revision flow below are left intact but
               unreachable, so re-enabling is a one-line change (setShowChooser). */}
-          <button onClick={() => setActiveTab('edit')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12px', fontWeight:activeTab==='edit'?600:400, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.4)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
+          <button onClick={() => setActiveTab('edit')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12.5px', fontWeight:activeTab==='edit'?600:500, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.72)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
         </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
           <HeaderMenu items={[
@@ -956,10 +972,25 @@ export default function PreviewPage() {
 
             {coverErr && <div style={{ marginTop:'12px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'10px 12px' }}>{coverErr}</div>}
 
-            <button onClick={handleGenerateCover} disabled={coverGenerating || coverReadingFile} style={{ width:'100%', marginTop:'16px', padding:'13px', background: coverGenerating ? '#5eead4' : '#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor: coverGenerating ? 'default' : 'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
-              {coverGenerating ? 'Writing your cover letter\u2026' : <><span style={{ color:'#fff' }}>✦</span> Generate Cover Letter</>}
-            </button>
-            <div style={{ textAlign:'center', fontSize:'11px', color:'#94a3b8', marginTop:'10px' }}>{coverIncluded ? 'Included in your pack' : 'GH₵15'} · takes about 20 seconds</div>
+            {coverGenerating ? (
+              <div style={{ marginTop:'18px' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'8px' }}>
+                  <span style={{ fontSize:'13px', fontWeight:600, color:'#0a0f1a' }}>Writing your cover letter…</span>
+                  <span style={{ fontSize:'12px', fontWeight:600, color:'#0d9488' }}>{coverPct}%</span>
+                </div>
+                <div style={{ height:'7px', background:'#e9eef4', borderRadius:'99px', overflow:'hidden' }}>
+                  <div style={{ height:'100%', width:`${coverPct}%`, background:'linear-gradient(90deg,#0d9488,#5eead4)', borderRadius:'99px', transition:'width .25s ease' }} />
+                </div>
+                <div style={{ textAlign:'center', fontSize:'11.5px', color:'#94a3b8', marginTop:'10px' }}>Usually about 20 seconds — please keep this open.</div>
+              </div>
+            ) : (
+              <>
+                <button onClick={handleGenerateCover} disabled={coverReadingFile} style={{ width:'100%', marginTop:'16px', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
+                  <span style={{ color:'#fff' }}>✦</span> Generate Cover Letter
+                </button>
+                <div style={{ textAlign:'center', fontSize:'11px', color:'#94a3b8', marginTop:'10px' }}>{coverIncluded ? 'Included in your pack' : 'GH₵15'} · takes about 20 seconds</div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -1270,7 +1301,10 @@ function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<Gen
         </Sec>
       )}
 
-      {cv.skills && (
+      {/* Skills, Languages and Extra Sections belong to a CV — the letter
+          template never renders them, so on a cover letter they were empty
+          boxes that did nothing. Hidden there, same as Experience/Education. */}
+      {!cv.coverLetterBody && cv.skills && (
         <Sec title="Skills">
           <TA value={cv.skills.join(', ')} rows={3}
             onChange={v => updateCV({ skills: v.split(',').map(s=>s.trim()).filter(Boolean) })} />
@@ -1278,7 +1312,7 @@ function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<Gen
         </Sec>
       )}
 
-      {cv.languages !== undefined && (
+      {!cv.coverLetterBody && cv.languages !== undefined && (
         <Sec title="Languages">
           <TA value={(cv.languages || []).join(', ')} rows={2}
             onChange={v => updateCV({ languages: v.split(',').map(s=>s.trim()).filter(Boolean) })} />
@@ -1286,11 +1320,13 @@ function CVEditor({ cv, updateCV }: { cv: GeneratedCV; updateCV: (p: Partial<Gen
         </Sec>
       )}
 
-      <Sec title="Extra Sections (optional)">
-        <TA value={extraSectionsToText(cv)} rows={5}
-          onChange={v => updateCV({ extraSections: textToExtraSections(v), additionalInfo: undefined } as any)} />
-        <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'6px' }}>One section per line as "Heading: item; item; item" — e.g. "Certifications: PMP; Google PM" or "References: Available on request"</div>
-      </Sec>
+      {!cv.coverLetterBody && (
+        <Sec title="Extra Sections (optional)">
+          <TA value={extraSectionsToText(cv)} rows={5}
+            onChange={v => updateCV({ extraSections: textToExtraSections(v), additionalInfo: undefined } as any)} />
+          <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'6px' }}>One section per line as "Heading: item; item; item" — e.g. "Certifications: PMP; Google PM" or "References: Available on request"</div>
+        </Sec>
+      )}
     </div>
   )
 }

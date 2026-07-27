@@ -648,7 +648,11 @@ export default function BuildPage() {
 
       {/* Credit balance — shown on the info screens once we know it, and only
           when there's something to show (no clutter for no-credit users). */}
-      {screen !== 'type' && screen !== 'method' && creditBalance && (creditBalance.cv > 0 || creditBalance.cl > 0) && (
+      {/* Shown from the method screen onwards — the balance is known as soon as
+          Continue is pressed, and seeing "no payment needed" BEFORE putting in
+          the work is the reassuring moment. Hidden only on the type screen,
+          where we haven't looked it up yet. */}
+      {screen !== 'type' && creditBalance && (creditBalance.cv > 0 || creditBalance.cl > 0) && (
         <div style={{ maxWidth: '640px', margin: '22px auto 0', padding: '0 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'linear-gradient(135deg, #f0fdf9, #ecfdf5)', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '12px', padding: '11px 16px' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
