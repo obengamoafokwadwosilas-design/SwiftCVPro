@@ -787,19 +787,8 @@ export default function BuildPage() {
               is being turned into. */}
           <p style={subStyle}>Upload your CV or paste it in as text — we&apos;ll create your {meta.label}.</p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
-            {([
-              { id: 'upload', label: 'Upload a file', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg> },
-              { id: 'paste', label: 'Paste text', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5M4 20l1.2-4.2L15.3 5.7a1.7 1.7 0 012.4 0l.6.6a1.7 1.7 0 010 2.4L8.2 18.8 4 20z" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"/></svg> },
-            ] as any[]).map((opt: any) => {
-              const on = pasteInputMode === opt.id
-              return (
-                <button key={opt.id} onClick={() => setPasteInputMode(opt.id as any)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: `1.5px solid ${on ? '#0d9488' : '#e7ebf0'}`, borderRadius: '12px', background: on ? '#f0fdf9' : 'white', color: on ? '#0f766e' : '#64748b', fontWeight: on ? 600 : 500, fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'border-color 0.15s, background 0.15s' }}>
-                  {opt.icon}{opt.label}
-                </button>
-              )
-            })}
+          <div style={{ marginBottom: '16px' }}>
+            <ModeToggle value={pasteInputMode} onChange={v => setPasteInputMode(v as any)} options={UPLOAD_PASTE_OPTIONS} />
           </div>
 
           {pasteInputMode === 'paste' ? (
@@ -1336,6 +1325,33 @@ function Field({ label, placeholder, fieldRef }: { label: string; placeholder: s
 
 // A quiet, collapsed row that opens on click. Optional inputs live in here so
 // each screen reads as one clear task, with extras available rather than shouting.
+// Segmented control — one track with a raised pill on the active option.
+// Two same-sized outlined buttons side by side read as two ACTIONS you could
+// each take; this reads as one switch with a current position, which is what
+// it is. Same pattern as the Preview|Edit and CV|Cover Letter toggles.
+const UPLOAD_PASTE_OPTIONS = [
+  { id: 'upload', label: 'Upload a file', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg> },
+  { id: 'paste',  label: 'Paste text',    icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5M4 20l1.2-4.2L15.3 5.7a1.7 1.7 0 012.4 0l.6.6a1.7 1.7 0 010 2.4L8.2 18.8 4 20z" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"/></svg> },
+]
+
+function ModeToggle({ value, onChange, options }: { value: string; onChange: (v: any) => void; options: { id: string; label: string; icon: React.ReactNode }[] }) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: '4px', background: '#eef2f7', borderRadius: '14px', padding: '4px' }}>
+      {options.map(opt => {
+        const on = value === opt.id
+        return (
+          <button key={opt.id} onClick={() => onChange(opt.id)} aria-pressed={on}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '11px 8px', border: 'none', borderRadius: '11px',
+              background: on ? 'white' : 'transparent', color: on ? '#0f766e' : '#64748b', fontWeight: on ? 700 : 500, fontSize: '13px', cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif", boxShadow: on ? '0 1px 3px rgba(10,15,26,0.14)' : 'none', transition: 'background .15s, color .15s, box-shadow .15s' }}>
+            {opt.icon}{opt.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 function Collapsible({ title, hint, badge, defaultOpen = false, children }: { title: string; hint?: string; badge?: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
@@ -1367,19 +1383,8 @@ function JDSection({ method, setMethod, pasteRef, uploadedFile, setUploadedFile,
       badge={required ? 'Recommended' : 'Optional'}
       defaultOpen={required}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-        {([
-          { id: 'upload', label: 'Upload a file', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg> },
-          { id: 'paste', label: 'Paste text', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5M4 20l1.2-4.2L15.3 5.7a1.7 1.7 0 012.4 0l.6.6a1.7 1.7 0 010 2.4L8.2 18.8 4 20z" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round"/></svg> },
-        ] as any[]).map((opt: any) => {
-          const on = method === opt.id
-          return (
-            <button key={opt.id} onClick={() => setMethod(opt.id)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', border: `1.5px solid ${on ? '#0d9488' : '#e7ebf0'}`, borderRadius: '12px', background: on ? '#f0fdf9' : 'white', color: on ? '#0f766e' : '#64748b', fontWeight: on ? 600 : 500, fontSize: '13px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'border-color 0.15s, background 0.15s' }}>
-              {opt.icon}{opt.label}
-            </button>
-          )
-        })}
+      <div style={{ marginBottom: '14px' }}>
+        <ModeToggle value={method} onChange={setMethod} options={UPLOAD_PASTE_OPTIONS} />
       </div>
       {method === 'paste'
         ? <textarea ref={pasteRef} style={TA(110)} rows={5} placeholder="Paste the job advert or describe the role here..." />
