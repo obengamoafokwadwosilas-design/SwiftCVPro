@@ -824,11 +824,13 @@ export default function PreviewPage() {
             <div className="no-print" style={{ display:'flex', justifyContent:'center', marginBottom:'18px' }}>
               <div style={{ display:'inline-flex', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', padding:'4px', boxShadow:'0 2px 8px rgba(10,15,26,0.06)' }}>
                 <button onClick={showCvDoc} style={{ padding:'8px 20px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', background: activeDoc==='cv' ? '#0d9488' : 'transparent', color: activeDoc==='cv' ? 'white' : '#64748b' }}>CV</button>
+                {/* No price badge here — the generate sheet states the price
+                    (or "Included") right where the decision is made, so
+                    repeating it on the tab is noise. */}
                 <button
                   onClick={() => { if (coverLetter) showCoverDoc(); else { setCoverErr(''); setShowCoverModal(true) } }}
-                  style={{ display:'flex', alignItems:'center', gap:'6px', padding:'8px 20px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', background: activeDoc==='cover' ? '#0d9488' : 'transparent', color: activeDoc==='cover' ? 'white' : '#64748b' }}>
+                  style={{ padding:'8px 20px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', background: activeDoc==='cover' ? '#0d9488' : 'transparent', color: activeDoc==='cover' ? 'white' : '#64748b' }}>
                   Cover Letter
-                  {!coverLetter && <span style={{ fontSize:'10.5px', fontWeight:700, color: activeDoc==='cover' ? 'rgba(255,255,255,0.85)' : '#0d9488', background: activeDoc==='cover' ? 'rgba(255,255,255,0.18)' : '#f0fdf9', padding:'2px 7px', borderRadius:'20px' }}>{coverIncluded ? 'Included' : 'GH₵15'}</span>}
                 </button>
               </div>
             </div>
