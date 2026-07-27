@@ -834,15 +834,12 @@ export default function BuildPage() {
           {needsJD && (
             <Collapsible
               title="No advert? Tell us what you're aiming for"
-              hint="We'll angle your CV towards this — even without a job posting."
               badge="Optional"
+              defaultOpen
             >
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <Field label="Job you want" placeholder="e.g. Banking Officer" fieldRef={refs.tailorJobPaste} />
                 <Field label="Industry" placeholder="e.g. Banking & Finance" fieldRef={refs.tailorIndustryPaste} />
-              </div>
-              <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '9px', lineHeight: 1.6 }}>
-                We only shift the emphasis of what you&apos;ve actually done — we never claim experience you don&apos;t have.
               </div>
             </Collapsible>
           )}
