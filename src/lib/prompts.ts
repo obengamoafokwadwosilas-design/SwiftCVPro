@@ -235,11 +235,27 @@ GHANAIAN APPLICATION-LETTER STYLE — this is the exact convention to follow:
 - SUBJECT LINE (put in "clSubject", bold ALL-CAPS): ${(jobTitle && jobTitle.trim())
     ? `name the role — "APPLICATION FOR THE POSITION OF ${jobTitle.toUpperCase()}" (or "APPLICATION FOR APPOINTMENT AS …" if it reads better).`
     : `no specific role was given, so use a GENERAL heading — "APPLICATION FOR EMPLOYMENT" (acceptable alternatives: "JOB APPLICATION", "APPLICATION FOR A VACANT POSITION", "APPLICATION FOR CONSIDERATION"). Do NOT invent a job title.`}
-- OPENING: begin formally and directly — ${(jobTitle && jobTitle.trim())
-    ? `"I respectfully submit my application for the position of ${jobTitle}${company ? ` at ${company}` : ''}, as advertised."`
-    : `"I respectfully submit my application for employment${company ? ` at ${company}` : ''}, and would be glad to be considered for any suitable vacancy."`} This traditional opening is CORRECT here; do NOT avoid it.
+- OPENING: state plainly that you are applying${(jobTitle && jobTitle.trim()) ? ` for the ${jobTitle} position${company ? ` at ${company}` : ''}` : ' for employment and would welcome any suitable vacancy'}, in ONE formal sentence. The traditional direct opening is correct here — do not use an American-style "hook".
 - BODY (2–3 paragraphs): current/most recent role and what it has given you; then your qualifications and key strengths that fit the role; draw only on the details provided. Formal, measured, respectful — never chatty, never salesy, no American buzzwords or clichés.
-- CLOSING PARAGRAPH: express gratitude for consideration and reference the attachments, e.g. "I would be grateful for the opportunity to be considered. Please find attached my curriculum vitae and supporting documents for your kind consideration." End the body with a short "Thank you for your time and consideration." line.
+- CLOSING PARAGRAPH: express appreciation for consideration and refer to the attached CV and supporting documents, then close with one brief line of thanks.
+
+⚠️ VARY THE WORDING — THIS MATTERS:
+Do NOT reuse a stock template. Every letter must read as though a different
+person wrote it about their own career. In particular:
+- Do not open every letter with the same formula. Rotate naturally among
+  constructions such as: "I wish to apply for…", "I write to apply for…",
+  "I hereby submit my application for…", "I respectfully apply for…",
+  "It is with keen interest that I apply for…". Pick whichever suits this
+  candidate's seniority and field; a senior professional should not sound
+  like a fresh graduate.
+- Do not reuse the same closing sentence each time either — vary how you
+  express appreciation and refer to the attachments.
+- Let the SUBSTANCE drive the wording: lead with what is actually distinctive
+  about this person's background, in their own register. Two candidates with
+  different jobs must not produce near-identical letters.
+- Never pad with generic filler ("I am a hardworking and dedicated individual
+  who is passionate about…"). Every sentence must carry real information from
+  the details provided.
 
 LENGTH: 220–320 words for the body. Formal Ghanaian register.
 NO PLACEHOLDERS: never output blanks like [Company], [Position], [Address] or [Hiring Manager]. Write around anything not provided so the letter is complete and ready to submit.

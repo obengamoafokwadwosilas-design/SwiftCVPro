@@ -188,6 +188,10 @@ export default function PreviewPage() {
   const [coverJd, setCoverJd] = useState('')
   const [coverErr, setCoverErr] = useState('')
   const [coverReadingFile, setCoverReadingFile] = useState(false)
+  // Which kind of letter: a strong general one, or tailored to a specific
+  // advert. The job-description field only appears for 'targeted', so the
+  // default path stays one click.
+  const [coverMode, setCoverMode] = useState<'general' | 'targeted'>('general')
   // Cover-letter credit balance for this phone, so the offer tells the truth:
   // "Included" when a pack already paid for one, or the GH₵15 price when not.
   // null = not checked yet.
@@ -262,7 +266,9 @@ export default function PreviewPage() {
       const res = await fetch('/api/generate-cover-letter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv: source, jobDescription: coverJd || undefined, phoneNumber: phone })
+        // Only send the advert when they actually chose the targeted option,
+        // so switching back to "general" can't silently reuse stale text.
+        body: JSON.stringify({ cv: source, jobDescription: coverMode === 'targeted' ? (coverJd || undefined) : undefined, phoneNumber: phone })
       })
       const data = await res.json()
       if (!res.ok) {
@@ -810,11 +816,20 @@ export default function PreviewPage() {
         )}
 
         <div style={{ padding:'24px', overflowY:'auto', overflowX:'auto', background:'#f1f5f9' }}>
-          {coverLetter && (
+          {/* CV / Cover Letter switch — shown to EVERYONE on a CV, not only
+              once a letter exists. It's how people discover the letter at all:
+              if none has been made yet, the tab opens the generate sheet (which
+              states the price or "Included"), so it doubles as the offer. */}
+          {cvType !== 'cover_letter' && (
             <div className="no-print" style={{ display:'flex', justifyContent:'center', marginBottom:'18px' }}>
               <div style={{ display:'inline-flex', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', padding:'4px', boxShadow:'0 2px 8px rgba(10,15,26,0.06)' }}>
                 <button onClick={showCvDoc} style={{ padding:'8px 20px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', background: activeDoc==='cv' ? '#0d9488' : 'transparent', color: activeDoc==='cv' ? 'white' : '#64748b' }}>CV</button>
-                <button onClick={showCoverDoc} style={{ padding:'8px 20px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', background: activeDoc==='cover' ? '#0d9488' : 'transparent', color: activeDoc==='cover' ? 'white' : '#64748b' }}>Cover Letter</button>
+                <button
+                  onClick={() => { if (coverLetter) showCoverDoc(); else { setCoverErr(''); setShowCoverModal(true) } }}
+                  style={{ display:'flex', alignItems:'center', gap:'6px', padding:'8px 20px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', background: activeDoc==='cover' ? '#0d9488' : 'transparent', color: activeDoc==='cover' ? 'white' : '#64748b' }}>
+                  Cover Letter
+                  {!coverLetter && <span style={{ fontSize:'10.5px', fontWeight:700, color: activeDoc==='cover' ? 'rgba(255,255,255,0.85)' : '#0d9488', background: activeDoc==='cover' ? 'rgba(255,255,255,0.18)' : '#f0fdf9', padding:'2px 7px', borderRadius:'20px' }}>{coverIncluded ? 'Included' : 'GH₵15'}</span>}
+                </button>
               </div>
             </div>
           )}
@@ -841,16 +856,43 @@ export default function PreviewPage() {
               <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>Generate a cover letter</div>
               <button onClick={() => !coverGenerating && setShowCoverModal(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
-            <p style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.5, margin:'0 0 16px' }}>Written from your CV — a strong general letter by default.</p>
+            <p style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.5, margin:'0 0 14px' }}>Written from your CV. Choose the kind of letter you need.</p>
 
-            <div style={{ fontSize:'12px', fontWeight:600, color:'#0a0f1a', marginBottom:'8px' }}>Applying for a specific role? <span style={{ color:'#94a3b8', fontWeight:500 }}>(optional)</span></div>
-            <textarea value={coverJd} onChange={e => setCoverJd(e.target.value)} placeholder="Paste the job description to tailor it…" rows={4} style={{ width:'100%', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'12px 14px', fontSize:'13px', fontFamily:"'DM Sans', sans-serif", resize:'vertical', outline:'none', boxSizing:'border-box' }} />
+            {/* Two clear choices. The advert field only opens for the targeted
+                option, so the general path stays a single click. */}
+            <div style={{ display:'grid', gap:'9px' }}>
+              {([
+                { id:'general' as const, title:'General cover letter', desc:'Works for most applications — no advert needed.' },
+                { id:'targeted' as const, title:'For a specific role', desc:'Tailored to a job advert you paste or upload.' },
+              ]).map(opt => {
+                const on = coverMode === opt.id
+                return (
+                  <button key={opt.id} onClick={() => setCoverMode(opt.id)}
+                    style={{ display:'flex', alignItems:'flex-start', gap:'11px', width:'100%', textAlign:'left', cursor:'pointer',
+                      background: on ? '#f6fdfb' : 'white', border: on ? '2px solid #0d9488' : '1px solid #e7ebf0',
+                      borderRadius:'14px', padding: on ? '12px 13px' : '13px 14px', fontFamily:"'DM Sans', sans-serif" }}>
+                    <span style={{ width:'17px', height:'17px', flexShrink:0, marginTop:'1px', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', background: on ? '#0d9488' : 'transparent', border: on ? 'none' : '1.5px solid #e2e8f0' }}>
+                      {on && <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    </span>
+                    <span>
+                      <span style={{ display:'block', fontSize:'13.5px', fontWeight:600, color:'#0a0f1a' }}>{opt.title}</span>
+                      <span style={{ display:'block', fontSize:'12px', color:'#64748b', marginTop:'2px', lineHeight:1.5 }}>{opt.desc}</span>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
 
-            <label style={{ display:'inline-flex', alignItems:'center', gap:'7px', marginTop:'10px', fontSize:'12px', color:'#0d9488', fontWeight:600, cursor:'pointer' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              {coverReadingFile ? 'Reading file\u2026' : 'Or upload the job (image, PDF, Word)'}
-              <input type="file" accept="image/*,application/pdf,.doc,.docx" style={{ display:'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) readCoverFile(f) }} />
-            </label>
+            {coverMode === 'targeted' && (
+              <div style={{ marginTop:'12px' }}>
+                <textarea value={coverJd} onChange={e => setCoverJd(e.target.value)} placeholder="Paste the job advert here…" rows={4} style={{ width:'100%', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'12px 14px', fontSize:'13px', fontFamily:"'DM Sans', sans-serif", resize:'vertical', outline:'none', boxSizing:'border-box' }} />
+                <label style={{ display:'inline-flex', alignItems:'center', gap:'7px', marginTop:'10px', fontSize:'12px', color:'#0d9488', fontWeight:600, cursor:'pointer' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  {coverReadingFile ? 'Reading file…' : 'Or upload the advert (image, PDF, Word)'}
+                  <input type="file" accept="image/*,application/pdf,.doc,.docx" style={{ display:'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) readCoverFile(f) }} />
+                </label>
+              </div>
+            )}
 
             {coverErr && <div style={{ marginTop:'12px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'10px 12px' }}>{coverErr}</div>}
 
