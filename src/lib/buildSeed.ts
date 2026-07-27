@@ -8,9 +8,10 @@ import { CVType } from '@/types'
 //      webviews can't reliably run the popup, so payment happens on a
 //      real hosted page and the browser navigates away and back. The seed
 //      is what survives that round trip.
-//   2. "Duplicate" a saved CV from history — the exact same shape is what
-//      gets stored as cv_history.raw_input at generation time, so
-//      duplicating a past CV re-enters the builder pre-filled the same way.
+//   2. "Rewrite for another job" on a saved CV — the exact same shape is what
+//      gets stored as cv_history.raw_input at generation time, so rewriting a
+//      past CV re-enters the builder pre-filled the same way. (That path drops
+//      the old job-targeting fields first; see CVHistoryModal.handleOpen.)
 export interface BuildSeed {
   cvType: CVType
   inputMethod: 'paste' | 'form'

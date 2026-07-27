@@ -95,7 +95,7 @@ export default function CVHistoryModal({ open, onClose }: { open: boolean; onClo
     await loadHistory(pin)
   }
 
-  async function handleOpen(item: HistoryItem, mode: 'preview' | 'duplicate') {
+  async function handleOpen(item: HistoryItem, mode: 'preview' | 'rewrite') {
     if (mode === 'preview') {
       sessionStorage.setItem('swiftcv_cv', JSON.stringify(item.generated_cv))
       sessionStorage.setItem('swiftcv_type', item.cv_type)
@@ -105,10 +105,19 @@ export default function CVHistoryModal({ open, onClose }: { open: boolean; onClo
       router.push('/preview')
       return
     }
-    // Duplicate: seed the builder from the ORIGINAL input, not the generated
-    // output, so the user reviews/adjusts and a fresh generation is written
-    // (spending one credit) rather than editing the old result in place.
-    saveBuildSeed({ ...item.raw_input, landingScreen: 'type' })
+    // Rewrite: seed the builder from the ORIGINAL input, not the generated
+    // output, so a fresh generation is written (spending one credit) rather
+    // than editing the old result in place.
+    //
+    // The previous target is deliberately dropped — the point of this action
+    // is a DIFFERENT job, so carrying over the old job title, employer and
+    // advert would silently re-aim it at the role they're moving on from.
+    // Their background is kept; only the aim is cleared.
+    const seed = { ...item.raw_input, landingScreen: 'type' as const }
+    delete seed.jobDescription
+    delete seed.whyRole
+    if (seed.form) seed.form = { ...seed.form, jobTitle: undefined, company: undefined }
+    saveBuildSeed(seed)
     onClose()
     router.push('/build')
   }
@@ -290,9 +299,18 @@ export default function CVHistoryModal({ open, onClose }: { open: boolean; onClo
                         </div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' as const }}>
+                    {/* "Duplicate" read like a free copy but actually spends a
+                        credit on a fresh generation. Named for what it does. */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' as const, alignItems: 'center' }}>
                       <button onClick={() => handleOpen(item, 'preview')} style={smallBtnPrimary}>Preview / Download</button>
-                      <button onClick={() => handleOpen(item, 'duplicate')} style={smallBtnSecondary}>Duplicate</button>
+                      <button
+                        onClick={() => handleOpen(item, 'rewrite')}
+                        title="Starts a new CV from these details, aimed at a different job or industry. Uses 1 credit."
+                        style={smallBtnSecondary}
+                      >
+                        Rewrite for another job
+                      </button>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>uses 1 credit</span>
                     </div>
                   </div>
                 ))}

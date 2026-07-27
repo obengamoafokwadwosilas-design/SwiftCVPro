@@ -172,8 +172,8 @@ export default function BuildPage() {
   // ── Restore a build seed, if one is waiting ───────────────────
   // Two unrelated flows leave this page and come back with a seed saved in
   // sessionStorage (see lib/buildSeed.ts): an in-app-browser Paystack
-  // checkout round trip (via /payment-return), and "Duplicate" from CV
-  // history. Both are handled by this one check — restore whatever is
+  // checkout round trip (via /payment-return), and "Rewrite for another job"
+  // from CV history. Both are handled by this one check — restore whatever is
   // there, then clear it so a stale seed can't reapply on a later visit.
   useEffect(() => {
     const seed = loadBuildSeed()
@@ -258,8 +258,9 @@ export default function BuildPage() {
 
   // ── Build seed: capture / restore ──────────────────────────────
   // Snapshot everything currently typed. Used right before an in-app-browser
-  // Paystack redirect (see triggerPaystack) and — later — by "Duplicate" in
-  // CV history. Uploaded FILES (a paste-path CV, or a JD upload) cannot be
+  // Paystack redirect (see triggerPaystack) and — later — by "Rewrite for
+  // another job" in CV history. Uploaded FILES (a paste-path CV, or a JD
+  // upload) cannot be
   // serialised into sessionStorage; if the current content came from an
   // uploaded file rather than pasted text, this captures nothing for that
   // field and the restored screen will simply ask for it again — validate()

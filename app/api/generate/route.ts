@@ -102,14 +102,14 @@ async function runPaginationRiskPass(cv: GeneratedCV): Promise<void> {
 
 // ── Save every generation to history ──────────────────────────
 // Every CV a user generates is kept permanently (never expires) so it can be
-// previewed, re-downloaded for free, or duplicated into a fresh tailored
+// previewed, re-downloaded for free, or rewritten into a fresh tailored
 // generation later. template_id/accent_color aren't known yet at this point
 // (template choice happens on the preview page, after generation) — they're
 // filled in via /api/cv-history/update-template once the user picks one;
 // this row is saved with a sensible default so it's never missing entirely
 // even if the user closes the tab before reaching the preview page.
 // raw_input is saved in the same shape the builder itself understands
-// (BuildSeed), so "Duplicate" can feed it straight back into the builder.
+// (BuildSeed), so "Rewrite for another job" can feed it straight back in.
 async function saveToHistory(
   phone: string,
   cvType: string,
