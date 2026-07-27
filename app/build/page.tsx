@@ -155,6 +155,12 @@ export default function BuildPage() {
     whyRole: useRef<HTMLTextAreaElement>(null),
     addressee: useRef<HTMLInputElement>(null),
     companyAddress: useRef<HTMLInputElement>(null),
+    // "Tailor my CV for…" — for people with no specific advert who still know
+    // the job and/or industry they want. Separate refs per screen because both
+    // screens stay mounted (display:none), so one ref can't serve both.
+    tailorJobPaste: useRef<HTMLInputElement>(null),
+    tailorIndustryPaste: useRef<HTMLInputElement>(null),
+    tailorIndustryForm: useRef<HTMLInputElement>(null),
   }
 
   // ── URL param pre-select ──────────────────────
@@ -456,6 +462,7 @@ export default function BuildPage() {
           orcid: r.orcid.current?.value || undefined,
           // Job targeting
           company: r.company.current?.value || undefined,
+          targetIndustry: r.tailorIndustryForm.current?.value || undefined,
           jobDescription: needsJD ? (jobDescription || undefined) : undefined,
           whyRole: cvType === 'cover_letter' ? (r.whyRole.current?.value || undefined) : undefined,
           // Cover-letter recipient (formal Ghanaian address block)
@@ -492,7 +499,14 @@ export default function BuildPage() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cvType, rawContent, jobDescription: needsJD ? (jobDescription || undefined) : undefined, phoneNumber: normalizedPhone })
+        body: JSON.stringify({
+          cvType, rawContent,
+          jobDescription: needsJD ? (jobDescription || undefined) : undefined,
+          // "Tailor my CV for…" — used when no advert was given
+          jobTitle: needsJD ? (refs.tailorJobPaste.current?.value || undefined) : undefined,
+          targetIndustry: needsJD ? (refs.tailorIndustryPaste.current?.value || undefined) : undefined,
+          phoneNumber: normalizedPhone,
+        })
       })
       const data = await res.json()
       if (!data.success) {
@@ -814,6 +828,24 @@ export default function BuildPage() {
 
           {needsJD && <JDSection method={jdInputMode} setMethod={setJdInputMode} pasteRef={refs.jdPaste} uploadedFile={uploadedJD} setUploadedFile={setUploadedJD} cvType={cvType} />}
 
+          {/* No advert? Aim it anyway. Very common here — people apply broadly
+              ("anything in banking") without a specific posting to paste. */}
+          {needsJD && (
+            <Collapsible
+              title="No advert? Tell us what you're aiming for"
+              hint="We'll angle your CV towards this — even without a job posting."
+              badge="Optional"
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <Field label="Job you want" placeholder="e.g. Banking Officer" fieldRef={refs.tailorJobPaste} />
+                <Field label="Industry" placeholder="e.g. Banking & Finance" fieldRef={refs.tailorIndustryPaste} />
+              </div>
+              <div style={{ fontSize: '11.5px', color: '#94a3b8', marginTop: '9px', lineHeight: 1.6 }}>
+                We only shift the emphasis of what you&apos;ve actually done — we never claim experience you don&apos;t have.
+              </div>
+            </Collapsible>
+          )}
+
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
@@ -1057,6 +1089,13 @@ export default function BuildPage() {
               <Field label={`Job Title${cvType === 'cover_letter' ? ' *' : ''}`} placeholder="e.g. Staff Nurse" fieldRef={refs.jobTitle} />
               <Field label={`${cvType === 'cover_letter' ? 'Employer / Institution' : 'Company Name'}${cvType === 'cover_letter' ? ' *' : ''}`} placeholder="e.g. Korle Bu Hospital" fieldRef={refs.company} />
             </div>
+            {/* Industry sits beside the job title so someone with no specific
+                advert can still aim the CV at a field. */}
+            {cvType !== 'cover_letter' && (
+              <div style={{ marginBottom: '12px' }}>
+                <Field label="Industry (optional)" placeholder="e.g. Banking & Finance, Health, NGO / Development" fieldRef={refs.tailorIndustryForm} />
+              </div>
+            )}
             {/* Formal address block for the letter — optional; sensible
                 defaults ("The Human Resource Manager", "Dear Sir/Madam,") are
                 used when left blank, so there are never empty placeholders. */}

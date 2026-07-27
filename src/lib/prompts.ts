@@ -157,7 +157,7 @@ function buildUserInfoBlock(formData: CVFormData): string {
 // TYPE INSTRUCTIONS
 // ─────────────────────────────────────────────────────────────
 function getTypeInstructions(formData: CVFormData): string {
-  const { cvType, jobDescription, company, whyRole, jobTitle } = formData
+  const { cvType, jobDescription, company, whyRole, jobTitle, targetIndustry } = formData
 
   switch (cvType) {
 
@@ -198,6 +198,26 @@ TAILORING APPROACH:
 - Match the seniority and tone of the role, but stay truthful to the person's actual level (see MATCH SENIORITY TO EVIDENCE).
 
 QUALITY: A hiring manager should read the first 6 lines and say "this person is exactly who we need."`
+      }
+
+      // No advert, but they told us the job and/or industry they're aiming at.
+      // Very common here: people apply broadly ("banking", "NGO work") without
+      // a specific posting. Slant the emphasis — never invent a background.
+      if ((jobTitle && jobTitle.trim()) || (targetIndustry && targetIndustry.trim())) {
+        const aim = [jobTitle?.trim(), targetIndustry?.trim()].filter(Boolean).join(' — ')
+        return `${base}
+
+THE CANDIDATE IS AIMING AT: ${aim}
+${company ? `TARGET EMPLOYER: ${company}` : ''}
+
+AIMING APPROACH (no advert was provided, so there is nothing to match against):
+- Slant the EMPHASIS of what they already have towards this target: lead the summary with the parts of their background most relevant to it, and order bullets so the most transferable achievement comes first within each role.
+- Use the vocabulary of that field where it genuinely describes work they have actually done.
+- ⚠️ NEVER claim experience, skills, tools, or exposure to that job/industry that the person's details do not show. Aiming at a field is NOT evidence of working in it. A retail supervisor aiming at banking is a retail supervisor with transferable cash-handling and customer-service strengths — do NOT call them a banking professional.
+- If their background is largely unrelated to the target, say nothing false: simply foreground the genuinely transferable strengths (accuracy, customer handling, supervision, record-keeping) and let those carry it.
+- Do not add a line stating what they are "seeking" unless their own details already say so.
+
+QUALITY: it should read as their real career, told in a way that makes sense to someone hiring in ${aim}.`
       }
 
       return base

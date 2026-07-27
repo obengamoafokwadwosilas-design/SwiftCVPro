@@ -68,6 +68,9 @@ export interface CVFormData {
   // Job targeting fields
   jobTitle_target?: string
   company?: string
+  // Target industry/sector — lets someone aim the CV ("banking", "NGO work")
+  // when they have no specific advert to paste. Slants emphasis only.
+  targetIndustry?: string
 
   // Cover-letter recipient (all optional) — for the formal Ghanaian address block
   addressee?: string        // e.g. "The Human Resource Manager", "The Registrar"

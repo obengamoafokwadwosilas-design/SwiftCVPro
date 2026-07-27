@@ -250,7 +250,11 @@ export async function POST(req: NextRequest) {
     } else {
       const cvFormData: CVFormData = {
         cvType: cvType || 'professional',
-        fullName: '', email: '', phone: '', location: '', jobTitle: '',
+        fullName: '', email: '', phone: '', location: '',
+        // Set on the paste path by "Tailor my CV for…", so a CV with no advert
+        // can still be aimed at a job/industry.
+        jobTitle: body.jobTitle || '',
+        targetIndustry: body.targetIndustry || undefined,
         rawContent,
         jobDescription
       }
