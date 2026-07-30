@@ -84,6 +84,14 @@ export default function BuildPage() {
   const [verifyingPayment, setVerifyingPayment] = useState(false)
   const [uploadedJD, setUploadedJD] = useState<File | null>(null)
   const [jdInputMode, setJdInputMode] = useState<'paste' | 'upload'>('paste')
+  // How (or whether) to aim this CV. Previously the advert box and the
+  // job/industry box were two separate optional sections, so a user could fill
+  // BOTH — and the advert silently won, ignoring what they'd typed. One
+  // exclusive choice makes the options honest and names the do-nothing path,
+  // which until now was invisible. Defaults to 'none': the only option that is
+  // complete without input, so nobody is left staring at a required-looking
+  // empty box they can't fill.
+  const [tailorMode, setTailorMode] = useState<'advert' | 'aim' | 'none'>('none')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   // Separate from isGenerating: the quick pre-flight credit check. Kept apart so
@@ -421,7 +429,9 @@ export default function BuildPage() {
 
         const clarify = refs.clarify.current?.value?.trim()
         if (clarify) rawContent += '\n\nADDITIONAL NOTES:\n' + clarify
-        if (needsJD) {
+        // Only read the advert if that's the option they actually chose, so a
+        // switch to "aim" or "just upgrade" can't leave stale advert text in.
+        if (needsJD && tailorMode === 'advert') {
           jobDescription = jdInputMode === 'upload' && uploadedJD
             ? await extractFile(uploadedJD)
             : refs.jdPaste.current?.value || ''
@@ -503,9 +513,9 @@ export default function BuildPage() {
         body: JSON.stringify({
           cvType, rawContent,
           jobDescription: needsJD ? (jobDescription || undefined) : undefined,
-          // "Tailor my CV for…" — used when no advert was given
-          jobTitle: needsJD ? (refs.tailorJobPaste.current?.value || undefined) : undefined,
-          targetIndustry: needsJD ? (refs.tailorIndustryPaste.current?.value || undefined) : undefined,
+          // Aim fields only when that's the chosen option — never alongside an advert
+          jobTitle: needsJD && tailorMode === 'aim' ? (refs.tailorJobPaste.current?.value || undefined) : undefined,
+          targetIndustry: needsJD && tailorMode === 'aim' ? (refs.tailorIndustryPaste.current?.value || undefined) : undefined,
           phoneNumber: normalizedPhone,
         })
       })
@@ -816,21 +826,15 @@ export default function BuildPage() {
             <textarea ref={refs.clarify} style={TA(70)} rows={3} placeholder={isCoverLetter ? 'What should the letter emphasise? — or leave blank...' : 'Type any special requests — or leave blank...'} />
           </Collapsible>
 
-          {needsJD && <JDSection method={jdInputMode} setMethod={setJdInputMode} pasteRef={refs.jdPaste} uploadedFile={uploadedJD} setUploadedFile={setUploadedJD} cvType={cvType} />}
-
-          {/* No advert? Aim it anyway. Very common here — people apply broadly
-              ("anything in banking") without a specific posting to paste. */}
           {needsJD && (
-            <Collapsible
-              title="No advert? Tell us what you're aiming for"
-              badge="Optional"
-              defaultOpen
-            >
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <Field label="Job you want" placeholder="e.g. Banking Officer" fieldRef={refs.tailorJobPaste} />
-                <Field label="Industry" placeholder="e.g. Banking & Finance" fieldRef={refs.tailorIndustryPaste} />
-              </div>
-            </Collapsible>
+            <TailorSection
+              mode={tailorMode} setMode={setTailorMode}
+              isLetter={cvType === 'cover_letter'}
+              jdMode={jdInputMode} setJdMode={setJdInputMode}
+              jdPasteRef={refs.jdPaste}
+              jdFile={uploadedJD} setJdFile={setUploadedJD}
+              jobRef={refs.tailorJobPaste} industryRef={refs.tailorIndustryPaste}
+            />
           )}
 
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
@@ -1348,6 +1352,71 @@ function ModeToggle({ value, onChange, options }: { value: string; onChange: (v:
           </button>
         )
       })}
+    </div>
+  )
+}
+
+// One exclusive choice for how to aim the document, replacing the two separate
+// optional boxes that could both be filled. Fields appear only under the
+// selected option — greyed-out-but-visible inputs are just noise on a phone.
+function TailorSection({ mode, setMode, isLetter, jdMode, setJdMode, jdPasteRef, jdFile, setJdFile, jobRef, industryRef }: {
+  mode: 'advert' | 'aim' | 'none'; setMode: (m: 'advert' | 'aim' | 'none') => void
+  isLetter: boolean
+  jdMode: 'paste' | 'upload'; setJdMode: (m: 'paste' | 'upload') => void
+  jdPasteRef: React.RefObject<HTMLTextAreaElement>
+  jdFile: File | null; setJdFile: (f: File | null) => void
+  jobRef: React.RefObject<HTMLInputElement>; industryRef: React.RefObject<HTMLInputElement>
+}) {
+  const doc = isLetter ? 'letter' : 'CV'
+  const options = [
+    { id: 'advert' as const, title: 'I have a job advert', desc: `Paste or upload it and we'll tailor your ${doc} to it.` },
+    { id: 'aim' as const,    title: "I don't have an advert", desc: 'Tell us the job or industry you want, and we aim it there.' },
+    { id: 'none' as const,   title: isLetter ? 'A general letter' : 'Just upgrade my CV', desc: isLetter ? 'No specific job in mind.' : 'Polish the wording and layout, without aiming at a role.' },
+  ]
+  return (
+    <div style={{ border: '1px solid #e7ebf0', borderRadius: '14px', background: 'white', marginBottom: '14px', padding: '16px 18px' }}>
+      <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '3px' }}>Tailor your {doc}</div>
+      <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '12px' }}>Pick one — or leave it on the last option.</div>
+
+      <div style={{ display: 'grid', gap: '9px' }}>
+        {options.map(opt => {
+          const on = mode === opt.id
+          return (
+            <div key={opt.id}>
+              <button onClick={() => setMode(opt.id)} aria-pressed={on}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: '11px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
+                  background: on ? '#f6fdfb' : 'white', border: on ? '2px solid #0d9488' : '1px solid #e7ebf0',
+                  borderRadius: '13px', padding: on ? '12px 13px' : '13px 14px', fontFamily: "'DM Sans', sans-serif" }}>
+                <span style={{ width: '17px', height: '17px', flexShrink: 0, marginTop: '1px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? '#0d9488' : 'transparent', border: on ? 'none' : '1.5px solid #e2e8f0' }}>
+                  {on && <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                </span>
+                <span>
+                  <span style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a' }}>{opt.title}</span>
+                  <span style={{ display: 'block', fontSize: '12px', color: '#64748b', marginTop: '2px', lineHeight: 1.5 }}>{opt.desc}</span>
+                </span>
+              </button>
+
+              {on && opt.id === 'advert' && (
+                <div style={{ marginTop: '10px', paddingLeft: '2px' }}>
+                  <div style={{ marginBottom: '10px' }}>
+                    <ModeToggle value={jdMode} onChange={setJdMode} options={UPLOAD_PASTE_OPTIONS} />
+                  </div>
+                  {jdMode === 'paste'
+                    ? <textarea ref={jdPasteRef} style={TA(110)} rows={5} placeholder="Paste the job advert here..." />
+                    : <UploadZone label="Drop the job advert here, or click to browse" hint="PDF · Word · Image (screenshot)" onFile={setJdFile} file={jdFile} />}
+                </div>
+              )}
+
+              {on && opt.id === 'aim' && (
+                <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <Field label="Job you want" placeholder="e.g. Banking Officer" fieldRef={jobRef} />
+                  <Field label="Industry" placeholder="e.g. Banking & Finance" fieldRef={industryRef} />
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
