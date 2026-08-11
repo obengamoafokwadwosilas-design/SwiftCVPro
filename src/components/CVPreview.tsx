@@ -123,11 +123,12 @@ const DEFAULT_ACCENT: Record<string, string> = {
 const BODY_SERIF = "'Crimson Text', 'Times New Roman', 'Liberation Serif', serif"
 const BODY_SANS = "'Source Sans 3', 'Segoe UI', Arial, 'Liberation Sans', sans-serif"
 // Display serif for a single non-wrapping name line only — never body text.
-// Metric compatibility doesn't matter here the way it does for BODY_SERIF/
-// BODY_SANS: a one-line name has no page-break plan to drift from (it's one
-// atomic header block on flow-paginated templates), so a fallback swap only
-// changes how wide the name renders, not how many lines/pages anything takes.
-const DISPLAY_SERIF = "'Source Serif 4', Georgia, 'Times New Roman', serif"
+// Times New Roman needs no webfont load at all: it's a system font on
+// Windows/macOS, and its Linux fallback (Liberation Serif) is the same pair
+// already measured at 0% drift against Crimson Text above — so unlike
+// Cambria/Georgia, this one never mismatches between the local browser and
+// Api2Pdf's renderer.
+const DISPLAY_SERIF = "'Times New Roman', 'Liberation Serif', serif"
 
 // A4 at 96dpi
 const PAGE_W = 794
