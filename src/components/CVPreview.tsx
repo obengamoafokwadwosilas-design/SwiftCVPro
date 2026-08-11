@@ -76,7 +76,7 @@ function extraSidebarSections(cv: GeneratedCV): ExtraSection[] {
 // Same paged DOM feeds both screen preview and PDF export.
 // ════════════════════════════════════════════════════════════════
 
-const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson' | 'atlas' | 'metro' | 'prestige' | 'compass' | 'beacon' | 'regent'> = {
+const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson' | 'atlas' | 'metro' | 'prestige' | 'compass' | 'beacon' | 'regent' | 'tandem'> = {
   vertex: 'vertex', atelier: 'vertex', editorial: 'vertex',
   sovereign: 'sovereign', newyork: 'sovereign', executive: 'sovereign',
   meridian: 'meridian', modern: 'meridian', europass: 'meridian', graduate: 'meridian',
@@ -96,11 +96,12 @@ const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend
   compass: 'compass',
   beacon: 'beacon',
   regent: 'regent',
+  tandem: 'tandem',
 }
 const DEFAULT_ACCENT: Record<string, string> = {
   vertex: '#e0533d', sovereign: '#b08d3f', meridian: '#0d9488', ascend: '#1d4ed8', harbour: '#0f766e', classic: '#1a1a1a',
   onyx: '#c9a86a', sterling: '#c9a86a', slate: '#1a1a1a', verde: '#3f9142', crimson: '#a01e1e', atlas: '#3b82f6',
-  metro: '#7c3aed', prestige: '#a87b00', compass: '#64748b', beacon: '#2563eb', regent: '#1e3a6e',
+  metro: '#7c3aed', prestige: '#a87b00', compass: '#64748b', beacon: '#2563eb', regent: '#1e3a6e', tandem: '#275D63',
 }
 // Webfonts FIRST: they render identically in the user's browser (measurement)
 // and in server-side headless Chrome (PDF).
@@ -391,11 +392,15 @@ type TemplateConfig = {
   // same engine that draws it, the browser-vs-remote-renderer height drift that
   // clipped bottom-edge content becomes impossible — a block that doesn't fit is
   // flowed to the next sheet, never sliced. Only valid for single-column,
-  // plain-background templates whose Frame is "header (page 1) + padded body"
-  // with no per-page decoration (rails, borders, colour bands) and no sidebar.
+  // plain-background templates whose Frame is "header (page 1) + padded body".
+  // A fixed, intentionally compact sidebar may repeat safely; a second flowing
+  // sidebar cannot, because it would reintroduce two independent page flows.
   // The on-screen preview and the packer are unaffected — this only changes the
   // PDF path for flagged templates.
   flowPaginate?: boolean
+  flowSidebar?: (p: { cv: GeneratedCV; A: string }) => React.ReactNode
+  flowSidebarW?: number
+  flowAllowBlockSplit?: boolean
   // Body text colour for the flow document wrapper (defaults to #1a1a1a).
   flowBodyColor?: string
   // ── Per-page flow decorations ──────────────────────────────────────────
@@ -436,7 +441,7 @@ type TemplateConfig = {
 }
 
 // shared block builders for single-column-ish bodies
-function sectionHeading(text: string, A: string, style: 'rule' | 'bar' | 'tick' | 'dash' | 'plain' | 'exec' | 'compass' | 'beacon' | 'editorial' = 'rule') {
+function sectionHeading(text: string, A: string, style: 'rule' | 'bar' | 'tick' | 'dash' | 'plain' | 'exec' | 'compass' | 'beacon' | 'editorial' | 'tandem' = 'rule') {
   // Editorial: heavy accent rule ABOVE a bold accent heading — a magazine
   // section divider. Both parts live in the content flow (no page-edge
   // decoration), so this template can use flow pagination. Matches the Word
@@ -452,6 +457,7 @@ function sectionHeading(text: string, A: string, style: 'rule' | 'bar' | 'tick' 
   // (matches the Word buildBeacon shaded-cell + border). Both use the accent.
   if (style === 'compass') return <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}><span style={{ flex: 1, height: 1, background: A }} /><span style={{ fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#1a1a1a', whiteSpace: 'nowrap' }}>{text}</span><span style={{ flex: 1, height: 1, background: A }} /></div>
   if (style === 'beacon') return <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}><span style={{ background: A, color: '#fff', fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '4px 12px', borderRadius: 3, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>{text}</span><span style={{ flex: 1, height: 2, background: A, opacity: 0.5 }} /></div>
+  if (style === 'tandem') return <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}><span style={{ width: 20, height: 3, background: A }} /><span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: '#17333a' }}>{text}</span><span style={{ flex: 1, height: 1, background: A, opacity: 0.3 }} /></div>
   // Executive style: navy text + gold underline (fixed colours, matches the
   // Word buildExecutive builder exactly so Prestige looks the same in both).
   if (style === 'exec') return <div style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2, color: '#0a1a3a', borderBottom: '2px solid #a87b00', paddingBottom: 4, marginBottom: 10 }}>{text}</div>
@@ -824,7 +830,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
           spacing comes from @page margins in buildPdfHtml, so this wrapper only
           carries the horizontal padding — hence no vertical padding here. */}
       {config.flowPaginate && (
-        <div data-flow-doc style={{ width: '100%', background: '#fff', fontFamily: config.font, color: config.flowBodyColor ?? '#1a1a1a' }}>
+        <div data-flow-doc data-flow-allow-block-split={config.flowAllowBlockSplit ? '' : undefined} style={{ width: '100%', background: '#fff', fontFamily: config.font, color: config.flowBodyColor ?? '#1a1a1a' }}>
           {config.flowBand ? (
             // Banded templates (onyx, verde): full-bleed page-1 header band, then
             // horizontally-padded body. @page margins are vertical-only (set in
@@ -851,6 +857,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
               {config.flowPageBg && <div data-flow-decor style={{ position: 'fixed', inset: 0, background: config.flowPageBg, zIndex: 0 }} />}
               {config.flowRail && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowRailW ?? 38, background: A, zIndex: 0 }} />}
               {config.flowTopBarH && <div data-flow-decor style={{ position: 'fixed', left: 0, right: 0, top: 0, height: config.flowTopBarH, background: A, zIndex: 0 }} />}
+              {config.flowSidebar && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowSidebarW ?? 200, zIndex: 0 }}>{config.flowSidebar({ cv, A })}</div>}
               {/* Content layer sits above the decorations. */}
               <div style={{ position: 'relative', zIndex: 1 }}>
                 <config.Header cv={cv} A={A} />
@@ -895,7 +902,8 @@ export function getFlowPdfConfig(templateId: TemplateId): { padTop: number; padB
   const parts = config.mainPad.split(/\s+/).map(p => parseFloat(p) || 0)
   const padSide = parts.length >= 2 ? parts[1] : (parts[0] || 0)
   const railW = config.flowRail ? (config.flowRailW ?? 38) : 0
-  return { padTop: config.contentPadV, padBottom: config.contentPadV, padLeft: padSide + railW, padRight: padSide, banded: false }
+  const sidebarW = config.flowSidebar ? (config.flowSidebarW ?? 200) : 0
+  return { padTop: config.contentPadV, padBottom: config.contentPadV, padLeft: padSide + railW + sidebarW, padRight: padSide, banded: false }
 }
 
 
@@ -967,6 +975,32 @@ function sterlingSidebarBlocks(cv: GeneratedCV, A: string): Block[] {
 // content height so an under-filled page leaves no empty gap. The PDF page height
 // is set separately in buildPdfHtml (#cv-print-area > div > div { height: 296mm })
 // inside app/preview/page.tsx, so the download stays full-A4 and unaffected.
+function TandemSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
+  const label = (text: string) => <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.66)', marginBottom: 8 }}>{text}</div>
+  const contactLines = [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean)
+  const skills = (cv.skills || []).slice(0, 6)
+  const education = (cv.education || []).slice(0, 2)
+  return (
+    <aside style={{ minHeight: '100%', padding: '34px 22px', color: '#fff', background: darken(A), display: 'flex', flexDirection: 'column', fontFamily: BODY_SANS, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+      <div style={{ width: 42, height: 42, display: 'grid', placeItems: 'center', border: '1px solid rgba(255,255,255,0.56)', borderRadius: 2, fontSize: 15, fontWeight: 800, letterSpacing: 0.8, marginBottom: 26 }}>{initials(cv.fullName)}</div>
+      <div style={{ fontSize: 10, letterSpacing: 2.2, color: 'rgba(255,255,255,0.58)', marginBottom: 26 }}>PROFESSIONAL CV</div>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.24)', paddingTop: 16, marginBottom: 22 }}>
+        {label('Contact')}
+        {contactLines.map((line, index) => <div key={index} style={{ fontSize: 11.5, lineHeight: 1.52, color: 'rgba(255,255,255,0.92)', marginBottom: 6, overflowWrap: 'anywhere' }}>{line}</div>)}
+      </div>
+      {skills.length > 0 && <div style={{ borderTop: '1px solid rgba(255,255,255,0.24)', paddingTop: 16, marginBottom: 22 }}>
+        {label('Key skills')}
+        {skills.map((skill, index) => <div key={index} style={{ fontSize: 11.5, lineHeight: 1.45, color: 'rgba(255,255,255,0.9)', marginBottom: 6, paddingLeft: 10, position: 'relative' }}><span style={{ position: 'absolute', left: 0, color: 'rgba(255,255,255,0.52)' }}>·</span>{skill}</div>)}
+      </div>}
+      {education.length > 0 && <div style={{ borderTop: '1px solid rgba(255,255,255,0.24)', paddingTop: 16 }}>
+        {label('Education')}
+        {education.map((item, index) => <div key={index} style={{ fontSize: 11.5, lineHeight: 1.45, color: 'rgba(255,255,255,0.9)', marginBottom: 11 }}><div style={{ fontWeight: 700 }}>{item.qualification}{item.field ? `, ${item.field}` : ''}</div><div style={{ color: 'rgba(255,255,255,0.66)' }}>{item.institution}</div></div>)}
+      </div>}
+      <div style={{ marginTop: 'auto', paddingTop: 18, fontSize: 9.5, letterSpacing: 1.4, color: 'rgba(255,255,255,0.46)' }}>SWIFTCVPRO</div>
+    </aside>
+  )
+}
+
 const pageBase: React.CSSProperties = { width: PAGE_W, background: '#fff', margin: '0 auto 24px', boxSizing: 'border-box', position: 'relative', overflow: 'hidden', pageBreakAfter: 'always' }
 
 const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
@@ -1542,6 +1576,26 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       <div style={{ ...pageBase, fontFamily: BODY_SANS, color: '#1a1a1a', padding: '44px 46px' }}>
         {pageIndex === 0 && <TEMPLATES_CONFIG.beacon.Header cv={cv} A={A} />}
         {children}
+      </div>
+    ),
+  },
+
+  // ── TANDEM: fixed repeating sidebar + one native flowing content column ──
+  tandem: {
+    design: 'tandem', font: BODY_SANS, contentPadV: 42, mainPad: '42px 42px', sidebarW: 212, sidebarSide: 'left', measureW: 498, flowPaginate: true, flowSidebar: ({ cv, A }) => <TandemSidebar cv={cv} A={A} />, flowSidebarW: 212, flowAllowBlockSplit: true,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'tandem', { skillsInline: true }),
+    Header: ({ cv, A }) => (<div style={{ borderBottom: '1px solid #d9e4e5', paddingBottom: 22, marginBottom: 24 }}>
+      <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 2.1, color: A, marginBottom: 9 }}>CAREER PROFILE</div>
+      <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.7, lineHeight: 1.04, color: '#183339' }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 15, fontWeight: 600, color: '#5b7276', marginTop: 8 }}>{cv.jobTitle}</div>}
+    </div>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, display: 'grid', gridTemplateColumns: '212px 1fr', fontFamily: BODY_SANS, color: '#183339', background: '#fbfcfc' }}>
+        <TandemSidebar cv={cv} A={A} />
+        <main style={{ padding: '42px 42px' }}>
+          {pageIndex === 0 && <TEMPLATES_CONFIG.tandem.Header cv={cv} A={A} />}
+          {children}
+        </main>
       </div>
     ),
   },

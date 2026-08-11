@@ -21,7 +21,7 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'sovereign', name: 'Executive Gold',  tag: 'Prestige · Centered · Corporate',  color: '#b08d3f', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'ascend',    name: 'Corporate Blue',  tag: 'Strong · Colour Bars · Structured',color: '#1d4ed8', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'harbour',   name: 'Refined Teal',    tag: 'Editorial · Elegant · Professional',color: '#0f766e',formats: 'both', category: 'premium',  customizable: true  },
-  { id: 'meridian',  name: 'Meridian',        tag: 'Two-Column · Colour Sidebar',       color: '#0d9488', formats: 'both', category: 'premium',  customizable: true  },
+  { id: 'tandem',    name: 'Tandem',          tag: 'Two-Column · Repeating Sidebar · Print Safe', color: '#275D63', formats: 'pdf', category: 'premium', customizable: true },
   { id: 'metro',     name: 'Aurora',          tag: 'Colourful · Bold Header Band',      color: '#7c3aed', formats: 'both', category: 'premium',  customizable: true  },
   // Prestige keeps its fixed navy + gold identity (not colour-customizable).
   { id: 'prestige',  name: 'Prestige',        tag: 'Executive · Navy & Gold · Centered',color: '#a87b00', formats: 'both', category: 'premium',  customizable: false },
@@ -33,7 +33,6 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'regent',    name: 'Regent',          tag: 'Classic · Blue Banner · Recruiter Style', color: '#1e3a6e', formats: 'both', category: 'ats', customizable: true  },
   // ── PDF only (rich layouts Word can't reproduce faithfully) — shown last ──
   { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'pdf',  category: 'premium',  customizable: true  },
-  { id: 'sterling',  name: 'Sterling',        tag: 'Two-Column · Dark Sidebar',         color: '#c9a86a', formats: 'pdf',  category: 'premium',  customizable: true  },
 ]
 
 // Color swatches for picker
@@ -532,6 +531,9 @@ export default function PreviewPage() {
        attached to the item that follows them */
     [data-flow-block] { break-inside: avoid; page-break-inside: avoid; }
     [data-flow-head] { break-after: avoid; page-break-after: avoid; }
+    [data-flow-allow-block-split] [data-flow-block]:not([data-flow-head]),
+    [data-flow-allow-block-split] [data-flow-block]:not([data-flow-head]) * { break-inside: auto !important; page-break-inside: auto !important; }
+    [data-flow-allow-block-split] [data-flow-head] { break-inside: avoid; page-break-inside: avoid; }
   </style>
 </head>
 <body>

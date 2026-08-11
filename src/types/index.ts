@@ -30,6 +30,7 @@ export type TemplateId =
   | 'compass'
   | 'beacon'
   | 'regent'
+  | 'tandem'
 
 export type ExportFormat = 'docx' | 'pdf'
 
