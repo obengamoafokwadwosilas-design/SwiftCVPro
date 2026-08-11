@@ -8,7 +8,7 @@ import {
   LevelFormat, convertInchesToTwip, TabStopType, TabStopPosition, VerticalAlign
 } from 'docx'
 import { GeneratedCV, TemplateId } from '@/types'
-import { buildVertex, buildSovereign, buildMeridianV2, buildAscend, buildHarbour, buildPulse, buildAurora } from './premium'
+import { buildVertex, buildSovereign, buildMeridianV2, buildAscend, buildHarbour, buildPulse, buildAurora, buildRegent } from './premium'
 import { formatLetterDate } from '@/lib/coverLetter'
 import { rateLimit, clientIp } from '@/lib/rateLimit'
 
@@ -145,6 +145,7 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
     case 'prestige':  return buildExecutive(cv)
     case 'compass':   return buildCompass(cv, accentColor)
     case 'beacon':    return buildBeacon(cv, accentColor)
+    case 'regent':    return buildRegent(cv, accentColor || '#1e3a6e')
 
     // atlas (timeline rail) and sterling (dark two-column sidebar) are PDF-only —
     // their layouts can't be faithfully reproduced in Word — so the UI never

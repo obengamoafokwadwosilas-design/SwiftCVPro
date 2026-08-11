@@ -29,6 +29,7 @@ export type TemplateId =
   | 'prestige'
   | 'compass'
   | 'beacon'
+  | 'regent'
 
 export type ExportFormat = 'docx' | 'pdf'
 

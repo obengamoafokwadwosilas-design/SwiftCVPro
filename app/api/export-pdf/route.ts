@@ -60,6 +60,7 @@ export async function POST(req: Request) {
     }
 
     const fileName = `${safeFileName(fullName || 'SwiftCVPro')}_CV.pdf`
+    const rendererOwnedTwoColumn = html.includes('data-renderer-page')
 
     const apiResponse = await fetch('https://v2.api2pdf.com/chrome/pdf/html', {
       method: 'POST',
@@ -73,7 +74,9 @@ export async function POST(req: Request) {
         options: {
           printBackground: true,
           preferCSSPageSize: true,
-          delay: 1200,
+          // Meridian and Sterling compose their fixed pages in the renderer's
+          // own Chrome after its fonts load, so give that one path time to settle.
+          delay: rendererOwnedTwoColumn ? 3000 : 1200,
           margin: {
             top: '0px',
             right: '0px',

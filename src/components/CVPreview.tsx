@@ -76,7 +76,7 @@ function extraSidebarSections(cv: GeneratedCV): ExtraSection[] {
 // Same paged DOM feeds both screen preview and PDF export.
 // ════════════════════════════════════════════════════════════════
 
-const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson' | 'atlas' | 'metro' | 'prestige' | 'compass' | 'beacon'> = {
+const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend' | 'harbour' | 'classic' | 'onyx' | 'sterling' | 'slate' | 'verde' | 'crimson' | 'atlas' | 'metro' | 'prestige' | 'compass' | 'beacon' | 'regent'> = {
   vertex: 'vertex', atelier: 'vertex', editorial: 'vertex',
   sovereign: 'sovereign', newyork: 'sovereign', executive: 'sovereign',
   meridian: 'meridian', modern: 'meridian', europass: 'meridian', graduate: 'meridian',
@@ -95,11 +95,12 @@ const TEMPLATE_MAP: Record<string, 'vertex' | 'sovereign' | 'meridian' | 'ascend
   prestige: 'prestige',
   compass: 'compass',
   beacon: 'beacon',
+  regent: 'regent',
 }
 const DEFAULT_ACCENT: Record<string, string> = {
   vertex: '#e0533d', sovereign: '#b08d3f', meridian: '#0d9488', ascend: '#1d4ed8', harbour: '#0f766e', classic: '#1a1a1a',
   onyx: '#c9a86a', sterling: '#c9a86a', slate: '#1a1a1a', verde: '#3f9142', crimson: '#a01e1e', atlas: '#3b82f6',
-  metro: '#7c3aed', prestige: '#a87b00', compass: '#64748b', beacon: '#2563eb',
+  metro: '#7c3aed', prestige: '#a87b00', compass: '#64748b', beacon: '#2563eb', regent: '#1e3a6e',
 }
 // Webfonts FIRST: they render identically in the user's browser (measurement)
 // and in server-side headless Chrome (PDF).
@@ -149,19 +150,7 @@ function darken(hex: string, _factor?: number): string {
 }
 
 // ── A "block" is a measurable chunk of CV content ──
-type SplitBullet = { text: string; render: (first: string, rest: string) => [React.ReactNode, React.ReactNode] }
-type Block = { key: string; node: React.ReactNode; splitBullet?: SplitBullet }
-
-function experienceBullet(key: string, text: string, color: string, finalMargin: number): Block {
-  const full = (value: string, continuation: boolean, marginBottom: number) => continuation
-    ? <div style={{ paddingLeft: 16, fontSize: 13.5, lineHeight: 1.7, color, marginBottom }}><span data-split-text>{value}</span></div>
-    : <ul style={{ margin: 0, paddingLeft: 16, marginBottom, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color, marginBottom: 5 }}><span data-split-text>{value}</span></li></ul>
-  return {
-    key,
-    node: full(text, false, finalMargin),
-    splitBullet: { text, render: (first, rest) => [full(first, false, 0), full(rest, true, finalMargin)] },
-  }
-}
+type Block = { key: string; node: React.ReactNode }
 
 // ═══ SHARED PACKING ALGORITHM ═══════════════════════════════════════
 // Extracted so it can run twice: once with hidden-measure-pass heights
@@ -612,17 +601,7 @@ function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skill
 // THE PAGINATION ENGINE
 // ════════════════════════════════════════════════════════════════
 function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: TemplateConfig }) {
-  const sourceBlocks = config.buildBlocks(cv, A)
-  const [splits, setSplits] = useState<Record<string, { first: string; rest: string }>>({})
-  const blocks = sourceBlocks.flatMap(block => {
-    const split = splits[block.key]
-    if (!split || !block.splitBullet) return [block]
-    const [first, rest] = block.splitBullet.render(split.first, split.rest)
-    return [
-      { key: `${block.key}-part1`, node: first },
-      { key: `${block.key}-part2`, node: rest },
-    ]
-  })
+  const blocks = config.buildBlocks(cv, A)
   const sideBlocks = config.buildSidebarBlocks ? config.buildSidebarBlocks(cv, A) : []
   const measureRef = useRef<HTMLDivElement>(null)
   const sideMeasureRef = useRef<HTMLDivElement>(null)
@@ -640,8 +619,6 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   // down) leak into exported PDFs as unnecessary early page breaks.
   const wrapperRef = useRef<HTMLDivElement>(null)
   const markPaginationReady = () => { if (wrapperRef.current) wrapperRef.current.setAttribute('data-pagination-ready', 'true') }
-
-  useLayoutEffect(() => { setSplits({}) }, [cv, A, config.design])
 
   useLayoutEffect(() => {
     let cancelled = false
@@ -709,51 +686,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
       run()
     }
     return () => { cancelled = true; if (raf) cancelAnimationFrame(raf) }
-  }, [cv, A, config.design, splits]) // eslint-disable-line
-
-  useLayoutEffect(() => {
-    const measure = measureRef.current
-    if (!pages || !measure || !limitsRef.current) return
-    const rows = Array.from(measure.children) as HTMLElement[]
-    if (rows.length !== blocks.length) return
-    const heights = rows.map(row => {
-      const rect = row.getBoundingClientRect()
-      const style = window.getComputedStyle(row)
-      return rect.height + (parseFloat(style.marginTop) || 0) + (parseFloat(style.marginBottom) || 0)
-    })
-    const { page1Usable, usable } = limitsRef.current
-
-    for (let page = 0; page < pages.length - 1; page++) {
-      const nextIndex = pages[page + 1][0]
-      const bullet = blocks[nextIndex]
-      if (!bullet?.splitBullet || splits[bullet.key]) continue
-      const used = pages[page].reduce((total, index) => total + (heights[index] || 0), 0)
-      const remaining = (page === 0 ? page1Usable : usable) - FINAL_RENDER_GUARD - used
-      if (remaining <= 0) continue
-      const text = rows[nextIndex].querySelector('[data-split-text]')
-      const textNode = text?.firstChild
-      if (!text || !textNode || textNode.nodeType !== Node.TEXT_NODE) continue
-      const boundary = rows[nextIndex].getBoundingClientRect().top + remaining
-      const range = document.createRange()
-      let end = 0
-      const lineTops = new Set<number>()
-      for (const word of Array.from(bullet.splitBullet.text.matchAll(/\S+\s*/g))) {
-        const wordEnd = word.index! + word[0].length
-        range.setStart(textNode, Math.max(0, wordEnd - 1))
-        range.setEnd(textNode, wordEnd)
-        const rect = range.getBoundingClientRect()
-        if (rect.bottom > boundary) break
-        end = wordEnd
-        lineTops.add(Math.round(rect.top))
-      }
-      if (end === 0 || lineTops.size < 2) continue
-      const first = bullet.splitBullet.text.slice(0, end).trim()
-      const rest = bullet.splitBullet.text.slice(end).trim()
-      if (!first || !rest) continue
-      setSplits(current => ({ ...current, [bullet.key]: { first, rest } }))
-      return
-    }
-  }, [pages, blocks, splits])
+  }, [cv, A, config.design]) // eslint-disable-line
 
   // ═══ GROUND-TRUTH SELF-CORRECTION ═══════════════════════════════
   // The hidden measure pass gives a fast first plan, but it is a SEPARATE
@@ -1034,18 +967,16 @@ const pageBase: React.CSSProperties = { width: PAGE_W, background: '#fff', margi
 const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   // ── MERIDIAN: teal sidebar left ──
   meridian: {
-    // Meridian is two-column (per-page sidebar) so it must stay on the packer —
-    // flow pagination can't place sidebar content per page. Every other design
-    // moved to flow, where the PDF renderer owns the breaks and clipping is
-    // impossible by construction; Meridian and Sterling are the last two whose
-    // pages are pre-packed here and then hard-clipped by the fixed-height,
-    // overflow:hidden page box in buildPdfHtml. That makes them the only two
-    // exposed to browser-vs-remote-renderer drift: we measure locally, Api2Pdf
-    // renders on its own Chrome, and if its text comes out even slightly taller
-    // the last block is sliced mid-line.
-    // FINAL_RENDER_GUARD already reserves renderer drift. A second template-only
-    // buffer stranded short sections despite usable physical space on the sheet.
-    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 0,
+    // The screen preview uses the shared packer. PDF export re-packs Meridian
+    // inside Api2Pdf's Chrome, where the measurements and final drawing match
+    // while the sidebar still repeats on every generated page.
+    // The safety margin is GUARANTEED dead space at the foot of every page, so
+    // it is kept modest. Briefly raised to 110 to outrun the font-fallback
+    // swell, which bought ~114px of white space per page and still could not
+    // cover a ~20% swing; that swell is now fixed at source in BODY_SERIF, so
+    // 58 is back — enough for ordinary sub-pixel drift, small enough that pages
+    // still fill. See PACK_BOTTOM_SAFETY.
+    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 58,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: A, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>{t}<span style={{ flex: 1, height: 2, background: A, opacity: 0.25 }} /></div>
       const b: Block[] = []
@@ -1057,7 +988,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
           // bullets are separate blocks so a long role FLOWS across pages instead
           // of jumping wholesale and leaving a large gap.
           b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 15, fontWeight: 700 }}>{e.role}</div><div style={{ fontSize: 12, color: '#888', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</div></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600 }}>{e.company}</div></div> })
-          e.bullets.forEach((x, j) => b.push(experienceBullet(`exp${i}-b${j}`, x, '#333', j === e.bullets.length - 1 ? 14 : 0)))
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: j === e.bullets.length - 1 ? 14 : 0, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#333', marginBottom: 5 }}><span data-renderer-splittable>{x}</span></li></ul> }))
         })
       }
       // Education is rendered in the sidebar for this two-column template.
@@ -1126,14 +1057,13 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── STERLING: gold executive, navy sidebar right, monogram ──
   sterling: {
-    // Like Meridian, Sterling is two-column and stays on the packer, so it is
-    // hard-clipped by the fixed-height page box and exposed to the same
-    // browser-vs-remote-renderer drift. It was the WORST of the two: with no
-    // packBottomSafety override it fell back to the shared default of 32,
-    // leaving a worst-case page just 36px (3.3%) short of the clip boundary.
-    // As in Meridian, rely on the final guard instead of reserving a second
-    // template-only buffer that can force a short section onto a new page.
-    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42, packBottomSafety: 0,
+    // PDF export uses the same renderer-owned two-column composition as
+    // Meridian; this local safety margin is only for the screen preview.
+    // Now set explicitly to 58, matching Meridian: the font-fallback swell that
+    // actually caused the clipping is fixed at source in BODY_SERIF, so this
+    // only has to absorb ordinary sub-pixel drift, and a bigger value would
+    // just be dead space at the foot of every page.
+    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42, packBottomSafety: 58,
     buildBlocks: (cv, A) => {
       const DARK = darken(A, 0.74)
       const head = (t: string) => <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: DARK, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12, display: 'inline-block' }}>{t}</div>
@@ -1143,7 +1073,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
         cv.experience.forEach((e, i) => {
           b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: DARK }}>{e.role}</span><span style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600 }}>{e.company}</div></div> })
-          e.bullets.forEach((x, j) => b.push(experienceBullet(`exp${i}-b${j}`, x, '#3a3a3a', j === e.bullets.length - 1 ? 13 : 0)))
+          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: j === e.bullets.length - 1 ? 13 : 0, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#3a3a3a', marginBottom: 5 }}><span data-renderer-splittable>{x}</span></li></ul> }))
         })
       }
       // Education is rendered in the sidebar for this two-column template.
@@ -1252,6 +1182,28 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
         {pageIndex === 0 && <div style={{ background: `linear-gradient(135deg, ${darken(A, 0.45)}, ${A})`, padding: '36px 50px 30px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}><TEMPLATES_CONFIG.verde.Header cv={cv} A={A} /></div>}
         <div style={{ padding: pageIndex === 0 ? '32px 50px 40px' : '46px 50px 40px' }}>{children}</div>
+      </div>
+    ),
+  },
+
+  // ── REGENT: classic HR/recruiter template — full-bleed navy-blue header
+  // band, centred white caps name, blue underlined section headings, serif
+  // body. Reuses commonBlocks('rule') as-is: its Experience block already
+  // renders role (bold, left) + dates (italic, right) + company (below) +
+  // bullets, which is exactly this layout. Paired 1:1 with the Word
+  // buildRegent builder in export-docx/route.ts.
+  regent: {
+    design: 'regent', font: BODY_SERIF, contentPadV: 40, pageUsable: 1037, headerBannerPad: '40px 50px 34px', mainPad: '40px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694, flowPaginate: true, flowBand: true, flowBandBg: (A) => A,
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'rule', { skillsInline: true }),
+    Header: ({ cv, A }) => (<div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#fff' }}>{cv.fullName}</div>
+      {cv.jobTitle && <div style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.88)', fontStyle: 'italic', marginTop: 6 }}>{cv.jobTitle}</div>}
+      <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.85)', marginTop: 10 }}>{contact(cv).replace(/•/g, '/')}</div>
+    </div>),
+    Frame: ({ cv, A, pageIndex, children }) => (
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+        {pageIndex === 0 && <div style={{ background: A, padding: '40px 50px 34px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}><TEMPLATES_CONFIG.regent.Header cv={cv} A={A} /></div>}
+        <div style={{ padding: pageIndex === 0 ? '34px 50px 40px' : '46px 50px 40px' }}>{children}</div>
       </div>
     ),
   },
