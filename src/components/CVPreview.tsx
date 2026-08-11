@@ -1043,9 +1043,9 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     // exposed to browser-vs-remote-renderer drift: we measure locally, Api2Pdf
     // renders on its own Chrome, and if its text comes out even slightly taller
     // the last block is sliced mid-line.
-    // The larger template-specific margin protects the fixed-height page frame;
-    // long bullets can now continue across a page boundary instead of leaving it unused.
-    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 58,
+    // FINAL_RENDER_GUARD already reserves renderer drift. A second template-only
+    // buffer stranded short sections despite usable physical space on the sheet.
+    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 0,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: A, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>{t}<span style={{ flex: 1, height: 2, background: A, opacity: 0.25 }} /></div>
       const b: Block[] = []
@@ -1131,9 +1131,9 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     // browser-vs-remote-renderer drift. It was the WORST of the two: with no
     // packBottomSafety override it fell back to the shared default of 32,
     // leaving a worst-case page just 36px (3.3%) short of the clip boundary.
-    // Matching Meridian, retain the frame's safety margin and continue a long
-    // bullet when it is the only reason the remaining space would go unused.
-    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42, packBottomSafety: 58,
+    // As in Meridian, rely on the final guard instead of reserving a second
+    // template-only buffer that can force a short section onto a new page.
+    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42, packBottomSafety: 0,
     buildBlocks: (cv, A) => {
       const DARK = darken(A, 0.74)
       const head = (t: string) => <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: DARK, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12, display: 'inline-block' }}>{t}</div>
