@@ -400,6 +400,7 @@ type TemplateConfig = {
   flowPaginate?: boolean
   flowSidebar?: (p: { cv: GeneratedCV; A: string }) => React.ReactNode
   flowSidebarW?: number
+  flowSidebarBg?: (A: string) => string
   flowAllowBlockSplit?: boolean
   // Body text colour for the flow document wrapper (defaults to #1a1a1a).
   flowBodyColor?: string
@@ -808,6 +809,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   const flowSidebarInset = config.flowSidebar
     ? flowPadH(config) + (config.flowSidebarW ?? 200) + (config.flowRail ? (config.flowRailW ?? 38) : 0)
     : 0
+  const flowSidebarBleedY = config.flowSidebarBg ? config.contentPadV : 0
 
   return (
     <div ref={wrapperRef}>
@@ -836,7 +838,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
           spacing comes from @page margins in buildPdfHtml, so this wrapper only
           carries the horizontal padding — hence no vertical padding here. */}
       {config.flowPaginate && (
-        <div data-flow-doc data-flow-allow-block-split={config.flowAllowBlockSplit ? '' : undefined} style={{ width: '100%', background: '#fff', fontFamily: config.font, color: config.flowBodyColor ?? '#1a1a1a' }}>
+        <div data-flow-doc data-flow-allow-block-split={config.flowAllowBlockSplit ? '' : undefined} style={{ position: 'relative', width: '100%', background: '#fff', fontFamily: config.font, color: config.flowBodyColor ?? '#1a1a1a' }}>
           {config.flowBand ? (
             // Banded templates (onyx, verde): full-bleed page-1 header band, then
             // horizontally-padded body. @page margins are vertical-only (set in
@@ -863,7 +865,8 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
               {config.flowPageBg && <div data-flow-decor style={{ position: 'fixed', inset: 0, background: config.flowPageBg, zIndex: 0 }} />}
               {config.flowRail && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowRailW ?? 38, background: A, zIndex: 0 }} />}
               {config.flowTopBarH && <div data-flow-decor style={{ position: 'fixed', left: 0, right: 0, top: 0, height: config.flowTopBarH, background: A, zIndex: 0 }} />}
-              {config.flowSidebar && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowSidebarW ?? 200, zIndex: 0 }}>{config.flowSidebar({ cv, A })}</div>}
+              {config.flowSidebarBg && <div data-flow-decor style={{ position: 'fixed', left: 0, top: -flowSidebarBleedY, bottom: -flowSidebarBleedY, width: config.flowSidebarW ?? 200, background: config.flowSidebarBg(A), zIndex: 0 }} />}
+              {config.flowSidebar && <div style={{ position: 'absolute', left: 0, top: 0, width: config.flowSidebarW ?? 200, zIndex: 1 }}>{config.flowSidebar({ cv, A })}</div>}
               {/* Content layer sits above the decorations. */}
               <div style={{ position: 'relative', zIndex: 1, marginLeft: flowSidebarInset }}>
                 <config.Header cv={cv} A={A} />
@@ -1000,7 +1003,7 @@ function TandemSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
   const education = cv.education || []
   const references = getSections(cv).filter(section => isRefsHead(section.heading)).flatMap(section => section.items)
   return (
-    <aside style={{ minHeight: '100%', padding: '30px 20px 24px', color: '#fff', background: darken(A), fontFamily: BODY_SANS, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+    <aside style={{ padding: '30px 20px 24px', color: '#fff', fontFamily: BODY_SANS, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
       <div style={{ paddingBottom: 18, marginBottom: 18, borderBottom: '1px solid rgba(255,255,255,0.28)' }}>
         {label('Contact')}
         {contactLines.map((line, index) => <div key={index} style={{ fontSize: 10.8, lineHeight: 1.5, color: 'rgba(255,255,255,0.94)', marginBottom: 5, overflowWrap: 'anywhere' }}>{line}</div>)}
@@ -1011,7 +1014,7 @@ function TandemSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
       </div>}
       {cv.skills?.length ? <div style={{ paddingBottom: references.length ? 18 : 0, marginBottom: references.length ? 18 : 0, borderBottom: references.length ? '1px solid rgba(255,255,255,0.28)' : undefined }}>
         {label('Skills')}
-        <div style={{ fontSize: 10.3, lineHeight: 1.58, color: 'rgba(255,255,255,0.9)' }}>{cv.skills.join('  ·  ')}</div>
+        {cv.skills.map((skill, index) => <div key={index} style={{ display: 'flex', gap: 6, fontSize: 10.2, lineHeight: 1.4, color: 'rgba(255,255,255,0.9)', marginBottom: index === cv.skills!.length - 1 ? 0 : 5 }}><span aria-hidden="true" style={{ flex: '0 0 auto', color: 'rgba(255,255,255,0.56)' }}>•</span><span>{skill}</span></div>)}
       </div> : null}
       {references.length > 0 && <div>
         {label('References')}
@@ -1602,7 +1605,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── TANDEM: fixed repeating sidebar + one native flowing content column ──
   tandem: {
-    design: 'tandem', font: BODY_SANS, contentPadV: 42, mainPad: '42px 42px', sidebarW: 212, sidebarSide: 'left', measureW: 498, flowPaginate: true, flowSidebar: ({ cv, A }) => <TandemSidebar cv={cv} A={A} />, flowSidebarW: 212, flowAllowBlockSplit: true,
+    design: 'tandem', font: BODY_SANS, contentPadV: 42, mainPad: '42px 42px', sidebarW: 212, sidebarSide: 'left', measureW: 498, flowPaginate: true, flowSidebar: ({ cv, A }) => <TandemSidebar cv={cv} A={A} />, flowSidebarW: 212, flowSidebarBg: A => darken(A), flowAllowBlockSplit: true,
     buildBlocks: tandemMainBlocks,
     Header: ({ cv, A }) => (<div style={{ borderBottom: '1px solid #d9e4e5', paddingBottom: 22, marginBottom: 24 }}>
       <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 2.1, color: A, marginBottom: 9 }}>CAREER PROFILE</div>
@@ -1611,7 +1614,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     </div>),
     Frame: ({ cv, A, pageIndex, children }) => (
       <div style={{ ...pageBase, display: 'grid', gridTemplateColumns: '212px 1fr', fontFamily: BODY_SANS, color: '#183339', background: '#fbfcfc' }}>
-        <TandemSidebar cv={cv} A={A} />
+        <div style={{ background: darken(A), minHeight: '100%' }}><TandemSidebar cv={cv} A={A} /></div>
         <main style={{ padding: '42px 42px' }}>
           {pageIndex === 0 && <TEMPLATES_CONFIG.tandem.Header cv={cv} A={A} />}
           {children}
