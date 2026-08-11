@@ -1193,7 +1193,13 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   // bullets, which is exactly this layout. Paired 1:1 with the Word
   // buildRegent builder in export-docx/route.ts.
   regent: {
-    design: 'regent', font: BODY_SERIF, contentPadV: 40, pageUsable: 1037, headerBannerPad: '40px 50px 34px', mainPad: '40px 50px', sidebarW: 0, sidebarSide: 'none', measureW: 694, flowPaginate: true, flowBand: true, flowBandBg: (A) => A,
+    // Spacing metrics match Onyx's exactly (contentPadV/headerBannerPad/mainPad/
+    // measureW) rather than the wider ones this template shipped with initially.
+    // A long, dense CV (3 roles + education + skills + attributes + certifications
+    // + references) was overflowing a clean 2 pages by ~4 lines, spilling a
+    // References section onto an otherwise-blank 3rd page. Onyx's numbers are
+    // production-proven at this same contentPadV=30 and were not chosen blind.
+    design: 'regent', font: BODY_SERIF, contentPadV: 30, pageUsable: 1047, headerBannerPad: '38px 46px 30px', mainPad: '30px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, flowPaginate: true, flowBand: true, flowBandBg: (A) => A,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'rule', { skillsInline: true }),
     Header: ({ cv, A }) => (<div style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#fff' }}>{cv.fullName}</div>
@@ -1202,8 +1208,8 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     </div>),
     Frame: ({ cv, A, pageIndex, children }) => (
       <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-        {pageIndex === 0 && <div style={{ background: A, padding: '40px 50px 34px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}><TEMPLATES_CONFIG.regent.Header cv={cv} A={A} /></div>}
-        <div style={{ padding: pageIndex === 0 ? '34px 50px 40px' : '46px 50px 40px' }}>{children}</div>
+        {pageIndex === 0 && <div style={{ background: A, padding: '38px 46px 30px', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}><TEMPLATES_CONFIG.regent.Header cv={cv} A={A} /></div>}
+        <div style={{ padding: pageIndex === 0 ? '30px 46px' : '46px 46px' }}>{children}</div>
       </div>
     ),
   },
