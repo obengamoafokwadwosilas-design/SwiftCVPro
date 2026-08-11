@@ -46,6 +46,7 @@ const COLOR_SWATCHES: { name: string; value: string }[] = [
   { name: 'Teal',    value: '#0d7d8c' },
   { name: 'Royal',   value: '#1e3a8a' },
   { name: 'Bronze',  value: '#8b5e34' },
+  { name: 'Cobalt',  value: '#1565c0' },
 ]
 
 const PRINT_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,700&family=Source+Sans+3:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap'
