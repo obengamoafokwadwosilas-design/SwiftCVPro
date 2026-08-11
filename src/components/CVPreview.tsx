@@ -421,6 +421,11 @@ type TemplateConfig = {
   // returns the band background for the current accent.
   flowBand?: boolean
   flowBandBg?: (A: string) => string
+  // Extra white gap (px) between the banner's bottom edge and the first body
+  // block. The body wrapper's own padding is horizontal-only (see below), so
+  // without this a heading starts flush against the banner edge with zero
+  // clearance. Defaults to 0 so onyx/verde are unaffected.
+  flowBandGap?: number
   // render the page frame: header (page 1 only), children = packed main blocks,
   // sidebarChildren = this page's slice of the paginated sidebar (if enabled)
   Frame: (p: { cv: GeneratedCV; A: string; pageIndex: number; children: React.ReactNode; sidebarChildren?: React.ReactNode }) => React.ReactElement
@@ -829,7 +834,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
               <div style={{ background: config.flowBandBg ? config.flowBandBg(A) : darken(A, 0.72), padding: config.headerBannerPad ?? '36px 50px 30px' }}>
                 <config.Header cv={cv} A={A} />
               </div>
-              <div style={{ padding: `0 ${flowPadH(config)}px` }}>
+              <div style={{ padding: `${config.flowBandGap ?? 0}px ${flowPadH(config)}px 0` }}>
                 {blocks.map(b => (
                   <div key={b.key} data-flow-block="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
                     {b.node}
@@ -1199,7 +1204,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     // + references) was overflowing a clean 2 pages by ~4 lines, spilling a
     // References section onto an otherwise-blank 3rd page. Onyx's numbers are
     // production-proven at this same contentPadV=30 and were not chosen blind.
-    design: 'regent', font: BODY_SERIF, contentPadV: 30, pageUsable: 1047, headerBannerPad: '38px 46px 30px', mainPad: '30px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, flowPaginate: true, flowBand: true, flowBandBg: (A) => A,
+    design: 'regent', font: BODY_SERIF, contentPadV: 30, pageUsable: 1047, headerBannerPad: '38px 46px 30px', mainPad: '30px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, flowPaginate: true, flowBand: true, flowBandBg: (A) => A, flowBandGap: 22,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'rule', { skillsInline: true }),
     Header: ({ cv, A }) => (<div style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: '#fff' }}>{cv.fullName}</div>
