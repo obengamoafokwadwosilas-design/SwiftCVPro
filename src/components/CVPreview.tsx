@@ -122,6 +122,12 @@ const DEFAULT_ACCENT: Record<string, string> = {
 // Serif covers the Linux PDF box, and the generic keyword backstops both.
 const BODY_SERIF = "'Crimson Text', 'Times New Roman', 'Liberation Serif', serif"
 const BODY_SANS = "'Source Sans 3', 'Segoe UI', Arial, 'Liberation Sans', sans-serif"
+// Display serif for a single non-wrapping name line only — never body text.
+// Metric compatibility doesn't matter here the way it does for BODY_SERIF/
+// BODY_SANS: a one-line name has no page-break plan to drift from (it's one
+// atomic header block on flow-paginated templates), so a fallback swap only
+// changes how wide the name renders, not how many lines/pages anything takes.
+const DISPLAY_SERIF = "'Source Serif 4', Georgia, 'Times New Roman', serif"
 
 // A4 at 96dpi
 const PAGE_W = 794
@@ -1534,7 +1540,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'beacon', { skillsInline: true }),
     Header: ({ cv, A }) => (
       <div style={{ background: A, padding: '22px 26px', marginBottom: 22, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-        <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: 0.5, color: '#fff', textTransform: 'uppercase' }}>{cv.fullName}</div>
+        <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: 0.5, color: '#fff', textTransform: 'uppercase', fontFamily: DISPLAY_SERIF }}>{cv.fullName}</div>
         {cv.jobTitle && <div style={{ fontSize: 15, color: '#fff', opacity: 0.92, marginTop: 5 }}>{cv.jobTitle}</div>}
         <div style={{ fontSize: 12.5, color: '#fff', opacity: 0.85, marginTop: 8 }}>{contact(cv).replace(/•/g, '|')}</div>
       </div>
@@ -1596,7 +1602,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     design: 'beacon', font: BODY_SANS, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'beacon', { skillsInline: true }),
     Header: ({ cv, A }) => (<div style={{ textAlign: 'center', marginBottom: 22 }}>
-      <div style={{ fontSize: 28, fontWeight: 700, color: '#1a2b4a', marginBottom: 5 }}>{cv.fullName}</div>
+      <div style={{ fontSize: 28, fontWeight: 700, color: '#1a2b4a', marginBottom: 5, fontFamily: DISPLAY_SERIF }}>{cv.fullName}</div>
       {cv.jobTitle && <div style={{ fontSize: 14.5, color: A, fontWeight: 600, marginBottom: 7 }}>{cv.jobTitle}</div>}
       <div style={{ fontSize: 12.5, color: '#666' }}>{contact(cv).replace(/•/g, '|')}</div>
     </div>),
@@ -1614,7 +1620,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     buildBlocks: tandemMainBlocks,
     Header: ({ cv, A }) => (<div style={{ borderBottom: '1px solid #d9e4e5', paddingBottom: 22, marginBottom: 24 }}>
       <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 2.1, color: A, marginBottom: 9 }}>CAREER PROFILE</div>
-      <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.7, lineHeight: 1.04, color: '#183339' }}>{cv.fullName}</div>
+      <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.7, lineHeight: 1.04, color: '#183339', fontFamily: DISPLAY_SERIF }}>{cv.fullName}</div>
       {cv.jobTitle && <div style={{ fontSize: 15, fontWeight: 600, color: '#5b7276', marginTop: 8 }}>{cv.jobTitle}</div>}
     </div>),
     Frame: ({ cv, A, pageIndex, children }) => (
