@@ -981,28 +981,42 @@ function sterlingSidebarBlocks(cv: GeneratedCV, A: string): Block[] {
 // content height so an under-filled page leaves no empty gap. The PDF page height
 // is set separately in buildPdfHtml (#cv-print-area > div > div { height: 296mm })
 // inside app/preview/page.tsx, so the download stays full-A4 and unaffected.
+function tandemMainBlocks(cv: GeneratedCV, A: string): Block[] {
+  // Tandem makes the sidebar the single home for factual summary data. Keep
+  // those sections out of the main flow so the two columns never duplicate it.
+  const mainCv = {
+    ...cv,
+    education: [],
+    skills: [],
+    additionalInfo: undefined,
+    extraSections: getSections(cv).filter(section => !isRefsHead(section.heading)),
+  }
+  return commonBlocks(mainCv, A, 'tandem', { skillsInline: true })
+}
+
 function TandemSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
-  const label = (text: string) => <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.66)', marginBottom: 8 }}>{text}</div>
+  const label = (text: string) => <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.64)', marginBottom: 8 }}>{text}</div>
   const contactLines = [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean)
-  const skills = (cv.skills || []).slice(0, 6)
-  const education = (cv.education || []).slice(0, 2)
+  const education = cv.education || []
+  const references = getSections(cv).filter(section => isRefsHead(section.heading)).flatMap(section => section.items)
   return (
-    <aside style={{ minHeight: '100%', padding: '34px 22px', color: '#fff', background: darken(A), display: 'flex', flexDirection: 'column', fontFamily: BODY_SANS, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-      <div style={{ width: 42, height: 42, display: 'grid', placeItems: 'center', border: '1px solid rgba(255,255,255,0.56)', borderRadius: 2, fontSize: 15, fontWeight: 800, letterSpacing: 0.8, marginBottom: 26 }}>{initials(cv.fullName)}</div>
-      <div style={{ fontSize: 10, letterSpacing: 2.2, color: 'rgba(255,255,255,0.58)', marginBottom: 26 }}>PROFESSIONAL CV</div>
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.24)', paddingTop: 16, marginBottom: 22 }}>
+    <aside style={{ minHeight: '100%', padding: '30px 20px 24px', color: '#fff', background: darken(A), fontFamily: BODY_SANS, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+      <div style={{ paddingBottom: 18, marginBottom: 18, borderBottom: '1px solid rgba(255,255,255,0.28)' }}>
         {label('Contact')}
-        {contactLines.map((line, index) => <div key={index} style={{ fontSize: 11.5, lineHeight: 1.52, color: 'rgba(255,255,255,0.92)', marginBottom: 6, overflowWrap: 'anywhere' }}>{line}</div>)}
+        {contactLines.map((line, index) => <div key={index} style={{ fontSize: 10.8, lineHeight: 1.5, color: 'rgba(255,255,255,0.94)', marginBottom: 5, overflowWrap: 'anywhere' }}>{line}</div>)}
       </div>
-      {skills.length > 0 && <div style={{ borderTop: '1px solid rgba(255,255,255,0.24)', paddingTop: 16, marginBottom: 22 }}>
-        {label('Key skills')}
-        {skills.map((skill, index) => <div key={index} style={{ fontSize: 11.5, lineHeight: 1.45, color: 'rgba(255,255,255,0.9)', marginBottom: 6, paddingLeft: 10, position: 'relative' }}><span style={{ position: 'absolute', left: 0, color: 'rgba(255,255,255,0.52)' }}>·</span>{skill}</div>)}
-      </div>}
-      {education.length > 0 && <div style={{ borderTop: '1px solid rgba(255,255,255,0.24)', paddingTop: 16 }}>
+      {education.length > 0 && <div style={{ paddingBottom: 18, marginBottom: 18, borderBottom: '1px solid rgba(255,255,255,0.28)' }}>
         {label('Education')}
-        {education.map((item, index) => <div key={index} style={{ fontSize: 11.5, lineHeight: 1.45, color: 'rgba(255,255,255,0.9)', marginBottom: 11 }}><div style={{ fontWeight: 700 }}>{item.qualification}{item.field ? `, ${item.field}` : ''}</div><div style={{ color: 'rgba(255,255,255,0.66)' }}>{item.institution}</div></div>)}
+        {education.map((item, index) => <div key={index} style={{ marginBottom: index === education.length - 1 ? 0 : 11, color: 'rgba(255,255,255,0.92)' }}><div style={{ fontSize: 10.7, fontWeight: 700, lineHeight: 1.34 }}>{item.qualification}{item.field ? ` in ${item.field}` : ''}</div><div style={{ fontSize: 10, lineHeight: 1.38, color: 'rgba(255,255,255,0.68)', marginTop: 2 }}>{item.institution}</div>{(item.endYear || item.startYear) && <div style={{ fontSize: 9.4, letterSpacing: 0.7, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>{[item.startYear, item.endYear].filter(Boolean).join(' – ')}</div>}</div>)}
       </div>}
-      <div style={{ marginTop: 'auto', paddingTop: 18, fontSize: 9.5, letterSpacing: 1.4, color: 'rgba(255,255,255,0.46)' }}>SWIFTCVPRO</div>
+      {cv.skills?.length ? <div style={{ paddingBottom: references.length ? 18 : 0, marginBottom: references.length ? 18 : 0, borderBottom: references.length ? '1px solid rgba(255,255,255,0.28)' : undefined }}>
+        {label('Skills')}
+        <div style={{ fontSize: 10.3, lineHeight: 1.58, color: 'rgba(255,255,255,0.9)' }}>{cv.skills.join('  ·  ')}</div>
+      </div> : null}
+      {references.length > 0 && <div>
+        {label('References')}
+        {references.map((reference, index) => <div key={index} style={{ fontSize: 10.1, lineHeight: 1.44, color: 'rgba(255,255,255,0.9)', marginBottom: index === references.length - 1 ? 0 : 9 }}>{reference}</div>)}
+      </div>}
     </aside>
   )
 }
@@ -1589,7 +1603,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   // ── TANDEM: fixed repeating sidebar + one native flowing content column ──
   tandem: {
     design: 'tandem', font: BODY_SANS, contentPadV: 42, mainPad: '42px 42px', sidebarW: 212, sidebarSide: 'left', measureW: 498, flowPaginate: true, flowSidebar: ({ cv, A }) => <TandemSidebar cv={cv} A={A} />, flowSidebarW: 212, flowAllowBlockSplit: true,
-    buildBlocks: (cv, A) => commonBlocks(cv, A, 'tandem', { skillsInline: true }),
+    buildBlocks: tandemMainBlocks,
     Header: ({ cv, A }) => (<div style={{ borderBottom: '1px solid #d9e4e5', paddingBottom: 22, marginBottom: 24 }}>
       <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 2.1, color: A, marginBottom: 9 }}>CAREER PROFILE</div>
       <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.7, lineHeight: 1.04, color: '#183339' }}>{cv.fullName}</div>
