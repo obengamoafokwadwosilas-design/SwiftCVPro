@@ -802,6 +802,13 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
     config.buildSidebarBlocks
       ? (sidePlan[pageIndex] || []).map(i => sideBlocks[i] ? <div key={sideBlocks[i].key}>{sideBlocks[i].node}</div> : null)
       : undefined
+  // In paged media, position:fixed is anchored to the printable margin box,
+  // rather than the physical paper edge. Tandem reserves its sidebar through
+  // the left @page margin, then moves the fixed panel back through that margin.
+  const flowSidebarLeft = config.flowSidebar
+    ? flowPadH(config) + (config.flowSidebarW ?? 200) + (config.flowRail ? (config.flowRailW ?? 38) : 0)
+    : 0
+  const flowSidebarTop = config.flowSidebar ? config.contentPadV : 0
 
   return (
     <div ref={wrapperRef}>
@@ -857,7 +864,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
               {config.flowPageBg && <div data-flow-decor style={{ position: 'fixed', inset: 0, background: config.flowPageBg, zIndex: 0 }} />}
               {config.flowRail && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowRailW ?? 38, background: A, zIndex: 0 }} />}
               {config.flowTopBarH && <div data-flow-decor style={{ position: 'fixed', left: 0, right: 0, top: 0, height: config.flowTopBarH, background: A, zIndex: 0 }} />}
-              {config.flowSidebar && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowSidebarW ?? 200, zIndex: 0 }}>{config.flowSidebar({ cv, A })}</div>}
+              {config.flowSidebar && <div data-flow-decor style={{ position: 'fixed', left: -flowSidebarLeft, top: -flowSidebarTop, bottom: -flowSidebarTop, width: config.flowSidebarW ?? 200, zIndex: 0 }}>{config.flowSidebar({ cv, A })}</div>}
               {/* Content layer sits above the decorations. */}
               <div style={{ position: 'relative', zIndex: 1 }}>
                 <config.Header cv={cv} A={A} />
