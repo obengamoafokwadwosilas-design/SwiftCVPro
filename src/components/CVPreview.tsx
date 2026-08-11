@@ -809,7 +809,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   const flowSidebarInset = config.flowSidebar
     ? flowPadH(config) + (config.flowSidebarW ?? 200) + (config.flowRail ? (config.flowRailW ?? 38) : 0)
     : 0
-  const flowSidebarBleedY = config.flowSidebarBg ? config.contentPadV : 0
+  const flowSidebarContentPad = config.flowSidebarBg ? config.contentPadV : 0
 
   return (
     <div ref={wrapperRef}>
@@ -865,10 +865,10 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
               {config.flowPageBg && <div data-flow-decor style={{ position: 'fixed', inset: 0, background: config.flowPageBg, zIndex: 0 }} />}
               {config.flowRail && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowRailW ?? 38, background: A, zIndex: 0 }} />}
               {config.flowTopBarH && <div data-flow-decor style={{ position: 'fixed', left: 0, right: 0, top: 0, height: config.flowTopBarH, background: A, zIndex: 0 }} />}
-              {config.flowSidebarBg && <div data-flow-decor style={{ position: 'fixed', left: 0, top: -flowSidebarBleedY, bottom: -flowSidebarBleedY, width: config.flowSidebarW ?? 200, background: config.flowSidebarBg(A), zIndex: 0 }} />}
+              {config.flowSidebarBg && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowSidebarW ?? 200, background: config.flowSidebarBg(A), zIndex: 0 }} />}
               {config.flowSidebar && <div style={{ position: 'absolute', left: 0, top: 0, width: config.flowSidebarW ?? 200, zIndex: 1 }}>{config.flowSidebar({ cv, A })}</div>}
               {/* Content layer sits above the decorations. */}
-              <div style={{ position: 'relative', zIndex: 1, marginLeft: flowSidebarInset }}>
+              <div style={{ position: 'relative', zIndex: 1, marginLeft: flowSidebarInset, paddingTop: flowSidebarContentPad, paddingBottom: flowSidebarContentPad, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }}>
                 <config.Header cv={cv} A={A} />
                 {blocks.map(b => (
                   <div key={b.key} data-flow-block="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
@@ -912,7 +912,8 @@ export function getFlowPdfConfig(templateId: TemplateId): { padTop: number; padB
   const padSide = parts.length >= 2 ? parts[1] : (parts[0] || 0)
   const railW = config.flowRail ? (config.flowRailW ?? 38) : 0
   const sidebarW = config.flowSidebar ? (config.flowSidebarW ?? 200) : 0
-  return { padTop: config.contentPadV, padBottom: config.contentPadV, padLeft: sidebarW ? 0 : padSide + railW, padRight: padSide, banded: false }
+  const edgeToEdgeSidebar = !!config.flowSidebarBg
+  return { padTop: edgeToEdgeSidebar ? 0 : config.contentPadV, padBottom: edgeToEdgeSidebar ? 0 : config.contentPadV, padLeft: sidebarW ? 0 : padSide + railW, padRight: padSide, banded: false }
 }
 
 
