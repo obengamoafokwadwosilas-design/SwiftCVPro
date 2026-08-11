@@ -149,7 +149,19 @@ function darken(hex: string, _factor?: number): string {
 }
 
 // ── A "block" is a measurable chunk of CV content ──
-type Block = { key: string; node: React.ReactNode }
+type SplitBullet = { text: string; render: (first: string, rest: string) => [React.ReactNode, React.ReactNode] }
+type Block = { key: string; node: React.ReactNode; splitBullet?: SplitBullet }
+
+function experienceBullet(key: string, text: string, color: string, finalMargin: number): Block {
+  const full = (value: string, continuation: boolean, marginBottom: number) => continuation
+    ? <div style={{ paddingLeft: 16, fontSize: 13.5, lineHeight: 1.7, color, marginBottom }}><span data-split-text>{value}</span></div>
+    : <ul style={{ margin: 0, paddingLeft: 16, marginBottom, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color, marginBottom: 5 }}><span data-split-text>{value}</span></li></ul>
+  return {
+    key,
+    node: full(text, false, finalMargin),
+    splitBullet: { text, render: (first, rest) => [full(first, false, 0), full(rest, true, finalMargin)] },
+  }
+}
 
 // ═══ SHARED PACKING ALGORITHM ═══════════════════════════════════════
 // Extracted so it can run twice: once with hidden-measure-pass heights
@@ -600,7 +612,17 @@ function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skill
 // THE PAGINATION ENGINE
 // ════════════════════════════════════════════════════════════════
 function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: TemplateConfig }) {
-  const blocks = config.buildBlocks(cv, A)
+  const sourceBlocks = config.buildBlocks(cv, A)
+  const [splits, setSplits] = useState<Record<string, { first: string; rest: string }>>({})
+  const blocks = sourceBlocks.flatMap(block => {
+    const split = splits[block.key]
+    if (!split || !block.splitBullet) return [block]
+    const [first, rest] = block.splitBullet.render(split.first, split.rest)
+    return [
+      { key: `${block.key}-part1`, node: first },
+      { key: `${block.key}-part2`, node: rest },
+    ]
+  })
   const sideBlocks = config.buildSidebarBlocks ? config.buildSidebarBlocks(cv, A) : []
   const measureRef = useRef<HTMLDivElement>(null)
   const sideMeasureRef = useRef<HTMLDivElement>(null)
@@ -618,6 +640,8 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   // down) leak into exported PDFs as unnecessary early page breaks.
   const wrapperRef = useRef<HTMLDivElement>(null)
   const markPaginationReady = () => { if (wrapperRef.current) wrapperRef.current.setAttribute('data-pagination-ready', 'true') }
+
+  useLayoutEffect(() => { setSplits({}) }, [cv, A, config.design])
 
   useLayoutEffect(() => {
     let cancelled = false
@@ -685,7 +709,51 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
       run()
     }
     return () => { cancelled = true; if (raf) cancelAnimationFrame(raf) }
-  }, [cv, A, config.design]) // eslint-disable-line
+  }, [cv, A, config.design, splits]) // eslint-disable-line
+
+  useLayoutEffect(() => {
+    const measure = measureRef.current
+    if (!pages || !measure || !limitsRef.current) return
+    const rows = Array.from(measure.children) as HTMLElement[]
+    if (rows.length !== blocks.length) return
+    const heights = rows.map(row => {
+      const rect = row.getBoundingClientRect()
+      const style = window.getComputedStyle(row)
+      return rect.height + (parseFloat(style.marginTop) || 0) + (parseFloat(style.marginBottom) || 0)
+    })
+    const { page1Usable, usable } = limitsRef.current
+
+    for (let page = 0; page < pages.length - 1; page++) {
+      const nextIndex = pages[page + 1][0]
+      const bullet = blocks[nextIndex]
+      if (!bullet?.splitBullet || splits[bullet.key]) continue
+      const used = pages[page].reduce((total, index) => total + (heights[index] || 0), 0)
+      const remaining = (page === 0 ? page1Usable : usable) - FINAL_RENDER_GUARD - used
+      if (remaining <= 0) continue
+      const text = rows[nextIndex].querySelector('[data-split-text]')
+      const textNode = text?.firstChild
+      if (!text || !textNode || textNode.nodeType !== Node.TEXT_NODE) continue
+      const boundary = rows[nextIndex].getBoundingClientRect().top + remaining
+      const range = document.createRange()
+      let end = 0
+      const lineTops = new Set<number>()
+      for (const word of Array.from(bullet.splitBullet.text.matchAll(/\S+\s*/g))) {
+        const wordEnd = word.index! + word[0].length
+        range.setStart(textNode, Math.max(0, wordEnd - 1))
+        range.setEnd(textNode, wordEnd)
+        const rect = range.getBoundingClientRect()
+        if (rect.bottom > boundary) break
+        end = wordEnd
+        lineTops.add(Math.round(rect.top))
+      }
+      if (end === 0 || lineTops.size < 2) continue
+      const first = bullet.splitBullet.text.slice(0, end).trim()
+      const rest = bullet.splitBullet.text.slice(end).trim()
+      if (!first || !rest) continue
+      setSplits(current => ({ ...current, [bullet.key]: { first, rest } }))
+      return
+    }
+  }, [pages, blocks, splits])
 
   // ═══ GROUND-TRUTH SELF-CORRECTION ═══════════════════════════════
   // The hidden measure pass gives a fast first plan, but it is a SEPARATE
@@ -975,11 +1043,9 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     // exposed to browser-vs-remote-renderer drift: we measure locally, Api2Pdf
     // renders on its own Chrome, and if its text comes out even slightly taller
     // the last block is sliced mid-line.
-    // The metric-compatible serif stack removes the large font-fallback drift,
-    // so Meridian can use the shared safety margin and still retain the final
-    // render guard. This lets a complete bullet use available page space while
-    // preserving the per-page sidebar and protecting against minor raster drift.
-    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 32,
+    // The larger template-specific margin protects the fixed-height page frame;
+    // long bullets can now continue across a page boundary instead of leaving it unused.
+    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 58,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: A, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>{t}<span style={{ flex: 1, height: 2, background: A, opacity: 0.25 }} /></div>
       const b: Block[] = []
@@ -991,7 +1057,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
           // bullets are separate blocks so a long role FLOWS across pages instead
           // of jumping wholesale and leaving a large gap.
           b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><div style={{ fontSize: 15, fontWeight: 700 }}>{e.role}</div><div style={{ fontSize: 12, color: '#888', fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</div></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600 }}>{e.company}</div></div> })
-          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: j === e.bullets.length - 1 ? 14 : 0, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#333', marginBottom: 5 }}>{x}</li></ul> }))
+          e.bullets.forEach((x, j) => b.push(experienceBullet(`exp${i}-b${j}`, x, '#333', j === e.bullets.length - 1 ? 14 : 0)))
         })
       }
       // Education is rendered in the sidebar for this two-column template.
@@ -1065,10 +1131,9 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     // browser-vs-remote-renderer drift. It was the WORST of the two: with no
     // packBottomSafety override it fell back to the shared default of 32,
     // leaving a worst-case page just 36px (3.3%) short of the clip boundary.
-    // Matching Meridian, the shared safety margin plus the final render guard
-    // leaves room for minor raster drift without reserving space that can hold
-    // a complete bullet. The fixed-height two-column frame stays unchanged.
-    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42, packBottomSafety: 32,
+    // Matching Meridian, retain the frame's safety margin and continue a long
+    // bullet when it is the only reason the remaining space would go unused.
+    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42, packBottomSafety: 58,
     buildBlocks: (cv, A) => {
       const DARK = darken(A, 0.74)
       const head = (t: string) => <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: DARK, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12, display: 'inline-block' }}>{t}</div>
@@ -1078,7 +1143,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
         b.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{head('Experience')}</div> })
         cv.experience.forEach((e, i) => {
           b.push({ key: `exp${i}-h`, node: <div style={{ marginBottom: 6 }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}><span style={{ fontWeight: 700, fontSize: 15, color: DARK }}>{e.role}</span><span style={{ fontSize: 12, color: A, fontStyle: 'italic', whiteSpace: 'nowrap' }}>{e.startDate} – {e.endDate}</span></div><div style={{ fontSize: 13.5, color: A, fontWeight: 600 }}>{e.company}</div></div> })
-          e.bullets.forEach((x, j) => b.push({ key: `exp${i}-b${j}`, node: <ul style={{ margin: 0, paddingLeft: 16, marginBottom: j === e.bullets.length - 1 ? 13 : 0, listStyleType: 'disc', listStylePosition: 'outside' }}><li style={{ fontSize: 13.5, lineHeight: 1.7, color: '#3a3a3a', marginBottom: 5 }}>{x}</li></ul> }))
+          e.bullets.forEach((x, j) => b.push(experienceBullet(`exp${i}-b${j}`, x, '#3a3a3a', j === e.bullets.length - 1 ? 13 : 0)))
         })
       }
       // Education is rendered in the sidebar for this two-column template.
