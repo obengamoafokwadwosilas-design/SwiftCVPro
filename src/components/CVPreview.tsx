@@ -975,13 +975,11 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     // exposed to browser-vs-remote-renderer drift: we measure locally, Api2Pdf
     // renders on its own Chrome, and if its text comes out even slightly taller
     // the last block is sliced mid-line.
-    // The safety margin is GUARANTEED dead space at the foot of every page, so
-    // it is kept modest. Briefly raised to 110 to outrun the font-fallback
-    // swell, which bought ~114px of white space per page and still could not
-    // cover a ~20% swing; that swell is now fixed at source in BODY_SERIF, so
-    // 58 is back — enough for ordinary sub-pixel drift, small enough that pages
-    // still fill. See PACK_BOTTOM_SAFETY.
-    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 58,
+    // The metric-compatible serif stack removes the large font-fallback drift,
+    // so Meridian can use the shared safety margin and still retain the final
+    // render guard. This lets a complete bullet use available page space while
+    // preserving the per-page sidebar and protecting against minor raster drift.
+    design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 32,
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 14.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: A, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>{t}<span style={{ flex: 1, height: 2, background: A, opacity: 0.25 }} /></div>
       const b: Block[] = []
@@ -1067,11 +1065,10 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     // browser-vs-remote-renderer drift. It was the WORST of the two: with no
     // packBottomSafety override it fell back to the shared default of 32,
     // leaving a worst-case page just 36px (3.3%) short of the clip boundary.
-    // Now set explicitly to 58, matching Meridian: the font-fallback swell that
-    // actually caused the clipping is fixed at source in BODY_SERIF, so this
-    // only has to absorb ordinary sub-pixel drift, and a bigger value would
-    // just be dead space at the foot of every page.
-    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42, packBottomSafety: 58,
+    // Matching Meridian, the shared safety margin plus the final render guard
+    // leaves room for minor raster drift without reserving space that can hold
+    // a complete bullet. The fixed-height two-column frame stays unchanged.
+    design: 'sterling', font: BODY_SERIF, contentPadV: 42, pageUsable: 1035, mainPad: '42px 30px 42px 46px', sidebarW: 240, sidebarSide: 'right', measureW: 478, buildSidebarBlocks: sterlingSidebarBlocks, sidebarMeasureW: 188, sidebarPadV: 42, packBottomSafety: 32,
     buildBlocks: (cv, A) => {
       const DARK = darken(A, 0.74)
       const head = (t: string) => <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: DARK, borderBottom: `2px solid ${A}`, paddingBottom: 4, marginBottom: 12, display: 'inline-block' }}>{t}</div>
