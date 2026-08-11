@@ -233,7 +233,10 @@ export function buildAurora(cv: GeneratedCV, accent?: string | null): Document {
   const A = hex(accent, '7c3aed'), INK = '1a1a1a', GREY = '777777'
   if (cv.coverLetterBody) return coverLetter(cv, A, BODY)
 
-  const heading = (t: string) => new Table({ width: { size: 10200, type: WidthType.DXA }, columnWidths: [10200], borders: NO_BORDERS, rows: [new TableRow({ children: [new TableCell({ width: { size: 10200, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: A, color: A }, margins: { top: 70, bottom: 70, left: 160, right: 160 }, children: [new Paragraph({ children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 19, color: 'FFFFFF', characterSpacing: 50, font: BODY })] })] })] })] })
+  // Bold colour text + a thin colour rule reads far lighter than a full-width
+  // solid-fill block repeated for every heading (the old look, stacked 6-8
+  // times down a page). Matches the PDF's lighter 'beacon'-style heading.
+  const heading = (t: string) => new Paragraph({ spacing: { before: 220, after: 90 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: A, space: 4 } }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 20, color: A, characterSpacing: 30, font: BODY })] })
   const sp = () => new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: '', size: 2 })] })
   const bullet = (t: string) => new Paragraph({ numbering: { reference: 'aur-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 21, font: BODY, color: '333333' })] })
 

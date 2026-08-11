@@ -1527,7 +1527,11 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   // mirror Word's shaded block, so no banded-flow mode is needed.
   metro: {
     design: 'metro', font: BODY_SANS, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
-    buildBlocks: (cv, A) => commonBlocks(cv, A, 'bar', { skillsInline: true }),
+    // 'beacon' (colour tag + thin trailing rule) reads much lighter than the
+    // old 'bar' (a full-width solid-fill block repeated for every heading,
+    // which read as heavy/dated stacked 6-8 times down a page). Keeps the
+    // colour-forward identity from the header band without the wall of bars.
+    buildBlocks: (cv, A) => commonBlocks(cv, A, 'beacon', { skillsInline: true }),
     Header: ({ cv, A }) => (
       <div style={{ background: A, padding: '22px 26px', marginBottom: 22, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
         <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: 0.5, color: '#fff', textTransform: 'uppercase' }}>{cv.fullName}</div>
