@@ -526,11 +526,14 @@ function buildBeacon(cv: GeneratedCV, accentColor?: string | null): Document {
   const heading = (text: string) => new Table({
     width: { size: 10200, type: WidthType.DXA }, columnWidths: [3200, 7000], borders: NO_BORDERS,
     rows: [new TableRow({ children: [
-      new TableCell({ width: { size: 3200, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: ACCENT, color: ACCENT }, verticalAlign: VerticalAlign.CENTER, margins: { top: 50, bottom: 50, left: 130, right: 130 }, children: [new Paragraph({ children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 16, color: 'FFFFFF', font: HEADER_FONT, characterSpacing: 20 })] })] }),
+      new TableCell({ width: { size: 3200, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: ACCENT, color: ACCENT }, verticalAlign: VerticalAlign.CENTER, margins: { top: 50, bottom: 50, left: 130, right: 130 }, children: [new Paragraph({ children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 16, color: 'FFFFFF', font: BODY_FONT, characterSpacing: 20 })] })] }),
       new TableCell({ width: { size: 7000, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 10, color: ACCENT } }, margins: { left: 120 }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }),
     ] })]
   })
-  return composeSingleColumn(cv, heading, ACCENT, { center: true, bodyFont: HEADER_FONT, nameFont: NAME_FONT_SANS, nameColor: '1a2b4a', titleUsesAccent: true })
+  // Cambria (BODY_FONT) throughout, matching the PDF's switch to BODY_SERIF —
+  // Beacon was the sans-serif (Calibri) outlier here, same as Compass's own
+  // composeSingleColumn call already uses BODY_FONT/NAME_FONT_SERIF below.
+  return composeSingleColumn(cv, heading, ACCENT, { center: true, bodyFont: BODY_FONT, nameFont: NAME_FONT_SERIF, nameColor: '1a2b4a', titleUsesAccent: true })
 }
 
 // ═══════════════════════════════════════════════════════

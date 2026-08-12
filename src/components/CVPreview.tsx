@@ -999,7 +999,7 @@ function tandemMainBlocks(cv: GeneratedCV, A: string): Block[] {
 }
 
 function TandemSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
-  const label = (text: string) => <div style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.64)', marginBottom: 8 }}>{text}</div>
+  const label = (text: string) => <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.64)', marginBottom: 8 }}>{text}</div>
   const contactLines = [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean)
   const education = cv.education || []
   const references = getSections(cv).filter(section => isRefsHead(section.heading)).flatMap(section => section.items)
@@ -1007,19 +1007,19 @@ function TandemSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
     <aside style={{ padding: '30px 20px 24px', color: '#fff', fontFamily: BODY_SERIF, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
       <div style={{ paddingBottom: 18, marginBottom: 18, borderBottom: '1px solid rgba(255,255,255,0.28)' }}>
         {label('Contact')}
-        {contactLines.map((line, index) => <div key={index} style={{ fontSize: 10.8, lineHeight: 1.5, color: 'rgba(255,255,255,0.94)', marginBottom: 5, overflowWrap: 'anywhere' }}>{line}</div>)}
+        {contactLines.map((line, index) => <div key={index} style={{ fontSize: 11.8, lineHeight: 1.5, color: 'rgba(255,255,255,0.94)', marginBottom: 5, overflowWrap: 'anywhere' }}>{line}</div>)}
       </div>
       {education.length > 0 && <div style={{ paddingBottom: 18, marginBottom: 18, borderBottom: '1px solid rgba(255,255,255,0.28)' }}>
         {label('Education')}
-        {education.map((item, index) => <div key={index} style={{ marginBottom: index === education.length - 1 ? 0 : 11, color: 'rgba(255,255,255,0.92)' }}><div style={{ fontSize: 10.7, fontWeight: 700, lineHeight: 1.34 }}>{item.qualification}{item.field ? ` in ${item.field}` : ''}</div><div style={{ fontSize: 10, lineHeight: 1.38, color: 'rgba(255,255,255,0.68)', marginTop: 2 }}>{item.institution}</div>{(item.endYear || item.startYear) && <div style={{ fontSize: 9.4, letterSpacing: 0.7, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>{[item.startYear, item.endYear].filter(Boolean).join(' – ')}</div>}</div>)}
+        {education.map((item, index) => <div key={index} style={{ marginBottom: index === education.length - 1 ? 0 : 11, color: 'rgba(255,255,255,0.92)' }}><div style={{ fontSize: 11.7, fontWeight: 700, lineHeight: 1.34 }}>{item.qualification}{item.field ? ` in ${item.field}` : ''}</div><div style={{ fontSize: 11, lineHeight: 1.38, color: 'rgba(255,255,255,0.68)', marginTop: 2 }}>{item.institution}</div>{(item.endYear || item.startYear) && <div style={{ fontSize: 10.2, letterSpacing: 0.7, color: 'rgba(255,255,255,0.5)', marginTop: 3 }}>{[item.startYear, item.endYear].filter(Boolean).join(' – ')}</div>}</div>)}
       </div>}
       {cv.skills?.length ? <div style={{ paddingBottom: references.length ? 18 : 0, marginBottom: references.length ? 18 : 0, borderBottom: references.length ? '1px solid rgba(255,255,255,0.28)' : undefined }}>
         {label('Skills')}
-        {cv.skills.map((skill, index) => <div key={index} style={{ display: 'flex', gap: 6, fontSize: 10.2, lineHeight: 1.4, color: 'rgba(255,255,255,0.9)', marginBottom: index === cv.skills!.length - 1 ? 0 : 5 }}><span aria-hidden="true" style={{ flex: '0 0 auto', color: 'rgba(255,255,255,0.56)' }}>•</span><span>{skill}</span></div>)}
+        {cv.skills.map((skill, index) => <div key={index} style={{ display: 'flex', gap: 6, fontSize: 11.2, lineHeight: 1.4, color: 'rgba(255,255,255,0.9)', marginBottom: index === cv.skills!.length - 1 ? 0 : 5 }}><span aria-hidden="true" style={{ flex: '0 0 auto', color: 'rgba(255,255,255,0.56)' }}>•</span><span>{skill}</span></div>)}
       </div> : null}
       {references.length > 0 && <div>
         {label('References')}
-        {references.map((reference, index) => <div key={index} style={{ fontSize: 10.1, lineHeight: 1.44, color: 'rgba(255,255,255,0.9)', marginBottom: index === references.length - 1 ? 0 : 9 }}>{reference}</div>)}
+        {references.map((reference, index) => <div key={index} style={{ fontSize: 11.1, lineHeight: 1.44, color: 'rgba(255,255,255,0.9)', marginBottom: index === references.length - 1 ? 0 : 9 }}>{reference}</div>)}
       </div>}
     </aside>
   )
