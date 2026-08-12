@@ -1004,7 +1004,7 @@ function TandemSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
   const education = cv.education || []
   const references = getSections(cv).filter(section => isRefsHead(section.heading)).flatMap(section => section.items)
   return (
-    <aside style={{ padding: '30px 20px 24px', color: '#fff', fontFamily: BODY_SANS, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+    <aside style={{ padding: '30px 20px 24px', color: '#fff', fontFamily: BODY_SERIF, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
       <div style={{ paddingBottom: 18, marginBottom: 18, borderBottom: '1px solid rgba(255,255,255,0.28)' }}>
         {label('Contact')}
         {contactLines.map((line, index) => <div key={index} style={{ fontSize: 10.8, lineHeight: 1.5, color: 'rgba(255,255,255,0.94)', marginBottom: 5, overflowWrap: 'anywhere' }}>{line}</div>)}
@@ -1526,7 +1526,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   // so the PDF and .docx look the same. Header band is inset (not full-bleed) to
   // mirror Word's shaded block, so no banded-flow mode is needed.
   metro: {
-    design: 'metro', font: BODY_SANS, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
+    design: 'metro', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
     // 'beacon' (colour tag + thin trailing rule) reads much lighter than the
     // old 'bar' (a full-width solid-fill block repeated for every heading,
     // which read as heavy/dated stacked 6-8 times down a page). Keeps the
@@ -1540,7 +1540,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       </div>
     ),
     Frame: ({ cv, A, pageIndex, children }) => (
-      <div style={{ ...pageBase, fontFamily: BODY_SANS, color: '#1a1a1a', padding: '44px 46px' }}>
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '44px 46px' }}>
         {pageIndex === 0 && <TEMPLATES_CONFIG.metro.Header cv={cv} A={A} />}
         {children}
       </div>
@@ -1593,7 +1593,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
   // ── BEACON: centred name, filled-accent "tab" section headings + rule ──
   // Matches the Word buildBeacon builder (shaded cell + bordered cell).
   beacon: {
-    design: 'beacon', font: BODY_SANS, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
+    design: 'beacon', font: BODY_SERIF, contentPadV: 44, mainPad: '44px 46px', sidebarW: 0, sidebarSide: 'none', measureW: 702, packTolerance: 0, packBottomSafety: 32, flowPaginate: true,
     buildBlocks: (cv, A) => commonBlocks(cv, A, 'beacon', { skillsInline: true }),
     Header: ({ cv, A }) => (<div style={{ textAlign: 'center', marginBottom: 22 }}>
       <div style={{ fontSize: 28, fontWeight: 700, color: '#1a2b4a', marginBottom: 5 }}>{cv.fullName}</div>
@@ -1601,7 +1601,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       <div style={{ fontSize: 12.5, color: '#666' }}>{contact(cv).replace(/•/g, '|')}</div>
     </div>),
     Frame: ({ cv, A, pageIndex, children }) => (
-      <div style={{ ...pageBase, fontFamily: BODY_SANS, color: '#1a1a1a', padding: '44px 46px' }}>
+      <div style={{ ...pageBase, fontFamily: BODY_SERIF, color: '#1a1a1a', padding: '44px 46px' }}>
         {pageIndex === 0 && <TEMPLATES_CONFIG.beacon.Header cv={cv} A={A} />}
         {children}
       </div>
@@ -1610,7 +1610,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── TANDEM: fixed repeating sidebar + one native flowing content column ──
   tandem: {
-    design: 'tandem', font: BODY_SANS, contentPadV: 42, mainPad: '42px 42px', sidebarW: 212, sidebarSide: 'left', measureW: 498, flowPaginate: true, flowSidebar: ({ cv, A }) => <TandemSidebar cv={cv} A={A} />, flowSidebarW: 212, flowSidebarBg: A => darken(A), flowAllowBlockSplit: true,
+    design: 'tandem', font: BODY_SERIF, contentPadV: 42, mainPad: '42px 42px', sidebarW: 212, sidebarSide: 'left', measureW: 498, flowPaginate: true, flowSidebar: ({ cv, A }) => <TandemSidebar cv={cv} A={A} />, flowSidebarW: 212, flowSidebarBg: A => darken(A), flowAllowBlockSplit: true,
     buildBlocks: tandemMainBlocks,
     Header: ({ cv, A }) => (<div style={{ borderBottom: '1px solid #d9e4e5', paddingBottom: 22, marginBottom: 24 }}>
       <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 2.1, color: A, marginBottom: 9 }}>CAREER PROFILE</div>
@@ -1618,7 +1618,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
       {cv.jobTitle && <div style={{ fontSize: 15, fontWeight: 600, color: '#5b7276', marginTop: 8 }}>{cv.jobTitle}</div>}
     </div>),
     Frame: ({ cv, A, pageIndex, children }) => (
-      <div style={{ ...pageBase, display: 'grid', gridTemplateColumns: '212px 1fr', fontFamily: BODY_SANS, color: '#183339', background: '#fbfcfc' }}>
+      <div style={{ ...pageBase, display: 'grid', gridTemplateColumns: '212px 1fr', fontFamily: BODY_SERIF, color: '#183339', background: '#fbfcfc' }}>
         <div style={{ background: darken(A), minHeight: '100%' }}><TandemSidebar cv={cv} A={A} /></div>
         <main style={{ padding: '42px 42px' }}>
           {pageIndex === 0 && <TEMPLATES_CONFIG.tandem.Header cv={cv} A={A} />}
