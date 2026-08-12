@@ -866,7 +866,12 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
               {config.flowRail && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowRailW ?? 38, background: A, zIndex: 0 }} />}
               {config.flowTopBarH && <div data-flow-decor style={{ position: 'fixed', left: 0, right: 0, top: 0, height: config.flowTopBarH, background: A, zIndex: 0 }} />}
               {config.flowSidebarBg && <div data-flow-decor style={{ position: 'fixed', left: 0, top: 0, bottom: 0, width: config.flowSidebarW ?? 200, background: config.flowSidebarBg(A), zIndex: 0 }} />}
-              {config.flowSidebar && <div style={{ position: 'absolute', left: 0, top: 0, width: config.flowSidebarW ?? 200, zIndex: 1 }}>{config.flowSidebar({ cv, A })}</div>}
+              {/* box-decoration-break: clone re-applies paddingTop at every page
+                  fragment, same technique the main content column below already
+                  uses — without it, only the very first page of this absolutely-
+                  positioned block gets top breathing room; every later page's
+                  slice starts flush at the paper edge. */}
+              {config.flowSidebar && <div style={{ position: 'absolute', left: 0, top: 0, width: config.flowSidebarW ?? 200, zIndex: 1, paddingTop: 30, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }}>{config.flowSidebar({ cv, A })}</div>}
               {/* Content layer sits above the decorations. */}
               <div style={{ position: 'relative', zIndex: 1, marginLeft: flowSidebarInset, paddingTop: flowSidebarContentPad, paddingBottom: flowSidebarContentPad, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }}>
                 <config.Header cv={cv} A={A} />
@@ -998,13 +1003,17 @@ function tandemMainBlocks(cv: GeneratedCV, A: string): Block[] {
   return commonBlocks(mainCv, A, 'tandem', { skillsInline: true })
 }
 
-function TandemSidebar({ cv, A }: { cv: GeneratedCV; A: string }) {
+function TandemSidebar({ cv, A, flow }: { cv: GeneratedCV; A: string; flow?: boolean }) {
   const label = (text: string) => <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.64)', marginBottom: 9 }}>{text}</div>
   const contactLines = [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean)
   const education = cv.education || []
   const references = getSections(cv).filter(section => isRefsHead(section.heading)).flatMap(section => section.items)
+  // In the flow/PDF render, top padding moves to the wrapping absolute div
+  // (which gets box-decoration-break: clone so it repeats on every printed
+  // page — see flowSidebar in TEMPLATES_CONFIG.tandem). Keeping it here too
+  // would double it up on page 1 only.
   return (
-    <aside style={{ padding: '30px 20px 24px', color: '#fff', fontFamily: BODY_SERIF, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+    <aside style={{ padding: flow ? '0 20px 24px' : '30px 20px 24px', color: '#fff', fontFamily: BODY_SERIF, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
       <div style={{ paddingBottom: 18, marginBottom: 18, borderBottom: '1px solid rgba(255,255,255,0.28)' }}>
         {label('Contact')}
         {contactLines.map((line, index) => <div key={index} style={{ fontSize: 13.5, lineHeight: 1.45, color: 'rgba(255,255,255,0.94)', marginBottom: 7, overflowWrap: 'anywhere' }}>{line}</div>)}
@@ -1610,7 +1619,7 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
 
   // ── TANDEM: fixed repeating sidebar + one native flowing content column ──
   tandem: {
-    design: 'tandem', font: BODY_SERIF, contentPadV: 42, mainPad: '42px 42px', sidebarW: 212, sidebarSide: 'left', measureW: 498, flowPaginate: true, flowSidebar: ({ cv, A }) => <TandemSidebar cv={cv} A={A} />, flowSidebarW: 212, flowSidebarBg: A => darken(A), flowAllowBlockSplit: true,
+    design: 'tandem', font: BODY_SERIF, contentPadV: 42, mainPad: '42px 42px', sidebarW: 212, sidebarSide: 'left', measureW: 498, flowPaginate: true, flowSidebar: ({ cv, A }) => <TandemSidebar cv={cv} A={A} flow />, flowSidebarW: 212, flowSidebarBg: A => darken(A), flowAllowBlockSplit: true,
     buildBlocks: tandemMainBlocks,
     Header: ({ cv, A }) => (<div style={{ borderBottom: '1px solid #d9e4e5', paddingBottom: 22, marginBottom: 24 }}>
       <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 2.1, color: A, marginBottom: 9 }}>CAREER PROFILE</div>
