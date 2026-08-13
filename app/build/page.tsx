@@ -424,6 +424,28 @@ export default function BuildPage() {
     return data.text
   }
 
+  // Fired the moment a CV file is dropped/selected — deliberately NOT tied to
+  // clicking Generate. The credits check and full generation can fail, be
+  // abandoned, or never even be reached (no credits yet); none of that should
+  // stop this device from remembering what was uploaded. Best-effort and
+  // silent: a failed extraction here just means nothing gets remembered yet,
+  // it doesn't block the upload or show an error — the real extraction (with
+  // real error messages) still happens again at Generate time regardless.
+  async function handleCVFileUpload(file: File | null) {
+    setUploadedCV(file)
+    if (!file || !rememberMe) return
+    try {
+      const text = await extractFile(file)
+      if (text.replace(/\s+/g, ' ').trim().length >= 80) {
+        const seed = captureBuildSeed('type')
+        seed.pasteContent = text
+        saveLastInput(seed)
+      }
+    } catch {
+      // best-effort only
+    }
+  }
+
   // ── Validate ──────────────────────────────────
   function validate(): string | null {
     if (!phoneNumber.trim()) return 'phone'
@@ -916,7 +938,7 @@ export default function BuildPage() {
               <textarea ref={refs.paste} style={TA(180)} rows={8} placeholder="Paste your CV content here — any format is fine..." />
             </div>
           ) : (
-            <UploadZone label="Drop your CV here, or click to browse" hint="PDF · Word (.docx) · Text (.txt) · or a photo of your CV" onFile={setUploadedCV} file={uploadedCV} />
+            <UploadZone label="Drop your CV here, or click to browse" hint="PDF · Word (.docx) · Text (.txt) · or a photo of your CV" onFile={handleCVFileUpload} file={uploadedCV} />
           )}
 
           {/* The prompt for extra detail is worded for the document being made —

@@ -54,6 +54,14 @@ export async function POST(req: NextRequest) {
       extractedText = await extractWithClaude(buffer, imageType as any)
     }
 
+    // The upload screen's own hint text has always advertised "Text (.txt)"
+    // as a supported format, but nothing here ever actually handled it —
+    // any .txt fell straight through to the "unsupported" error below. A
+    // plain text file needs no parsing at all, just decoding as UTF-8.
+    else if (mimeType === 'text/plain' || fileName.endsWith('.txt')) {
+      extractedText = buffer.toString('utf-8')
+    }
+
     else {
       return NextResponse.json(
         { error: 'Unsupported file type. Please upload a PDF, Word document, or image.' },
