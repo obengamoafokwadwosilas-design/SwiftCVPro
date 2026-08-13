@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import { CVType } from '@/types'
 import { PACKAGES, packagesForDoc } from '@/lib/packages'
-import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed } from '@/lib/buildSeed'
+import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed, saveLastInput, loadLastInput, clearLastInput } from '@/lib/buildSeed'
 
 // ─────────────────────────────────────────────────────────────
 // LOADING SCREEN DATA
@@ -93,6 +93,11 @@ export default function BuildPage() {
   // empty box they can't fill.
   const [tailorMode, setTailorMode] = useState<'advert' | 'aim' | 'none'>('none')
   const [phoneNumber, setPhoneNumber] = useState('')
+  // True when the phone/CV fields below were pre-filled from a previous visit
+  // on this device (see lib/buildSeed.ts saveLastInput/loadLastInput) — shows
+  // a small "Not you?" control so a shared device isn't stuck with someone
+  // else's info.
+  const [restoredFromLastInput, setRestoredFromLastInput] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   // Separate from isGenerating: the quick pre-flight credit check. Kept apart so
   // the full-screen "generating" animation never shows before we've confirmed
@@ -185,7 +190,15 @@ export default function BuildPage() {
   // there, then clear it so a stale seed can't reapply on a later visit.
   useEffect(() => {
     const seed = loadBuildSeed()
-    if (seed) { applyBuildSeed(seed); clearBuildSeed() }
+    if (seed) {
+      applyBuildSeed(seed)
+      clearBuildSeed()
+      return
+    }
+    // Nothing more specific pending — a normal fresh visit. Fall back to
+    // whatever this device remembers from last time, if anything.
+    const last = loadLastInput()
+    if (last) { applyLastInput(last); setRestoredFromLastInput(true) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -322,7 +335,14 @@ export default function BuildPage() {
       const setVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
         if (v !== undefined && ref.current) ref.current.value = v
       }
-      if (seed.pasteContent) { setPasteInputMode('paste'); setVal(refs.paste, seed.pasteContent) }
+      if (seed.pasteContent) {
+        // The paste textarea only mounts once pasteInputMode is 'paste' (it
+        // defaults to 'upload') — setPasteInputMode is an async state update,
+        // so refs.paste.current is still null right after calling it. Defer
+        // one more frame so the textarea has actually mounted before we touch it.
+        setPasteInputMode('paste')
+        requestAnimationFrame(() => setVal(refs.paste, seed.pasteContent))
+      }
       setVal(refs.clarify, seed.clarifyNotes)
       if (seed.form) {
         const f = seed.form
@@ -337,6 +357,56 @@ export default function BuildPage() {
       setVal(refs.whyRole, seed.whyRole)
     })
     go(seed.landingScreen)
+  }
+
+  // ── Pre-fill from a remembered previous visit (see mount effect above) ──
+  // Deliberately narrower than applyBuildSeed: only the person's own
+  // identity/CV content is restored, never job-targeting fields (a job
+  // description or "why this role" answer from last time would be actively
+  // wrong for a new application) — and it never navigates screens, since
+  // this is a passive pre-fill on an ordinary fresh visit, not a resume-where-
+  // I-left-off flow.
+  function applyLastInput(seed: BuildSeed) {
+    setCvType(seed.cvType)
+    setInputMethod(seed.inputMethod)
+    if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
+    requestAnimationFrame(() => {
+      const setVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
+        if (v !== undefined && ref.current) ref.current.value = v
+      }
+      if (seed.pasteContent) {
+        // Same async-mount issue as applyBuildSeed above: the textarea only
+        // exists once pasteInputMode flips to 'paste', one frame after this.
+        setPasteInputMode('paste')
+        requestAnimationFrame(() => setVal(refs.paste, seed.pasteContent))
+      }
+      if (seed.form) {
+        const f = seed.form
+        setVal(refs.fullName, f.fullName); setVal(refs.phone, f.phone); setVal(refs.email, f.email); setVal(refs.location, f.location)
+        setVal(refs.dob, f.dob); setVal(refs.nationality, f.nationality); setVal(refs.linkedin, f.linkedin)
+        setVal(refs.education, f.education); setVal(refs.gpa, f.gpa); setVal(refs.thesis, f.thesis); setVal(refs.research, f.research)
+        setVal(refs.experience, f.experience); setVal(refs.publications, f.publications); setVal(refs.teaching, f.teaching); setVal(refs.conferences, f.conferences)
+        setVal(refs.extras, f.extras); setVal(refs.grants, f.grants); setVal(refs.supervision, f.supervision); setVal(refs.orcid, f.orcid)
+        setVal(refs.jobTitle, f.jobTitle); setVal(refs.company, f.company)
+      }
+    })
+  }
+
+  // "Not you?" — wipes the remembered info from this device and clears every
+  // field it pre-filled, so a shared device doesn't stay stuck with someone
+  // else's phone number and CV text.
+  function clearSavedInfo() {
+    clearLastInput()
+    setPhoneNumber('')
+    const clearVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>) => { if (ref.current) ref.current.value = '' }
+    clearVal(refs.paste)
+    clearVal(refs.fullName); clearVal(refs.phone); clearVal(refs.email); clearVal(refs.location)
+    clearVal(refs.dob); clearVal(refs.nationality); clearVal(refs.linkedin)
+    clearVal(refs.education); clearVal(refs.gpa); clearVal(refs.thesis); clearVal(refs.research)
+    clearVal(refs.experience); clearVal(refs.publications); clearVal(refs.teaching); clearVal(refs.conferences)
+    clearVal(refs.extras); clearVal(refs.grants); clearVal(refs.supervision); clearVal(refs.orcid)
+    clearVal(refs.jobTitle); clearVal(refs.company)
+    setRestoredFromLastInput(false)
   }
 
   // ── File extract ──────────────────────────────
@@ -379,6 +449,8 @@ export default function BuildPage() {
       setError(msgs[validErr] || { title: 'Something missing', msg: 'Please check your details and try again.', type: 'input' })
       return
     }
+    // Remember this device's phone/CV info for next visit (see lib/buildSeed.ts).
+    saveLastInput(captureBuildSeed('type'))
     setCheckingCredits(true)
     try {
       const creditRes = await fetch('/api/check-credits', {
@@ -736,7 +808,14 @@ export default function BuildPage() {
               deliberately understated so it never competes with the choice
               above. A single slim field, small label, no card, no blurb. */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>Enter your phone number</label>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>Enter your phone number</label>
+              {restoredFromLastInput && (
+                <button type="button" onClick={clearSavedInfo} style={{ background: 'none', border: 'none', padding: 0, marginBottom: '8px', fontSize: '11.5px', color: '#0d9488', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  Not you? Clear saved info
+                </button>
+              )}
+            </div>
             <input
               value={phoneNumber}
               onChange={e => { setPhoneNumber(e.target.value); if (typeErr) setTypeErr('') }}

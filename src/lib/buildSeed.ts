@@ -53,3 +53,27 @@ export function loadBuildSeed(): BuildSeed | null {
 export function clearBuildSeed() {
   try { sessionStorage.removeItem(KEY) } catch { /* non-fatal */ }
 }
+
+// ── Remembering a returning user's own info across visits ──────────────
+// Separate from the one-shot seed above on purpose: that one is consumed and
+// cleared the moment it's read (built for a single round trip). This one is
+// never auto-cleared — it persists in localStorage so someone on the same
+// phone/laptop doesn't have to retype their number or re-paste their CV
+// every single visit. Only cleared if the user explicitly asks (see
+// clearLastInput, wired to a "Not you?" control in the builder UI).
+const LAST_INPUT_KEY = 'swiftcv_last_input'
+
+export function saveLastInput(seed: BuildSeed) {
+  try { localStorage.setItem(LAST_INPUT_KEY, JSON.stringify(seed)) } catch { /* storage unavailable — non-fatal */ }
+}
+
+export function loadLastInput(): BuildSeed | null {
+  try {
+    const raw = localStorage.getItem(LAST_INPUT_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+export function clearLastInput() {
+  try { localStorage.removeItem(LAST_INPUT_KEY) } catch { /* non-fatal */ }
+}
