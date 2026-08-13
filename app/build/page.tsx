@@ -507,6 +507,18 @@ export default function BuildPage() {
           return
         }
 
+        // Re-save now that an uploaded file has actually been read into text —
+        // the earlier save in handleGenerate() ran before extraction, so a
+        // file upload (as opposed to pasted text) had nothing to capture yet.
+        // A raw File object can't go into localStorage anyway, so this is the
+        // only point where an upload's content can be remembered at all — as
+        // the extracted text, restored into the paste box next time.
+        if (fromUpload && rememberMe) {
+          const seed = captureBuildSeed('type')
+          seed.pasteContent = rawContent
+          saveLastInput(seed)
+        }
+
         const clarify = refs.clarify.current?.value?.trim()
         if (clarify) rawContent += '\n\nADDITIONAL NOTES:\n' + clarify
         // Only read the advert if that's the option they actually chose, so a
