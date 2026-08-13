@@ -72,11 +72,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Too many downloads in a short time. Please wait a moment and try again.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
     }
 
-    const { cv, templateId, accentColor } = await req.json() as { cv: GeneratedCV; templateId: TemplateId; accentColor?: string | null }
+    const { cv, templateId, accentColor, phoneNumber } = await req.json() as { cv: GeneratedCV; templateId: TemplateId; accentColor?: string | null; phoneNumber?: string }
     if (!cv) return NextResponse.json({ error: 'No CV data' }, { status: 400 })
+    if (!phoneNumber) return NextResponse.json({ error: 'Please enter your phone number.' }, { status: 400 })
+
+    // ── The real paywall lives here, not at generation ──────────────
+    // Generation is free (app/api/generate); downloading the actual usable
+    // file is what spends a credit. A cover letter is identified by the CV
+    // object itself already carrying coverLetterBody — no extra field needed
+    // (unlike export-pdf, which only gets raw HTML and needs to be told).
+    const { normalizePhone } = await import('@/lib/phone')
+    const { hasCredits, hasCoverLetterCredit, deductCredit, deductCoverLetterCredit } = await import('@/lib/credits')
+    const phone = normalizePhone(phoneNumber)
+    const isCoverLetterDoc = !!cv.coverLetterBody
+    const paid = isCoverLetterDoc ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
+    if (!paid) {
+      return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a credit to download this. Please buy a package first.' }, { status: 402 })
+    }
 
     const doc = buildDocument(cv, templateId, accentColor)
     const buffer = await Packer.toBuffer(doc)
+
+    // Only deduct once the file is actually built — a failed render must
+    // never cost a credit.
+    if (isCoverLetterDoc) await deductCoverLetterCredit(phone)
+    else await deductCredit(phone)
 
     return new NextResponse(new Uint8Array(buffer), {
       headers: {

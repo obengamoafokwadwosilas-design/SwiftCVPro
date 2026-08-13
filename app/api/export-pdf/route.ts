@@ -14,6 +14,8 @@ const MAX_HTML_BYTES = 600_000  // a real CV/letter is well under this
 type Body = {
   html?: string
   fullName?: string
+  phoneNumber?: string
+  isCoverLetter?: boolean
 }
 
 type Api2PdfResponse = {
@@ -39,7 +41,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Too many downloads in a short time. Please wait a moment and try again.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
     }
 
-    const { html, fullName }: Body = await req.json()
+    const { html, fullName, phoneNumber, isCoverLetter }: Body = await req.json()
 
     if (!html) {
       return NextResponse.json({ error: 'No CV HTML received.' }, { status: 400 })
@@ -48,6 +50,23 @@ export async function POST(req: Request) {
     // output always wraps the document in #cv-print-area.
     if (html.length > MAX_HTML_BYTES || !html.includes('cv-print-area')) {
       return NextResponse.json({ error: 'Invalid document.' }, { status: 400 })
+    }
+    if (!phoneNumber) {
+      return NextResponse.json({ error: 'Please enter your phone number.' }, { status: 400 })
+    }
+
+    // ── The real paywall lives here, not at generation ──────────────
+    // Generation is free (app/api/generate); downloading the actual usable
+    // file is what spends a credit. Unlike export-docx (which gets a
+    // structured cv object it can inspect for coverLetterBody), this route
+    // only ever sees raw HTML, so the caller has to say what kind of
+    // document it is.
+    const { normalizePhone } = await import('@/lib/phone')
+    const { hasCredits, hasCoverLetterCredit, deductCredit, deductCoverLetterCredit } = await import('@/lib/credits')
+    const phone = normalizePhone(phoneNumber)
+    const paid = isCoverLetter ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
+    if (!paid) {
+      return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a credit to download this. Please buy a package first.' }, { status: 402 })
     }
 
     const apiKey = process.env.API2PDF_API_KEY
@@ -125,6 +144,13 @@ export async function POST(req: Request) {
     }
 
     const pdfBuffer = await pdfResponse.arrayBuffer()
+
+    // Only deduct once the file is actually in hand — not merely once
+    // Api2Pdf accepted the render job (it can still fail after that, or the
+    // final download-from-Api2Pdf leg above can fail). A user must never be
+    // charged for a PDF they didn't actually receive.
+    if (isCoverLetter) await deductCoverLetterCredit(phone)
+    else await deductCredit(phone)
 
     return new NextResponse(pdfBuffer, {
       status: 200,

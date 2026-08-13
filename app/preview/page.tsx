@@ -6,6 +6,7 @@ import { GeneratedCV, TemplateId, ExportFormat } from '@/types'
 import CVPreview, { getFlowPdfConfig, TemplatePreview } from '@/components/CVPreview'
 import CVHistoryModal from '@/components/CVHistoryModal'
 import HeaderMenu from '@/components/HeaderMenu'
+import { PACKAGES, packagesForDoc } from '@/lib/packages'
 
 // ══════════════════════════════════════════════════════
 // TEMPLATE LIBRARY — Premium first, then ATS, then Academic
@@ -112,6 +113,16 @@ export default function PreviewPage() {
   const router = useRouter()
   const [cv, setCV] = useState<GeneratedCV | null>(null)
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
+  // ── Download-time paywall ──
+  // Generation is free; a real credit is only required at download. This
+  // remembers which download was blocked so it can be retried automatically
+  // once the pricing modal below completes a purchase.
+  const [showPricing, setShowPricing] = useState(false)
+  const [pendingDownload, setPendingDownload] = useState<'pdf' | 'docx' | null>(null)
+  const [purchaseError, setPurchaseError] = useState('')
+  const [paymentPending, setPaymentPending] = useState<{ reference: string } | null>(null)
+  const [verifyingPayment, setVerifyingPayment] = useState(false)
   const [template, setTemplate] = useState<TemplateId>('classic')
   const [activeTab, setActiveTab] = useState<'preview' | 'edit'>('preview')
   const [downloading, setDownloading] = useState<ExportFormat | null>(null)
@@ -137,12 +148,14 @@ export default function PreviewPage() {
   useEffect(() => {
     const stored = sessionStorage.getItem('swiftcv_cv')
     const ph = sessionStorage.getItem('swiftcv_phone')
+    const em = sessionStorage.getItem('swiftcv_email')
     if (!stored) { router.push('/build'); return }
     try {
       const parsed = normalizeCV(JSON.parse(stored))
       setCV(parsed)
       setBaseCv(parsed)
       setPhone(ph || '')
+      setEmail(em || '')
       // Restore a cover letter generated earlier this session (if any)
       const storedCover = sessionStorage.getItem('swiftcv_coverletter')
       if (storedCover) { try { setCoverLetter(normalizeCV(JSON.parse(storedCover))) } catch {} }
@@ -341,11 +354,11 @@ export default function PreviewPage() {
         headers: { 'Content-Type': 'application/json' },
         // Only send the advert when they actually chose the targeted option,
         // so switching back to "general" can't silently reuse stale text.
-        body: JSON.stringify({ cv: source, jobDescription: coverMode === 'targeted' ? (coverJd || undefined) : undefined, phoneNumber: phone })
+        body: JSON.stringify({ cv: source, jobDescription: coverMode === 'targeted' ? (coverJd || undefined) : undefined, phoneNumber: phone, email })
       })
       const data = await res.json()
       if (!res.ok) {
-        if (data.error === 'NO_CREDITS') setCoverErr('You don\u2019t have a cover-letter credit. Get Cover Letter Pro (GH\u20b515) or the Gold pack, then come back and generate it here.')
+        if (data.error === 'FREE_CAP_REACHED') setCoverErr(data.message || 'You\u2019ve used your free cover-letter previews. Buy credits to keep generating.')
         else setCoverErr(data.error || 'Generation failed. Please try again.')
         return
       }
@@ -370,8 +383,13 @@ export default function PreviewPage() {
       const res = await fetch('/api/export-docx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv, templateId: template, accentColor })
+        body: JSON.stringify({ cv, templateId: template, accentColor, phoneNumber: phone })
       })
+      if (res.status === 402) {
+        const data = await res.json().catch(() => ({}))
+        if (data.error === 'NO_CREDITS') { setPendingDownload('docx'); setShowPricing(true); return }
+        throw new Error('failed')
+      }
       if (!res.ok) throw new Error('failed')
       const blob = await res.blob()
       const url = window.URL.createObjectURL(blob)
@@ -426,9 +444,14 @@ export default function PreviewPage() {
       const res = await fetch('/api/export-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html, fullName: cv.fullName }),
+        body: JSON.stringify({ html, fullName: cv.fullName, phoneNumber: phone, isCoverLetter }),
       })
 
+      if (res.status === 402) {
+        const data = await res.json().catch(() => ({}))
+        if (data.error === 'NO_CREDITS') { setPendingDownload('pdf'); setShowPricing(true); return }
+        throw new Error(data.error || 'PDF download failed')
+      }
       if (!res.ok) {
         const message = await res.text().catch(() => '')
         throw new Error(message || 'PDF download failed')
@@ -450,6 +473,105 @@ export default function PreviewPage() {
       alert('PDF download failed. Please try again.')
     } finally {
       setDownloading(null)
+    }
+  }
+
+  // ── Download-time pricing modal — minimal, self-contained duplicate of
+  // triggerPaystack in app/build/page.tsx (kept separate rather than shared
+  // while this flow is new; a fast-follow can extract a common hook once
+  // it's proven stable). Retries whichever download was blocked once the
+  // purchase confirms.
+  function isInAppBrowser(): boolean {
+    if (typeof navigator === 'undefined') return false
+    return /FBAN|FBAV|Instagram|Line\/|Twitter|WhatsApp|MicroMessenger/i.test(navigator.userAgent || '')
+  }
+
+  async function retryPendingDownload() {
+    const kind = pendingDownload
+    setShowPricing(false)
+    setPendingDownload(null)
+    if (kind === 'pdf') await handleDownloadPdf()
+    else if (kind === 'docx') await handleDownloadDocx()
+  }
+
+  async function confirmPreviewPayment(reference: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/verify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference }),
+      })
+      const data = await res.json()
+      if (!data.success) {
+        setPurchaseError(data.error || 'We could not confirm your payment. If you completed it, wait a moment and try again.')
+        return false
+      }
+      return true
+    } catch {
+      setPurchaseError('Could not verify your payment. Please check your internet and try again.')
+      return false
+    }
+  }
+
+  async function handlePreviewManualVerify() {
+    if (!paymentPending) return
+    setVerifyingPayment(true)
+    const ok = await confirmPreviewPayment(paymentPending.reference)
+    setVerifyingPayment(false)
+    if (ok) { setPaymentPending(null); await retryPendingDownload() }
+  }
+
+  async function triggerPreviewPaystack(pkg: typeof PACKAGES[number]) {
+    setPurchaseError('')
+    try {
+      const res = await fetch('/api/initiate-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phone, packageId: pkg.id }),
+      })
+      const data = await res.json()
+      if (!data.success) {
+        setPurchaseError(data.error || 'Could not start payment. Please try again.')
+        return
+      }
+
+      const openHostedFallback = () => {
+        const popup = window.open(data.authorization_url, '_blank', 'width=500,height=700')
+        if (!popup) { setPurchaseError('Please allow pop-ups for this site, then try again — or complete payment at the link that just opened.'); }
+        setPaymentPending({ reference: data.reference })
+      }
+
+      if (isInAppBrowser()) { openHostedFallback(); return }
+
+      const openPopup = () => {
+        const PaystackPop = (window as any).PaystackPop
+        if (!PaystackPop) { openHostedFallback(); return }
+        try {
+          const instance = new PaystackPop()
+          instance.resumeTransaction(data.access_code, {
+            onSuccess: async () => {
+              const ok = await confirmPreviewPayment(data.reference)
+              if (ok) await retryPendingDownload()
+            },
+            onCancel: () => setPurchaseError('Payment was not completed.'),
+            onError: () => openHostedFallback(),
+          })
+        } catch {
+          openHostedFallback()
+        }
+      }
+
+      if ((window as any).PaystackPop) {
+        openPopup()
+      } else {
+        const script = document.createElement('script')
+        script.src = 'https://js.paystack.co/v2/inline.js'
+        script.onload = openPopup
+        script.onerror = openHostedFallback
+        document.body.appendChild(script)
+      }
+    } catch {
+      setPurchaseError('Could not start payment. Please check your internet and try again.')
     }
   }
 
@@ -1143,6 +1265,52 @@ export default function PreviewPage() {
             </div>
             <button onClick={() => { setPdfOnlyModal(false); handleDownloadPdf() }} style={{ width:'100%', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'11px', cursor:'pointer', fontWeight:600, fontSize:'14px', marginBottom:'10px' }}>Download PDF</button>
             <button onClick={() => setPdfOnlyModal(false)} style={{ width:'100%', padding:'11px', background:'transparent', color:'#64748b', border:'none', borderRadius:'11px', cursor:'pointer', fontWeight:600, fontSize:'13px' }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {showPricing && (
+        <div onClick={() => { setShowPricing(false); setPendingDownload(null) }} style={{ position: 'fixed', inset: 0, background: 'rgba(8,13,24,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '22px', width: '100%', maxWidth: '440px', padding: '28px 26px', boxShadow: '0 25px 80px rgba(0,0,0,0.4)', fontFamily: "'DM Sans', sans-serif", maxHeight: '92vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 600, color: '#0a0f1a', lineHeight: 1.15 }}>Choose your package</div>
+              <button onClick={() => { setShowPricing(false); setPendingDownload(null) }} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', display: 'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+            </div>
+            <p style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '18px', lineHeight: 1.6 }}>Your CV is ready — pay once to download it. One-time payment · no subscription.</p>
+
+            {purchaseError && <div style={{ fontSize: '12.5px', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 12px', marginBottom: '14px' }}>{purchaseError}</div>}
+
+            {paymentPending ? (
+              <div style={{ background: '#f0fdf9', border: '1px solid #bff0e4', borderRadius: '14px', padding: '16px' }}>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px' }}>Complete payment in the window that opened</div>
+                <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '12px', lineHeight: 1.6 }}>Once you&apos;ve paid, click below to confirm — your download will start right after.</div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
+                  <button onClick={handlePreviewManualVerify} disabled={verifyingPayment} style={{ padding: '11px 20px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', opacity: verifyingPayment ? 0.6 : 1 }}>
+                    {verifyingPayment ? 'Checking…' : 'Verify Payment'}
+                  </button>
+                  <button onClick={() => setPaymentPending(null)} style={{ padding: '11px 20px', background: 'transparent', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: '11px' }}>
+                {packagesForDoc(isCoverLetter).map(pkg => (
+                  <button key={pkg.id} onClick={() => triggerPreviewPaystack(pkg)}
+                    style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
+                      background: pkg.recommended ? '#f6fdfb' : 'white', border: pkg.recommended ? '2px solid #0d9488' : '1px solid #e7ebf0',
+                      borderRadius: '16px', padding: pkg.recommended ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
+                    {pkg.recommended && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: '#0d9488', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>BEST VALUE</span>}
+                    <span style={{ fontSize: '20px', flexShrink: 0 }}>{pkg.emoji}</span>
+                    <span style={{ flex: 1 }}>
+                      <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: '#0a0f1a' }}>{pkg.name}</span>
+                      <span style={{ display: 'block', fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>{pkg.blurb}</span>
+                    </span>
+                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 700, color: pkg.recommended ? '#0d9488' : '#0a0f1a', whiteSpace: 'nowrap' as const }}>GH₵{pkg.price}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '16px', textAlign: 'center' as const, lineHeight: 1.5 }}>Secure payment via Paystack · MTN MoMo, Vodafone Cash & card</p>
           </div>
         </div>
       )}

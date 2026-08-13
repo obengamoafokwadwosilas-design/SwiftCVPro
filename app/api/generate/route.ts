@@ -167,10 +167,6 @@ async function saveToHistory(
   }
 }
 
-// ⚠️ TESTING MODE — payments bypassed
-// TODO: Remove this and re-enable credits check before going live
-const TESTING_MODE = false
-
 // Rate limiter
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
 const RATE_LIMIT_MAX = 20
@@ -197,11 +193,15 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { cvType, rawContent, jobDescription, phoneNumber } = body
+    const { cvType, rawContent, jobDescription, phoneNumber, email } = body
     const formData = body.formData
 
     if (!phoneNumber) {
       return NextResponse.json({ error: 'Please enter your phone number.' }, { status: 400 })
+    }
+
+    if (!email) {
+      return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
     }
 
     if (!rawContent && !formData) {
@@ -219,28 +219,36 @@ export async function POST(req: NextRequest) {
       }, { status: 429 })
     }
 
-    // ── Credits check (BYPASSED IN TESTING MODE) ──
-    // Type-aware: a cover letter needs a cover-letter credit; a CV needs a CV
-    // credit. The two are separate currencies (see packages.ts) and never
-    // substitute for each other.
+    // ── Generation is free (capped) — the real gate is at download ──
+    // Type-aware: a cover letter draws from the cover-letter pool, a CV from
+    // the CV pool — separate currencies (see packages.ts), same as before.
+    //
+    // A paying customer (real credits > 0) is exempt from the free cap
+    // entirely and forever, so buying credits then re-tailoring for many
+    // jobs is never blocked by it. Everyone else gets a small number of free
+    // generations (src/lib/freeGenerations.ts), enforced against BOTH phone
+    // and email so cycling a cheap SIM alone doesn't reset it. Download,
+    // not generation, is what actually costs a credit — see
+    // app/api/export-pdf/route.ts and app/api/export-docx/route.ts.
     const isCoverLetterDoc = cvType === 'cover_letter'
-    if (!TESTING_MODE) {
+    try {
       const { hasCredits, hasCoverLetterCredit } = await import('@/lib/credits')
-      let creditAvailable = false
-      try {
-        creditAvailable = isCoverLetterDoc ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
-      } catch (err) {
-        console.error('Credits check error:', err)
-        return NextResponse.json({
-          error: 'Payment verification failed. Please check your connection or contact support.'
-        }, { status: 503 })
+      const paid = isCoverLetterDoc ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
+      if (!paid) {
+        const { consumeFreeGeneration } = await import('@/lib/freeGenerations')
+        const { allowed } = await consumeFreeGeneration(phone, email, isCoverLetterDoc)
+        if (!allowed) {
+          return NextResponse.json({
+            error: 'FREE_CAP_REACHED',
+            message: 'You’ve used your free previews. Buy credits to keep generating and download your CV.'
+          }, { status: 402 })
+        }
       }
-      if (!creditAvailable) {
-        return NextResponse.json({
-          error: 'NO_CREDITS',
-          message: 'No credits found. Please complete payment first.'
-        }, { status: 402 })
-      }
+    } catch (err) {
+      console.error('Free-generation/credits check error:', err)
+      return NextResponse.json({
+        error: 'Payment verification failed. Please check your connection or contact support.'
+      }, { status: 503 })
     }
 
     // ── Build prompt ──────────────────────────────
@@ -262,7 +270,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Call Claude ───────────────────────────────
-    console.log(`[Generate] phone=${phone} cvType=${cvType} testingMode=${TESTING_MODE}`)
+    console.log(`[Generate] phone=${phone} cvType=${cvType}`)
 
     let message
     try {
@@ -322,19 +330,9 @@ export async function POST(req: NextRequest) {
       console.error('Pagination-risk pass failed (non-fatal):', err)
     }
 
-    // ── Deduct the credit this document actually used ─
-    // A cover letter spends a cover-letter credit; a CV spends a CV credit.
-    // (We no longer hand out a free cover letter with every CV — a cover
-    // letter is only ever covered by a package that paid for one.)
-    if (!TESTING_MODE) {
-      try {
-        const { deductCredit, deductCoverLetterCredit } = await import('@/lib/credits')
-        if (isCoverLetterDoc) await deductCoverLetterCredit(phone)
-        else await deductCredit(phone)
-      } catch (err) {
-        console.error('Credit deduction error (non-fatal):', err)
-      }
-    }
+    // No credit deduction here — generation is free (or covered by the free
+    // cap above). A credit is only ever spent at download time, in
+    // app/api/export-pdf/route.ts and app/api/export-docx/route.ts.
 
     // ── Save to history (best-effort, never blocks delivery) ──
     const historyId = await saveToHistory(phone, cvType, formData, rawContent, jobDescription, generatedCV)

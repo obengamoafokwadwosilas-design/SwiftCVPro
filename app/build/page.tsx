@@ -99,6 +99,11 @@ export default function BuildPage() {
   // empty box they can't fill.
   const [tailorMode, setTailorMode] = useState<'advert' | 'aim' | 'none'>('none')
   const [phoneNumber, setPhoneNumber] = useState('')
+  // Required alongside phone — generation is free but capped per identity, and
+  // checked against both phone and email so cycling one signal alone can't
+  // dodge the cap (see FREE_CAP_REACHED handling in doGenerate). Distinct from
+  // refs.email below, which is CV *content* (appears on the document).
+  const [email, setEmail] = useState('')
   // True when the phone/CV fields below were pre-filled from a previous visit
   // on this device (see lib/buildSeed.ts saveLastInput/loadLastInput) — shows
   // a small "Not you?" control so a shared device isn't stuck with someone
@@ -113,11 +118,6 @@ export default function BuildPage() {
   // it has to be opened or they'd be invisible (and look lost).
   const [restoredClarifyNotes, setRestoredClarifyNotes] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  // Separate from isGenerating: the quick pre-flight credit check. Kept apart so
-  // the full-screen "generating" animation never shows before we've confirmed
-  // the user actually has credits (otherwise a no-credit user briefly sees a
-  // generation screen, which reads as "it generated for free").
-  const [checkingCredits, setCheckingCredits] = useState(false)
   const [error, setError] = useState<{ title: string; msg: string; type: 'payment' | 'input' | 'server' | 'network' } | null>(null)
 
   // Academic optional expands
@@ -294,6 +294,8 @@ export default function BuildPage() {
     const digits = phoneNumber.replace(/\D/g, '')
     if (!phoneNumber.trim()) { setTypeErr('Please enter your phone number.'); return }
     if (digits.length < 9) { setTypeErr('Please enter a valid phone number.'); return }
+    if (!email.trim()) { setTypeErr('Please enter your email address.'); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setTypeErr('Please enter a valid email address.'); return }
     // Advance instantly — no waiting, no "checking" state. The balance is
     // fetched in the background purely so the info screens can show what's
     // left; if it's slow or fails, the user never notices (Generate re-checks
@@ -545,6 +547,7 @@ export default function BuildPage() {
   // ── Validate ──────────────────────────────────
   function validate(): string | null {
     if (!phoneNumber.trim()) return 'phone'
+    if (!email.trim()) return 'email'
     if (inputMethod === 'paste') {
       if (pasteInputMode === 'paste' && !refs.paste.current?.value.trim()) return 'content'
       if (pasteInputMode === 'upload' && !uploadedCV) return 'file'
@@ -577,28 +580,15 @@ export default function BuildPage() {
     // whatever was already saved, so unticking actually means something.
     if (rememberMe) rememberCurrentInput()
     else clearLastInput()
-    setCheckingCredits(true)
+    // Generation itself is free (capped) — the real paywall is at download,
+    // so there's no credit pre-flight here anymore. Just normalize the phone
+    // client-side and go straight to generating.
     try {
-      const creditRes = await fetch('/api/check-credits', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber, cvType })
-      })
-      const creditData = await creditRes.json()
-      setCheckingCredits(false)
-      if (!creditData.hasCredits) {
-        // No credits → let them choose a package before paying. We deliberately
-        // never showed the generating animation, so this goes straight to the
-        // pricing modal with nothing misleading in between.
-        setPayPhone(creditData.phoneNumber || phoneNumber)
-        setShowPricing(true)
-        return
-      }
-      // Credits confirmed — only now start the generation animation.
+      const { normalizePhone } = await import('@/lib/phone')
       setIsGenerating(true)
-      await doGenerate(creditData.phoneNumber)
+      await doGenerate(normalizePhone(phoneNumber))
     } catch {
-      setCheckingCredits(false)
+      setIsGenerating(false)
       setError({ title: 'Connection error', msg: 'Could not connect to the server. Please check your internet and try again.', type: 'network' })
     }
   }
@@ -691,13 +681,16 @@ export default function BuildPage() {
         const res = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cvType, formData, phoneNumber: normalizedPhone })
+          body: JSON.stringify({ cvType, formData, phoneNumber: normalizedPhone, email })
         })
         const data = await res.json()
         if (!data.success) {
           setIsGenerating(false)
-          if (data.error === 'NO_CREDITS') {
-            setError({ title: 'No credits', msg: 'No credits found for this number. Please complete payment to generate your CV.', type: 'payment' })
+          if (data.error === 'FREE_CAP_REACHED') {
+            // Free generations used up on this phone/email → let them choose
+            // a package before paying, same modal the export routes' 402s use.
+            setPayPhone(normalizedPhone)
+            setShowPricing(true)
           } else if (res.status === 503) {
             setError({ title: 'Service busy', msg: data.error || 'The AI is handling many requests right now. Please wait 30 seconds and try again.', type: 'server' })
           } else {
@@ -708,6 +701,7 @@ export default function BuildPage() {
         sessionStorage.setItem('swiftcv_cv', JSON.stringify(data.cv))
         sessionStorage.setItem('swiftcv_type', cvType)
         sessionStorage.setItem('swiftcv_phone', normalizedPhone)
+        sessionStorage.setItem('swiftcv_email', email)
         if (data.historyId) sessionStorage.setItem('swiftcv_history_id', String(data.historyId))
         else sessionStorage.removeItem('swiftcv_history_id')
         router.push('/preview')
@@ -724,13 +718,15 @@ export default function BuildPage() {
           jobTitle: needsJD && tailorMode === 'aim' ? (refs.tailorJobPaste.current?.value || undefined) : undefined,
           targetIndustry: needsJD && tailorMode === 'aim' ? (refs.tailorIndustryPaste.current?.value || undefined) : undefined,
           phoneNumber: normalizedPhone,
+          email,
         })
       })
       const data = await res.json()
       if (!data.success) {
         setIsGenerating(false)
-        if (data.error === 'NO_CREDITS') {
-          setError({ title: 'No credits', msg: 'No credits found for this number. Please complete payment to generate your CV.', type: 'payment' })
+        if (data.error === 'FREE_CAP_REACHED') {
+          setPayPhone(normalizedPhone)
+          setShowPricing(true)
         } else if (res.status === 503) {
           setError({ title: 'Service busy', msg: data.error || 'The AI is handling many requests right now. Please wait 30 seconds and try again.', type: 'server' })
         } else {
@@ -741,6 +737,7 @@ export default function BuildPage() {
       sessionStorage.setItem('swiftcv_cv', JSON.stringify(data.cv))
       sessionStorage.setItem('swiftcv_type', cvType)
       sessionStorage.setItem('swiftcv_phone', normalizedPhone)
+      sessionStorage.setItem('swiftcv_email', email)
       if (data.historyId) sessionStorage.setItem('swiftcv_history_id', String(data.historyId))
       else sessionStorage.removeItem('swiftcv_history_id')
       router.push('/preview')
@@ -958,9 +955,17 @@ export default function BuildPage() {
               placeholder="e.g. 0551234567  or  +233551234567"
               style={{ width: '100%', padding: '12px 15px', border: `1px solid ${typeErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '12px', background: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', display: 'block' }}
             />
-            {typeErr
-              ? <div style={{ fontSize: '12.5px', color: '#dc2626', marginTop: '8px', fontWeight: 500 }}>{typeErr}</div>
-              : <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontWeight: 300 }}>Your account is linked to this phone number.</div>}
+            {typeErr && <div style={{ fontSize: '12.5px', color: '#dc2626', marginTop: '8px', fontWeight: 500 }}>{typeErr}</div>}
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginTop: '16px', marginBottom: '8px' }}>Enter your email address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
+              onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
+              placeholder="e.g. kwame@email.com"
+              style={{ width: '100%', padding: '12px 15px', border: `1px solid ${typeErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '12px', background: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', display: 'block' }}
+            />
+            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontWeight: 300 }}>You get a few free generations before payment is needed to download.</div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', cursor: 'pointer', userSelect: 'none' }}>
               <input
                 type="checkbox"
@@ -1070,8 +1075,8 @@ export default function BuildPage() {
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={handleGenerate} disabled={isGenerating || checkingCredits} style={{ ...btnPrimary, opacity: (isGenerating || checkingCredits) ? 0.6 : 1 }}>
-              {checkingCredits ? 'Checking…' : isGenerating ? 'Generating…' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
+            <button onClick={handleGenerate} disabled={isGenerating} style={{ ...btnPrimary, opacity: isGenerating ? 0.6 : 1 }}>
+              {isGenerating ? 'Generating…' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
           </div>
         </div>
@@ -1389,8 +1394,8 @@ export default function BuildPage() {
           )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={handleGenerate} disabled={isGenerating || checkingCredits || !!paymentPending} style={{ ...btnPrimary, opacity: (isGenerating || checkingCredits || paymentPending) ? 0.6 : 1 }}>
-              {checkingCredits ? 'Checking…' : isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
+            <button onClick={handleGenerate} disabled={isGenerating || !!paymentPending} style={{ ...btnPrimary, opacity: (isGenerating || paymentPending) ? 0.6 : 1 }}>
+              {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
           </div>
         </div>

@@ -8,9 +8,6 @@ import { CVFormData, GeneratedCV } from '@/types'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-// ⚠️ Keep in step with app/api/generate/route.ts
-const TESTING_MODE = false
-
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
 const RATE_LIMIT_MAX = 20
 const RATE_LIMIT_WINDOW = 60 * 60 * 1000
@@ -66,11 +63,12 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { cv, jobDescription, company, phoneNumber } = body as {
-      cv: GeneratedCV; jobDescription?: string; company?: string; phoneNumber: string
+    const { cv, jobDescription, company, phoneNumber, email } = body as {
+      cv: GeneratedCV; jobDescription?: string; company?: string; phoneNumber: string; email: string
     }
 
     if (!phoneNumber) return NextResponse.json({ error: 'Please enter your phone number.' }, { status: 400 })
+    if (!email) return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
     if (!cv || !cv.fullName) return NextResponse.json({ error: 'No CV found to build a cover letter from.' }, { status: 400 })
 
     const phone = normalizePhone(phoneNumber)
@@ -81,20 +79,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Too many attempts. Please wait ${mins} minutes and try again.` }, { status: 429 })
     }
 
-    // ── Authorise: a cover letter needs a cover-letter credit ──
-    // Cover-letter credits are their own currency and a CV credit does NOT
-    // substitute for one, so a Silver-CV buyer with no cover-letter credit is
-    // asked to buy Cover Letter Pro (GH₵15) or the Gold pack instead.
-    if (!TESTING_MODE) {
-      try {
-        const { hasCoverLetterCredit } = await import('@/lib/credits')
-        if (!(await hasCoverLetterCredit(phone))) {
-          return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a cover-letter credit. Buy Cover Letter Pro (GH₵15) or the Gold pack.' }, { status: 402 })
+    // ── Generation is free (capped) — download is the real gate ──
+    // Same model as app/api/generate/route.ts: a paying customer (real
+    // cover-letter credit) is exempt from the free cap entirely; everyone
+    // else gets a small number of free generations, enforced against both
+    // phone and email. Nothing is deducted here — a credit is only spent at
+    // download time (app/api/export-pdf, app/api/export-docx).
+    try {
+      const { hasCoverLetterCredit } = await import('@/lib/credits')
+      const paid = await hasCoverLetterCredit(phone)
+      if (!paid) {
+        const { consumeFreeGeneration } = await import('@/lib/freeGenerations')
+        const { allowed } = await consumeFreeGeneration(phone, email, true)
+        if (!allowed) {
+          return NextResponse.json({
+            error: 'FREE_CAP_REACHED',
+            message: 'You’ve used your free cover-letter previews. Buy credits to keep generating and download.'
+          }, { status: 402 })
         }
-      } catch (err) {
-        console.error('Cover-letter auth error:', err)
-        return NextResponse.json({ error: 'Payment verification failed. Please check your connection or contact support.' }, { status: 503 })
       }
+    } catch (err) {
+      console.error('Cover-letter free-generation/credits check error:', err)
+      return NextResponse.json({ error: 'Payment verification failed. Please check your connection or contact support.' }, { status: 503 })
     }
 
     // ── Build the cover-letter prompt from the existing CV ──
@@ -155,15 +161,8 @@ export async function POST(req: NextRequest) {
     coverLetter.clSignOff = frame.clSignOff
     coverLetter.clSubject = (coverLetter.clSubject?.trim() || defaultSubject(coverLetter.jobTitle)).toUpperCase()
 
-    // ── Redeem one cover-letter credit ──
-    if (!TESTING_MODE) {
-      try {
-        const { deductCoverLetterCredit } = await import('@/lib/credits')
-        await deductCoverLetterCredit(phone)
-      } catch (err) {
-        console.error('Cover-letter redemption error (non-fatal):', err)
-      }
-    }
+    // No credit deduction here — a cover-letter credit is only spent at
+    // download time, same as CVs.
 
     return NextResponse.json({ success: true, coverLetter })
   } catch (error: any) {
