@@ -323,7 +323,15 @@ export default function BuildPage() {
       cvType,
       inputMethod,
       phoneNumber,
-      pasteContent: inputMethod === 'paste' && pasteInputMode === 'paste' ? (refs.paste.current?.value || undefined) : undefined,
+      // In upload mode there's no paste box to read, so the file's already-
+      // extracted text stands in for the content — that plus the filename
+      // below is everything needed to put the upload card back.
+      pasteContent: inputMethod === 'paste'
+        ? (pasteInputMode === 'paste'
+            ? (refs.paste.current?.value || undefined)
+            : (extractedCVText?.text || undefined))
+        : undefined,
+      uploadedFileName: inputMethod === 'paste' && pasteInputMode === 'upload' ? (uploadedCV?.name || undefined) : undefined,
       clarifyNotes: inputMethod === 'paste' ? (refs.clarify.current?.value || undefined) : undefined,
       form: inputMethod === 'form' ? {
         fullName: refs.fullName.current?.value || undefined,
@@ -356,10 +364,25 @@ export default function BuildPage() {
     }
   }
 
+  // Puts a remembered upload back on screen as the same green "Ready" card the
+  // user left behind. A File can't be stored, so one is rebuilt from the text
+  // already extracted from it — and registered as the extraction cache in the
+  // same breath, so generation reads that text and never tries to parse this
+  // stand-in. Returns false when there's nothing to restore.
+  function restoreUploadedFile(seed: BuildSeed): boolean {
+    if (!seed.uploadedFileName || !seed.pasteContent) return false
+    const file = new File([seed.pasteContent], seed.uploadedFileName, { type: 'text/plain' })
+    setPasteInputMode('upload')
+    setUploadedCV(file)
+    setExtractedCVText({ file, text: seed.pasteContent })
+    return true
+  }
+
   function applyBuildSeed(seed: BuildSeed) {
     setCvType(seed.cvType)
     setInputMethod(seed.inputMethod)
     if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
+    const hadUpload = restoreUploadedFile(seed)
     // All screens are always mounted (hidden via display:none — see the data-
     // loss fix elsewhere in this file), so refs already exist; still defer one
     // frame so the state updates above have applied before we touch inputs.
@@ -367,7 +390,7 @@ export default function BuildPage() {
       const setVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
         if (v !== undefined && ref.current) ref.current.value = v
       }
-      if (seed.pasteContent) {
+      if (seed.pasteContent && !hadUpload) {
         // The paste textarea only mounts once pasteInputMode is 'paste' (it
         // defaults to 'upload') — setPasteInputMode is an async state update,
         // so refs.paste.current is still null right after calling it. Defer
@@ -402,11 +425,12 @@ export default function BuildPage() {
     setCvType(seed.cvType)
     setInputMethod(seed.inputMethod)
     if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
+    const hadUpload = restoreUploadedFile(seed)
     requestAnimationFrame(() => {
       const setVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
         if (v !== undefined && ref.current) ref.current.value = v
       }
-      if (seed.pasteContent) {
+      if (seed.pasteContent && !hadUpload) {
         // Same async-mount issue as applyBuildSeed above: the textarea only
         // exists once pasteInputMode flips to 'paste', one frame after this.
         setPasteInputMode('paste')
@@ -431,8 +455,11 @@ export default function BuildPage() {
   function clearSavedInfo() {
     clearLastInput()
     setPhoneNumber('')
+    setUploadedCV(null)
+    setExtractedCVText(null)
+    setRestoredClarifyNotes(false)
     const clearVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>) => { if (ref.current) ref.current.value = '' }
-    clearVal(refs.paste)
+    clearVal(refs.paste); clearVal(refs.clarify)
     clearVal(refs.fullName); clearVal(refs.phone); clearVal(refs.email); clearVal(refs.location)
     clearVal(refs.dob); clearVal(refs.nationality); clearVal(refs.linkedin)
     clearVal(refs.education); clearVal(refs.gpa); clearVal(refs.thesis); clearVal(refs.research)
@@ -461,19 +488,30 @@ export default function BuildPage() {
   // from what was already remembered, so a pass through an empty form can
   // never wipe good data. "Not you? Clear saved info" is the one thing that
   // deletes (see clearSavedInfo).
-  function rememberCurrentInput(cachedUploadText?: string) {
+  // The file/text arguments exist because this is called from the upload
+  // handler, whose closure still sees the pre-upload state — React hasn't
+  // applied setUploadedCV/setExtractedCVText yet at that point, so reading
+  // them off state there would silently save nothing.
+  function rememberCurrentInput(cachedUploadText?: string, cachedUploadName?: string) {
     if (!rememberMe) return
     const seed = captureBuildSeed('type')
     // Upload mode has no text of its own to give — captureBuildSeed only reads
     // the paste box — so fall back to the text extracted from the file.
     const uploadText = cachedUploadText ?? extractedCVText?.text
     if (!seed.pasteContent && uploadText) seed.pasteContent = uploadText
+    if (!seed.uploadedFileName && cachedUploadName) seed.uploadedFileName = cachedUploadName
     const prev = loadLastInput()
     if (prev) {
       if (!seed.phoneNumber) seed.phoneNumber = prev.phoneNumber
-      if (!seed.pasteContent) seed.pasteContent = prev.pasteContent
       if (!seed.clarifyNotes) seed.clarifyNotes = prev.clarifyNotes
       if (!seed.form) seed.form = prev.form
+      // Content and filename travel together — carrying one over without the
+      // other would show an upload card for a file whose text is gone, or
+      // text with no card. Only fall back when this pass has no content at all.
+      if (!seed.pasteContent) {
+        seed.pasteContent = prev.pasteContent
+        seed.uploadedFileName = prev.uploadedFileName
+      }
     }
     if (!seed.phoneNumber && !seed.pasteContent && !seed.form) return
     saveLastInput(seed)
@@ -487,11 +525,18 @@ export default function BuildPage() {
   // reports properly there.
   async function handleCVFileUpload(file: File | null) {
     setUploadedCV(file)
-    if (!file) { setExtractedCVText(null); return }
+    if (!file) {
+      setExtractedCVText(null)
+      // "Remove" has to actually forget it, or the carry-over in
+      // rememberCurrentInput would helpfully put it back on the next visit.
+      const prev = loadLastInput()
+      if (prev) { delete prev.pasteContent; delete prev.uploadedFileName; saveLastInput(prev) }
+      return
+    }
     try {
       const text = await extractFile(file)
       setExtractedCVText({ file, text })
-      if (text.replace(/\s+/g, ' ').trim().length >= 80) rememberCurrentInput(text)
+      if (text.replace(/\s+/g, ' ').trim().length >= 80) rememberCurrentInput(text, file.name)
     } catch {
       setExtractedCVText(null)
     }
@@ -587,7 +632,7 @@ export default function BuildPage() {
 
         // Belt and braces: the upload handler and every screen change already
         // save, but this is the last moment before the input is consumed.
-        if (fromUpload) rememberCurrentInput(rawContent)
+        if (fromUpload) rememberCurrentInput(rawContent, uploadedCV?.name)
 
         const clarify = refs.clarify.current?.value?.trim()
         if (clarify) rawContent += '\n\nADDITIONAL NOTES:\n' + clarify

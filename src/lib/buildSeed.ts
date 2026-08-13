@@ -19,6 +19,12 @@ export interface BuildSeed {
   // paste path
   pasteContent?: string
   clarifyNotes?: string
+  // Name of the CV file the user uploaded. A File object itself can't be
+  // serialised, so an upload is remembered as this name plus the text already
+  // extracted from it (kept in pasteContent) — enough to put the "Ready"
+  // upload card back on screen instead of silently swapping it for a paste
+  // box, which reads as "my document was deleted".
+  uploadedFileName?: string
   // guided-form path
   form?: {
     fullName?: string; phone?: string; email?: string; location?: string
