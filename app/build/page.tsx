@@ -75,6 +75,12 @@ export default function BuildPage() {
   // file is the expected input. Pasting is one tap away.
   const [pasteInputMode, setPasteInputMode] = useState<'paste' | 'upload'>('upload')
   const [uploadedCV, setUploadedCV] = useState<File | null>(null)
+  // Text pulled out of the uploaded CV file as soon as it's added. Serves two
+  // purposes: a File object can't be stored in localStorage, so this is the
+  // only form an upload can be remembered in — and generation reuses it
+  // instead of extracting the same file a second time (that second pass costs
+  // a real Claude vision call for images and scanned PDFs).
+  const [extractedCVText, setExtractedCVText] = useState<{ file: File; text: string } | null>(null)
   // Pricing modal: shown when the user has no credits and must buy a package.
   const [showPricing, setShowPricing] = useState(false)
   const [payPhone, setPayPhone] = useState('')
@@ -103,6 +109,9 @@ export default function BuildPage() {
   // magic. Unticking it before Generate both skips saving and wipes anything
   // already remembered, so it actually means "stop remembering me."
   const [rememberMe, setRememberMe] = useState(true)
+  // Notes restored from a previous visit live inside a collapsed section, so
+  // it has to be opened or they'd be invisible (and look lost).
+  const [restoredClarifyNotes, setRestoredClarifyNotes] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   // Separate from isGenerating: the quick pre-flight credit check. Kept apart so
   // the full-screen "generating" animation never shows before we've confirmed
@@ -207,6 +216,18 @@ export default function BuildPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Last line of defence: a refresh, a closed tab or a tap on the back button
+  // can land between save points, and anything typed since the last one would
+  // go with it. pagehide fires in all of those cases (unlike beforeunload on
+  // mobile Safari), and a localStorage write is synchronous, so it completes
+  // even as the page goes away. No dependency array on purpose — the listener
+  // must always close over the current values, not the ones from first mount.
+  useEffect(() => {
+    const save = () => rememberCurrentInput()
+    window.addEventListener('pagehide', save)
+    return () => window.removeEventListener('pagehide', save)
+  })
+
   // ── Loading animation ─────────────────────────
   useEffect(() => {
     if (!isGenerating) { setLoadingPct(0); setLoadingStep(0); return }
@@ -232,7 +253,13 @@ export default function BuildPage() {
   }, [isGenerating])
 
   // ── Navigation ────────────────────────────────
-  const go = (s: Screen) => { setScreen(s); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  // Every screen change is also a save point — it's the one moment we know
+  // the user has finished with the fields on the screen they're leaving
+  // (uncontrolled ref inputs give us nothing to watch otherwise). This is what
+  // captures "Anything to add or clarify?" and the guided-form answers, which
+  // are typed after a file is uploaded and so aren't covered by the save on
+  // upload itself.
+  const go = (s: Screen) => { rememberCurrentInput(); setScreen(s); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
   function goFromMethod(m?: 'paste' | 'form') {
     const method = m || inputMethod
@@ -385,6 +412,7 @@ export default function BuildPage() {
         setPasteInputMode('paste')
         requestAnimationFrame(() => setVal(refs.paste, seed.pasteContent))
       }
+      if (seed.clarifyNotes) { setRestoredClarifyNotes(true); setVal(refs.clarify, seed.clarifyNotes) }
       if (seed.form) {
         const f = seed.form
         setVal(refs.fullName, f.fullName); setVal(refs.phone, f.phone); setVal(refs.email, f.email); setVal(refs.location, f.location)
@@ -424,25 +452,48 @@ export default function BuildPage() {
     return data.text
   }
 
+  // Snapshot whatever the user has entered so far onto this device. Called at
+  // every point where something new could have been typed or added, NOT only
+  // at Generate — the credit check can send them to the pricing modal, or they
+  // can simply leave, and none of that should cost them their input.
+  //
+  // Strictly additive: a field the current screen can't supply is carried over
+  // from what was already remembered, so a pass through an empty form can
+  // never wipe good data. "Not you? Clear saved info" is the one thing that
+  // deletes (see clearSavedInfo).
+  function rememberCurrentInput(cachedUploadText?: string) {
+    if (!rememberMe) return
+    const seed = captureBuildSeed('type')
+    // Upload mode has no text of its own to give — captureBuildSeed only reads
+    // the paste box — so fall back to the text extracted from the file.
+    const uploadText = cachedUploadText ?? extractedCVText?.text
+    if (!seed.pasteContent && uploadText) seed.pasteContent = uploadText
+    const prev = loadLastInput()
+    if (prev) {
+      if (!seed.phoneNumber) seed.phoneNumber = prev.phoneNumber
+      if (!seed.pasteContent) seed.pasteContent = prev.pasteContent
+      if (!seed.clarifyNotes) seed.clarifyNotes = prev.clarifyNotes
+      if (!seed.form) seed.form = prev.form
+    }
+    if (!seed.phoneNumber && !seed.pasteContent && !seed.form) return
+    saveLastInput(seed)
+  }
+
   // Fired the moment a CV file is dropped/selected — deliberately NOT tied to
-  // clicking Generate. The credits check and full generation can fail, be
-  // abandoned, or never even be reached (no credits yet); none of that should
-  // stop this device from remembering what was uploaded. Best-effort and
-  // silent: a failed extraction here just means nothing gets remembered yet,
-  // it doesn't block the upload or show an error — the real extraction (with
-  // real error messages) still happens again at Generate time regardless.
+  // clicking Generate, so an upload survives even if the user never gets that
+  // far (no credits, or they just leave). Best-effort and silent: a failed
+  // extraction here simply means nothing is remembered yet — it doesn't block
+  // the upload or surface an error, since generation re-extracts anyway and
+  // reports properly there.
   async function handleCVFileUpload(file: File | null) {
     setUploadedCV(file)
-    if (!file || !rememberMe) return
+    if (!file) { setExtractedCVText(null); return }
     try {
       const text = await extractFile(file)
-      if (text.replace(/\s+/g, ' ').trim().length >= 80) {
-        const seed = captureBuildSeed('type')
-        seed.pasteContent = text
-        saveLastInput(seed)
-      }
+      setExtractedCVText({ file, text })
+      if (text.replace(/\s+/g, ' ').trim().length >= 80) rememberCurrentInput(text)
     } catch {
-      // best-effort only
+      setExtractedCVText(null)
     }
   }
 
@@ -479,7 +530,7 @@ export default function BuildPage() {
     // Remember this device's phone/CV info for next visit (see lib/buildSeed.ts)
     // — unless they've unticked "remember me", in which case also wipe
     // whatever was already saved, so unticking actually means something.
-    if (rememberMe) saveLastInput(captureBuildSeed('type'))
+    if (rememberMe) rememberCurrentInput()
     else clearLastInput()
     setCheckingCredits(true)
     try {
@@ -514,8 +565,13 @@ export default function BuildPage() {
 
       if (inputMethod === 'paste') {
         const fromUpload = pasteInputMode === 'upload' && !!uploadedCV
+        // Reuse the text already pulled out when the file was added — for an
+        // image or scanned PDF a second extraction means a second Claude
+        // vision call, i.e. paying twice to read the same document.
         rawContent = fromUpload
-          ? await extractFile(uploadedCV as File)
+          ? (extractedCVText?.file === uploadedCV
+              ? extractedCVText.text
+              : await extractFile(uploadedCV as File))
           : refs.paste.current?.value || ''
 
         // A CV that yields almost no text is either an unreadable scan, a
@@ -529,17 +585,9 @@ export default function BuildPage() {
           return
         }
 
-        // Re-save now that an uploaded file has actually been read into text —
-        // the earlier save in handleGenerate() ran before extraction, so a
-        // file upload (as opposed to pasted text) had nothing to capture yet.
-        // A raw File object can't go into localStorage anyway, so this is the
-        // only point where an upload's content can be remembered at all — as
-        // the extracted text, restored into the paste box next time.
-        if (fromUpload && rememberMe) {
-          const seed = captureBuildSeed('type')
-          seed.pasteContent = rawContent
-          saveLastInput(seed)
-        }
+        // Belt and braces: the upload handler and every screen change already
+        // save, but this is the last moment before the input is consumed.
+        if (fromUpload) rememberCurrentInput(rawContent)
 
         const clarify = refs.clarify.current?.value?.trim()
         if (clarify) rawContent += '\n\nADDITIONAL NOTES:\n' + clarify
@@ -872,7 +920,13 @@ export default function BuildPage() {
               <input
                 type="checkbox"
                 checked={rememberMe}
-                onChange={e => setRememberMe(e.target.checked)}
+                onChange={e => {
+                  setRememberMe(e.target.checked)
+                  // Take effect at once rather than waiting for Generate —
+                  // unticking should visibly mean "forget me", not "forget me
+                  // later".
+                  if (!e.target.checked) { clearLastInput(); setRestoredFromLastInput(false) }
+                }}
                 style={{ width: '15px', height: '15px', accentColor: '#0d9488', cursor: 'pointer' }}
               />
               <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 300 }}>Remember my number on this device</span>
@@ -952,6 +1006,7 @@ export default function BuildPage() {
                 ? 'Research, teaching or publications to emphasise — e.g. “Highlight my work on climate adaptation”.'
                 : 'Corrections or emphasis — e.g. “I was promoted in 2023”.'}
             badge="Optional"
+            defaultOpen={restoredClarifyNotes}
           >
             <textarea ref={refs.clarify} style={TA(70)} rows={3} placeholder={isCoverLetter ? 'What should the letter emphasise? — or leave blank...' : 'Type any special requests — or leave blank...'} />
           </Collapsible>
@@ -1553,6 +1608,10 @@ function TailorSection({ mode, setMode, isLetter, jdMode, setJdMode, jdPasteRef,
 
 function Collapsible({ title, hint, badge, defaultOpen = false, children }: { title: string; hint?: string; badge?: string; defaultOpen?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(defaultOpen)
+  // defaultOpen can turn true after mount — restoring saved notes on a return
+  // visit only happens once the seed has been read — so follow it rather than
+  // reading it a single time at mount.
+  useEffect(() => { if (defaultOpen) setOpen(true) }, [defaultOpen])
   return (
     <div style={{ border: '1px solid #e7ebf0', borderRadius: '14px', background: 'white', marginBottom: '14px', overflow: 'hidden' }}>
       <button onClick={() => setOpen(v => !v)}
@@ -1564,7 +1623,11 @@ function Collapsible({ title, hint, badge, defaultOpen = false, children }: { ti
         {badge && <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#94a3b8', flexShrink: 0 }}>{badge}</span>}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      {open && <div style={{ padding: '0 18px 18px' }}>{children}</div>}
+      {/* Hidden rather than unmounted: an uncontrolled textarea loses whatever
+          was typed the instant it unmounts (the same data-loss trap the build
+          screens already avoid), and a ref pointing at an unmounted node can't
+          be pre-filled when restoring a previous visit. */}
+      <div style={{ padding: '0 18px 18px', display: open ? 'block' : 'none' }}>{children}</div>
     </div>
   )
 }
