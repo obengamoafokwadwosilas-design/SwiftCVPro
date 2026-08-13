@@ -98,6 +98,11 @@ export default function BuildPage() {
   // a small "Not you?" control so a shared device isn't stuck with someone
   // else's info.
   const [restoredFromLastInput, setRestoredFromLastInput] = useState(false)
+  // Visible opt-in/out for the above — checked by default (still zero extra
+  // clicks for the common case), but now a real control instead of invisible
+  // magic. Unticking it before Generate both skips saving and wipes anything
+  // already remembered, so it actually means "stop remembering me."
+  const [rememberMe, setRememberMe] = useState(true)
   const [isGenerating, setIsGenerating] = useState(false)
   // Separate from isGenerating: the quick pre-flight credit check. Kept apart so
   // the full-screen "generating" animation never shows before we've confirmed
@@ -449,8 +454,11 @@ export default function BuildPage() {
       setError(msgs[validErr] || { title: 'Something missing', msg: 'Please check your details and try again.', type: 'input' })
       return
     }
-    // Remember this device's phone/CV info for next visit (see lib/buildSeed.ts).
-    saveLastInput(captureBuildSeed('type'))
+    // Remember this device's phone/CV info for next visit (see lib/buildSeed.ts)
+    // — unless they've unticked "remember me", in which case also wipe
+    // whatever was already saved, so unticking actually means something.
+    if (rememberMe) saveLastInput(captureBuildSeed('type'))
+    else clearLastInput()
     setCheckingCredits(true)
     try {
       const creditRes = await fetch('/api/check-credits', {
@@ -826,6 +834,15 @@ export default function BuildPage() {
             {typeErr
               ? <div style={{ fontSize: '12.5px', color: '#dc2626', marginTop: '8px', fontWeight: 500 }}>{typeErr}</div>
               : <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontWeight: 300 }}>Your account is linked to this phone number.</div>}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={e => setRememberMe(e.target.checked)}
+                style={{ width: '15px', height: '15px', accentColor: '#0d9488', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 300 }}>Remember my number on this device</span>
+            </label>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
