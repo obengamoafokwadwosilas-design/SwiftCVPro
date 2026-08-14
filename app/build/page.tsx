@@ -936,36 +936,39 @@ export default function BuildPage() {
             })}
           </div>
 
-          {/* Phone — collected up front (credits are linked to it) but kept
-              deliberately understated so it never competes with the choice
-              above. A single slim field, small label, no card, no blurb. */}
+          {/* Contact — collected up front (credits are linked to phone; email
+              guards the free-preview cap) but kept compact and low-key so it
+              never competes with the choice above: one small label, both
+              fields side by side, one shared caption. */}
           <div style={{ marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>Enter your phone number</label>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>Phone & email</label>
               {restoredFromLastInput && (
                 <button type="button" onClick={clearSavedInfo} style={{ background: 'none', border: 'none', padding: 0, marginBottom: '8px', fontSize: '11.5px', color: '#0d9488', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   Not you? Clear saved info
                 </button>
               )}
             </div>
-            <input
-              value={phoneNumber}
-              onChange={e => { setPhoneNumber(e.target.value); if (typeErr) setTypeErr('') }}
-              onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
-              placeholder="e.g. 0551234567  or  +233551234567"
-              style={{ width: '100%', padding: '12px 15px', border: `1px solid ${typeErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '12px', background: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', display: 'block' }}
-            />
-            {typeErr && <div style={{ fontSize: '12.5px', color: '#dc2626', marginTop: '8px', fontWeight: 500 }}>{typeErr}</div>}
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginTop: '16px', marginBottom: '8px' }}>Enter your email address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
-              onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
-              placeholder="e.g. kwame@email.com"
-              style={{ width: '100%', padding: '12px 15px', border: `1px solid ${typeErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '12px', background: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', display: 'block' }}
-            />
-            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontWeight: 300 }}>Your first 2 previews are free — pay only when you're ready to download.</div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
+              <input
+                value={phoneNumber}
+                onChange={e => { setPhoneNumber(e.target.value); if (typeErr) setTypeErr('') }}
+                onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
+                placeholder="Phone — e.g. 0551234567"
+                style={{ flex: '1 1 180px', padding: '12px 15px', border: `1px solid ${typeErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '12px', background: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a' }}
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
+                onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
+                placeholder="Email — e.g. kwame@email.com"
+                style={{ flex: '1 1 180px', padding: '12px 15px', border: `1px solid ${typeErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '12px', background: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a' }}
+              />
+            </div>
+            {typeErr
+              ? <div style={{ fontSize: '12.5px', color: '#dc2626', marginTop: '8px', fontWeight: 500 }}>{typeErr}</div>
+              : <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontWeight: 300 }}>Your first 2 previews are free — pay only when you're ready to download.</div>}
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', cursor: 'pointer', userSelect: 'none' }}>
               <input
                 type="checkbox"
