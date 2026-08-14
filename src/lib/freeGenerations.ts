@@ -2,10 +2,13 @@ import { supabaseAdmin } from './supabase'
 import { normalizePhone } from './phone'
 
 // How many free generations one identity (phone OR email) gets before
-// needing paid credits. Cover letters get fewer — usually a quick add-on
-// once someone already has a CV, not the main draw. Tune here only; nothing
-// else references these numbers.
-export const FREE_CV_CAP = 5
+// needing paid credits. Two, not one — a single unlucky first generation
+// (messy input, awkward phrasing) shouldn't be someone's only look at the
+// product; they never get a second first impression otherwise. The
+// abuse-resistance comes from requiring a fresh phone AND fresh email to
+// unlock more, not from starving legitimate users down to one try. Tune
+// here only; nothing else references these numbers.
+export const FREE_CV_CAP = 2
 export const FREE_COVER_LETTER_CAP = 2
 
 // Records one free generation against BOTH the phone and email identities,

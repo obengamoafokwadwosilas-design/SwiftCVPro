@@ -1133,19 +1133,11 @@ export default function PreviewPage() {
               <button className="scv-x" onClick={() => setShowChooser(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', borderRadius:'8px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
 
-            <button className="scv-opt" onClick={() => { setShowChooser(false); setShowRevision(true) }} style={{ position:'relative', display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'0 8px', textAlign:'left', padding:'15px', background:'linear-gradient(140deg,#f0fdf9,#e7fbf5)', border:'1.5px solid rgba(13,148,136,0.4)', borderRadius:'14px', cursor:'pointer' }}>
-              <span style={{ position:'absolute', top:'-9px', left:'17px', font:"700 9px 'DM Sans'", letterSpacing:'1px', color:'#0a5d55', background:'#d7f5ee', padding:'3px 8px', borderRadius:'20px' }}>POPULAR</span>
-              <span style={{ width:'42px', height:'42px', borderRadius:'11px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'linear-gradient(140deg,#14b8a6,#0a5d55)', boxShadow:'0 6px 14px -4px rgba(13,148,136,0.55)' }}>
-                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.9 4.6L18.5 9.5 13.9 11.4 12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z" fill="#fff"/><circle cx="18.5" cy="4.5" r="1.3" fill="#fff"/><circle cx="5" cy="16" r="1" fill="#fff"/></svg>
-              </span>
-              <span style={{ flex:1 }}>
-                <span style={{ display:'block', fontSize:'14.5px', fontWeight:700, letterSpacing:'-0.1px', color:'#0a0f1a' }}>Edit with AI</span>
-                <span style={{ display:'block', fontSize:'12.5px', color:'#64748b', marginTop:'2px', lineHeight:1.45 }}>Make changes faster with AI.</span>
-              </span>
-              <span className="scv-go" style={{ color:'#0d9488', display:'flex' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
-            </button>
-
-            <button className="scv-opt" onClick={() => { setShowChooser(false); setActiveTab('edit') }} style={{ display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'9px 8px 0', textAlign:'left', padding:'15px', background:'white', border:'1px solid #e7ebf0', borderRadius:'14px', cursor:'pointer' }}>
+            {/* "Edit with AI" (whole-CV revision panel) deactivated for now —
+                a future feature, not ready to ship. Its code (showRevision,
+                handleRevision/doRevision, the revision panel below) is left
+                in place to resume from later; this is just the entry point. */}
+            <button className="scv-opt" onClick={() => { setShowChooser(false); setActiveTab('edit') }} style={{ display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'0 8px', textAlign:'left', padding:'15px', background:'white', border:'1px solid #e7ebf0', borderRadius:'14px', cursor:'pointer' }}>
               <span style={{ width:'42px', height:'42px', borderRadius:'11px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#f1f5f9' }}>
                 <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5M4 20l1.2-4.2L15.3 5.7a1.7 1.7 0 012.4 0l.6.6a1.7 1.7 0 010 2.4L8.2 18.8 4 20z" stroke="#0a0f1a" strokeWidth="1.8" strokeLinejoin="round"/></svg>
               </span>

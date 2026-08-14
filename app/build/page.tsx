@@ -965,7 +965,7 @@ export default function BuildPage() {
               placeholder="e.g. kwame@email.com"
               style={{ width: '100%', padding: '12px 15px', border: `1px solid ${typeErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '12px', background: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', display: 'block' }}
             />
-            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontWeight: 300 }}>You get a few free generations before payment is needed to download.</div>
+            <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontWeight: 300 }}>Your first 2 previews are free — pay only when you're ready to download.</div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', cursor: 'pointer', userSelect: 'none' }}>
               <input
                 type="checkbox"
