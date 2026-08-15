@@ -968,7 +968,7 @@ export default function BuildPage() {
             </div>
             {typeErr
               ? <div style={{ fontSize: '12.5px', color: '#dc2626', marginTop: '8px', fontWeight: 500 }}>{typeErr}</div>
-              : <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontWeight: 300 }}>No account needed. Your first 2 previews are free — pay only when you're ready to download.</div>}
+              : <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontWeight: 300 }}><span style={{ color: '#0d9488', fontWeight: 600 }}>No account needed.</span> Your first 2 previews are free — pay only when you're ready to download.</div>}
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', cursor: 'pointer', userSelect: 'none' }}>
               <input
                 type="checkbox"
