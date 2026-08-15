@@ -874,18 +874,6 @@ export default function BuildPage() {
       {/* Choose the document (1), how to share info (2), fill in & generate (3) */}
       <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
 
-      {/* Free-preview callout — floating, auto-dismissing, never part of the
-          normal-flow layout so it can't push the type cards down or linger
-          as permanent clutter. */}
-      {showFreeBanner && (
-        <div style={{ position: 'sticky', top: '12px', zIndex: 150, display: 'flex', justifyContent: 'center', padding: '0 16px', pointerEvents: 'none' }}>
-          <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '10px', background: '#0a5d55', color: 'white', borderRadius: '50px', padding: '10px 14px 10px 18px', boxShadow: '0 10px 30px rgba(10,93,85,0.35)', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 500, maxWidth: '92vw' }}>
-            <span>✨ Your first 2 previews are free — pay only when you're ready to download.</span>
-            <button onClick={() => setShowFreeBanner(false)} aria-label="Dismiss" style={{ flexShrink: 0, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: '20px', height: '20px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', lineHeight: 1 }}>×</button>
-          </div>
-        </div>
-      )}
-
       {/* Back — moves one screen back within the flow, or out to the home
           page from the very first (type) screen so it's never a dead end. */}
       {(backTo || screen === 'type') && (
@@ -922,6 +910,17 @@ export default function BuildPage() {
             What should we <span style={{ color: '#0d9488' }}>create?</span>
           </h1>
           <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '32px', fontWeight: 300, lineHeight: 1.7 }}>Choose the document you need — we’ll tailor everything to it.</p>
+
+          {/* Free-preview callout — reads as a continuation of the intro
+              copy, after the heading has had its moment, not before it. Still
+              auto-dismisses and is closeable by hand, so it never becomes
+              permanent clutter once it's made its point. */}
+          {showFreeBanner && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '12px', padding: '10px 14px', marginBottom: '20px', fontSize: '12.5px', color: '#0a5d55', fontWeight: 500 }}>
+              <span style={{ flex: 1 }}>✨ Your first 2 previews are free — pay only when you're ready to download.</span>
+              <button onClick={() => setShowFreeBanner(false)} aria-label="Dismiss" style={{ flexShrink: 0, background: 'none', border: 'none', color: '#0a5d55', opacity: 0.6, cursor: 'pointer', fontSize: '15px', lineHeight: 1, padding: '2px' }}>×</button>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gap: '12px', marginBottom: '28px' }}>
             {([
