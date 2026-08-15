@@ -85,6 +85,11 @@ export default function BuildPage() {
   // instead of extracting the same file a second time (that second pass costs
   // a real Claude vision call for images and scanned PDFs).
   const [extractedCVText, setExtractedCVText] = useState<{ file: File; text: string } | null>(null)
+  // Surfaced on the upload card itself when background extraction (below)
+  // fails, instead of silently showing "Ready" for a file that was never
+  // actually read — someone shouldn't discover their CV was unreadable only
+  // after clicking Generate.
+  const [uploadReadError, setUploadReadError] = useState('')
   // Pricing modal: shown when the user has no credits and must buy a package.
   const [showPricing, setShowPricing] = useState(false)
   const [payPhone, setPayPhone] = useState('')
@@ -118,9 +123,6 @@ export default function BuildPage() {
   // magic. Unticking it before Generate both skips saving and wipes anything
   // already remembered, so it actually means "stop remembering me."
   const [rememberMe, setRememberMe] = useState(true)
-  // Notes restored from a previous visit live inside a collapsed section, so
-  // it has to be opened or they'd be invisible (and look lost).
-  const [restoredClarifyNotes, setRestoredClarifyNotes] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<{ title: string; msg: string; type: 'payment' | 'input' | 'server' | 'network' } | null>(null)
 
@@ -448,7 +450,9 @@ export default function BuildPage() {
         setPasteInputMode('paste')
         requestAnimationFrame(() => setVal(refs.paste, seed.pasteContent))
       }
-      if (seed.clarifyNotes) { setRestoredClarifyNotes(true); setVal(refs.clarify, seed.clarifyNotes) }
+      // Clarify notes are deliberately NOT restored here — see the comment
+      // in rememberCurrentInput. Same reasoning as jobDescription/whyRole
+      // below: correct for one specific attempt, wrong to resurface later.
       if (seed.form) {
         const f = seed.form
         setVal(refs.fullName, f.fullName); setVal(refs.phone, f.phone); setVal(refs.email, f.email); setVal(refs.location, f.location)
@@ -469,7 +473,6 @@ export default function BuildPage() {
     setPhoneNumber('')
     setUploadedCV(null)
     setExtractedCVText(null)
-    setRestoredClarifyNotes(false)
     const clearVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>) => { if (ref.current) ref.current.value = '' }
     clearVal(refs.paste); clearVal(refs.clarify)
     clearVal(refs.fullName); clearVal(refs.phone); clearVal(refs.email); clearVal(refs.location)
@@ -507,6 +510,13 @@ export default function BuildPage() {
   function rememberCurrentInput(cachedUploadText?: string, cachedUploadName?: string) {
     if (!rememberMe) return
     const seed = captureBuildSeed('type')
+    // Clarify notes are corrections/emphasis for THIS specific CV attempt —
+    // same category as jobDescription/whyRole below, not identity — so they
+    // never belong in the permanent "remember me" carry-forward. Stripped
+    // here rather than in captureBuildSeed, which is also used for the
+    // one-shot session seed (payment/rewrite round trips) where keeping them
+    // is correct.
+    delete seed.clarifyNotes
     // Upload mode has no text of its own to give — captureBuildSeed only reads
     // the paste box — so fall back to the text extracted from the file.
     const uploadText = cachedUploadText ?? extractedCVText?.text
@@ -515,7 +525,6 @@ export default function BuildPage() {
     const prev = loadLastInput()
     if (prev) {
       if (!seed.phoneNumber) seed.phoneNumber = prev.phoneNumber
-      if (!seed.clarifyNotes) seed.clarifyNotes = prev.clarifyNotes
       if (!seed.form) seed.form = prev.form
       // Content and filename travel together — carrying one over without the
       // other would show an upload card for a file whose text is gone, or
@@ -531,12 +540,13 @@ export default function BuildPage() {
 
   // Fired the moment a CV file is dropped/selected — deliberately NOT tied to
   // clicking Generate, so an upload survives even if the user never gets that
-  // far (no credits, or they just leave). Best-effort and silent: a failed
-  // extraction here simply means nothing is remembered yet — it doesn't block
-  // the upload or surface an error, since generation re-extracts anyway and
-  // reports properly there.
+  // far (no credits, or they just leave). A failed extraction is surfaced
+  // immediately on the upload card (see uploadReadError) rather than staying
+  // silent until Generate — someone should find out their file couldn't be
+  // read right away, not after filling in the rest of the screen.
   async function handleCVFileUpload(file: File | null) {
     setUploadedCV(file)
+    setUploadReadError('')
     if (!file) {
       setExtractedCVText(null)
       // "Remove" has to actually forget it, or the carry-over in
@@ -549,8 +559,9 @@ export default function BuildPage() {
       const text = await extractFile(file)
       setExtractedCVText({ file, text })
       if (text.replace(/\s+/g, ' ').trim().length >= 80) rememberCurrentInput(text, file.name)
-    } catch {
+    } catch (err: any) {
       setExtractedCVText(null)
+      setUploadReadError(err?.message || 'Could not read this file. Try a different one, or paste your CV text instead.')
     }
   }
 
@@ -1050,7 +1061,6 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: PASTE PATH ══════════════════════════════════ */}
         <div style={{ display: screen === 'paste' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <StepLabel label="Step 1 of 1" />
           <h1 style={h1Style}>Share Your CV Content</h1>
           {/* Name the document they'll get, so there's no doubt what this input
               is being turned into. */}
@@ -1067,7 +1077,7 @@ export default function BuildPage() {
               <textarea ref={refs.paste} style={TA(180)} rows={8} placeholder="Paste your CV content here — any format is fine..." />
             </div>
           ) : (
-            <UploadZone label="Drop your CV here, or click to browse" hint="PDF · Word (.docx) · Text (.txt) · or a photo of your CV" onFile={handleCVFileUpload} file={uploadedCV} />
+            <UploadZone label="Drop your CV here, or click to browse" hint="PDF · Word (.docx) · Text (.txt) · or a photo of your CV" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} />
           )}
 
           {/* The prompt for extra detail is worded for the document being made —
@@ -1081,7 +1091,6 @@ export default function BuildPage() {
                 ? 'Research, teaching or publications to emphasise — e.g. “Highlight my work on climate adaptation”.'
                 : 'Corrections or emphasis — e.g. “I was promoted in 2023”.'}
             badge="Optional"
-            defaultOpen={restoredClarifyNotes}
           >
             <textarea ref={refs.clarify} style={TA(70)} rows={3} placeholder={isCoverLetter ? 'What should the letter emphasise? — or leave blank...' : 'Type any special requests — or leave blank...'} />
           </Collapsible>
@@ -1788,10 +1797,23 @@ const SIGNATURES: Record<string, { label: string; check: (b: Uint8Array) => bool
             at(b, [0xEF, 0xBB, 0xBF]) || at(b, [0xFF, 0xFE]) || at(b, [0xFE, 0xFF]) || !b.includes(0) },
 }
 
-function UploadZone({ label, hint, onFile, file }: { label: string; hint: string; onFile: (f: File | null) => void; file: File | null }) {
+function UploadZone({ label, hint, onFile, file, readError }: { label: string; hint: string; onFile: (f: File | null) => void; file: File | null; readError?: string }) {
   const ref = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [fileErr, setFileErr] = useState('')
+
+  if (file && readError) return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px', background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: '14px' }}>
+      <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/></svg>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{file.name}</div>
+        <div style={{ fontSize: '12px', color: '#b91c1c', fontWeight: 500 }}>{readError}</div>
+      </div>
+      <button onClick={() => onFile(null)} style={{ fontSize: '12px', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Remove</button>
+    </div>
+  )
 
   if (file) return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px', background: '#f0fdf9', border: '1.5px solid #0d9488', borderRadius: '14px' }}>
