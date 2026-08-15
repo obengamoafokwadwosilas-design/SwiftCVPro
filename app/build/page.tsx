@@ -875,13 +875,22 @@ export default function BuildPage() {
       <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
 
       {/* Back — moves one screen back within the flow, or out to the home
-          page from the very first (type) screen so it's never a dead end. */}
+          page from the very first (type) screen so it's never a dead end.
+          The free-preview callout rides the same row, on the type screen
+          only — a floating pill that auto-dismisses (or closes by hand)
+          rather than permanent copy competing with the heading below. */}
       {(backTo || screen === 'type') && (
-        <div style={{ maxWidth: '760px', margin: '0 auto', padding: '22px 24px 0' }}>
+        <div style={{ maxWidth: '760px', margin: '0 auto', padding: '22px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' as const }}>
           <button onClick={() => backTo ? go(backTo) : router.push('/')} style={btnBackTop}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Back
           </button>
+          {screen === 'type' && showFreeBanner && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', border: '1px solid rgba(13,148,136,0.3)', borderRadius: '50px', padding: '7px 8px 7px 14px', boxShadow: '0 4px 16px rgba(13,148,136,0.15)', fontSize: '12.5px', color: '#0a5d55', fontWeight: 500 }}>
+              <span>✨ Your first 2 previews are free</span>
+              <button onClick={() => setShowFreeBanner(false)} aria-label="Dismiss" style={{ flexShrink: 0, background: 'rgba(13,148,136,0.1)', border: 'none', borderRadius: '50%', width: '18px', height: '18px', color: '#0a5d55', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', lineHeight: 1 }}>×</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -910,17 +919,6 @@ export default function BuildPage() {
             What should we <span style={{ color: '#0d9488' }}>create?</span>
           </h1>
           <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '32px', fontWeight: 300, lineHeight: 1.7 }}>Choose the document you need — we’ll tailor everything to it.</p>
-
-          {/* Free-preview callout — reads as a continuation of the intro
-              copy, after the heading has had its moment, not before it. Still
-              auto-dismisses and is closeable by hand, so it never becomes
-              permanent clutter once it's made its point. */}
-          {showFreeBanner && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '12px', padding: '10px 14px', marginBottom: '20px', fontSize: '12.5px', color: '#0a5d55', fontWeight: 500 }}>
-              <span style={{ flex: 1 }}>✨ Your first 2 previews are free — pay only when you're ready to download.</span>
-              <button onClick={() => setShowFreeBanner(false)} aria-label="Dismiss" style={{ flexShrink: 0, background: 'none', border: 'none', color: '#0a5d55', opacity: 0.6, cursor: 'pointer', fontSize: '15px', lineHeight: 1, padding: '2px' }}>×</button>
-            </div>
-          )}
 
           <div style={{ display: 'grid', gap: '12px', marginBottom: '28px' }}>
             {([
