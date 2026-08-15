@@ -874,23 +874,26 @@ export default function BuildPage() {
       {/* Choose the document (1), how to share info (2), fill in & generate (3) */}
       <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
 
+      {/* Free-preview callout — floating, auto-dismissing, never part of the
+          normal-flow layout so it can't push the type cards down or linger
+          as permanent clutter. */}
+      {showFreeBanner && (
+        <div style={{ position: 'sticky', top: '12px', zIndex: 150, display: 'flex', justifyContent: 'center', padding: '0 16px', pointerEvents: 'none' }}>
+          <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '10px', background: '#0a5d55', color: 'white', borderRadius: '50px', padding: '10px 14px 10px 18px', boxShadow: '0 10px 30px rgba(10,93,85,0.35)', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 500, maxWidth: '92vw' }}>
+            <span>✨ Your first 2 previews are free — pay only when you're ready to download.</span>
+            <button onClick={() => setShowFreeBanner(false)} aria-label="Dismiss" style={{ flexShrink: 0, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: '20px', height: '20px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', lineHeight: 1 }}>×</button>
+          </div>
+        </div>
+      )}
+
       {/* Back — moves one screen back within the flow, or out to the home
-          page from the very first (type) screen so it's never a dead end.
-          The free-preview callout rides the same row, on the type screen
-          only — a floating pill that auto-dismisses (or closes by hand)
-          rather than permanent copy competing with the heading below. */}
+          page from the very first (type) screen so it's never a dead end. */}
       {(backTo || screen === 'type') && (
-        <div style={{ maxWidth: '760px', margin: '0 auto', padding: '22px 24px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' as const }}>
+        <div style={{ maxWidth: '760px', margin: '0 auto', padding: '22px 24px 0' }}>
           <button onClick={() => backTo ? go(backTo) : router.push('/')} style={btnBackTop}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Back
           </button>
-          {screen === 'type' && showFreeBanner && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', border: '1px solid rgba(13,148,136,0.3)', borderRadius: '50px', padding: '7px 8px 7px 14px', boxShadow: '0 4px 16px rgba(13,148,136,0.15)', fontSize: '12.5px', color: '#0a5d55', fontWeight: 500 }}>
-              <span>✨ Your first 2 previews are free</span>
-              <button onClick={() => setShowFreeBanner(false)} aria-label="Dismiss" style={{ flexShrink: 0, background: 'rgba(13,148,136,0.1)', border: 'none', borderRadius: '50%', width: '18px', height: '18px', color: '#0a5d55', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', lineHeight: 1 }}>×</button>
-            </div>
-          )}
         </div>
       )}
 
