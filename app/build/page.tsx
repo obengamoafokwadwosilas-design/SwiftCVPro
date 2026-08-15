@@ -61,6 +61,10 @@ export default function BuildPage() {
   // academic extras only for academics, job details only where relevant, and a
   // cover-letter user never wades through CV-only fields.
   const [screen, setScreen] = useState<Screen>('type')
+  // Free-preview callout — a floating banner rather than permanent copy, so
+  // it's noticeable once without permanently competing with the type cards
+  // for space. Shows on load, auto-dismisses; also closeable by hand.
+  const [showFreeBanner, setShowFreeBanner] = useState(true)
   // Professional CV is the common case, so it's selected by default — the user
   // can switch, but never has to make a choice just to move forward.
   const [typeChosen, setTypeChosen] = useState(true)
@@ -194,6 +198,12 @@ export default function BuildPage() {
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('type') as CVType
     if (t && ['professional','targeted','academic','cover_letter'].includes(t)) setCvType(t)
+  }, [])
+
+  // ── Free-preview banner auto-dismiss ──────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => setShowFreeBanner(false), 6000)
+    return () => clearTimeout(t)
   }, [])
 
   // ── Restore a build seed, if one is waiting ───────────────────
@@ -863,6 +873,18 @@ export default function BuildPage() {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #f0fdf9 0%, #f8fafc 40%, #fefdfb 100%)' }}>
       {/* Choose the document (1), how to share info (2), fill in & generate (3) */}
       <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
+
+      {/* Free-preview callout — floating, auto-dismissing, never part of the
+          normal-flow layout so it can't push the type cards down or linger
+          as permanent clutter. */}
+      {showFreeBanner && (
+        <div style={{ position: 'sticky', top: '12px', zIndex: 150, display: 'flex', justifyContent: 'center', padding: '0 16px', pointerEvents: 'none' }}>
+          <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '10px', background: '#0a5d55', color: 'white', borderRadius: '50px', padding: '10px 14px 10px 18px', boxShadow: '0 10px 30px rgba(10,93,85,0.35)', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 500, maxWidth: '92vw' }}>
+            <span>✨ Your first 2 previews are free — pay only when you're ready to download.</span>
+            <button onClick={() => setShowFreeBanner(false)} aria-label="Dismiss" style={{ flexShrink: 0, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: '20px', height: '20px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', lineHeight: 1 }}>×</button>
+          </div>
+        </div>
+      )}
 
       {/* Back — moves one screen back within the flow, or out to the home
           page from the very first (type) screen so it's never a dead end. */}
