@@ -275,6 +275,23 @@ export default function CVHistoryModal({ open, onClose }: { open: boolean; onClo
             {items.length === 0 ? (
               <p style={{ fontSize: '13.5px', color: '#64748b', textAlign: 'center' as const, padding: '30px 0' }}>No CVs generated yet with this number.</p>
             ) : (
+              <>
+                {/* The real reason to come back here: one CV rarely wins every
+                    job — recruiters and ATS software both respond better to a
+                    version aimed at the specific role. This is the headline
+                    for that idea, not a footnote on a small button. */}
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', background: 'linear-gradient(135deg, #f0fdf9, #ecfdf5)', border: '1px solid rgba(13,148,136,0.18)', borderRadius: '14px', padding: '14px 16px', marginBottom: '16px' }}>
+                  <div style={{ width: '30px', height: '30px', borderRadius: '9px', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 1px 4px rgba(13,148,136,0.15)' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="#0d9488"/></svg>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: serif, fontSize: '1.05rem', fontWeight: 600, color: '#0a0f1a', lineHeight: 1.25, marginBottom: '3px' }}>One CV rarely wins every job</div>
+                    <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.55 }}>Recruiters — and the software that screens CVs — favour one aimed at the specific role. Same background, sharper aim: use <strong style={{ color: '#0a5d55', fontWeight: 600 }}>Tailor for another job</strong> below.</div>
+                  </div>
+                </div>
+              </>
+            )}
+            {items.length > 0 && (
               <div style={{ display: 'grid', gap: '10px' }}>
                 {items.map(item => (
                   <div key={item.id} style={{ border: '1px solid #e7ebf0', borderRadius: '14px', padding: '14px 16px' }}>
@@ -302,17 +319,21 @@ export default function CVHistoryModal({ open, onClose }: { open: boolean; onClo
                       </div>
                     </div>
                     {/* "Duplicate" read like a free copy but actually spends a
-                        credit on a fresh generation. Named for what it does. */}
+                        credit on a fresh generation. Named for what it does.
+                        Given the teal treatment (not the plain grey secondary
+                        style) — this is the action the banner above is
+                        actively recommending, not an afterthought. */}
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' as const, alignItems: 'center' }}>
                       <button onClick={() => handleOpen(item, 'preview')} style={smallBtnPrimary}>Preview / Download</button>
                       <button
                         onClick={() => handleOpen(item, 'rewrite')}
                         title="Starts a new CV from these details, aimed at a different job or industry. Uses 1 credit."
-                        style={smallBtnSecondary}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '8px 14px', background: '#f0fdf9', color: '#0a5d55', border: '1px solid rgba(13,148,136,0.35)', borderRadius: '50px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: font }}
                       >
-                        Rewrite for another job
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0a5d55" strokeWidth="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg>
+                        Tailor for another job
                       </button>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>uses 1 credit</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>1 credit</span>
                     </div>
                   </div>
                 ))}
@@ -336,4 +357,3 @@ const inputStyle: React.CSSProperties = { width: '100%', padding: '12px 14px', b
 const btnPrimary: React.CSSProperties = { padding: '12px 20px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: font }
 const linkBtn: React.CSSProperties = { background: 'none', border: 'none', color: '#0d9488', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: font }
 const smallBtnPrimary: React.CSSProperties = { padding: '8px 14px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '50px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: font }
-const smallBtnSecondary: React.CSSProperties = { padding: '8px 14px', background: 'white', color: '#0a0f1a', border: '1px solid #e2e8f0', borderRadius: '50px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: font }
