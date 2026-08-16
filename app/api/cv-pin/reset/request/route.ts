@@ -43,9 +43,9 @@ export async function POST(req: NextRequest) {
 
     const resend = new Resend(process.env.RESEND_API_KEY)
     const { error: emailErr } = await resend.emails.send({
-      from: 'SwiftCVPro <onboarding@resend.dev>',
+      from: 'Extraordinary CV <onboarding@resend.dev>',
       to: row.email,
-      subject: 'Your SwiftCVPro PIN reset code',
+      subject: 'Your Extraordinary CV PIN reset code',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 20px; color: #1e293b;">
           <h2 style="margin-bottom: 8px;">Reset your history PIN</h2>

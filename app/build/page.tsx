@@ -26,12 +26,12 @@ const LOADING_STEPS = [
 const DID_YOU_KNOWS = [
   { fact: 'Recruiters spend an average of 6 seconds scanning a CV before deciding.', tip: 'That\'s why your name, job title and top bullet points must land instantly.' },
   { fact: 'CVs with quantified achievements are 40% more likely to get an interview.', tip: 'Numbers like "reduced costs by 30%" or "managed team of 12" make you memorable.' },
-  { fact: '75% of CVs are rejected by ATS before a human ever reads them.', tip: 'SwiftCVPro writes your CV to pass ATS systems first, humans second.' },
+  { fact: '75% of CVs are rejected by ATS before a human ever reads them.', tip: 'We write your CV to pass ATS systems first, humans second.' },
   { fact: 'The ideal CV length for most professionals is 1–2 pages.', tip: 'Longer is not better. A tight, focused CV signals confidence and clarity.' },
   { fact: 'Action verbs like "led", "built", and "delivered" outperform passive language.', tip: 'Every bullet point in your CV starts with a strong past-tense action verb.' },
   { fact: 'Ghana has one of the fastest-growing professional workforces in West Africa.', tip: 'A strong CV positions you to compete locally and internationally.' },
   { fact: 'Tailored CVs get 3x more interview callbacks than generic ones.', tip: 'Our Targeted CV product writes a unique CV for each job you apply for.' },
-  { fact: 'LinkedIn profiles that match your CV get 21% more profile views.', tip: 'After downloading, update your LinkedIn to match your new SwiftCV.' },
+  { fact: 'LinkedIn profiles that match your CV get 21% more profile views.', tip: 'After downloading, update your LinkedIn to match your new CV.' },
 ]
 
 // ─────────────────────────────────────────────────────────────
@@ -1774,7 +1774,7 @@ function ErrorDisplay({ error, onRetry, onDismiss }: { error: any; onRetry: () =
           <div style={{ display: 'flex', gap: '18px', alignItems: 'center', flexWrap: 'wrap' as const, marginTop: '13px' }}>
             <button onClick={onRetry} style={{ padding: '8px 16px', background: '#0a0f1a', color: 'white', border: 'none', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Try again</button>
             <button onClick={onDismiss} style={{ background: 'none', border: 'none', padding: 0, fontSize: '12.5px', fontWeight: 500, color: '#64748b', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Dismiss</button>
-            <a href="https://wa.me/233559519783?text=Hi,%20I%20need%20help%20with%20SwiftCVPro" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12.5px', fontWeight: 500, color: '#94a3b8', textDecoration: 'none', marginLeft: 'auto' }}>Need help?</a>
+            <a href="https://wa.me/233559519783?text=Hi,%20I%20need%20help%20with%20Extraordinary%20CV" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12.5px', fontWeight: 500, color: '#94a3b8', textDecoration: 'none', marginLeft: 'auto' }}>Need help?</a>
           </div>
         </div>
       </div>

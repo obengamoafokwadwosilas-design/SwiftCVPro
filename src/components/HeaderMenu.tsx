@@ -9,7 +9,7 @@ export interface HeaderMenuItem {
 }
 
 // Support line, shown at the foot of every menu (see the anchor below).
-const WHATSAPP_HREF = 'https://wa.me/233559519783?text=' + encodeURIComponent('Hi, I need help with SwiftCVPro')
+const WHATSAPP_HREF = 'https://wa.me/233559519783?text=' + encodeURIComponent('Hi, I need help with Extraordinary CV')
 
 // A single hamburger-style dropdown for secondary header actions — used
 // instead of a growing row of separate buttons, which reads as cluttered.

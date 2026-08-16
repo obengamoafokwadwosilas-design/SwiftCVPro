@@ -11,7 +11,7 @@ export default function Page() {
     >
       <h1 style={{ fontSize: '2rem', marginBottom: '16px' }}>Terms of Service</h1>
       <p>
-        By using SwiftCVPro, you agree to use the service lawfully and provide accurate
+        By using Extraordinary CV, you agree to use the service lawfully and provide accurate
         information. Documents are generated based on the information you submit. You are
         responsible for reviewing and editing your final document before use.
       </p>

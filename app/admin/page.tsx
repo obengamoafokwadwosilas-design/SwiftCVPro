@@ -60,7 +60,7 @@ export default function AdminPage() {
     return (
       <div style={wrap}>
         <div style={{ ...card, maxWidth: '380px', margin: '14vh auto 0' }}>
-          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.6rem', fontWeight: 600, marginBottom: '4px' }}>SwiftCVPro Admin</div>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.6rem', fontWeight: 600, marginBottom: '4px' }}>Extraordinary CV Admin</div>
           <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '18px' }}>Enter the admin key to continue.</p>
           <label style={label}>Admin key</label>
           <input type="password" value={key} onChange={e => setKey(e.target.value)}
@@ -127,7 +127,7 @@ function Dashboard({ adminKey, onLock }: { adminKey: string; onLock: () => void 
       <div style={container}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.9rem', fontWeight: 600, lineHeight: 1.1 }}>SwiftCVPro Admin</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.9rem', fontWeight: 600, lineHeight: 1.1 }}>Extraordinary CV Admin</div>
             <div style={{ fontSize: '13px', color: '#64748b' }}>Dashboard overview</div>
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>

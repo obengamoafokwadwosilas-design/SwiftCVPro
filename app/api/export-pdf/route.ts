@@ -29,10 +29,10 @@ type Api2PdfResponse = {
 }
 
 function safeFileName(name: string) {
-  return (name || 'SwiftCVPro_CV')
+  return (name || 'ExtraordinaryCV_CV')
     .replace(/[^a-z0-9_\-\s]/gi, '')
     .trim()
-    .replace(/\s+/g, '_') || 'SwiftCVPro_CV'
+    .replace(/\s+/g, '_') || 'ExtraordinaryCV_CV'
 }
 
 export async function POST(req: Request) {
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
       )
     }
 
-    const fileName = `${safeFileName(fullName || 'SwiftCVPro')}_CV.pdf`
+    const fileName = `${safeFileName(fullName || 'ExtraordinaryCV')}_CV.pdf`
     const rendererOwnedTwoColumn = html.includes('data-renderer-page')
 
     const apiResponse = await fetch('https://v2.api2pdf.com/chrome/pdf/html', {

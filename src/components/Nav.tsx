@@ -34,7 +34,7 @@ export default function Nav({ step, rightSlot }: NavProps) {
           color: 'white',
           letterSpacing: '0.3px'
         }}>
-          Swift<span style={{ color: '#5eead4' }}>CV</span>Pro
+          Extraordinary <span style={{ color: '#5eead4' }}>CV</span>
         </div>
         {/* Secondary text on the dark bar was at 0.28 opacity and 9px, which
             was effectively unreadable. Lifted for legibility while staying
@@ -46,7 +46,7 @@ export default function Nav({ step, rightSlot }: NavProps) {
           letterSpacing: '1.8px',
           textTransform: 'uppercase'
         }}>
-          CV Writing, Simplified.
+          Every job deserves its own CV.
         </div>
       </a>
 
