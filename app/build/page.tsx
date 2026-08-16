@@ -941,12 +941,19 @@ export default function BuildPage() {
           where we haven't looked it up yet. */}
       {screen !== 'type' && creditBalance && (creditBalance.cv > 0 || creditBalance.cl > 0) && (
         <div style={{ maxWidth: '640px', margin: '22px auto 0', padding: '0 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: 'linear-gradient(135deg, #f0fdf9, #ecfdf5)', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '12px', padding: '11px 16px' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <span style={{ fontSize: '13px', color: '#0f766e', fontWeight: 500 }}>
-              You have {creditBalance.cv} CV credit{creditBalance.cv === 1 ? '' : 's'}
-              {creditBalance.cl > 0 ? ` and ${creditBalance.cl} cover-letter credit${creditBalance.cl === 1 ? '' : 's'}` : ''} left — no payment needed.
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'linear-gradient(135deg, #f0fdf9, #ecfdf5)', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '12px', padding: '13px 16px' }}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0a0f1a' }}>
+                {[
+                  creditBalance.cv > 0 ? `${creditBalance.cv} CV${creditBalance.cv === 1 ? '' : 's'}` : null,
+                  creditBalance.cl > 0 ? `${creditBalance.cl} Cover Letter${creditBalance.cl === 1 ? '' : 's'}` : null,
+                ].filter(Boolean).join(' + ')} remaining
+              </div>
+              <div style={{ fontSize: '12px', color: '#0f766e', marginTop: '1px' }}>No payment required.</div>
+            </div>
           </div>
         </div>
       )}
