@@ -660,7 +660,12 @@ export default function BuildPage() {
         const r = refs
         // The guided path now uses the same JD component as the paste path, so
         // read it the same way — including extracting an uploaded posting.
-        if (needsJD) {
+        // Gated by tailorMode for CVs (cover letters have no tailor-mode
+        // choice — see form-5's JSX) so switching away from "I have an
+        // advert" can't leave a stale uploaded file's text behind; same
+        // reasoning as the paste path's identical gate below.
+        const wantsAdvertJD = cvType === 'cover_letter' || tailorMode === 'advert'
+        if (needsJD && wantsAdvertJD) {
           jobDescription = jdInputMode === 'upload' && uploadedJD
             ? await extractFile(uploadedJD)
             : refs.jdPaste.current?.value || ''
@@ -692,7 +697,7 @@ export default function BuildPage() {
           // Job targeting
           company: r.company.current?.value || undefined,
           targetIndustry: r.tailorIndustryForm.current?.value || undefined,
-          jobDescription: needsJD ? (jobDescription || undefined) : undefined,
+          jobDescription: needsJD && wantsAdvertJD ? (jobDescription || undefined) : undefined,
           whyRole: cvType === 'cover_letter' ? (r.whyRole.current?.value || undefined) : undefined,
           // Cover-letter recipient (formal Ghanaian address block)
           addressee: cvType === 'cover_letter' ? (r.addressee.current?.value || undefined) : undefined,
@@ -1341,39 +1346,45 @@ export default function BuildPage() {
           <h1 style={h1Style}>{cvType === 'cover_letter' ? 'The Role You’re Applying For' : 'The Role You’re Targeting'}</h1>
           <p style={subStyle}>{cvType === 'cover_letter' ? 'Add the role to produce a compelling, tailored letter.' : 'Add the role to tailor your CV to it — the more detail, the sharper the result.'}</p>
 
-          <div style={cardStyle}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-              <Field label={`Job Title${cvType === 'cover_letter' ? ' *' : ''}`} placeholder="e.g. Staff Nurse" fieldRef={refs.jobTitle} />
-              <Field label={`${cvType === 'cover_letter' ? 'Employer / Institution' : 'Company Name'}${cvType === 'cover_letter' ? ' *' : ''}`} placeholder="e.g. Korle Bu Hospital" fieldRef={refs.company} />
-            </div>
-            {/* Industry sits beside the job title so someone with no specific
-                advert can still aim the CV at a field. */}
-            {cvType !== 'cover_letter' && (
-              <div style={{ marginBottom: '12px' }}>
-                <Field label="Industry (optional)" placeholder="e.g. Banking & Finance, Health, NGO / Development" fieldRef={refs.tailorIndustryForm} />
+          {cvType === 'cover_letter' ? (
+            // A cover letter is inherently about ONE specific job, so there's
+            // no "tailor mode" choice here — Job Title/Employer are always
+            // the addressing fields, required, not a tailoring option.
+            <div style={cardStyle}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <Field label="Job Title *" placeholder="e.g. Staff Nurse" fieldRef={refs.jobTitle} />
+                <Field label="Employer / Institution *" placeholder="e.g. Korle Bu Hospital" fieldRef={refs.company} />
               </div>
-            )}
-            {/* Formal address block for the letter — optional; sensible
-                defaults ("The Human Resource Manager", "Dear Sir/Madam,") are
-                used when left blank, so there are never empty placeholders. */}
-            {cvType === 'cover_letter' && (
+              {/* Formal address block for the letter — optional; sensible
+                  defaults ("The Human Resource Manager", "Dear Sir/Madam,") are
+                  used when left blank, so there are never empty placeholders. */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <Field label="Addressed to (optional)" placeholder="e.g. The Human Resource Manager" fieldRef={refs.addressee} />
                 <Field label="Employer address (optional)" placeholder="e.g. P. O. Box GP 667, Accra" fieldRef={refs.companyAddress} />
               </div>
-            )}
-            {/* Same job-posting component as the paste path, so the guided flow
-                can upload a PDF/Word/image posting instead of only pasting. */}
-            <div style={{ marginBottom: '12px' }}>
-              <JDSection method={jdInputMode} setMethod={setJdInputMode} pasteRef={refs.jdPaste} uploadedFile={uploadedJD} setUploadedFile={setUploadedJD} cvType={cvType} />
-            </div>
-            {cvType === 'cover_letter' && (
+              {/* Same job-posting component as the paste path, so the guided flow
+                  can upload a PDF/Word/image posting instead of only pasting. */}
+              <div style={{ marginBottom: '12px' }}>
+                <JDSection method={jdInputMode} setMethod={setJdInputMode} pasteRef={refs.jdPaste} uploadedFile={uploadedJD} setUploadedFile={setUploadedJD} cvType={cvType} />
+              </div>
               <div>
                 <label style={labelStyle}>Why do you want this role? <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 400 }}>Optional</span></label>
                 <textarea ref={refs.whyRole} style={{ ...TA(70), marginTop: '5px' }} rows={3} placeholder="e.g. I have 3 years experience in telecoms and admire this company’s values..." />
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            // Same 3-way choice as the paste path's "Tailor your CV" —
+            // consistent interaction pattern regardless of which entry point
+            // (upload/paste vs. guided form) someone used to get here.
+            <TailorSection
+              mode={tailorMode} setMode={setTailorMode}
+              isLetter={false}
+              jdMode={jdInputMode} setJdMode={setJdInputMode}
+              jdPasteRef={refs.jdPaste}
+              jdFile={uploadedJD} setJdFile={setUploadedJD}
+              jobRef={refs.jobTitle} industryRef={refs.tailorIndustryForm}
+            />
+          )}
 
           <button onClick={() => go('summary')} style={btnSkip}>Skip job details →</button>
 
@@ -1385,11 +1396,17 @@ export default function BuildPage() {
       {/* ══ SCREEN: SUMMARY ══════════════════════════════════ */}
       {screen === 'summary' && (
         <div style={{ maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
+          {/* A checkmark here would read as "done" — this is a review step,
+              not a finished result, so a clipboard icon instead avoids
+              implying the plain-text summary below is the actual CV. */}
           <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/><path d="M9 10h6M9 14h6M9 18h3"/></svg>
           </div>
           <h1 style={{ ...h1Style, marginBottom: '6px' }}>{isCoverLetter ? 'Ready To Write Your Letter' : 'Ready To Build Your CV'}</h1>
-          <p style={{ ...subStyle, marginBottom: '28px' }}>Review your details before we generate.</p>
+          <p style={{ ...subStyle, marginBottom: '10px' }}>Review your details before we generate.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '9px 13px', marginBottom: '24px', fontSize: '12px', color: '#64748b' }}>
+            This is what you’ve entered, not the finished {isCoverLetter ? 'letter' : 'CV'} — click Generate below to create it.
+          </div>
 
           {/* Summary blocks — only show sections with content */}
           {[
