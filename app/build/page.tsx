@@ -1035,7 +1035,7 @@ export default function BuildPage() {
       {screen === 'method' && (
         <div style={{ maxWidth: '680px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '8px', lineHeight: 1.1 }}>
-            How do you want to <span style={{ color: '#0d9488' }}>share your info?</span>
+            How would you like to <span style={{ color: '#0d9488' }}>create your {meta.label}?</span>
           </h1>
           <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '32px', fontWeight: 300, lineHeight: 1.7 }}>Both paths give the same quality result.</p>
 
