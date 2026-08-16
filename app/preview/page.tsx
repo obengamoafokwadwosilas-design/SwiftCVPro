@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { GeneratedCV, TemplateId, ExportFormat } from '@/types'
 import CVPreview, { getFlowPdfConfig, TemplatePreview } from '@/components/CVPreview'
 import CVHistoryModal from '@/components/CVHistoryModal'
+import BalanceModal from '@/components/BalanceModal'
 import HeaderMenu from '@/components/HeaderMenu'
 import { PACKAGES, packagesForDoc } from '@/lib/packages'
 
@@ -148,6 +149,7 @@ export default function PreviewPage() {
   const [showChooser, setShowChooser] = useState(false)
   const [showDownloadMenu, setShowDownloadMenu] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [showBalanceModal, setShowBalanceModal] = useState(false)
 
   useEffect(() => {
     const stored = sessionStorage.getItem('swiftcv_cv')
@@ -978,6 +980,7 @@ export default function PreviewPage() {
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
           <HeaderMenu items={[
             { label: 'My CVs', onClick: () => setShowHistoryModal(true), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+            { label: 'Check my balance', onClick: () => setShowBalanceModal(true), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="17" cy="14.5" r="1" fill="currentColor" stroke="none"/></svg> },
             { label: 'New CV', onClick: handleNewCV, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 5v14M5 12h14"/></svg> },
             { label: 'Cover Letter', onClick: () => { setCoverErr(''); setShowCoverModal(true) }, icon: <span style={{ color: '#0d9488' }}>✦</span> },
           ]} />
@@ -1349,6 +1352,7 @@ export default function PreviewPage() {
       )}
 
       <CVHistoryModal open={showHistoryModal} onClose={() => setShowHistoryModal(false)} />
+      <BalanceModal open={showBalanceModal} onClose={() => setShowBalanceModal(false)} />
     </div>
   )
 }

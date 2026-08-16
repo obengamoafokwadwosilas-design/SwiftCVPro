@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import CVHistoryModal from './CVHistoryModal'
+import BalanceModal from './BalanceModal'
 import HeaderMenu from './HeaderMenu'
 
 interface NavProps {
@@ -11,6 +12,7 @@ interface NavProps {
 
 export default function Nav({ step, rightSlot }: NavProps) {
   const [showHistory, setShowHistory] = useState(false)
+  const [showBalance, setShowBalance] = useState(false)
   return (
     <>
     <nav style={{
@@ -65,6 +67,7 @@ export default function Nav({ step, rightSlot }: NavProps) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
         <HeaderMenu items={[
           { label: 'My CVs', onClick: () => setShowHistory(true), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+          { label: 'Check my balance', onClick: () => setShowBalance(true), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="17" cy="14.5" r="1" fill="currentColor" stroke="none"/></svg> },
         ]} />
         {rightSlot || (
           <div style={{
@@ -80,6 +83,7 @@ export default function Nav({ step, rightSlot }: NavProps) {
       </div>
     </nav>
     <CVHistoryModal open={showHistory} onClose={() => setShowHistory(false)} />
+    <BalanceModal open={showBalance} onClose={() => setShowBalance(false)} />
     </>
   )
 }

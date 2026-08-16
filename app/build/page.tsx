@@ -934,12 +934,16 @@ export default function BuildPage() {
       )}
 
       {/* Credit balance — shown on the info screens once we know it, and only
-          when there's something to show (no clutter for no-credit users). */}
+          when there's something to show (no clutter for no-credit users).
+          Only the pool that actually applies to the document being built
+          right now — a CV credit can't pay for a cover-letter download or
+          vice versa, they're separate currencies, so showing both together
+          regardless of cvType implied one covers the other when it doesn't. */}
       {/* Shown from the method screen onwards — the balance is known as soon as
           Continue is pressed, and seeing "no payment needed" BEFORE putting in
           the work is the reassuring moment. Hidden only on the type screen,
           where we haven't looked it up yet. */}
-      {screen !== 'type' && creditBalance && (creditBalance.cv > 0 || creditBalance.cl > 0) && (
+      {screen !== 'type' && creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0) && (
         <div style={{ maxWidth: '640px', margin: '22px auto 0', padding: '0 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'linear-gradient(135deg, #f0fdf9, #ecfdf5)', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '12px', padding: '13px 16px' }}>
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -947,10 +951,9 @@ export default function BuildPage() {
             </div>
             <div>
               <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0a0f1a' }}>
-                {[
-                  creditBalance.cv > 0 ? `${creditBalance.cv} CV${creditBalance.cv === 1 ? '' : 's'}` : null,
-                  creditBalance.cl > 0 ? `${creditBalance.cl} Cover Letter${creditBalance.cl === 1 ? '' : 's'}` : null,
-                ].filter(Boolean).join(' + ')} remaining
+                {cvType === 'cover_letter'
+                  ? `${creditBalance.cl} Cover Letter${creditBalance.cl === 1 ? '' : 's'}`
+                  : `${creditBalance.cv} CV${creditBalance.cv === 1 ? '' : 's'}`} remaining
               </div>
               <div style={{ fontSize: '12px', color: '#0f766e', marginTop: '1px' }}>No payment required.</div>
             </div>
