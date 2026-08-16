@@ -125,3 +125,35 @@ export async function creditPackageIfNew(
   if (!okCv || !okCl) return { credited: false, duplicate: false, error: 'Failed to add credits' }
   return { credited: true, duplicate: false }
 }
+
+// ── One credit = one DOCUMENT, not one download ───────────────────────
+// Credits are spent at download time (see app/api/export-pdf and
+// app/api/export-docx). Charging per download would mean someone who bought
+// "1 Professional CV" could take the PDF *or* the Word file but not both,
+// and could never re-download after losing the file — so the first download
+// marks the saved history row paid, and every later download of that same
+// document (any format) is free.
+//
+// Both queries are scoped to the phone as well as the id, so knowing someone
+// else's history id can never unlock a free download on their tab.
+export async function isDownloadPaid(phoneNumber: string, historyId: number): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('cv_history')
+    .select('download_paid')
+    .eq('id', historyId)
+    .eq('phone_number', normalizePhone(phoneNumber))
+    .maybeSingle()
+  // Fail closed (treat as unpaid → charge normally): never hand out a free
+  // download because a lookup failed.
+  if (error || !data) return false
+  return !!data.download_paid
+}
+
+export async function markDownloadPaid(phoneNumber: string, historyId: number): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('cv_history')
+    .update({ download_paid: true })
+    .eq('id', historyId)
+    .eq('phone_number', normalizePhone(phoneNumber))
+  if (error) console.error('markDownloadPaid failed (user may be charged twice):', error)
+}

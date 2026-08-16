@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import { CVType } from '@/types'
 import { PACKAGES, packagesForDoc } from '@/lib/packages'
-import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed, saveLastInput, loadLastInput, clearLastInput } from '@/lib/buildSeed'
+import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed, saveLastInput, loadLastInput, clearLastInput, clearPreviousCoverLetter } from '@/lib/buildSeed'
 
 // ─────────────────────────────────────────────────────────────
 // LOADING SCREEN DATA
@@ -730,6 +730,7 @@ export default function BuildPage() {
         sessionStorage.setItem('swiftcv_email', email)
         if (data.historyId) sessionStorage.setItem('swiftcv_history_id', String(data.historyId))
         else sessionStorage.removeItem('swiftcv_history_id')
+        clearPreviousCoverLetter()
         router.push('/preview')
         return
       }
@@ -766,6 +767,7 @@ export default function BuildPage() {
       sessionStorage.setItem('swiftcv_email', email)
       if (data.historyId) sessionStorage.setItem('swiftcv_history_id', String(data.historyId))
       else sessionStorage.removeItem('swiftcv_history_id')
+      clearPreviousCoverLetter()
       router.push('/preview')
     } catch {
       setIsGenerating(false)

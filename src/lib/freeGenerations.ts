@@ -34,9 +34,41 @@ export async function consumeFreeGeneration(
     p_is_cover_letter: isCoverLetterDoc,
     p_cap: cap,
   })
-  // Fail closed: an error talking to Supabase means we can't confirm this
-  // is within the free cap, so don't let it through unchecked.
-  if (error) return { allowed: false, used: cap }
+  // Fail OPEN, deliberately. This cap only bounds our own API cost from
+  // non-paying traffic — it is NOT what protects revenue; the download
+  // paywall (app/api/export-pdf, app/api/export-docx) does that, and it
+  // still applies no matter what happens here. Failing closed would turn any
+  // hiccup in this one query — or this table/RPC simply not existing yet —
+  // into a total outage of the core funnel for every non-paying visitor,
+  // while the worst case of failing open is some extra generation cost with
+  // every download still fully gated. Logged loudly so it can't go unnoticed.
+  if (error) {
+    console.error('consume_free_generation failed — free-generation cap NOT enforced for this request:', error.message)
+    return { allowed: true, used: 0 }
+  }
   const used = data as number
   return used === -1 ? { allowed: false, used: cap } : { allowed: true, used }
+}
+
+// Gives back a use taken by consumeFreeGeneration when the generation it was
+// taken for then failed. The use has to be taken up front (so parallel
+// requests can't all slip past the cap at once), which means without this a
+// server-side failure would silently cost someone one of their few free
+// tries and give them nothing back. Best-effort: a failed refund is logged,
+// never surfaced, and never blocks the error response the user is waiting on.
+export async function refundFreeGeneration(
+  phoneNumber: string,
+  email: string,
+  isCoverLetterDoc: boolean
+): Promise<void> {
+  try {
+    const { error } = await supabaseAdmin.rpc('refund_free_generation', {
+      p_phone: normalizePhone(phoneNumber),
+      p_email: email.trim().toLowerCase(),
+      p_is_cover_letter: isCoverLetterDoc,
+    })
+    if (error) console.error('refund_free_generation failed:', error.message)
+  } catch (err) {
+    console.error('refund_free_generation threw:', err)
+  }
 }

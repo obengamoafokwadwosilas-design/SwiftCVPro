@@ -145,22 +145,8 @@ async function saveToHistory(
           landingScreen: 'type',
         }
 
-    const { data, error } = await supabaseAdmin
-      .from('cv_history')
-      .insert({
-        phone_number: phone,
-        cv_type: rawInput.cvType,
-        template_id: 'meridian',
-        accent_color: null,
-        label: null,
-        generated_cv: generatedCV,
-        raw_input: rawInput,
-      })
-      .select('id')
-      .single()
-
-    if (error) { console.error('saveToHistory insert error (non-fatal):', error); return null }
-    return data?.id ?? null
+    const { insertCvHistory } = await import('@/lib/cvHistory')
+    return await insertCvHistory({ phone, generatedCv: generatedCV, rawInput })
   } catch (err) {
     console.error('saveToHistory failed (non-fatal):', err)
     return null
@@ -185,6 +171,10 @@ function checkRateLimit(id: string) {
 }
 
 export async function POST(req: NextRequest) {
+  // Assigned once a free use has actually been taken for this request, so the
+  // catch-all at the bottom can hand it back too — not just the specific
+  // failure paths inside.
+  let refundOnFailure: (() => Promise<void>) | null = null
   try {
     // ── Validate API key ──────────────────────────
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -231,6 +221,9 @@ export async function POST(req: NextRequest) {
     // not generation, is what actually costs a credit — see
     // app/api/export-pdf/route.ts and app/api/export-docx/route.ts.
     const isCoverLetterDoc = cvType === 'cover_letter'
+    // Tracks whether a free use was actually taken for THIS request, so any
+    // failure below can hand it straight back — see refundFree().
+    let consumedFreeUse = false
     try {
       const { hasCredits, hasCoverLetterCredit } = await import('@/lib/credits')
       const paid = isCoverLetterDoc ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
@@ -243,6 +236,7 @@ export async function POST(req: NextRequest) {
             message: 'You’ve used your free previews. Buy credits to keep generating and download your CV.'
           }, { status: 402 })
         }
+        consumedFreeUse = true
       }
     } catch (err) {
       console.error('Free-generation/credits check error:', err)
@@ -250,6 +244,17 @@ export async function POST(req: NextRequest) {
         error: 'Payment verification failed. Please check your connection or contact support.'
       }, { status: 503 })
     }
+
+    // A free use is taken before the AI is called (so parallel requests can't
+    // all slip past the cap), so every failure path from here on has to give
+    // it back — nobody should lose one of their few free tries to our error.
+    const refundFree = async () => {
+      if (!consumedFreeUse) return
+      consumedFreeUse = false
+      const { refundFreeGeneration } = await import('@/lib/freeGenerations')
+      await refundFreeGeneration(phone, email, isCoverLetterDoc)
+    }
+    refundOnFailure = refundFree
 
     // ── Build prompt ──────────────────────────────
     let prompt: string
@@ -282,6 +287,7 @@ export async function POST(req: NextRequest) {
       })
     } catch (err: any) {
       console.error('Anthropic API error:', err)
+      await refundFree()
       if (err?.status === 401) {
         return NextResponse.json({ error: 'API key error. Please contact support.' }, { status: 500 })
       }
@@ -303,6 +309,7 @@ export async function POST(req: NextRequest) {
       generatedCV = JSON.parse(cleaned)
     } catch {
       console.error('JSON parse failed. First 500 chars:', rawText.substring(0, 500))
+      await refundFree()
       return NextResponse.json({ error: 'CV processing failed. Please try again.' }, { status: 500 })
     }
 
@@ -342,6 +349,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error('Unhandled generate error:', error)
+    if (refundOnFailure) await refundOnFailure()
     return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 })
   }
 }

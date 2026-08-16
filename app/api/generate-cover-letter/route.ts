@@ -57,6 +57,9 @@ function serializeCV(cv: GeneratedCV): string {
 }
 
 export async function POST(req: NextRequest) {
+  // Assigned once a free use has been taken, so the catch-all below can hand
+  // it back too — not just the specific failure paths inside.
+  let refundOnFailure: (() => Promise<void>) | null = null
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({ error: 'Server configuration error. Please contact support.' }, { status: 500 })
@@ -68,8 +71,12 @@ export async function POST(req: NextRequest) {
     }
 
     if (!phoneNumber) return NextResponse.json({ error: 'Please enter your phone number.' }, { status: 400 })
-    if (!email) return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
     if (!cv || !cv.fullName) return NextResponse.json({ error: 'No CV found to build a cover letter from.' }, { status: 400 })
+    // The CV's own email is a valid fallback identity for the free-generation
+    // cap — a CV reopened from history carries one even when the caller has
+    // no separately-collected email to send (see the preview page's loader).
+    const identityEmail = email || cv.email
+    if (!identityEmail) return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
 
     const phone = normalizePhone(phoneNumber)
 
@@ -85,23 +92,36 @@ export async function POST(req: NextRequest) {
     // else gets a small number of free generations, enforced against both
     // phone and email. Nothing is deducted here — a credit is only spent at
     // download time (app/api/export-pdf, app/api/export-docx).
+    let consumedFreeUse = false
     try {
       const { hasCoverLetterCredit } = await import('@/lib/credits')
       const paid = await hasCoverLetterCredit(phone)
       if (!paid) {
         const { consumeFreeGeneration } = await import('@/lib/freeGenerations')
-        const { allowed } = await consumeFreeGeneration(phone, email, true)
+        const { allowed } = await consumeFreeGeneration(phone, identityEmail, true)
         if (!allowed) {
           return NextResponse.json({
             error: 'FREE_CAP_REACHED',
             message: 'You’ve used your free cover-letter previews. Buy credits to keep generating and download.'
           }, { status: 402 })
         }
+        consumedFreeUse = true
       }
     } catch (err) {
       console.error('Cover-letter free-generation/credits check error:', err)
       return NextResponse.json({ error: 'Payment verification failed. Please check your connection or contact support.' }, { status: 503 })
     }
+
+    // The free use is taken before the AI call, so every failure below has to
+    // give it back — a server-side failure must never cost someone one of
+    // their few free tries. See the same pattern in app/api/generate.
+    const refundFree = async () => {
+      if (!consumedFreeUse) return
+      consumedFreeUse = false
+      const { refundFreeGeneration } = await import('@/lib/freeGenerations')
+      await refundFreeGeneration(phone, identityEmail, true)
+    }
+    refundOnFailure = refundFree
 
     // ── Build the cover-letter prompt from the existing CV ──
     const formData: CVFormData = {
@@ -124,6 +144,7 @@ export async function POST(req: NextRequest) {
       })
     } catch (err: any) {
       console.error('Anthropic API error (cover letter):', err)
+      await refundFree()
       if (err?.status === 529 || err?.status === 503) {
         return NextResponse.json({ error: 'AI service is busy. Please wait 30 seconds and try again.' }, { status: 503 })
       }
@@ -138,10 +159,12 @@ export async function POST(req: NextRequest) {
       coverLetter = JSON.parse(cleaned)
     } catch {
       console.error('Cover-letter JSON parse failed. First 500 chars:', rawText.substring(0, 500))
+      await refundFree()
       return NextResponse.json({ error: 'Cover letter processing failed. Please try again.' }, { status: 500 })
     }
 
     if (!coverLetter.coverLetterBody) {
+      await refundFree()
       return NextResponse.json({ error: 'Cover letter came back empty. Please try again.' }, { status: 500 })
     }
 
@@ -164,9 +187,34 @@ export async function POST(req: NextRequest) {
     // No credit deduction here — a cover-letter credit is only spent at
     // download time, same as CVs.
 
-    return NextResponse.json({ success: true, coverLetter })
+    // Save to history (best-effort, never blocks delivery). Two reasons this
+    // matters beyond convenience: the letter shows up in "My CVs" like any
+    // other document, and — because the download paywall charges per saved
+    // document — the returned id is what stops the PDF and the Word file
+    // costing two separate cover-letter credits.
+    //
+    // raw_input is the builder-shaped seed for a FRESH letter from the same
+    // background, so "Rewrite for another job" behaves sensibly: the source
+    // CV goes back in as pasted content, and the old job targeting is
+    // deliberately left out rather than re-aimed at the role they're leaving.
+    const { insertCvHistory } = await import('@/lib/cvHistory')
+    const historyId = await insertCvHistory({
+      phone,
+      generatedCv: coverLetter,
+      templateId: 'classic',
+      rawInput: {
+        cvType: 'cover_letter',
+        inputMethod: 'paste',
+        phoneNumber: phone,
+        pasteContent: serializeCV(cv),
+        landingScreen: 'type',
+      },
+    })
+
+    return NextResponse.json({ success: true, coverLetter, historyId })
   } catch (error: any) {
     console.error('Unhandled cover-letter error:', error)
+    if (refundOnFailure) await refundOnFailure()
     return NextResponse.json({ error: 'An unexpected error occurred. Please try again.' }, { status: 500 })
   }
 }

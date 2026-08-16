@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { GeneratedCV, TemplateId, ExportFormat } from '@/types'
 import CVPreview, { getFlowPdfConfig, TemplatePreview } from '@/components/CVPreview'
@@ -114,6 +114,10 @@ export default function PreviewPage() {
   const [cv, setCV] = useState<GeneratedCV | null>(null)
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  // Set just before a deliberate navigation away (the in-app-browser payment
+  // redirect below), so the "you'll lose your CV" beforeunload warning doesn't
+  // interrupt a redirect we're doing on purpose.
+  const leavingOnPurposeRef = useRef(false)
   // ── Download-time paywall ──
   // Generation is free; a real credit is only required at download. This
   // remembers which download was blocked so it can be retried automatically
@@ -155,7 +159,10 @@ export default function PreviewPage() {
       setCV(parsed)
       setBaseCv(parsed)
       setPhone(ph || '')
-      setEmail(em || '')
+      // Fall back to the CV's own email: opening a saved CV from history
+      // (CVHistoryModal.handleOpen) sets phone but never swiftcv_email, so
+      // without this "+ Cover Letter" would 400 on the now-required email.
+      setEmail(em || parsed.email || '')
       // Restore a cover letter generated earlier this session (if any)
       const storedCover = sessionStorage.getItem('swiftcv_coverletter')
       if (storedCover) { try { setCoverLetter(normalizeCV(JSON.parse(storedCover))) } catch {} }
@@ -165,7 +172,10 @@ export default function PreviewPage() {
       if (storedCvType === 'academic') { setIsAcademicCV(true); setTemplate('academic') }
       if (storedCvType === 'cover_letter') setTemplate('classic')
     } catch { router.push('/build') }
-    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    const warn = (e: BeforeUnloadEvent) => {
+      if (leavingOnPurposeRef.current) return
+      e.preventDefault(); e.returnValue = ''
+    }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [router])
@@ -197,6 +207,17 @@ export default function PreviewPage() {
   const [baseCv, setBaseCv] = useState<GeneratedCV | null>(null)          // always the CV, never the letter
   const [coverLetter, setCoverLetter] = useState<GeneratedCV | null>(null)
   const [activeDoc, setActiveDoc] = useState<'cv' | 'cover'>('cv')
+  // The saved-history id of the document currently on screen. The CV and the
+  // "+ Cover Letter" add-on are two separate saved documents with separate
+  // ids, so this must follow whichever one is being viewed — handing back the
+  // CV's id while a cover letter is on screen would let one purchase wrongly
+  // unlock the other. Undefined means "not saved", and the server then falls
+  // back to charging per download.
+  function paidDocumentId(): number | undefined {
+    const key = activeDoc === 'cover' ? 'swiftcv_cover_history_id' : 'swiftcv_history_id'
+    const id = sessionStorage.getItem(key)
+    return id ? Number(id) : undefined
+  }
   const [showCoverModal, setShowCoverModal] = useState(false)
   const [coverGenerating, setCoverGenerating] = useState(false)
   const [coverJd, setCoverJd] = useState('')
@@ -365,6 +386,11 @@ export default function PreviewPage() {
       const letter = normalizeCV(data.coverLetter)
       setCoverLetter(letter)
       sessionStorage.setItem('swiftcv_coverletter', JSON.stringify(letter))
+      // The letter's own saved-document id, kept apart from the CV's — it is
+      // what lets its PDF and Word download cost one credit between them
+      // rather than one each (see paidDocumentId).
+      if (data.historyId) sessionStorage.setItem('swiftcv_cover_history_id', String(data.historyId))
+      else sessionStorage.removeItem('swiftcv_cover_history_id')
       setShowCoverModal(false); setCoverJd('')
       setActiveDoc('cover'); setCV(letter); setIsCoverLetter(true); setActiveTab('preview')
     } catch { setCoverErr('Network error. Please try again.') }
@@ -383,7 +409,9 @@ export default function PreviewPage() {
       const res = await fetch('/api/export-docx', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cv, templateId: template, accentColor, phoneNumber: phone })
+        // historyId lets the server charge once per DOCUMENT rather than per
+        // download, so PDF + Word (and any re-download) cost a single credit.
+        body: JSON.stringify({ cv, templateId: template, accentColor, phoneNumber: phone, historyId: paidDocumentId() })
       })
       if (res.status === 402) {
         const data = await res.json().catch(() => ({}))
@@ -444,7 +472,7 @@ export default function PreviewPage() {
       const res = await fetch('/api/export-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html, fullName: cv.fullName, phoneNumber: phone, isCoverLetter }),
+        body: JSON.stringify({ html, fullName: cv.fullName, phoneNumber: phone, isCoverLetter, historyId: paidDocumentId() }),
       })
 
       if (res.status === 402) {
@@ -535,13 +563,26 @@ export default function PreviewPage() {
         return
       }
 
+      // Leaving this page is safe: the CV lives in sessionStorage, which
+      // survives a same-tab navigation, and /payment-return brings them back
+      // here (see swiftcv_pay_return).
+      const goToHostedCheckout = () => {
+        sessionStorage.setItem('swiftcv_pay_return', 'preview')
+        leavingOnPurposeRef.current = true
+        window.location.assign(data.authorization_url)
+      }
+
       const openHostedFallback = () => {
         const popup = window.open(data.authorization_url, '_blank', 'width=500,height=700')
-        if (!popup) { setPurchaseError('Please allow pop-ups for this site, then try again — or complete payment at the link that just opened.'); }
+        // Even a new tab was blocked — navigating this one is the only route
+        // left to a completed payment, same as the builder's own fallback.
+        if (!popup) { goToHostedCheckout(); return }
         setPaymentPending({ reference: data.reference })
       }
 
-      if (isInAppBrowser()) { openHostedFallback(); return }
+      // In-app browsers (WhatsApp/Instagram/Facebook webviews) can't reliably
+      // run the popup OR window.open, so go straight to the hosted page.
+      if (isInAppBrowser()) { goToHostedCheckout(); return }
 
       const openPopup = () => {
         const PaystackPop = (window as any).PaystackPop

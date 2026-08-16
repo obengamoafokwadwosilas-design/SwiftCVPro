@@ -83,3 +83,17 @@ export function loadLastInput(): BuildSeed | null {
 export function clearLastInput() {
   try { localStorage.removeItem(LAST_INPUT_KEY) } catch { /* non-fatal */ }
 }
+
+// A cover letter belongs to the CV it was written from, but it lives in
+// sessionStorage under its own key and nothing used to clear it — so
+// generating a second CV (or opening an older one from history) carried the
+// previous letter across and showed it attached to the wrong document. Call
+// this wherever a NEW primary document is put into sessionStorage. Clears the
+// letter's saved-document id too, so it can't be mistaken for the new one's
+// when deciding whether a download has already been paid for.
+export function clearPreviousCoverLetter() {
+  try {
+    sessionStorage.removeItem('swiftcv_coverletter')
+    sessionStorage.removeItem('swiftcv_cover_history_id')
+  } catch { /* storage unavailable — non-fatal */ }
+}

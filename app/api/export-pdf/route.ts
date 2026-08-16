@@ -16,6 +16,7 @@ type Body = {
   fullName?: string
   phoneNumber?: string
   isCoverLetter?: boolean
+  historyId?: number
 }
 
 type Api2PdfResponse = {
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Too many downloads in a short time. Please wait a moment and try again.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
     }
 
-    const { html, fullName, phoneNumber, isCoverLetter }: Body = await req.json()
+    const { html, fullName, phoneNumber, isCoverLetter, historyId }: Body = await req.json()
 
     if (!html) {
       return NextResponse.json({ error: 'No CV HTML received.' }, { status: 400 })
@@ -61,12 +62,18 @@ export async function POST(req: Request) {
     // structured cv object it can inspect for coverLetterBody), this route
     // only ever sees raw HTML, so the caller has to say what kind of
     // document it is.
+    //
+    // A document already paid for downloads free in every format, forever
+    // (isDownloadPaid) — the credit buys the CV, not the button press.
     const { normalizePhone } = await import('@/lib/phone')
-    const { hasCredits, hasCoverLetterCredit, deductCredit, deductCoverLetterCredit } = await import('@/lib/credits')
+    const { hasCredits, hasCoverLetterCredit, deductCredit, deductCoverLetterCredit, isDownloadPaid, markDownloadPaid } = await import('@/lib/credits')
     const phone = normalizePhone(phoneNumber)
-    const paid = isCoverLetter ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
-    if (!paid) {
-      return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a credit to download this. Please buy a package first.' }, { status: 402 })
+    const alreadyPaid = historyId ? await isDownloadPaid(phone, historyId) : false
+    if (!alreadyPaid) {
+      const paid = isCoverLetter ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
+      if (!paid) {
+        return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a credit to download this. Please buy a package first.' }, { status: 402 })
+      }
     }
 
     const apiKey = process.env.API2PDF_API_KEY
@@ -149,8 +156,11 @@ export async function POST(req: Request) {
     // Api2Pdf accepted the render job (it can still fail after that, or the
     // final download-from-Api2Pdf leg above can fail). A user must never be
     // charged for a PDF they didn't actually receive.
-    if (isCoverLetter) await deductCoverLetterCredit(phone)
-    else await deductCredit(phone)
+    if (!alreadyPaid) {
+      if (isCoverLetter) await deductCoverLetterCredit(phone)
+      else await deductCredit(phone)
+      if (historyId) await markDownloadPaid(phone, historyId)
+    }
 
     return new NextResponse(pdfBuffer, {
       status: 200,

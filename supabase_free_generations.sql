@@ -15,6 +15,19 @@
 -- supabase_setup.sql / supabase_history_and_payments.sql (no migration
 -- tool in this project).
 
+-- ============================================================
+-- ONE CREDIT = ONE DOCUMENT (not one download)
+-- ============================================================
+-- Credits are now spent at download time rather than at generation. Without
+-- this flag every download would spend another credit, so someone who bought
+-- "1 Professional CV" (Silver) and took the PDF could not also get the Word
+-- version, or re-download after losing the file — a guaranteed support/refund
+-- complaint. Marking the history row paid makes the credit buy the DOCUMENT:
+-- every format, and every later re-download of it, is then free.
+-- See isDownloadPaid/markDownloadPaid in src/lib/credits.ts.
+alter table cv_history add column if not exists download_paid boolean not null default false;
+
+
 create table if not exists free_generation_usage (
   identity_type  text not null check (identity_type in ('phone','email')),
   identity_value text not null,
@@ -71,5 +84,27 @@ begin
   end if;
 
   return greatest(phone_uses, email_uses) + 1;
+end;
+$$ language plpgsql;
+
+-- Gives back a use recorded by consume_free_generation when the generation
+-- it was recorded for then failed (AI overloaded, unparseable response, …).
+-- The use is taken BEFORE calling the AI so a burst of parallel requests
+-- can't all slip past the cap at once — which means a failure afterwards
+-- would otherwise cost the user one of their few free tries and hand them
+-- nothing for it. Floored at 0 so a double refund can't mint free uses.
+create or replace function refund_free_generation(
+  p_phone text,
+  p_email text,
+  p_is_cover_letter boolean
+) returns void as $$
+begin
+  if p_is_cover_letter then
+    update free_generation_usage set cl_uses = greatest(cl_uses - 1, 0), updated_at = now()
+      where (identity_type, identity_value) in (('phone', p_phone), ('email', p_email));
+  else
+    update free_generation_usage set cv_uses = greatest(cv_uses - 1, 0), updated_at = now()
+      where (identity_type, identity_value) in (('phone', p_phone), ('email', p_email));
+  end if;
 end;
 $$ language plpgsql;

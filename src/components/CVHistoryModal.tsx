@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TemplateId, GeneratedCV } from '@/types'
-import { saveBuildSeed, BuildSeed } from '@/lib/buildSeed'
+import { saveBuildSeed, BuildSeed, clearPreviousCoverLetter } from '@/lib/buildSeed'
 
 interface HistoryItem {
   id: number
@@ -101,6 +101,8 @@ export default function CVHistoryModal({ open, onClose }: { open: boolean; onClo
       sessionStorage.setItem('swiftcv_type', item.cv_type)
       sessionStorage.setItem('swiftcv_phone', phone)
       sessionStorage.setItem('swiftcv_history_id', String(item.id))
+      // Whatever letter was on screen belonged to a different document.
+      clearPreviousCoverLetter()
       onClose()
       router.push('/preview')
       return

@@ -30,7 +30,13 @@ export default function PaymentReturnPage() {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
-          router.replace('/build')
+          // Payment can be started from two places. The builder restores its
+          // own saved seed; the preview page just needs its CV, which is
+          // still in sessionStorage — so send each back where it came from
+          // rather than dumping a paying customer back at the start.
+          const from = sessionStorage.getItem('swiftcv_pay_return')
+          sessionStorage.removeItem('swiftcv_pay_return')
+          router.replace(from === 'preview' && sessionStorage.getItem('swiftcv_cv') ? '/preview' : '/build')
         } else {
           setStatus('failed')
           setMessage(data.error || 'Payment could not be confirmed.')
