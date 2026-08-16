@@ -1117,9 +1117,6 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: FORM STEP 1 — PERSONAL ══════════════════════ */}
         <div style={{ display: screen === 'form-1' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          {/* Swift greeting with typing animation */}
-          <SwiftGreeting label={meta.label} />
-
           <StepLabel label={`Step ${stepNo('form-1')} of ${meta.totalFormSteps}`} />
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1280,7 +1277,7 @@ export default function BuildPage() {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#854f0b" strokeWidth="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </div>
           <h1 style={h1Style}>Skills & Extra Details</h1>
-          <p style={subStyle}>Add anything you'd like included — the AI handles the rest.</p>
+          <p style={subStyle}>Add anything you’d like included — the AI handles the rest.</p>
 
           <div style={cardStyle}>
             <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const, color: '#94a3b8', marginBottom: '7px' }}>Example</div>
@@ -1341,7 +1338,7 @@ export default function BuildPage() {
               : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             }
           </div>
-          <h1 style={h1Style}>{cvType === 'cover_letter' ? 'The Role You\'re Applying For' : 'The Role You\'re Targeting'}</h1>
+          <h1 style={h1Style}>{cvType === 'cover_letter' ? 'The Role You’re Applying For' : 'The Role You’re Targeting'}</h1>
           <p style={subStyle}>{cvType === 'cover_letter' ? 'Add the role to produce a compelling, tailored letter.' : 'Add the role to tailor your CV to it — the more detail, the sharper the result.'}</p>
 
           <div style={cardStyle}>
@@ -1373,7 +1370,7 @@ export default function BuildPage() {
             {cvType === 'cover_letter' && (
               <div>
                 <label style={labelStyle}>Why do you want this role? <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 400 }}>Optional</span></label>
-                <textarea ref={refs.whyRole} style={{ ...TA(70), marginTop: '5px' }} rows={3} placeholder="e.g. I have 3 years experience in telecoms and admire this company's values..." />
+                <textarea ref={refs.whyRole} style={{ ...TA(70), marginTop: '5px' }} rows={3} placeholder="e.g. I have 3 years experience in telecoms and admire this company’s values..." />
               </div>
             )}
           </div>
@@ -1516,39 +1513,6 @@ export default function BuildPage() {
 
 
 // ─────────────────────────────────────────────────────────────
-// SWIFT GREETING — typing animation
-// ─────────────────────────────────────────────────────────────
-// Calm greeting with a single subtle fade-in. The old version typed itself out
-// character by character, which made the reader wait to read — a gimmick that
-// costs a second of dead time on every visit. It also introduced a "Swift"
-// persona that no longer exists anywhere else in the flow.
-function SwiftGreeting({ label }: { label: string }) {
-  const [shown, setShown] = useState(false)
-  useEffect(() => {
-    setShown(false)
-    const t = setTimeout(() => setShown(true), 30)
-    return () => clearTimeout(t)
-  }, [label])
-
-  return (
-    <div style={{
-      background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.15)', borderRadius: '14px',
-      padding: '15px 18px', marginBottom: '28px', display: 'flex', alignItems: 'center', gap: '13px',
-      opacity: shown ? 1 : 0,
-      transform: shown ? 'translateY(0)' : 'translateY(6px)',
-      transition: 'opacity 0.45s ease, transform 0.45s ease',
-    }}>
-      <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M20 6L9 17l-5-5"/></svg>
-      </div>
-      <div style={{ fontSize: '14px', color: '#0a0f1a', lineHeight: 1.6 }}>
-        Let&apos;s build your <strong>{label}</strong>. Fill in the details below — we&apos;ll handle the writing and formatting.
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────
 // STYLE CONSTANTS
 // ─────────────────────────────────────────────────────────────
 const h1Style: React.CSSProperties = { fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.7rem, 4vw, 2.4rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '8px', lineHeight: 1.1 }
@@ -1638,8 +1602,8 @@ function TailorSection({ mode, setMode, isLetter, jdMode, setJdMode, jdPasteRef,
 }) {
   const doc = isLetter ? 'letter' : 'CV'
   const options = [
-    { id: 'advert' as const, title: 'I have a job advert', desc: `Paste or upload it and we'll tailor your ${doc} to it.` },
-    { id: 'aim' as const,    title: "I don't have an advert", desc: 'Tell us the job or industry you want, and we aim it there.' },
+    { id: 'advert' as const, title: 'I have a job advert', desc: `Paste or upload it and we’ll tailor your ${doc} to it.` },
+    { id: 'aim' as const,    title: 'I don’t have an advert', desc: 'Tell us the job or industry you want, and we aim it there.' },
     { id: 'none' as const,   title: isLetter ? 'A general letter' : 'Just upgrade my CV', desc: isLetter ? 'No specific job in mind.' : 'Polish the wording and layout, without aiming at a role.' },
   ]
   return (
