@@ -420,18 +420,28 @@ section { padding:var(--section-y) 0; }
 .faq-item.open .faq-a { max-height:250px; }
 .faq-a p { padding:0 2px 22px; font-size:0.9rem; color:var(--ink-55); line-height:1.75; max-width:60ch; }
 
-/* ── TESTIMONIALS — static grid ── */
+/* ── TESTIMONIALS — marquee ── */
 .testi-section { background:var(--white); }
-.testi-grid { display:grid; grid-template-columns:1fr; gap:20px; margin-top:52px; }
-@media(min-width:720px){ .testi-grid{ grid-template-columns:repeat(3,1fr); } }
-/* markup still carries a duplicate set (previously used for a seamless scroll
-   loop that no longer exists) — suppressed rather than re-typed by hand,
-   since each card's avatar is an inline base64 image too large to safely
-   hand-edit without risking corrupting the data URI. */
-.testi-grid > .testi-card:nth-child(n+10) { display:none; }
+.testi-marquee-outer {
+  overflow: hidden; position: relative;
+  margin-top: 52px; padding: 8px 0 24px;
+}
+.testi-marquee-outer::before, .testi-marquee-outer::after {
+  content:''; position:absolute; top:0; bottom:0; width:110px; z-index:2; pointer-events:none;
+}
+.testi-marquee-outer::before { left:0; background:linear-gradient(90deg,var(--white),transparent); }
+.testi-marquee-outer::after { right:0; background:linear-gradient(-90deg,var(--white),transparent); }
+.testi-grid {
+  display:flex; gap:20px; width:max-content;
+  animation: testiMarquee 70s linear infinite;
+}
+.testi-grid:hover { animation-play-state: paused; }
+@keyframes testiMarquee { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
 .testi-card {
+  width:340px; flex-shrink:0;
   border:1px solid var(--rule-strong); border-radius:16px;
   padding:28px 26px; transition:box-shadow 0.35s var(--ease), border-color 0.35s var(--ease);
+  background:var(--white);
 }
 .testi-card:hover { border-color:var(--teal); box-shadow:0 22px 44px -22px rgba(13,148,136,0.22); }
 .testi-stars { color:var(--teal); font-size:0.85rem; letter-spacing:2px; margin-bottom:14px; }
@@ -482,13 +492,25 @@ section { padding:var(--section-y) 0; }
   transition: all 0.3s var(--ease);
 }
 .success-contact-btn.whatsapp {
+  position: relative;
   width: 56px; height: 56px;
-  background: var(--navy); color: white;
+  background: #25D366; color: white;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   padding: 0;
 }
-.success-contact-btn.whatsapp:hover { background: var(--teal-dark); transform: translateY(-2px); }
+.success-contact-btn.whatsapp::before {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: #25D366;
+  animation: waBlink 1.8s ease-in-out infinite;
+  z-index: -1;
+}
+@keyframes waBlink {
+  0%, 100% { opacity: 0.55; transform: scale(1); }
+  50% { opacity: 0; transform: scale(1.55); }
+}
+.success-contact-btn.whatsapp:hover { background: #1ebe5d; transform: translateY(-2px); }
+.success-contact-btn.whatsapp:hover::before { background: #1ebe5d; }
 .success-contact-btn.email {
   background: transparent; color: var(--ink);
   border: 1px solid var(--rule-strong);
@@ -527,29 +549,34 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 .reveal.visible { opacity:1; transform:translateY(0); }
 .rd1{transition-delay:0.08s;} .rd2{transition-delay:0.16s;} .rd3{transition-delay:0.24s;} .rd4{transition-delay:0.32s;}
 
-@media(prefers-reduced-motion:reduce){ .ticker-inner,.template-ticker,.testi-ticker{animation:none;} }
+@media(prefers-reduced-motion:reduce){ .ticker-inner,.template-ticker,.testi-grid,.success-contact-btn.whatsapp::before{animation:none;} }
 
-/* ── FOUNDER SECTION ── */
-.founder-section { background: var(--paper); }
+/* ── FOUNDER SECTION — the original SwiftCVPro-era presentation ── */
+.founder-section { background: var(--white); }
 .founder-inner {
   max-width: 780px; margin: 0 auto;
-  display: grid; grid-template-columns: 220px 1fr;
-  gap: 48px; align-items: center;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 60px; align-items: center;
 }
-@media(max-width:700px){ .founder-inner{ grid-template-columns:1fr; gap:28px; text-align:center; justify-items:center; } }
-.founder-photo-card {
-  background:var(--white); border:1px solid var(--rule-strong); border-radius:16px;
-  padding:16px 16px 18px; text-align:center;
-  box-shadow:0 24px 50px -26px rgba(23,19,16,0.22);
-}
+@media(max-width:700px){ .founder-inner{ grid-template-columns:1fr; gap:32px; text-align:center; } }
+.founder-photo-card { position: relative; }
 .founder-img {
-  width: 100%; aspect-ratio:1/1;
-  border-radius: 10px;
+  width: 100%; max-width: 340px;
+  border-radius: 20px;
   display: block;
   object-fit: cover;
-  margin-bottom:12px;
+  box-shadow: 0 20px 60px rgba(23,19,16,0.14);
 }
-.founder-badge { font-family:var(--font-mono); font-size:0.66rem; letter-spacing:0.03em; color:var(--ink-38); line-height:1.4; }
+@media(max-width:700px){ .founder-img{ margin: 0 auto; max-width:260px; } }
+.founder-badge {
+  position: absolute; bottom: -14px; left: 20px;
+  background: var(--teal); color: white;
+  font-family: var(--font-body); font-size: 0.75rem; font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 8px 18px; border-radius: 100px;
+  box-shadow: 0 4px 20px rgba(13,148,136,0.35);
+}
+@media(max-width:700px){ .founder-badge{ left:50%; transform:translateX(-50%); white-space:nowrap; } }
 .founder-eyebrow { color: var(--teal-dark); margin-bottom: 10px; }
 .founder-name {
   font-family: var(--font-display);
@@ -1029,7 +1056,8 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
   </div>
 
   <!-- SCROLLING TICKER -->
-  <div class="testi-grid reveal">
+  <div class="testi-marquee-outer">
+  <div class="testi-grid">
 
         <!-- CARD 1 -->
         <div class="testi-card">
@@ -1203,6 +1231,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
           </div>
         </div>
 
+  </div>
   </div>
 
   <!-- SUCCESS STORY CTA -->
