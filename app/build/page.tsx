@@ -75,8 +75,8 @@ export default function BuildPage() {
   const [creditBalance, setCreditBalance] = useState<{ cv: number; cl: number } | null>(null)
   const [cvType, setCvType] = useState<CVType>('professional')
   const [inputMethod, setInputMethod] = useState<'paste' | 'form'>('paste')
-  // Default to upload: this screen is reached from "I already have a CV", so a
-  // file is the expected input. Pasting is one tap away.
+  // Default to upload: this screen is reached from "I have an existing CV",
+  // so a file is the expected input. Pasting is one tap away.
   const [pasteInputMode, setPasteInputMode] = useState<'paste' | 'upload'>('upload')
   const [uploadedCV, setUploadedCV] = useState<File | null>(null)
   // Text pulled out of the uploaded CV file as soon as it's added. Serves two
@@ -1041,8 +1041,8 @@ export default function BuildPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
             {([
-              { id: 'paste' as const, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, iconBg: '#e1f5ee', title: 'I already have a CV', desc: 'Upload your existing CV or paste it in — we’ll rebuild it.' },
-              { id: 'form' as const,  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>, iconBg: '#e6f1fb', title: 'Start from scratch', desc: 'Our AI will guide you through creating a perfect CV.' },
+              { id: 'paste' as const, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, iconBg: '#e1f5ee', title: 'I have an existing CV', desc: 'Upload or paste it — we’ll rebuild and improve it.' },
+              { id: 'form' as const,  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>, iconBg: '#e6f1fb', title: 'I don’t have a CV', desc: 'Fill out a short form — our AI will build your CV.' },
             ] as any[]).map((opt: any) => (
               <div key={opt.id} onClick={() => { setInputMethod(opt.id as 'paste' | 'form'); goFromMethod(opt.id as 'paste' | 'form') }}
                 style={{ background: opt.id === 'form' ? '#f0f7ff' : 'white', border: opt.id === 'form' ? '2px solid #185fa5' : `${inputMethod === 'paste' ? '2px solid #0d9488' : '1px solid #e2e8f0'}`, borderRadius: '16px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column', gap: '10px' }}
