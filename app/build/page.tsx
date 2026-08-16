@@ -241,12 +241,22 @@ export default function BuildPage() {
   })
 
   // ── Loading animation ─────────────────────────
+  // There's no real progress to report — it's one blocking AI call, not a
+  // stream — so this is a deliberately fake timer. It used to run on a fixed
+  // 180ms tick, reaching 99% in ~19s regardless of how long the actual
+  // request takes. Real generations (especially ones that trigger the
+  // pagination-risk follow-up pass) routinely run longer than that, so the
+  // bar reliably finished and froze at 99% before the response arrived —
+  // reading as a stall right when it should feel busiest. Slowing down as it
+  // climbs stretches the animated portion closer to ~25s and makes the final
+  // stretch visibly decelerate rather than snap to 99 and sit frozen.
   useEffect(() => {
     if (!isGenerating) { setLoadingPct(0); setLoadingStep(0); return }
     let stepIdx = 0
     const targets = LOADING_STEPS.map(s => s.pct)
     let current = 0
-    const interval = setInterval(() => {
+    let timeoutId: ReturnType<typeof setTimeout>
+    const tick = () => {
       const target = targets[Math.min(stepIdx, targets.length - 1)]
       if (current < target) {
         current = Math.min(current + 1, target)
@@ -256,12 +266,15 @@ export default function BuildPage() {
       } else if (stepIdx < LOADING_STEPS.length - 1) {
         stepIdx++
       }
-    }, 180)
+      const delay = current < 50 ? 160 : current < 85 ? 260 : 420
+      timeoutId = setTimeout(tick, delay)
+    }
+    timeoutId = setTimeout(tick, 160)
     const dyk = setInterval(() => {
       setDidYouKnowFade(false)
       setTimeout(() => { setDidYouKnowIdx(i => (i + 1) % DID_YOU_KNOWS.length); setDidYouKnowFade(true) }, 400)
     }, 5000)
-    return () => { clearInterval(interval); clearInterval(dyk) }
+    return () => { clearTimeout(timeoutId); clearInterval(dyk) }
   }, [isGenerating])
 
   // ── Navigation ────────────────────────────────
