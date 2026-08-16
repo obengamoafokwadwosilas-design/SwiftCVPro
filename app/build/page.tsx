@@ -350,6 +350,7 @@ export default function BuildPage() {
       cvType,
       inputMethod,
       phoneNumber,
+      email,
       // In upload mode there's no paste box to read, so the file's already-
       // extracted text stands in for the content — that plus the filename
       // below is everything needed to put the upload card back.
@@ -409,6 +410,7 @@ export default function BuildPage() {
     setCvType(seed.cvType)
     setInputMethod(seed.inputMethod)
     if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
+    if (seed.email) setEmail(seed.email)
     const hadUpload = restoreUploadedFile(seed)
     // All screens are always mounted (hidden via display:none — see the data-
     // loss fix elsewhere in this file), so refs already exist; still defer one
@@ -452,6 +454,7 @@ export default function BuildPage() {
     setCvType(seed.cvType)
     setInputMethod(seed.inputMethod)
     if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
+    if (seed.email) setEmail(seed.email)
     const hadUpload = restoreUploadedFile(seed)
     requestAnimationFrame(() => {
       const setVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
@@ -484,6 +487,7 @@ export default function BuildPage() {
   function clearSavedInfo() {
     clearLastInput()
     setPhoneNumber('')
+    setEmail('')
     setUploadedCV(null)
     setExtractedCVText(null)
     const clearVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>) => { if (ref.current) ref.current.value = '' }
@@ -538,6 +542,7 @@ export default function BuildPage() {
     const prev = loadLastInput()
     if (prev) {
       if (!seed.phoneNumber) seed.phoneNumber = prev.phoneNumber
+      if (!seed.email) seed.email = prev.email
       if (!seed.form) seed.form = prev.form
       // Content and filename travel together — carrying one over without the
       // other would show an upload card for a file whose text is gone, or
