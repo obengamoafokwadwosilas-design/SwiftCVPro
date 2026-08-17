@@ -243,6 +243,12 @@ nav.scrolled .hamburger span { background:var(--white); }
   background: var(--paper);
   padding: 60px 0 52px; overflow: hidden;
 }
+.ticker-positioning {
+  text-align:center; color:var(--navy);
+  font-family:var(--font-mono); font-size:0.82rem; font-weight:600;
+  letter-spacing:0.16em; text-transform:uppercase;
+  margin-bottom:14px;
+}
 .ticker-label {
   text-align:center; color:var(--ink-70);
   font-family:var(--font-display); font-style:italic;
@@ -656,7 +662,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
   <div class="container">
     <div class="hero-inner">
       <div class="hero-left">
-        <div class="hero-eyebrow">Every job deserves its own CV.</div>
+        <div class="hero-eyebrow">You deserve a professional CV.</div>
         <h1 class="hero-h1">
           <span class="line-small">Build your perfect</span>
           <span class="line-large">Job-Winning CV</span>
@@ -671,7 +677,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         <p class="hero-stop">Stop sending the same CV to every job.</p>
 
         <div class="hero-invest">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z"/></svg>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 13h20"/></svg>
           Invest 60 seconds. Land more interviews.
         </div>
 
@@ -722,6 +728,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 
 <!-- COMPANY TICKER — WHITE -->
 <div class="ticker-section">
+  <div class="ticker-positioning">Ghana's Job-Winning CV Builder</div>
   <div class="ticker-label">Users of Extraordinary CV have landed roles at</div>
   <div class="ticker-track">
     <div class="ticker-inner">
@@ -795,6 +802,55 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
   </div>
 </section>
 
+<!-- FEATURES (document types) -->
+<section class="cv-types-section" id="cvtypes">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-eyebrow label">Choose what you need</span>
+      <h2 class="section-title">One platform. Every application document you need.</h2>
+    </div>
+    <div class="cv-types-grid">
+      <div class="cv-type-card reveal rd1">
+        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg></div>
+        <div class="cv-type-name">Professional CV</div>
+        <p class="cv-type-desc">A polished CV for your next application.</p>
+        <ul class="cv-type-features">
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ATS-ready</li>
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Professional</li>
+        </ul>
+        <a href="/build?type=professional" class="cv-type-link">Build now →</a>
+      </div>
+      <div class="cv-type-card reveal rd2">
+        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg></div>
+        <div class="cv-type-name">Targeted CV</div>
+        <p class="cv-type-desc">Paste the job advert and get a CV tailored to that specific role.</p>
+        <ul class="cv-type-features">
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Job-specific</li>
+        </ul>
+        <a href="/build?type=targeted" class="cv-type-link">Build now →</a>
+      </div>
+      <div class="cv-type-card reveal rd3">
+        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
+        <div class="cv-type-name">Academic CV</div>
+        <p class="cv-type-desc">For researchers, lecturers and postgraduate applicants.</p>
+        <ul class="cv-type-features">
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Research-first</li>
+        </ul>
+        <a href="/build?type=academic" class="cv-type-link">Build now →</a>
+      </div>
+      <div class="cv-type-card reveal rd4">
+        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+        <div class="cv-type-name">Cover Letter</div>
+        <p class="cv-type-desc">A compelling letter tailored to the role.</p>
+        <ul class="cv-type-features">
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Your voice</li>
+        </ul>
+        <a href="/build?type=cover_letter" class="cv-type-link">Build now →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- HOW IT WORKS -->
 <section class="how-section" id="how">
   <div class="container">
@@ -846,55 +902,6 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         <div class="how-step-label">Generate &amp; download</div>
         <div class="how-step-sub">Extraordinary CV rewrites your CV for that specific role.</div>
         <div class="how-step-outcome">Tailored CV</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- FEATURES (document types) -->
-<section class="cv-types-section" id="cvtypes">
-  <div class="container">
-    <div class="section-head reveal">
-      <span class="section-eyebrow label">Choose what you need</span>
-      <h2 class="section-title">One platform. Every application document you need.</h2>
-    </div>
-    <div class="cv-types-grid">
-      <div class="cv-type-card reveal rd1">
-        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg></div>
-        <div class="cv-type-name">Professional CV</div>
-        <p class="cv-type-desc">A polished CV for your next application.</p>
-        <ul class="cv-type-features">
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ATS-ready</li>
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Professional</li>
-        </ul>
-        <a href="/build?type=professional" class="cv-type-link">Build now →</a>
-      </div>
-      <div class="cv-type-card reveal rd2">
-        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg></div>
-        <div class="cv-type-name">Targeted CV</div>
-        <p class="cv-type-desc">Paste the job advert and get a CV tailored to that specific role.</p>
-        <ul class="cv-type-features">
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Job-specific</li>
-        </ul>
-        <a href="/build?type=targeted" class="cv-type-link">Build now →</a>
-      </div>
-      <div class="cv-type-card reveal rd3">
-        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
-        <div class="cv-type-name">Academic CV</div>
-        <p class="cv-type-desc">For researchers, lecturers and postgraduate applicants.</p>
-        <ul class="cv-type-features">
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Research-first</li>
-        </ul>
-        <a href="/build?type=academic" class="cv-type-link">Build now →</a>
-      </div>
-      <div class="cv-type-card reveal rd4">
-        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-        <div class="cv-type-name">Cover Letter</div>
-        <p class="cv-type-desc">A compelling letter tailored to the role.</p>
-        <ul class="cv-type-features">
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Your voice</li>
-        </ul>
-        <a href="/build?type=cover_letter" class="cv-type-link">Build now →</a>
       </div>
     </div>
   </div>
