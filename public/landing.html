@@ -52,7 +52,7 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
-.container { max-width: 1160px; margin: 0 auto; padding: 0 28px; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
 a { text-decoration: none; color: inherit; }
 .label {
   font-family: var(--font-mono);
@@ -125,7 +125,7 @@ nav.scrolled .hamburger span { background:var(--white); }
 }
 
 .hero-inner { display:grid; grid-template-columns:1fr; gap:56px; align-items:center; position:relative; z-index:2; }
-@media(min-width:1024px){ .hero-inner{grid-template-columns:1fr 1.05fr; gap:48px; align-items:center; padding-top:0;} }
+@media(min-width:1024px){ .hero-inner{grid-template-columns:1.12fr 1fr; gap:64px; align-items:center; padding-top:0;} }
 .hero-left { text-align:center; }
 @media(min-width:1024px){ .hero-left{text-align:left;} }
 
@@ -136,10 +136,12 @@ nav.scrolled .hamburger span { background:var(--white); }
 .hero-left > *:nth-child(4){ animation-delay:0.3s; }
 @keyframes fadeUp { to{opacity:1;transform:translateY(0);} }
 
+/* Rhythm below is deliberately uneven — each gap is sized to how much of a
+   beat that statement deserves before the next one, not a uniform stack. */
 .hero-eyebrow {
   font-family: var(--font-mono); font-size:0.78rem; font-weight:500; letter-spacing:0.02em;
   color: var(--teal-dark);
-  margin-bottom:18px;
+  margin-bottom:26px;
   text-transform: none;
 }
 
@@ -147,7 +149,7 @@ nav.scrolled .hamburger span { background:var(--white); }
 .hero-h1 {
   font-family: var(--font-display);
   color: var(--navy);
-  margin-bottom: 20px;
+  margin-bottom: 32px;
 }
 .hero-h1 .line-small {
   display:block; font-weight:500;
@@ -158,12 +160,12 @@ nav.scrolled .hamburger span { background:var(--white); }
 .hero-h1 .line-large {
   display:block; margin:2px 0 2px;
   font-weight:600; font-style:italic;
-  font-size: clamp(2.2rem, 5.4vw, 4rem);
+  font-size: clamp(2.2rem, 5.6vw, 4.3rem);
   line-height:1.02; letter-spacing:-1px;
   color: var(--teal);
 }
 .hero-h1 .line-small.bottom {
-  margin-top:12px; font-family:var(--font-body); font-style:normal;
+  margin-top:14px; font-family:var(--font-body); font-style:normal;
   font-size:0.85rem; font-weight:500; letter-spacing:0.02em;
   color:var(--ink-38);
   display:flex; align-items:center; gap:8px;
@@ -172,31 +174,33 @@ nav.scrolled .hamburger span { background:var(--white); }
 @media(min-width:1024px){ .hero-h1 .line-small.bottom{ justify-content:flex-start; } }
 .hero-h1 .line-small.bottom svg { flex-shrink:0; }
 
-.hero-hook { margin-bottom:10px; max-width:42ch; }
+.hero-hook { margin-bottom:24px; max-width:50ch; }
 @media(min-width:1024px){ .hero-hook{ margin-left:0; margin-right:0; } }
-.hero-hook p { font-size:0.93rem; color:var(--ink-55); line-height:1.55; }
+.hero-hook p { font-size:1rem; color:var(--ink-55); line-height:1.68; }
 
-.hero-stop { font-weight:700; font-size:1.05rem; color:var(--navy); margin-bottom:14px; max-width:42ch; }
+.hero-stop { font-weight:700; font-size:1.2rem; color:var(--navy); margin-bottom:24px; max-width:46ch; letter-spacing:-0.1px; }
 @media(min-width:1024px){ .hero-stop{ margin-left:0; margin-right:0; } }
 
-.hero-invest { display:flex; align-items:center; gap:8px; justify-content:center; font-weight:700; font-size:0.86rem; color:var(--teal-dark); margin-bottom:14px; }
+.hero-invest { display:flex; align-items:center; gap:9px; justify-content:center; font-weight:700; font-size:0.92rem; letter-spacing:0.01em; color:var(--teal-dark); margin-bottom:28px; }
 @media(min-width:1024px){ .hero-invest{ justify-content:flex-start; } }
 
 .hero-left { margin-left:auto; margin-right:auto; }
 @media(min-width:1024px){ .hero-left{ margin-left:0; margin-right:0; } }
 
-.hero-pills { display:flex; flex-wrap:wrap; gap:8px 20px; justify-content:center; margin-bottom:22px; }
+/* Trust indicators recede — quieter and smaller, so they support rather than compete */
+.hero-pills { display:flex; flex-wrap:wrap; gap:9px 24px; justify-content:center; margin-bottom:32px; }
 @media(min-width:1024px){ .hero-pills{ justify-content:flex-start; } }
-.hero-pill { display:inline-flex; align-items:center; gap:6px; font-size:0.76rem; font-weight:600; color:var(--ink-55); }
-.hero-pill svg { color:var(--teal-dark); flex-shrink:0; }
+.hero-pill { display:inline-flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:500; color:var(--ink-38); }
+.hero-pill svg { color:var(--ink-38); flex-shrink:0; opacity:0.8; }
 
-.hero-ctas { display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center; margin-bottom:18px; }
+/* CTA gets a deliberate action area, not just two buttons in a row */
+.hero-ctas { display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center; margin-bottom:22px; }
 @media(min-width:1024px){ .hero-ctas{justify-content:flex-start;} }
-.btn-primary { background:var(--navy); color:var(--white); padding:15px 30px; border-radius:100px; font-weight:600; font-size:0.9rem; letter-spacing:0.1px; transition:all 0.35s var(--ease); border:none; cursor:pointer; display:inline-flex; align-items:center; gap:9px; }
+.btn-primary { background:var(--navy); color:var(--white); padding:17px 34px; border-radius:100px; font-weight:600; font-size:0.94rem; letter-spacing:0.1px; transition:all 0.35s var(--ease); border:none; cursor:pointer; display:inline-flex; align-items:center; gap:9px; }
 .btn-primary:hover { background:var(--teal-dark); transform:translateY(-2px); box-shadow:0 14px 32px rgba(13,148,136,0.28); }
 .btn-primary svg { transition: transform 0.3s var(--ease); }
 .btn-primary:hover svg { transform: translateX(3px); }
-.btn-ghost { color:var(--navy); font-weight:600; font-size:0.9rem; padding:14px 28px; border-radius:100px; border:1.5px solid var(--rule-strong); transition:all 0.3s var(--ease); }
+.btn-ghost { color:var(--navy); font-weight:600; font-size:0.94rem; padding:16px 32px; border-radius:100px; border:1.5px solid var(--rule-strong); transition:all 0.3s var(--ease); }
 .btn-ghost:hover { border-color:var(--navy); background:var(--white); }
 
 .hero-meta { color:var(--ink-38); font-size:0.85rem; text-align:center; }
@@ -234,15 +238,15 @@ nav.scrolled .hamburger span { background:var(--white); }
 /* ── COMPANY TICKER — genuine social proof, not fine print ── */
 .ticker-section {
   background: var(--paper);
-  padding: 36px 0 28px; overflow: hidden;
+  padding: 60px 0 52px; overflow: hidden;
 }
 .ticker-label {
   text-align:center; color:var(--ink-70);
   font-family:var(--font-display); font-style:italic;
-  font-size:1.05rem; font-weight:500;
-  margin-bottom:22px;
+  font-size:1.2rem; font-weight:500;
+  margin-bottom:34px;
 }
-.ticker-track { overflow:hidden; position:relative; }
+.ticker-track { overflow:hidden; position:relative; padding: 4px 0; }
 .ticker-track::before, .ticker-track::after { content:''; position:absolute; top:0; bottom:0; width:100px; z-index:2; pointer-events:none; }
 .ticker-track::before { left:0; background:linear-gradient(90deg,var(--paper),transparent); }
 .ticker-track::after { right:0; background:linear-gradient(-90deg,var(--paper),transparent); }
