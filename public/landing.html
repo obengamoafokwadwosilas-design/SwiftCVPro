@@ -440,11 +440,15 @@ section { padding:var(--section-y) 0; }
 .cv-type-link { font-size:0.82rem; font-weight:600; color:var(--teal-dark); display:inline-flex; align-items:center; gap:5px; transition:gap 0.25s; }
 .cv-type-card:hover .cv-type-link { gap:9px; }
 @media(max-width:639px){
-  .cv-types-grid { gap:12px; }
-  .cv-type-card { padding:22px 20px; }
-  .cv-type-icon { margin-bottom:12px; }
-  .cv-type-desc { margin-bottom:12px; }
-  .cv-type-features { gap:5px; margin-bottom:14px; }
+  .cv-types-grid { gap:10px; }
+  .cv-type-card { padding:18px 18px; }
+  .cv-type-icon { width:32px; height:32px; margin-bottom:10px; }
+  .cv-type-icon svg { width:16px; height:16px; }
+  .cv-type-name { margin-bottom:5px; }
+  .cv-type-desc { margin-bottom:10px; }
+  /* Most cards only carry one feature — a stacked list wastes a whole line on
+     just that. Row-flow so it sits inline, only wrapping if there's more than one. */
+  .cv-type-features { flex-direction:row; flex-wrap:wrap; gap:4px 14px; margin-bottom:10px; }
 }
 
 /* ── WHY EXTRAORDINARY CV ── */
@@ -459,10 +463,17 @@ section { padding:var(--section-y) 0; }
 .why-title { font-family:var(--font-display); font-size:1.2rem; font-weight:600; color:var(--navy); margin-bottom:8px; }
 .why-desc { font-size:0.86rem; color:var(--ink-55); line-height:1.65; }
 @media(max-width:819px){
-  .why-grid { gap:16px; }
+  .why-grid { gap:12px; }
   .why-visual { aspect-ratio:16/7; }
-  .why-body { padding:20px 20px 22px; }
-  .why-title { margin-bottom:6px; }
+  .why-body { padding:18px 20px; }
+  .why-title { margin-bottom:5px; }
+}
+/* Below 560px the illustrations are decoration, not information — the title
+   and description already say what the panel shows. Hiding them (text only,
+   nothing removed) is where the real height was going on a phone. */
+@media(max-width:559px){
+  .why-visual { display:none; }
+  .why-body { padding:18px 20px; }
 }
 
 /* ── FAQS — plain divided list ── */
@@ -581,7 +592,7 @@ section { padding:var(--section-y) 0; }
 }
 
 /* ── FINAL CTA ── */
-.cta-section { background:var(--navy); padding:clamp(4rem, 12vw, 9rem) 0; position:relative; overflow:hidden; text-align:center; }
+.cta-section { background:var(--navy); padding:clamp(2.75rem, 12vw, 9rem) 0; position:relative; overflow:hidden; text-align:center; }
 .cta-bg { position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px); background-size:56px 56px; pointer-events:none; mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 30%, transparent 90%); }
 .cta-section .container { position:relative; z-index:2; }
 .cta-eyebrow { justify-content:center; color:var(--teal-light); }
@@ -591,6 +602,11 @@ section { padding:var(--section-y) 0; }
 .cta-btn { display:inline-flex; align-items:center; gap:10px; background:var(--teal); color:var(--white); padding:16px 36px; border-radius:100px; font-weight:600; font-size:0.92rem; transition:all 0.35s var(--ease); }
 .cta-btn:hover { background:var(--teal-light); color:var(--navy); transform:translateY(-2px); }
 .cta-note { margin-top:16px; color:var(--ink-on-ink-45); }
+@media(max-width:639px){
+  .cta-title { margin-bottom:12px; }
+  .cta-sub { margin-bottom:24px; }
+  .cta-btn { padding:15px 32px; }
+}
 
 /* ── FOOTER ── */
 footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); padding:40px 0; }
