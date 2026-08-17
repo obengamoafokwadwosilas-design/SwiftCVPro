@@ -368,6 +368,17 @@ section { padding:var(--section-y) 0; }
 .how-diagram-arrow { color:rgba(20,184,166,0.45); flex-shrink:0; margin-top:62px; line-height:0; }
 @media(max-width:700px){ .how-diagram-arrow{ transform:rotate(90deg); margin-top:0; } .how-diagram-inner{ flex-direction:column; gap:28px; } }
 
+.how-diagram-video {
+  position:relative; z-index:2;
+  width:100%; max-width:820px; margin:0 auto;
+  border-radius:14px; overflow:hidden;
+  border:1px solid rgba(20,184,166,0.3);
+  box-shadow:0 30px 70px -20px rgba(0,0,0,0.55);
+  background:#000;
+  display:block;
+}
+.how-diagram-video video { width:100%; height:auto; display:block; }
+
 .how-flow {
   display: flex; align-items:flex-start; justify-content: center;
   flex-wrap: wrap; gap: 0;
@@ -863,28 +874,12 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
       <h2 class="section-title">Three steps. Under a minute.</h2>
     </div>
 
-    <!-- ILLUSTRATED DIAGRAM (no real screen recording exists yet — this is a drawn stand-in, not footage) -->
+    <!-- REAL SCREEN RECORDING of the product in use -->
     <div class="how-diagram reveal">
       <div class="how-diagram-bg"></div>
       <div class="how-diagram-glow"></div>
-      <div class="how-diagram-inner">
-        <div class="how-diagram-step">
-          <div class="how-diagram-num">01</div>
-          <div class="how-diagram-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
-          <span>Upload CV</span>
-        </div>
-        <div class="how-diagram-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-        <div class="how-diagram-step">
-          <div class="how-diagram-num">02</div>
-          <div class="how-diagram-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-          <span>Paste job</span>
-        </div>
-        <div class="how-diagram-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-        <div class="how-diagram-step">
-          <div class="how-diagram-num">03</div>
-          <div class="how-diagram-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 2L4.5 14h6L11 22l8.5-12h-6z"/></svg></div>
-          <span>Generate</span>
-        </div>
+      <div class="how-diagram-video">
+        <video src="how-it-works-demo.mp4" controls preload="metadata" playsinline></video>
       </div>
     </div>
 
