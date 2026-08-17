@@ -107,10 +107,14 @@ nav.scrolled .hamburger span { background:var(--white); }
 .mobile-menu .mob-cta { margin-top:28px; background:var(--teal); text-align:center; border-radius:100px; font-family:var(--font-body); font-size:1rem !important; font-weight:600; border:none !important; padding:16px !important; color:white; }
 
 /* ── HERO ── */
+/* Vertical padding scales with viewport height: generous breathing room on tall
+   screens, compact on short laptops so the employer strip stays above the fold.
+   No min-height — that forced dead space once the content got shorter. */
 .hero {
   background:var(--paper);
   display:flex; align-items:center;
-  padding:88px 0 28px; position:relative; overflow:hidden;
+  padding: clamp(104px, 15vh, 170px) 0 clamp(36px, 6vh, 76px);
+  position:relative; overflow:hidden;
   border-bottom: 1px solid var(--rule);
 }
 .hero-grid-bg {
