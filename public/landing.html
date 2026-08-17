@@ -23,6 +23,7 @@
   /* ink scale — soft black, not slate gray */
   --ink: #171310;
   --ink-80: rgba(23,19,16,0.78);
+  --ink-70: rgba(23,19,16,0.68);
   --ink-55: rgba(23,19,16,0.55);
   --ink-38: rgba(23,19,16,0.38);
   --rule: rgba(23,19,16,0.11);
@@ -176,12 +177,14 @@ nav.scrolled .hamburger span { background:var(--white); }
 
 .hero-hook { margin-bottom:24px; max-width:50ch; }
 @media(min-width:1024px){ .hero-hook{ margin-left:0; margin-right:0; } }
-.hero-hook p { font-size:1rem; color:var(--ink-55); line-height:1.68; }
+/* Medium tier: legible dark-gray, not the faint muted tone used for captions */
+.hero-hook p { font-size:1rem; color:var(--ink-80); line-height:1.68; }
+.hero-hook p + p { margin-top:10px; }
 
 .hero-stop { font-weight:700; font-size:1.2rem; color:var(--navy); margin-bottom:24px; max-width:46ch; letter-spacing:-0.1px; }
 @media(min-width:1024px){ .hero-stop{ margin-left:0; margin-right:0; } }
 
-.hero-invest { display:flex; align-items:center; gap:9px; justify-content:center; font-weight:700; font-size:0.92rem; letter-spacing:0.01em; color:var(--teal-dark); margin-bottom:28px; }
+.hero-invest { display:flex; align-items:center; gap:9px; justify-content:center; font-weight:800; font-size:1rem; letter-spacing:0.01em; color:var(--teal-dark); margin-bottom:28px; }
 @media(min-width:1024px){ .hero-invest{ justify-content:flex-start; } }
 
 .hero-left { margin-left:auto; margin-right:auto; }
@@ -190,8 +193,8 @@ nav.scrolled .hamburger span { background:var(--white); }
 /* Trust indicators recede — quieter and smaller, so they support rather than compete */
 .hero-pills { display:flex; flex-wrap:wrap; gap:9px 24px; justify-content:center; margin-bottom:32px; }
 @media(min-width:1024px){ .hero-pills{ justify-content:flex-start; } }
-.hero-pill { display:inline-flex; align-items:center; gap:6px; font-size:0.72rem; font-weight:500; color:var(--ink-38); }
-.hero-pill svg { color:var(--ink-38); flex-shrink:0; opacity:0.8; }
+.hero-pill { display:inline-flex; align-items:center; gap:6px; font-size:0.74rem; font-weight:600; color:var(--ink-70); }
+.hero-pill svg { color:var(--teal-dark); flex-shrink:0; }
 
 /* CTA gets a deliberate action area, not just two buttons in a row */
 .hero-ctas { display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center; margin-bottom:22px; }
@@ -661,7 +664,8 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </h1>
 
         <div class="hero-hook">
-          <p>Upload your existing CV. Paste the job advert. Extraordinary CV instantly builds a tailored, ATS-ready CV for that specific role — in under a minute.</p>
+          <p>Upload your existing CV. Add the job advert.</p>
+          <p>Extraordinary CV builds a professional, ATS-ready CV tailored specifically to that opportunity — in under a minute.</p>
         </div>
 
         <p class="hero-stop">Stop sending the same CV to every job.</p>
