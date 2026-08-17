@@ -20,7 +20,7 @@ export const PACKAGES: Package[] = [
   { id: 'silver',      name: 'Silver CV',             emoji: '🥈', price: 29, amount: 2900, cv: 1, cl: 0, blurb: '1 Professional CV' },
   { id: 'gold',        name: 'Gold Application Pack', emoji: '⭐', price: 49, amount: 4900, cv: 2, cl: 1, blurb: '2 CVs + 1 Cover Letter', recommended: true },
   { id: 'coverletter', name: 'Cover Letter Pro',      emoji: '✉️', price: 15, amount: 1500, cv: 0, cl: 1, blurb: 'Cover Letter only' },
-  { id: 'platinum',    name: 'Platinum Career Pack',  emoji: '👑', price: 99, amount: 9900, cv: 4, cl: 4, blurb: '4 CVs + 4 Cover Letters' },
+  { id: 'platinum',    name: 'Platinum Career Pack',  emoji: '👑', price: 99, amount: 9900, cv: 4, cl: 2, blurb: '4 CVs + 2 Cover Letters' },
 ]
 
 // Packages relevant to the document being built: a CV needs CV credits, a

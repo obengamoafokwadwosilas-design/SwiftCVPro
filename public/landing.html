@@ -231,12 +231,17 @@ nav.scrolled .hamburger span { background:var(--white); }
 }
 .ats-floating-badge svg { color:var(--teal-light); }
 
-/* ── COMPANY TICKER ── */
+/* ── COMPANY TICKER — genuine social proof, not fine print ── */
 .ticker-section {
   background: var(--paper);
-  padding: 30px 0; overflow: hidden;
+  padding: 36px 0 28px; overflow: hidden;
 }
-.ticker-label { text-align:center; color:var(--ink-38); margin-bottom:16px; }
+.ticker-label {
+  text-align:center; color:var(--ink-70);
+  font-family:var(--font-display); font-style:italic;
+  font-size:1.05rem; font-weight:500;
+  margin-bottom:22px;
+}
 .ticker-track { overflow:hidden; position:relative; }
 .ticker-track::before, .ticker-track::after { content:''; position:absolute; top:0; bottom:0; width:100px; z-index:2; pointer-events:none; }
 .ticker-track::before { left:0; background:linear-gradient(90deg,var(--paper),transparent); }
@@ -244,8 +249,8 @@ nav.scrolled .hamburger span { background:var(--white); }
 .ticker-inner { display:flex; white-space:nowrap; animation:tickerRoll 40s linear infinite; }
 .ticker-inner:hover { animation-play-state:paused; }
 @keyframes tickerRoll { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
-.ticker-item { display:inline-flex; align-items:center; gap:16px; padding:0 18px; font-size:0.86rem; font-weight:500; color:var(--ink-55); }
-.ticker-dot { color:var(--rule-strong); font-size:0.5rem; }
+.ticker-item { display:inline-flex; align-items:center; gap:20px; padding:0 20px; font-family:var(--font-display); font-size:1.15rem; font-weight:600; color:var(--navy); }
+.ticker-dot { color:var(--teal); font-size:0.5rem; opacity:0.6; }
 
 /* ── SHARED SECTION ── */
 section { padding:var(--section-y) 0; }
@@ -257,7 +262,7 @@ section { padding:var(--section-y) 0; }
 .section-head .section-sub { margin:0 auto; }
 
 /* ── TEMPLATES TICKER ── */
-.templates-section { background:var(--white); overflow:hidden; }
+.templates-section { background:var(--white); overflow:hidden; padding-top:2.75rem; }
 .template-ticker-outer { overflow:hidden; position:relative; margin-top:52px; }
 .template-ticker-outer::before, .template-ticker-outer::after { content:''; position:absolute; top:0; bottom:0; width:120px; z-index:2; pointer-events:none; }
 .template-ticker-outer::before { left:0; background:linear-gradient(90deg,var(--white),transparent); }
@@ -782,76 +787,6 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
   </div>
 </section>
 
-<!-- PRICING -->
-<section class="pricing-section" id="pricing">
-  <div class="container">
-    <div class="section-head reveal">
-      <p class="pricing-note label">First 2 previews are free</p>
-      <h2 class="section-title">Pay only if you love it.</h2>
-      <p class="section-sub">Generate your full CV at no cost. Pay only when you're ready to download — no subscriptions, no hidden fees.</p>
-    </div>
-
-    <div class="pricing-grid reveal">
-      <div class="price-card">
-        <div class="price-name">Silver CV</div>
-        <div class="price-figure"><span class="cur">GH₵</span><span class="num">29</span></div>
-        <p class="price-desc">One professional, ATS-optimised CV.</p>
-        <ul class="price-features">
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 CV credit</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
-        </ul>
-        <a href="/build" class="price-btn">Build my CV</a>
-      </div>
-
-      <div class="price-card featured">
-        <div class="price-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z"/></svg>Recommended</div>
-        <div class="price-name">Gold Application Pack</div>
-        <div class="price-figure"><span class="cur">GH₵</span><span class="num">49</span></div>
-        <p class="price-desc">Two CVs tailored to different roles, plus a cover letter.</p>
-        <ul class="price-features">
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>2 CV credits</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 cover-letter credit</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
-        </ul>
-        <a href="/build" class="price-btn">Get Gold →</a>
-      </div>
-
-      <div class="price-card">
-        <div class="price-name">Platinum Career Pack</div>
-        <div class="price-figure"><span class="cur">GH₵</span><span class="num">99</span></div>
-        <p class="price-desc">Four CVs and four cover letters — best price per document.</p>
-        <ul class="price-features">
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>4 CV credits</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>4 cover-letter credits</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
-        </ul>
-        <a href="/build" class="price-btn">Get Platinum</a>
-      </div>
-    </div>
-
-    <div class="reveal" style="max-width:340px; margin:20px auto 0; display:grid;">
-      <div class="price-card">
-        <div class="price-name">Cover Letter Pro</div>
-        <div class="price-figure"><span class="cur">GH₵</span><span class="num">15</span></div>
-        <p class="price-desc">One cover letter, tailored to a role or general.</p>
-        <ul class="price-features">
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>General or role-specific</li>
-        </ul>
-        <a href="/build?type=cover_letter" class="price-btn">Build my letter →</a>
-      </div>
-    </div>
-
-    <div class="pricing-foot">
-      <span class="label">Credits never expire.</span>
-      <span class="label">Re-download your documents anytime, for free.</span>
-    </div>
-  </div>
-</section>
-
 <!-- HOW IT WORKS -->
 <section class="how-section" id="how">
   <div class="container">
@@ -912,7 +847,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 <section class="cv-types-section" id="cvtypes">
   <div class="container">
     <div class="section-head reveal">
-      <span class="section-eyebrow label">What we offer</span>
+      <span class="section-eyebrow label">Choose what you need</span>
       <h2 class="section-title">One platform. Every application document you need.</h2>
     </div>
     <div class="cv-types-grid">
@@ -953,6 +888,76 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </ul>
         <a href="/build?type=cover_letter" class="cv-type-link">Build now →</a>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-section" id="pricing">
+  <div class="container">
+    <div class="section-head reveal">
+      <p class="pricing-note label">First 2 previews are free</p>
+      <h2 class="section-title">Pay only if you love it.</h2>
+      <p class="section-sub">Generate your full CV at no cost. Pay only when you're ready to download — no subscriptions, no hidden fees.</p>
+    </div>
+
+    <div class="pricing-grid reveal">
+      <div class="price-card">
+        <div class="price-name">Silver CV</div>
+        <div class="price-figure"><span class="cur">GH₵</span><span class="num">29</span></div>
+        <p class="price-desc">One professional, ATS-optimised CV.</p>
+        <ul class="price-features">
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 CV credit</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
+        </ul>
+        <a href="/build" class="price-btn">Build my CV</a>
+      </div>
+
+      <div class="price-card featured">
+        <div class="price-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z"/></svg>Recommended</div>
+        <div class="price-name">Gold Application Pack</div>
+        <div class="price-figure"><span class="cur">GH₵</span><span class="num">49</span></div>
+        <p class="price-desc">Two CVs tailored to different roles, plus a cover letter.</p>
+        <ul class="price-features">
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>2 CV credits</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 cover-letter credit</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
+        </ul>
+        <a href="/build" class="price-btn">Get Gold →</a>
+      </div>
+
+      <div class="price-card">
+        <div class="price-name">Platinum Career Pack</div>
+        <div class="price-figure"><span class="cur">GH₵</span><span class="num">99</span></div>
+        <p class="price-desc">Four CVs and two cover letters — best price per document.</p>
+        <ul class="price-features">
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>4 CV credits</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>2 cover-letter credits</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
+        </ul>
+        <a href="/build" class="price-btn">Get Platinum</a>
+      </div>
+    </div>
+
+    <div class="reveal" style="max-width:340px; margin:20px auto 0; display:grid;">
+      <div class="price-card">
+        <div class="price-name">Cover Letter Pro</div>
+        <div class="price-figure"><span class="cur">GH₵</span><span class="num">15</span></div>
+        <p class="price-desc">One cover letter, tailored to a role or general.</p>
+        <ul class="price-features">
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>General or role-specific</li>
+        </ul>
+        <a href="/build?type=cover_letter" class="price-btn">Build my letter →</a>
+      </div>
+    </div>
+
+    <div class="pricing-foot">
+      <span class="label">Credits never expire.</span>
+      <span class="label">Re-download your documents anytime, for free.</span>
     </div>
   </div>
 </section>
@@ -1025,27 +1030,6 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
   </div>
 </section>
 
-
-<!-- FAQs -->
-<section class="faq-section" id="faq">
-  <div class="container">
-    <div class="section-head reveal">
-      <span class="section-eyebrow label">Questions</span>
-      <h2 class="section-title">FAQs</h2>
-      <p class="section-sub">Everything you need to know before you build your CV.</p>
-    </div>
-    <div class="faq-list">
-      <div class="faq-item reveal rd1"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">How does the free preview work?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Generate your full CV for free — no payment needed to see it. You only pay if you decide to download it as a PDF or Word file.</p></div></div>
-      <div class="faq-item reveal rd1"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Do I have to create an account?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>No. There's no signup and no password — just your phone number, so we know it's you when you come back.</p></div></div>
-      <div class="faq-item reveal rd2"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I upload my old CV?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Upload your current CV and Extraordinary CV can use it as a starting point — rewriting, restructuring, and improving it professionally.</p></div></div>
-      <div class="faq-item reveal rd3"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I add a job advert?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Paste the job description and Extraordinary CV tailors your CV to match exactly what that employer is asking for.</p></div></div>
-      <div class="faq-item reveal rd4"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I download PDF and Word?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Your completed CV can be downloaded in both PDF and editable Word formats — PDF for applications, Word if you want to make further edits.</p></div></div>
-      <div class="faq-item reveal rd1"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Do my credits expire?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>No. Credits never expire — buy once, and use them whenever you're ready.</p></div></div>
-      <div class="faq-item reveal rd2"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Is my information safe?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Your information is processed securely and is never shared with third parties.</p></div></div>
-      <div class="faq-item reveal rd3"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I use my CV for international jobs?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Our CVs are designed using internationally accepted standards and can be used for both local and international applications.</p></div></div>
-    </div>
-  </div>
-</section>
 
 <!-- TESTIMONIALS -->
 <section class="testi-section">
@@ -1267,6 +1251,27 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
       <p class="founder-bio">I built Extraordinary CV because I kept seeing talented Ghanaians get overlooked — not because they lacked experience, but because their CVs did not communicate their value clearly.</p>
       <p class="founder-bio">Every job deserves a CV written specifically for it. That is what Extraordinary CV builds.</p>
       <div class="founder-sig">— Silas</div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQs -->
+<section class="faq-section" id="faq">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-eyebrow label">Questions</span>
+      <h2 class="section-title">FAQs</h2>
+      <p class="section-sub">Everything you need to know before you build your CV.</p>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item reveal rd1"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">How does the free preview work?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Generate your full CV for free — no payment needed to see it. You only pay if you decide to download it as a PDF or Word file.</p></div></div>
+      <div class="faq-item reveal rd1"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Do I have to create an account?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>No. There's no signup and no password — just your phone number, so we know it's you when you come back.</p></div></div>
+      <div class="faq-item reveal rd2"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I upload my old CV?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Upload your current CV and Extraordinary CV can use it as a starting point — rewriting, restructuring, and improving it professionally.</p></div></div>
+      <div class="faq-item reveal rd3"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I add a job advert?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Paste the job description and Extraordinary CV tailors your CV to match exactly what that employer is asking for.</p></div></div>
+      <div class="faq-item reveal rd4"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I download PDF and Word?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Your completed CV can be downloaded in both PDF and editable Word formats — PDF for applications, Word if you want to make further edits.</p></div></div>
+      <div class="faq-item reveal rd1"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Do my credits expire?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>No. Credits never expire — buy once, and use them whenever you're ready.</p></div></div>
+      <div class="faq-item reveal rd2"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Is my information safe?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Your information is processed securely and is never shared with third parties.</p></div></div>
+      <div class="faq-item reveal rd3"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I use my CV for international jobs?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Our CVs are designed using internationally accepted standards and can be used for both local and international applications.</p></div></div>
     </div>
   </div>
 </section>
