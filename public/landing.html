@@ -348,21 +348,25 @@ section { padding:var(--section-y) 0; }
 .how-section { background:var(--paper); }
 
 .how-diagram {
-  background:var(--navy); border-radius:20px; overflow:hidden;
-  padding:56px 32px; margin-bottom:56px; text-align:center; position:relative;
+  background:var(--navy); border-radius:24px; overflow:hidden;
+  padding:76px 40px; margin-bottom:64px; text-align:center; position:relative;
 }
-.how-diagram-bg { position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size:44px 44px; pointer-events:none; }
-.how-diagram-inner { position:relative; z-index:2; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:18px; }
-.how-diagram-step { display:flex; flex-direction:column; align-items:center; gap:10px; width:110px; }
+.how-diagram-bg { position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px); background-size:44px 44px; pointer-events:none; }
+.how-diagram-glow { position:absolute; width:520px; height:520px; background:radial-gradient(circle, rgba(20,184,166,0.14) 0%, transparent 70%); top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; }
+.how-diagram-inner { position:relative; z-index:2; display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:center; gap:8px; }
+.how-diagram-step { display:flex; flex-direction:column; align-items:center; gap:16px; width:150px; }
+.how-diagram-num { font-family:var(--font-mono); font-size:0.72rem; color:var(--teal-light); letter-spacing:0.08em; opacity:0.8; }
 .how-diagram-icon {
-  width:56px; height:56px; border-radius:50%;
-  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);
+  width:88px; height:88px; border-radius:20px;
+  background:linear-gradient(160deg, rgba(20,184,166,0.14), rgba(255,255,255,0.04));
+  border:1px solid rgba(20,184,166,0.3);
   display:flex; align-items:center; justify-content:center; color:var(--teal-light);
+  box-shadow:0 16px 40px -16px rgba(0,0,0,0.5);
 }
-.how-diagram-step span { font-family:var(--font-mono); font-size:0.7rem; color:rgba(255,255,255,0.55); letter-spacing:0.02em; }
-.how-diagram-arrow { color:rgba(255,255,255,0.25); flex-shrink:0; }
-@media(max-width:600px){ .how-diagram-arrow{ transform:rotate(90deg); } }
-.how-diagram-caption { margin-top:32px; font-family:var(--font-mono); font-size:0.72rem; color:rgba(255,255,255,0.4); letter-spacing:0.05em; position:relative; z-index:2; }
+.how-diagram-icon svg { width:34px; height:34px; }
+.how-diagram-step span { font-family:var(--font-display); font-size:1.1rem; font-weight:600; color:rgba(255,255,255,0.92); }
+.how-diagram-arrow { color:rgba(20,184,166,0.45); flex-shrink:0; margin-top:62px; line-height:0; }
+@media(max-width:700px){ .how-diagram-arrow{ transform:rotate(90deg); margin-top:0; } .how-diagram-inner{ flex-direction:column; gap:28px; } }
 
 .how-flow {
   display: flex; align-items:flex-start; justify-content: center;
@@ -862,23 +866,26 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
     <!-- ILLUSTRATED DIAGRAM (no real screen recording exists yet — this is a drawn stand-in, not footage) -->
     <div class="how-diagram reveal">
       <div class="how-diagram-bg"></div>
+      <div class="how-diagram-glow"></div>
       <div class="how-diagram-inner">
         <div class="how-diagram-step">
-          <div class="how-diagram-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+          <div class="how-diagram-num">01</div>
+          <div class="how-diagram-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
           <span>Upload CV</span>
         </div>
-        <div class="how-diagram-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+        <div class="how-diagram-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
         <div class="how-diagram-step">
-          <div class="how-diagram-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div class="how-diagram-num">02</div>
+          <div class="how-diagram-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
           <span>Paste job</span>
         </div>
-        <div class="how-diagram-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+        <div class="how-diagram-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
         <div class="how-diagram-step">
-          <div class="how-diagram-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L4.5 14h6L11 22l8.5-12h-6z"/></svg></div>
+          <div class="how-diagram-num">03</div>
+          <div class="how-diagram-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 2L4.5 14h6L11 22l8.5-12h-6z"/></svg></div>
           <span>Generate</span>
         </div>
       </div>
-      <div class="how-diagram-caption">Upload CV → Paste job → Generate</div>
     </div>
 
     <!-- FLOW ROW -->
