@@ -423,8 +423,8 @@ section { padding:var(--section-y) 0; }
 
 /* ── FEATURES (document types) — card grid ── */
 .cv-types-section { background:var(--white); }
-.cv-types-grid { display:grid; grid-template-columns:1fr; gap:18px; max-width:840px; margin:0 auto; }
-@media(min-width:640px){ .cv-types-grid{ grid-template-columns:1fr 1fr; } }
+.cv-types-grid { display:grid; grid-template-columns:1fr; gap:18px; max-width:900px; margin:0 auto; }
+@media(min-width:720px){ .cv-types-grid{ grid-template-columns:repeat(3,1fr); } }
 .cv-type-card {
   border:1px solid var(--rule-strong); border-radius:16px;
   padding:30px 26px; transition:transform 0.35s var(--ease), box-shadow 0.35s var(--ease), border-color 0.35s var(--ease);
@@ -866,24 +866,15 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
     <div class="cv-types-grid">
       <div class="cv-type-card reveal rd1">
         <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg></div>
-        <div class="cv-type-name">Professional CV</div>
-        <p class="cv-type-desc">A polished CV for your next application.</p>
+        <div class="cv-type-name">Job-Winning CV</div>
+        <p class="cv-type-desc">A polished, ATS-ready CV — tailored to a specific role when you add the job advert.</p>
         <ul class="cv-type-features">
           <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ATS-ready</li>
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Professional</li>
+          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Job-specific</li>
         </ul>
         <a href="/build?type=professional" class="cv-type-link">Build now →</a>
       </div>
       <div class="cv-type-card reveal rd2">
-        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg></div>
-        <div class="cv-type-name">Targeted CV</div>
-        <p class="cv-type-desc">Paste the job advert and get a CV tailored to that specific role.</p>
-        <ul class="cv-type-features">
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Job-specific</li>
-        </ul>
-        <a href="/build?type=targeted" class="cv-type-link">Build now →</a>
-      </div>
-      <div class="cv-type-card reveal rd3">
         <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
         <div class="cv-type-name">Academic CV</div>
         <p class="cv-type-desc">For researchers, lecturers and postgraduate applicants.</p>
@@ -892,7 +883,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </ul>
         <a href="/build?type=academic" class="cv-type-link">Build now →</a>
       </div>
-      <div class="cv-type-card reveal rd4">
+      <div class="cv-type-card reveal rd3">
         <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
         <div class="cv-type-name">Cover Letter</div>
         <p class="cv-type-desc">A compelling letter tailored to the role.</p>
@@ -952,6 +943,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 <section class="pricing-section" id="pricing">
   <div class="container">
     <div class="section-head reveal">
+      <span class="section-eyebrow label">Pricing</span>
       <p class="pricing-note label">First 2 previews are free</p>
       <h2 class="section-title">Pay only if you love it.</h2>
       <p class="section-sub">Generate your full CV at no cost. Pay only when you're ready to download — no subscriptions, no hidden fees.</p>
