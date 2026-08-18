@@ -46,6 +46,57 @@ const CV_TYPE_META: Record<CVType, { label: string; shortLabel: string; hasJobSt
   cover_letter: { label: 'Cover Letter',    shortLabel: 'Cover Letter',    hasJobStep: true,  totalFormSteps: 3 },
 }
 
+// ─────────────────────────────────────────────────────────────
+// THE CHOOSER
+// Each option is described as the page it produces. A row is one line of
+// the miniature: `hd` is a heading stroke, `rule` a divider, `gap` white
+// space, and `a: 'r'` right-aligns (a letter's date line). The rhythms are
+// real — the academic sheet runs denser because an academic CV is denser,
+// and the letter is prose blocks closing on a signature.
+// ─────────────────────────────────────────────────────────────
+type MiniRow = { w?: number; k?: 'hd' | 'rule' | 'gap'; a?: 'r' }
+
+const DOC_TYPES: { id: CVType; name: string; desc: string; note: string; rows: MiniRow[] }[] = [
+  {
+    id: 'professional',
+    name: 'Professional CV',
+    desc: 'For most job applications, in any industry.',
+    note: '',
+    rows: [{ k: 'hd', w: 62 }, { w: 38 }, { k: 'rule' }, { w: 100 }, { w: 93 }, { w: 76 }, { k: 'gap' }, { w: 100 }, { w: 88 }, { w: 62 }, { k: 'gap' }, { w: 90 }],
+  },
+  {
+    id: 'academic',
+    name: 'Academic CV',
+    desc: 'For research posts, postgraduate applications and lecturing.',
+    note: 'publications & research',
+    rows: [{ k: 'hd', w: 56 }, { w: 32 }, { k: 'rule' }, { w: 100 }, { w: 96 }, { w: 91 }, { w: 100 }, { w: 97 }, { w: 84 }, { w: 100 }, { w: 94 }, { w: 100 }, { w: 89 }, { w: 100 }, { w: 71 }],
+  },
+  {
+    id: 'cover_letter',
+    name: 'Cover Letter',
+    desc: 'One page arguing why you are right for the role.',
+    note: 'one page',
+    rows: [{ w: 30, a: 'r' }, { k: 'gap' }, { w: 44 }, { k: 'gap' }, { w: 100 }, { w: 97 }, { w: 82 }, { k: 'gap' }, { w: 100 }, { w: 93 }, { w: 68 }, { k: 'gap' }, { k: 'hd', w: 34 }],
+  },
+]
+
+function MiniSheet({ rows }: { rows: MiniRow[] }) {
+  return (
+    <span className="xcv-mini" aria-hidden="true">
+      {rows.map((r, i) => {
+        if (r.k === 'gap') return <span key={i} style={{ display: 'block', height: '3px', flexShrink: 0 }} />
+        return (
+          <i
+            key={i}
+            className={r.k === 'hd' ? 'hd' : r.k === 'rule' ? 'rule' : undefined}
+            style={{ width: (r.k === 'rule' ? 100 : (r.w ?? 100)) + '%', marginLeft: r.a === 'r' ? 'auto' : undefined }}
+          />
+        )
+      })}
+    </span>
+  )
+}
+
 // A cover letter is not a CV, so it doesn't walk the CV-shaped path. It needs
 // four things — who you are, your background, the role, and why you want it —
 // which is three screens, not five. Education and Skills are skipped: a
@@ -119,6 +170,10 @@ export default function BuildPage() {
   // magic. Unticking it before Generate both skips saving and wipes anything
   // already remembered, so it actually means "stop remembering me."
   const [rememberMe, setRememberMe] = useState(true)
+  // Collapsed identity is the default for a returning user; "Change" opens
+  // the fields. One control, instead of a "Switch number" and a "Clear saved
+  // info" sitting at opposite ends of the same screen.
+  const [editIdentity, setEditIdentity] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<{ title: string; msg: string; type: 'payment' | 'input' | 'server' | 'network' } | null>(null)
 
@@ -291,6 +346,19 @@ export default function BuildPage() {
   // are typed after a file is uploaded and so aren't covered by the save on
   // upload itself.
   const go = (s: Screen) => { rememberCurrentInput(); setScreen(s); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+
+  // Header progress. Phase 3 covers every form screen, so it advances with
+  // them — the bar and the screen's own "Step N of M" now tell one story.
+  const navPhase: 1 | 2 | 3 = screen === 'type' ? 1 : screen === 'method' ? 2 : 3
+  const navSub = (() => {
+    if (screen === 'type') return typeChosen ? 1 : 0.45
+    if (screen === 'method') return 1
+    if (screen === 'summary') return 1
+    if (screen === 'paste') return 0.5
+    const m = /^form-(\d)$/.exec(screen)
+    if (m) return Math.min(1, Number(m[1]) / (meta.totalFormSteps + 1))
+    return 1
+  })()
 
   function goFromMethod(m?: 'paste' | 'form') {
     const method = m || inputMethod
@@ -920,9 +988,11 @@ export default function BuildPage() {
   // RENDER
   // ─────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #f0fdf9 0%, #faf7f1 45%, #fdfaf4 100%)' }}>
-      {/* Choose the document (1), how to share info (2), fill in & generate (3) */}
-      <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
+    <div style={{ minHeight: '100vh', background: 'var(--paper)' }}>
+      {/* Choose the document (1), how to share info (2), fill in & generate (3).
+          The third phase spans four to five screens, so it reports how far
+          through it the user is rather than sitting full the whole time. */}
+      <Nav step={navPhase} subProgress={navSub} />
 
       {/* Back + status pill share one row. The credits pill is permanent —
           it shows the moment a balance is known, on any screen including the
@@ -930,32 +1000,38 @@ export default function BuildPage() {
           top-of-page balance. The "first previews free" fallback only shows
           once past the type screen, since that message already lives inline
           there (see the CHOOSE DOCUMENT screen below). */}
+      {/* Back + identity readout share one row. On the type screen the
+          identity block below is the single place to change who this saves
+          to, so the pill here stays a pure readout — the second "Not you?"
+          that used to sit here is gone. */}
       {(() => {
         const hasCredits = !!creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0)
         const showPill = !!phoneNumber && (hasCredits || screen !== 'type')
         if (!backTo && screen !== 'type' && !showPill) return null
+        const n = cvType === 'cover_letter' ? (creditBalance?.cl ?? 0) : (creditBalance?.cv ?? 0)
         return (
-          <div style={{ maxWidth: '760px', margin: '0 auto', padding: '22px 24px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' as const }}>
+          <div style={{ maxWidth: '680px', margin: '0 auto', padding: '26px 24px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' as const }}>
             <div>
               {(backTo || screen === 'type') && (
-                <button onClick={() => backTo ? go(backTo) : router.push('/')} style={btnBackTop}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <button onClick={() => backTo ? go(backTo) : router.push('/')} className="xcv-link" style={btnBackTop}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   Back
                 </button>
               )}
             </div>
             {showPill && (
-              <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '5px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', fontWeight: 600, color: '#0f766e', background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '50px', padding: '7px 15px', whiteSpace: 'nowrap' as const }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.8" style={{ flexShrink: 0 }}><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '6px' }}>
+                <div className="xcv-mono" style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '9.5px', color: 'var(--teal)', background: 'var(--teal-tint)', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '4px', padding: '7px 12px', whiteSpace: 'nowrap' as const }}>
                   {hasCredits
-                    ? `${cvType === 'cover_letter' ? creditBalance!.cl : creditBalance!.cv} ${cvType === 'cover_letter' ? 'cover letter' : 'CV'}${(cvType === 'cover_letter' ? creditBalance!.cl : creditBalance!.cv) === 1 ? '' : 's'} remaining`
+                    ? n + ' ' + (cvType === 'cover_letter' ? 'cover letter' : 'CV') + (n === 1 ? '' : 's') + ' left'
                     : 'First 2 previews free'}
-                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>· {phoneNumber}</span>
+                  <span style={{ color: 'var(--muted)', borderLeft: '1px solid rgba(15,111,102,0.18)', paddingLeft: '9px' }}>{phoneNumber}</span>
                 </div>
-                <button type="button" onClick={switchNumber} style={{ background: 'none', border: 'none', padding: 0, fontSize: '11px', color: '#94a3b8', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-                  Not you? <span style={{ color: '#0d9488', fontWeight: 600 }}>Switch number</span>
-                </button>
+                {screen !== 'type' && (
+                  <button type="button" onClick={switchNumber} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
+                    Not you? <span style={{ color: 'var(--teal)', fontWeight: 500 }}>Switch number</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -963,137 +1039,178 @@ export default function BuildPage() {
       })()}
 
       {/* ══ SCREEN: CHOOSE DOCUMENT ══════════════════════════════════ */}
-      {screen === 'type' && (
-        <div style={{ maxWidth: '720px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '8px', lineHeight: 1.15 }}>
-            What should we <span style={{ color: '#0d9488' }}>create?</span>
-          </h1>
-          <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '10px', fontWeight: 300, lineHeight: 1.7 }}>Choose the document you need — we’ll tailor everything to it.</p>
-          {/* A plain line in normal flow, not a floating toast — it can't
-              overlap or push anything, and it's simply gone once Continue
-              moves the user past this screen. */}
-          <p style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#0f766e', fontWeight: 600, marginBottom: '28px' }}>
-            <span aria-hidden="true">✨</span> Your first 2 previews are free — pay only when you’re ready to download.
-          </p>
+      {screen === 'type' && (() => {
+        const hasCredits = !!creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0)
+        const identityKnown = restoredFromLastInput && !!phoneNumber.trim() && !!email.trim()
+        const collapsed = identityKnown && !editIdentity
+        return (
+        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '38px 24px 96px' }}>
 
-          <div style={{ display: 'grid', gap: '12px', marginBottom: '28px' }}>
-            {([
-              { id: 'professional' as CVType, name: 'Professional CV', desc: 'For most job applications, any industry.',
-                icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg> },
-              { id: 'academic' as CVType, name: 'Academic CV', desc: 'For research roles, postgraduate applications and lecturing.',
-                icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> },
-              { id: 'cover_letter' as CVType, name: 'Cover Letter', desc: 'A tailored letter that explains why you’re the right candidate for the job.',
-                icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> },
-            ] as any[]).map((card: any) => {
+          {/* Masthead. Cormorant at 300 and large — the light-and-wide
+              register rather than the heavy one — closed by a rule that reads
+              as the top margin of a page. */}
+          <div className="xcv-rise">
+            <h1 className="xcv-h1" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(2.15rem, 5.5vw, 3.1rem)', fontWeight: 300, color: 'var(--ink)', lineHeight: 1.02, letterSpacing: '-0.015em', marginBottom: '15px' }}>
+              What should we create?
+            </h1>
+            <p style={{ fontSize: '15px', color: 'var(--graphite)', fontWeight: 300, lineHeight: 1.65, maxWidth: '44ch' }}>
+              Pick the document. Every question after this one is shaped by what you choose here.
+            </p>
+            {/* Shown only when the account is empty. A returning user with
+                credits sees the balance in the pill instead — one statement
+                about money on screen, never two that disagree. */}
+            {!hasCredits && (
+              <p style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--teal)', marginTop: '15px', fontWeight: 400 }}>
+                <span aria-hidden="true" style={{ width: '15px', height: '1px', background: 'var(--teal)', flexShrink: 0 }} />
+                Your first two previews are free. You pay only when you download.
+              </p>
+            )}
+            <div style={{ height: '1px', background: 'var(--rule)', margin: '32px 0 24px' }} />
+          </div>
+
+          {/* The chooser. Each option draws the page it produces, at the real
+              1:1.414 proportion — the academic sheet is visibly denser, the
+              letter visibly prose. The choice is shown, not just named. */}
+          <div style={{ display: 'grid', gap: '10px', marginBottom: '38px' }}>
+            {DOC_TYPES.map((card, i) => {
               const selected = typeChosen && cvType === card.id
+              const steps = CV_TYPE_META[card.id].totalFormSteps
               return (
                 <button
                   key={card.id}
-                  onClick={() => { setCvType(card.id); setTypeChosen(true) }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '15px', width: '100%', textAlign: 'left' as const,
-                    background: selected ? '#f6fdfb' : 'white', cursor: 'pointer',
-                    border: selected ? '2px solid #0d9488' : '1px solid #e7ebf0',
-                    borderRadius: '16px', padding: selected ? '17px 19px' : '18px 20px',
-                    fontFamily: "'DM Sans', sans-serif", transition: 'border-color 0.15s, background 0.15s',
-                  }}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => { setCvType(card.id); setTypeChosen(true); if (typeErr) setTypeErr('') }}
+                  className="xcv-sheet xcv-rise"
+                  style={{ animationDelay: (70 + i * 70) + 'ms', display: 'flex', alignItems: 'center', gap: '18px', width: '100%', textAlign: 'left' as const, cursor: 'pointer', padding: '17px 19px', fontFamily: "'DM Sans', sans-serif" }}
                 >
-                  <span style={{ width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? '#0d9488' : '#f1f5f9', color: selected ? '#fff' : '#64748b' }}>{card.icon}</span>
-                  <span style={{ flex: 1 }}>
-                    <span style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: '1.18rem', fontWeight: 600, color: '#0a0f1a' }}>{card.name}</span>
-                    <span style={{ display: 'block', fontSize: '12.5px', color: '#64748b', marginTop: '2px', lineHeight: 1.5, fontWeight: 300 }}>{card.desc}</span>
+                  <MiniSheet rows={card.rows} />
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: '1.45rem', fontWeight: 400, color: 'var(--ink)', lineHeight: 1.12, letterSpacing: '-0.005em' }}>{card.name}</span>
+                    <span style={{ display: 'block', fontSize: '13px', color: 'var(--graphite)', marginTop: '5px', lineHeight: 1.5, fontWeight: 300 }}>{card.desc}</span>
+                    <span className="xcv-mono" style={{ display: 'block', marginTop: '10px', fontSize: '9px', color: 'var(--muted)' }}>
+                      {steps} steps{card.note ? ' · ' + card.note : ''}
+                    </span>
                   </span>
-                  <span style={{ width: '21px', height: '21px', flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? '#0d9488' : 'transparent', border: selected ? 'none' : '1.5px solid #e2e8f0' }}>
-                    {selected && <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  <span style={{ width: '18px', height: '18px', flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'transparent', border: '1px solid ' + (selected ? 'var(--teal)' : 'var(--rule)'), transition: 'background .18s ease, border-color .18s ease' }}>
+                    {selected && <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   </span>
                 </button>
               )
             })}
           </div>
 
-          {/* Contact — collected up front (credits are linked to phone; email
-              guards the free-preview cap) but kept compact and low-key so it
-              never competes with the choice above: one small label, both
-              fields side by side, one shared caption. */}
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: '8px' }}>Phone & email</label>
-              {restoredFromLastInput && (
-                <button type="button" onClick={clearSavedInfo} style={{ background: 'none', border: 'none', padding: 0, marginBottom: '8px', fontSize: '11.5px', color: '#0d9488', fontWeight: 500, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  Not you? Clear saved info
-                </button>
-              )}
+          {/* Identity. One place to change who this saves to, reached by one
+              link — replacing the two differently-worded "Not you?" controls
+              that used to sit at opposite ends of this screen. */}
+          <div className="xcv-rise" style={{ animationDelay: '280ms', marginBottom: '34px' }}>
+            <div className="xcv-mono" style={{ color: 'var(--muted)', marginBottom: '12px' }}>Where we save it</div>
+
+            {collapsed ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' as const, border: '1px solid var(--rule)', background: 'var(--sheet)', borderRadius: '6px', padding: '13px 16px' }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '14px', color: 'var(--ink)', fontWeight: 400 }}>{phoneNumber}</div>
+                  <div style={{ fontSize: '12.5px', color: 'var(--graphite)', fontWeight: 300, marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
+                </div>
+                <button type="button" className="xcv-link" style={{ fontSize: '13px' }} onClick={() => setEditIdentity(true)}>Change</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
+                  <input
+                    value={phoneNumber}
+                    onChange={e => { setPhoneNumber(e.target.value); if (typeErr) setTypeErr('') }}
+                    onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
+                    placeholder="Phone — e.g. 0551234567"
+                    aria-label="Phone number"
+                    className={'xcv-field' + (typeErr ? ' err' : '')}
+                    style={{ flex: '1 1 190px', width: 'auto' }}
+                  />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
+                    onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
+                    placeholder="Email — e.g. kwame@email.com"
+                    aria-label="Email address"
+                    className={'xcv-field' + (typeErr ? ' err' : '')}
+                    style={{ flex: '1 1 190px', width: 'auto' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' as const, marginTop: '12px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', userSelect: 'none' }}>
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={e => {
+                        setRememberMe(e.target.checked)
+                        // Take effect at once rather than waiting for Generate —
+                        // unticking should visibly mean "forget me", not "forget me
+                        // later".
+                        if (!e.target.checked) { clearLastInput(); setRestoredFromLastInput(false) }
+                      }}
+                      style={{ width: '15px', height: '15px', accentColor: 'var(--teal)', cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: '12.5px', color: 'var(--graphite)', fontWeight: 300 }}>Keep these on this device</span>
+                  </label>
+                  {identityKnown && (
+                    <button type="button" className="xcv-link" style={{ fontSize: '12.5px', color: 'var(--muted)', fontWeight: 300 }} onClick={clearSavedInfo}>
+                      Clear saved info
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '11px', fontWeight: 300, lineHeight: 1.65 }}>
+              No account needed. Your number is how you find these again.
             </div>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
-              <input
-                value={phoneNumber}
-                onChange={e => { setPhoneNumber(e.target.value); if (typeErr) setTypeErr('') }}
-                onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
-                placeholder="Phone — e.g. 0551234567"
-                style={{ flex: '1 1 180px', padding: '12px 15px', border: `1px solid ${typeErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '12px', background: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a' }}
-              />
-              <input
-                type="email"
-                value={email}
-                onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
-                onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
-                placeholder="Email — e.g. kwame@email.com"
-                style={{ flex: '1 1 180px', padding: '12px 15px', border: `1px solid ${typeErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius: '12px', background: 'white', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a' }}
-              />
-            </div>
-            {typeErr
-              ? <div style={{ fontSize: '12.5px', color: '#dc2626', marginTop: '8px', fontWeight: 500 }}>{typeErr}</div>
-              : <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '8px', fontWeight: 300 }}><span style={{ color: '#0d9488', fontWeight: 600 }}>No account needed.</span> Used to save and access your CVs.</div>}
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px', cursor: 'pointer', userSelect: 'none' }}>
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={e => {
-                  setRememberMe(e.target.checked)
-                  // Take effect at once rather than waiting for Generate —
-                  // unticking should visibly mean "forget me", not "forget me
-                  // later".
-                  if (!e.target.checked) { clearLastInput(); setRestoredFromLastInput(false) }
-                }}
-                style={{ width: '15px', height: '15px', accentColor: '#0d9488', cursor: 'pointer' }}
-              />
-              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 300 }}>Remember my number on this device</span>
-            </label>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              onClick={goAfterType}
-              disabled={!typeChosen}
-              style={{ ...btnPrimary, opacity: !typeChosen ? 0.45 : 1, cursor: !typeChosen ? 'not-allowed' : 'pointer' }}
-            >
-              Continue →
+          {/* The commit. Bound by a rule and carrying what is being committed
+              to, so the primary action is anchored to the page rather than
+              floating in the whitespace below it. */}
+          <div style={{ height: '1px', background: 'var(--rule)', marginBottom: '22px' }} />
+          <div className="xcv-actionbar xcv-rise" style={{ animationDelay: '340ms', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '18px' }}>
+            <div style={{ minWidth: 0 }}>
+              {typeErr ? (
+                <div style={{ fontSize: '13px', color: '#C0392B', fontWeight: 400 }} role="alert">{typeErr}</div>
+              ) : typeChosen ? (
+                <div className="xcv-mono" style={{ color: 'var(--muted)' }}>
+                  {meta.label}<span style={{ color: 'var(--rule)', padding: '0 7px' }}>/</span>{meta.totalFormSteps} steps ahead
+                </div>
+              ) : (
+                <div className="xcv-mono" style={{ color: 'var(--muted)' }}>Choose a document to continue</div>
+              )}
+            </div>
+            <button onClick={goAfterType} disabled={!typeChosen} className="xcv-btn">
+              Continue
+              <svg className="arw" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></svg>
             </button>
           </div>
         </div>
-      )}
+        )
+      })()}
 
       {/* ══ SCREEN: METHOD ══════════════════════════════════ */}
       {screen === 'method' && (
         <div style={{ maxWidth: '680px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '8px', lineHeight: 1.1 }}>
-            How would you like to <span style={{ color: '#0d9488' }}>create your {meta.label}?</span>
-          </h1>
-          <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '32px', fontWeight: 300, lineHeight: 1.7 }}>Both paths give the same quality result.</p>
+          <h1 className="xcv-h1" style={h1Style}>How would you like to create your {meta.label}?</h1>
+          <p style={{ ...subStyle, marginBottom: '30px' }}>Both paths give the same result. Pick whichever you have to hand.</p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
             {([
-              { id: 'paste' as const, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, iconBg: '#e1f5ee', title: 'I have an existing CV', desc: 'Upload or paste it — we’ll rebuild and improve it.' },
-              { id: 'form' as const,  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>, iconBg: '#e1f5ee', title: 'I don’t have a CV', desc: 'Fill out a short form — our AI will build your CV.' },
+              { id: 'paste' as const, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, iconBg: '#e1f5ee', title: 'I have an existing CV', desc: 'Upload or paste it — we’ll rebuild and improve it.' },
+              { id: 'form' as const,  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>, iconBg: '#e1f5ee', title: 'I don’t have a CV', desc: 'Fill out a short form — our AI will build your CV.' },
             ] as any[]).map((opt: any) => (
               <div key={opt.id} onClick={() => { setInputMethod(opt.id as 'paste' | 'form'); goFromMethod(opt.id as 'paste' | 'form') }}
-                style={{ background: opt.id === 'form' ? '#f0fdf9' : 'white', border: opt.id === 'form' ? '2px solid #0d9488' : `${inputMethod === 'paste' ? '2px solid #0d9488' : '1px solid #e2e8f0'}`, borderRadius: '16px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column', gap: '10px' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? '#0d9488' : '#0d9488' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? '#0d9488' : inputMethod === 'paste' ? '#0d9488' : '#e2e8f0' }}
+                style={{ background: opt.id === 'form' ? 'var(--teal-tint)' : 'white', border: opt.id === 'form' ? '2px solid var(--teal)' : `${inputMethod === 'paste' ? '2px solid var(--teal)' : '1px solid var(--rule)'}`, borderRadius: '16px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column', gap: '10px' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? 'var(--teal)' : 'var(--teal)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? 'var(--teal)' : inputMethod === 'paste' ? 'var(--teal)' : 'var(--rule)' }}
               >
                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: opt.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{opt.icon}</div>
-                <div style={{ fontSize: '14px', fontWeight: 500, color: opt.id === 'form' ? '#0d9488' : '#0a0f1a' }}>{opt.title}</div>
-                <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>{opt.desc}</div>
+                <div style={{ fontSize: '14px', fontWeight: 500, color: opt.id === 'form' ? 'var(--teal)' : 'var(--ink)' }}>{opt.title}</div>
+                <div style={{ fontSize: '12px', color: 'var(--graphite)', lineHeight: 1.5 }}>{opt.desc}</div>
               </div>
             ))}
           </div>
@@ -1103,7 +1220,7 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: PASTE PATH ══════════════════════════════════ */}
         <div style={{ display: screen === 'paste' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <h1 style={h1Style}>Share Your CV Content</h1>
+          <h1 className="xcv-h1" style={h1Style}>Share Your CV Content</h1>
           {/* Name the document they'll get, so there's no doubt what this input
               is being turned into. */}
           <p style={subStyle}>Upload your CV or paste it in as text — we&apos;ll create your {meta.label}.</p>
@@ -1115,7 +1232,7 @@ export default function BuildPage() {
           {pasteInputMode === 'paste' ? (
             <div style={cardStyle}>
               <div style={cardTitleStyle}>Paste your CV here</div>
-              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px', fontWeight: 300 }}>Any format is fine — Word, PDF copy, WhatsApp, rough notes.</p>
+              <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>Any format is fine — Word, PDF copy, WhatsApp, rough notes.</p>
               <textarea ref={refs.paste} style={TA(180)} rows={8} placeholder="Paste your CV content here — any format is fine..." />
             </div>
           ) : (
@@ -1161,9 +1278,9 @@ export default function BuildPage() {
         <div style={{ display: screen === 'form-1' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <StepLabel label={`Step ${stepNo('form-1')} of ${meta.totalFormSteps}`} />
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           </div>
-          <h1 style={h1Style}>Personal Details</h1>
+          <h1 className="xcv-h1" style={h1Style}>Personal Details</h1>
           <p style={subStyle}>Your name and contact details — these appear at the top of your CV.</p>
 
           <div style={cardStyle}>
@@ -1181,7 +1298,7 @@ export default function BuildPage() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showOptionalPersonal ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             {showOptionalPersonal && (
-              <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(13,148,136,0.15)', borderRadius: '10px' }}>
+              <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '10px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <Field label="Date of Birth" placeholder="e.g. 14 March 1995" fieldRef={refs.dob} />
                   <Field label="Nationality" placeholder="e.g. Ghanaian" fieldRef={refs.nationality} />
@@ -1201,9 +1318,9 @@ export default function BuildPage() {
           {/* Not on the cover-letter path — no step number would make sense. */}
           {!isCoverLetter && <StepLabel label={`Step 2 of ${meta.totalFormSteps}`} />}
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
           </div>
-          <h1 style={h1Style}>Education & Certifications</h1>
+          <h1 className="xcv-h1" style={h1Style}>Education & Certifications</h1>
           <p style={subStyle}>Your schools, courses, and professional training.</p>
 
           <div style={cardStyle}>
@@ -1220,7 +1337,7 @@ export default function BuildPage() {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showAcademicEdu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 {showAcademicEdu && (
-                  <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(13,148,136,0.15)', borderRadius: '10px' }}>
+                  <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '10px' }}>
                     <Field label="GPA or Class of Degree" placeholder="e.g. First Class, GPA 3.8 / 4.0" fieldRef={refs.gpa} />
                     <div style={{ marginTop: '10px' }}><Field label="Thesis / Dissertation Title" placeholder="e.g. Climate Change Adaptation in Rural Ghana" fieldRef={refs.thesis} /></div>
                     <div style={{ marginTop: '10px' }}>
@@ -1243,9 +1360,9 @@ export default function BuildPage() {
         <div style={{ display: screen === 'form-3' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <StepLabel label={`Step ${stepNo('form-3')} of ${meta.totalFormSteps}`} />
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg>
           </div>
-          <h1 style={h1Style}>{isCoverLetter ? 'Your Background' : cvType === 'academic' ? 'Academic & Professional Experience' : 'Work Experience'}</h1>
+          <h1 className="xcv-h1" style={h1Style}>{isCoverLetter ? 'Your Background' : cvType === 'academic' ? 'Academic & Professional Experience' : 'Work Experience'}</h1>
           <p style={subStyle}>{isCoverLetter
             ? 'Your experience, education and achievements — whatever makes your case. A few lines is enough.'
             : cvType === 'academic'
@@ -1268,7 +1385,7 @@ export default function BuildPage() {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showDutiesTip ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 {showDutiesTip && (
-                  <div style={{ background: '#f0fdf9', borderLeft: '3px solid #0d9488', borderRadius: '0 8px 8px 0', padding: '10px 14px', marginBottom: '10px', fontSize: '12px', color: '#0f6e56', lineHeight: 1.7 }}>
+                  <div style={{ background: 'var(--teal-tint)', borderLeft: '3px solid var(--teal)', borderRadius: '0 8px 8px 0', padding: '10px 14px', marginBottom: '10px', fontSize: '12px', color: '#0f6e56', lineHeight: 1.7 }}>
                     Adding duties is completely optional — our AI will write them for you. If you&apos;d like to add your own, list them under each role:<br/><br/>
                     <em>Staff Nurse – Korle Bu – 2022 to Present<br/>– Administered medication to 30+ patients daily<br/>– Managed ward records and patient handovers</em>
                   </div>
@@ -1286,10 +1403,10 @@ export default function BuildPage() {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showAcademicExp ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 {showAcademicExp && (
-                  <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(13,148,136,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column' as const, gap: '12px' }}>
+                  <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column' as const, gap: '12px' }}>
                     <div>
                       <label style={labelStyle}>Publications & Papers</label>
-                      <div style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic', margin: '4px 0 6px' }}>e.g. Mensah K. (2023). Climate Change in Rural Ghana. Journal of African Studies, 12(3), 45–62.</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', fontStyle: 'italic', margin: '4px 0 6px' }}>e.g. Mensah K. (2023). Climate Change in Rural Ghana. Journal of African Studies, 12(3), 45–62.</div>
                       <textarea ref={refs.publications} style={TA(70)} rows={3} placeholder="List your publications here..." />
                     </div>
                     <div>
@@ -1318,27 +1435,27 @@ export default function BuildPage() {
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#faeeda', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#854f0b" strokeWidth="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           </div>
-          <h1 style={h1Style}>Skills & Extra Details</h1>
+          <h1 className="xcv-h1" style={h1Style}>Skills & Extra Details</h1>
           <p style={subStyle}>Add anything you’d like included — the AI handles the rest.</p>
 
           <div style={cardStyle}>
-            <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const, color: '#94a3b8', marginBottom: '7px' }}>Example</div>
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px', fontSize: '12px', color: '#64748b', lineHeight: 1.9, fontStyle: 'italic' }}>
+            <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const, color: 'var(--muted)', marginBottom: '7px' }}>Example</div>
+            <div style={{ background: '#F5F5F1', border: '1px solid var(--rule)', borderRadius: '8px', padding: '10px 14px', marginBottom: '12px', fontSize: '12px', color: 'var(--graphite)', lineHeight: 1.9, fontStyle: 'italic' }}>
               {cvType === 'academic' ? (
                 <>
-                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Research Skills:</strong> Stata, R, NVivo, survey design<br/>
-                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Languages:</strong> English, Twi, French<br/>
-                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Membership:</strong> Ghana Economic Association, 2021–present<br/>
-                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Award:</strong> Vice-Chancellor&apos;s Award for Research Excellence, 2023<br/>
-                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Referee:</strong> Prof. Ama Boateng, Dept. of Economics, University of Ghana
+                  <strong style={{ color: 'var(--graphite)', fontStyle: 'normal' }}>Research Skills:</strong> Stata, R, NVivo, survey design<br/>
+                  <strong style={{ color: 'var(--graphite)', fontStyle: 'normal' }}>Languages:</strong> English, Twi, French<br/>
+                  <strong style={{ color: 'var(--graphite)', fontStyle: 'normal' }}>Membership:</strong> Ghana Economic Association, 2021–present<br/>
+                  <strong style={{ color: 'var(--graphite)', fontStyle: 'normal' }}>Award:</strong> Vice-Chancellor&apos;s Award for Research Excellence, 2023<br/>
+                  <strong style={{ color: 'var(--graphite)', fontStyle: 'normal' }}>Referee:</strong> Prof. Ama Boateng, Dept. of Economics, University of Ghana
                 </>
               ) : (
                 <>
-                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Technical Skills:</strong> AutoCAD, Python, QuickBooks<br/>
-                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Languages:</strong> Twi, French<br/>
-                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Leadership:</strong> SRC President, UPSA, 2015<br/>
-                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Award:</strong> Best Employee, MTN Ghana, 2023<br/>
-                  <strong style={{ color: '#475569', fontStyle: 'normal' }}>Reference:</strong> Mr Kwadwo Asante, Manager, Diamond King Ventures, 0256677189
+                  <strong style={{ color: 'var(--graphite)', fontStyle: 'normal' }}>Technical Skills:</strong> AutoCAD, Python, QuickBooks<br/>
+                  <strong style={{ color: 'var(--graphite)', fontStyle: 'normal' }}>Languages:</strong> Twi, French<br/>
+                  <strong style={{ color: 'var(--graphite)', fontStyle: 'normal' }}>Leadership:</strong> SRC President, UPSA, 2015<br/>
+                  <strong style={{ color: 'var(--graphite)', fontStyle: 'normal' }}>Award:</strong> Best Employee, MTN Ghana, 2023<br/>
+                  <strong style={{ color: 'var(--graphite)', fontStyle: 'normal' }}>Reference:</strong> Mr Kwadwo Asante, Manager, Diamond King Ventures, 0256677189
                 </>
               )}
             </div>
@@ -1351,7 +1468,7 @@ export default function BuildPage() {
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showAcademicExtras ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 {showAcademicExtras && (
-                  <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(13,148,136,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column' as const, gap: '12px', marginBottom: '12px' }}>
+                  <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column' as const, gap: '12px', marginBottom: '12px' }}>
                     <div><label style={labelStyle}>Grants & Fellowships</label><textarea ref={refs.grants} style={{ ...TA(60), marginTop: '5px' }} rows={2} placeholder="e.g. DAAD Research Fellowship, 2022 – University of Bonn" /></div>
                     <div><label style={labelStyle}>Student Supervision</label><textarea ref={refs.supervision} style={{ ...TA(60), marginTop: '5px' }} rows={2} placeholder="e.g. Supervised 4 BSc dissertations, KNUST, 2021–2023" /></div>
                     <div><Field label="ORCID ID" placeholder="e.g. 0000-0002-1825-0097" fieldRef={refs.orcid} /></div>
@@ -1377,10 +1494,10 @@ export default function BuildPage() {
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: cvType === 'cover_letter' ? '#fbeaf0' : '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             {cvType === 'cover_letter'
               ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             }
           </div>
-          <h1 style={h1Style}>{cvType === 'cover_letter' ? 'The Role You’re Applying For' : 'The Role You’re Targeting'}</h1>
+          <h1 className="xcv-h1" style={h1Style}>{cvType === 'cover_letter' ? 'The Role You’re Applying For' : 'The Role You’re Targeting'}</h1>
           <p style={subStyle}>{cvType === 'cover_letter' ? 'Add the role to produce a compelling, tailored letter.' : 'Add the role to tailor your CV to it — the more detail, the sharper the result.'}</p>
 
           {cvType === 'cover_letter' ? (
@@ -1405,7 +1522,7 @@ export default function BuildPage() {
                 <JDSection method={jdInputMode} setMethod={setJdInputMode} pasteRef={refs.jdPaste} uploadedFile={uploadedJD} setUploadedFile={setUploadedJD} cvType={cvType} />
               </div>
               <div>
-                <label style={labelStyle}>Why do you want this role? <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 400 }}>Optional</span></label>
+                <label style={labelStyle}>Why do you want this role? <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 400 }}>Optional</span></label>
                 <textarea ref={refs.whyRole} style={{ ...TA(70), marginTop: '5px' }} rows={3} placeholder="e.g. I have 3 years experience in telecoms and admire this company’s values..." />
               </div>
             </div>
@@ -1437,11 +1554,11 @@ export default function BuildPage() {
               not a finished result, so a clipboard icon instead avoids
               implying the plain-text summary below is the actual CV. */}
           <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/><path d="M9 10h6M9 14h6M9 18h3"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/><path d="M9 10h6M9 14h6M9 18h3"/></svg>
           </div>
-          <h1 style={{ ...h1Style, marginBottom: '6px' }}>{isCoverLetter ? 'Ready To Write Your Letter' : 'Ready To Build Your CV'}</h1>
+          <h1 className="xcv-h1" style={{ ...h1Style, marginBottom: '6px' }}>{isCoverLetter ? 'Ready To Write Your Letter' : 'Ready To Build Your CV'}</h1>
           <p style={{ ...subStyle, marginBottom: '10px' }}>Review your details before we generate.</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '9px 13px', marginBottom: '24px', fontSize: '12px', color: '#64748b' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F5F5F1', border: '1px solid var(--rule)', borderRadius: '10px', padding: '9px 13px', marginBottom: '24px', fontSize: '12px', color: 'var(--graphite)' }}>
             This is what you’ve entered, not the finished {isCoverLetter ? 'letter' : 'CV'} — click Generate below to create it.
           </div>
 
@@ -1454,12 +1571,12 @@ export default function BuildPage() {
             { title: 'Skills & Extras', val: refs.extras.current?.value || '', editScreen: 'form-4' as Screen },
             ...(meta.hasJobStep ? [{ title: 'Target Role', val: [refs.jobTitle.current?.value, refs.company.current?.value].filter(Boolean).join(' at '), editScreen: 'form-5' as Screen }] : []),
           ].filter(b => (b as any).alwaysShow || b.val).map(b => (
-            <div key={b.title} style={{ border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px', marginBottom: '10px' }}>
+            <div key={b.title} style={{ border: '1px solid var(--rule)', borderRadius: '12px', padding: '14px 16px', marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: '#94a3b8' }}>{b.title}</span>
-                <button onClick={() => go(b.editScreen)} style={{ fontSize: '12px', color: '#0d9488', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>Edit</button>
+                <span style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' as const, color: 'var(--muted)' }}>{b.title}</span>
+                <button onClick={() => go(b.editScreen)} style={{ fontSize: '12px', color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>Edit</button>
               </div>
-              <div style={{ fontSize: '13px', color: '#0a0f1a', lineHeight: 1.7, whiteSpace: 'pre-wrap' as const }}>{b.val}</div>
+              <div style={{ fontSize: '13px', color: 'var(--ink)', lineHeight: 1.7, whiteSpace: 'pre-wrap' as const }}>{b.val}</div>
             </div>
           ))}
 
@@ -1467,8 +1584,8 @@ export default function BuildPage() {
 
           {paymentPending && (
             <div style={{ background: '#fffbf5', border: '1.5px solid #f59e0b', borderRadius: '14px', padding: '16px 18px', marginBottom: '14px' }}>
-              <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px' }}>Complete payment in the window that opened</div>
-              <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '12px', lineHeight: 1.6 }}>Once you&apos;ve paid, click below to confirm — your CV will generate right after.</div>
+              <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>Complete payment in the window that opened</div>
+              <div style={{ fontSize: '12.5px', color: 'var(--graphite)', marginBottom: '12px', lineHeight: 1.6 }}>Once you&apos;ve paid, click below to confirm — your CV will generate right after.</div>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
                 <button onClick={handleManualVerify} disabled={verifyingPayment} style={{ ...btnPrimary, opacity: verifyingPayment ? 0.6 : 1 }}>
                   {verifyingPayment ? 'Checking…' : 'Verify Payment'}
@@ -1491,38 +1608,38 @@ export default function BuildPage() {
         <div onClick={() => setShowPricing(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(8,13,24,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '22px', width: '100%', maxWidth: '440px', padding: '28px 26px', boxShadow: '0 25px 80px rgba(0,0,0,0.4)', fontFamily: "'DM Sans', sans-serif", maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 600, color: '#0a0f1a', lineHeight: 1.15 }}>Choose your package</div>
-              <button onClick={() => setShowPricing(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', display: 'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.15 }}>Choose your package</div>
+              <button onClick={() => setShowPricing(false)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: '6px', display: 'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
-            <p style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '18px', lineHeight: 1.6 }}>One-time payment · no subscription. Credits never expire.</p>
+            <p style={{ fontSize: '12.5px', color: 'var(--graphite)', marginBottom: '18px', lineHeight: 1.6 }}>One-time payment · no subscription. Credits never expire.</p>
 
             <div style={{ display: 'grid', gap: '11px' }}>
               {/* Only the packages that grant the credit this document needs. */}
               {packagesForDoc(cvType === 'cover_letter').map(pkg => (
                 <button key={pkg.id} onClick={() => { setShowPricing(false); triggerPaystack(payPhone, pkg) }}
                   style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
-                    background: pkg.recommended ? '#f6fdfb' : 'white', border: pkg.recommended ? '2px solid #0d9488' : '1px solid #e7ebf0',
+                    background: pkg.recommended ? 'var(--teal-tint)' : 'white', border: pkg.recommended ? '2px solid var(--teal)' : '1px solid var(--rule)',
                     borderRadius: '16px', padding: pkg.recommended ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
-                  {pkg.recommended && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: '#0d9488', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>BEST VALUE</span>}
+                  {pkg.recommended && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: 'var(--teal)', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>BEST VALUE</span>}
                   <span style={{ fontSize: '20px', flexShrink: 0 }}>{pkg.emoji}</span>
                   <span style={{ flex: 1 }}>
-                    <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: '#0a0f1a' }}>{pkg.name}</span>
-                    <span style={{ display: 'block', fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>{pkg.blurb}</span>
+                    <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>{pkg.name}</span>
+                    <span style={{ display: 'block', fontSize: '12.5px', color: 'var(--graphite)', marginTop: '2px' }}>{pkg.blurb}</span>
                   </span>
-                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 700, color: pkg.recommended ? '#0d9488' : '#0a0f1a', whiteSpace: 'nowrap' as const }}>GH₵{pkg.price}</span>
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 700, color: pkg.recommended ? 'var(--teal)' : 'var(--ink)', whiteSpace: 'nowrap' as const }}>GH₵{pkg.price}</span>
                 </button>
               ))}
             </div>
 
-            <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '16px', textAlign: 'center' as const, lineHeight: 1.5 }}>Secure payment via Paystack · MTN MoMo, Vodafone Cash & card</p>
+            <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '16px', textAlign: 'center' as const, lineHeight: 1.5 }}>Secure payment via Paystack · MTN MoMo, Vodafone Cash & card</p>
           </div>
         </div>
       )}
 
       {/* ══ LOADING OVERLAY ══════════════════════════════════ */}
       {isGenerating && (
-        <div style={{ position: 'fixed', inset: 0, background: '#0a0f1a', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '32px' }}>
-          <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(13,148,136,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'fixed', inset: 0, background: 'var(--ink)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '32px' }}>
+          <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(15,111,102,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
           <div style={{ width: '100%', maxWidth: '540px', textAlign: 'center' }}>
             <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 32px' }}>
               <svg width="100" height="100" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
@@ -1531,7 +1648,7 @@ export default function BuildPage() {
                   strokeDasharray={`${2 * Math.PI * 44}`}
                   strokeDashoffset={`${2 * Math.PI * 44 * (1 - loadingPct / 100)}`}
                   style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
-                <defs><linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#5eead4" /><stop offset="100%" stopColor="#0d9488" /></linearGradient></defs>
+                <defs><linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="var(--teal-on-dark)" /><stop offset="100%" stopColor="var(--teal)" /></linearGradient></defs>
               </svg>
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
                 <span style={{ fontSize: '22px', fontWeight: 700, color: 'white', lineHeight: 1 }}>{loadingPct}</span>
@@ -1543,10 +1660,10 @@ export default function BuildPage() {
             </h2>
             <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', marginBottom: '32px' }}>{LOADING_STEPS[loadingStep]?.detail || 'Please wait...'}</p>
             <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.07)', borderRadius: '99px', overflow: 'hidden', marginBottom: '40px' }}>
-              <div style={{ height: '100%', width: `${loadingPct}%`, background: 'linear-gradient(90deg, #0d9488, #5eead4)', borderRadius: '99px', transition: 'width 0.5s ease' }} />
+              <div style={{ height: '100%', width: `${loadingPct}%`, background: 'linear-gradient(90deg, var(--teal), var(--teal-on-dark))', borderRadius: '99px', transition: 'width 0.5s ease' }} />
             </div>
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px 24px', textAlign: 'left', opacity: didYouKnowFade ? 1 : 0, transition: 'opacity 0.4s ease' }}>
-              <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2px', color: '#5eead4', marginBottom: '8px' }}>DID YOU KNOW?</div>
+              <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2px', color: 'var(--teal-on-dark)', marginBottom: '8px' }}>DID YOU KNOW?</div>
               <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, marginBottom: '10px' }}>{DID_YOU_KNOWS[didYouKnowIdx].fact}</div>
               <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>💡 {DID_YOU_KNOWS[didYouKnowIdx].tip}</div>
             </div>
@@ -1559,7 +1676,7 @@ export default function BuildPage() {
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         * { box-sizing: border-box; }
-        textarea:focus, input:focus { outline: none; border-color: #0d9488 !important; box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
+        textarea:focus, input:focus { outline: none; border-color: var(--teal) !important; box-shadow: 0 0 0 3px rgba(15,111,102,0.1); }
       `}</style>
     </div>
   )
@@ -1569,29 +1686,31 @@ export default function BuildPage() {
 // ─────────────────────────────────────────────────────────────
 // STYLE CONSTANTS
 // ─────────────────────────────────────────────────────────────
-const h1Style: React.CSSProperties = { fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.7rem, 4vw, 2.4rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '8px', lineHeight: 1.1 }
-const subStyle: React.CSSProperties = { fontSize: '14px', color: '#64748b', marginBottom: '24px', fontWeight: 300, lineHeight: 1.7 }
-const cardStyle: React.CSSProperties = { background: 'white', border: '1px solid #e2e8f0', borderRadius: '18px', padding: '20px 22px', marginBottom: '14px', boxShadow: '0 1px 8px rgba(0,0,0,0.04)' }
-const cardTitleStyle: React.CSSProperties = { fontFamily: "'Cormorant Garamond', serif", fontSize: '1.2rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px' }
-const optBadge: React.CSSProperties = { fontSize: '10px', fontWeight: 500, color: '#94a3b8', background: '#f1f5f9', padding: '2px 8px', borderRadius: '20px' }
-const labelStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 500, color: '#475569', display: 'block' }
-const expandToggleStyle: React.CSSProperties = { fontSize: '12px', color: '#0d9488', background: 'none', border: '1px solid rgba(13,148,136,0.2)', borderRadius: '8px', padding: '9px 14px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left' }
-const tipToggleStyle: React.CSSProperties = { fontSize: '12px', color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '9px 14px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left' }
-const btnSkip: React.CSSProperties = { fontSize: '12px', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textDecoration: 'underline', textUnderlineOffset: '2px', display: 'block', textAlign: 'right', width: '100%', marginBottom: '8px', padding: '4px 0' }
-const TA = (minH: number): React.CSSProperties => ({ width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', resize: 'none', lineHeight: 1.65, minHeight: minH ? `${minH}px` : undefined, transition: 'border-color 0.2s' })
-const btnPrimary: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '14px 36px', background: 'linear-gradient(135deg, #0d9488, #0f766e)', border: 'none', borderRadius: '50px', fontSize: '14px', fontWeight: 600, color: 'white', cursor: 'pointer', letterSpacing: '0.3px', boxShadow: '0 8px 28px rgba(13,148,136,0.35)', transition: 'all 0.2s' }
-const btnBack: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '13px 22px', background: 'white', border: '2px solid #0d9488', borderRadius: '50px', fontSize: '13px', fontWeight: 600, color: '#0d9488', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
+const h1Style: React.CSSProperties = { fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.9rem, 4.6vw, 2.7rem)', fontWeight: 300, color: 'var(--ink)', marginBottom: '12px', lineHeight: 1.05, letterSpacing: '-0.015em' }
+const subStyle: React.CSSProperties = { fontSize: '14.5px', color: 'var(--graphite)', marginBottom: '26px', fontWeight: 300, lineHeight: 1.65 }
+const cardStyle: React.CSSProperties = { background: 'var(--sheet)', border: '1px solid var(--rule)', borderRadius: '6px', padding: '20px 22px', marginBottom: '12px', boxShadow: '0 1px 1px rgba(11,16,23,0.03)' }
+const cardTitleStyle: React.CSSProperties = { fontFamily: "'Cormorant Garamond', serif", fontSize: '1.32rem', fontWeight: 400, color: 'var(--ink)', marginBottom: '5px', letterSpacing: '-0.005em' }
+const optBadge: React.CSSProperties = { fontSize: '10px', fontWeight: 500, color: 'var(--muted)', background: 'var(--rule-soft)', padding: '2px 8px', borderRadius: '20px' }
+const labelStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 500, color: 'var(--graphite)', display: 'block' }
+const expandToggleStyle: React.CSSProperties = { fontSize: '12px', color: 'var(--teal)', background: 'none', border: '1px solid rgba(15,111,102,0.2)', borderRadius: '8px', padding: '9px 14px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left' }
+const tipToggleStyle: React.CSSProperties = { fontSize: '12px', color: 'var(--graphite)', background: '#F5F5F1', border: '1px solid var(--rule)', borderRadius: '8px', padding: '9px 14px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left' }
+const btnSkip: React.CSSProperties = { fontSize: '12px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textDecoration: 'underline', textUnderlineOffset: '2px', display: 'block', textAlign: 'right', width: '100%', marginBottom: '8px', padding: '4px 0' }
+const TA = (minH: number): React.CSSProperties => ({ width: '100%', padding: '12px 14px', border: '1px solid var(--rule)', borderRadius: '6px', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: 'var(--ink)', resize: 'none', lineHeight: 1.65, minHeight: minH ? `${minH}px` : undefined, transition: 'border-color 0.16s ease, box-shadow 0.16s ease' })
+// Solid ink, not a gradient with a coloured glow — the glow is the tell of a
+// template. Weight comes from the colour being deep, not from the shadow.
+const btnPrimary: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '13px 26px', background: 'var(--teal)', border: '1px solid var(--teal)', borderRadius: '6px', fontSize: '13.5px', fontWeight: 500, color: 'white', cursor: 'pointer', letterSpacing: '0.01em', boxShadow: '0 1px 2px rgba(11,16,23,0.10)', transition: 'background 0.16s ease, box-shadow 0.16s ease', fontFamily: "'DM Sans', sans-serif" }
+const btnBack: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '13px 22px', background: 'var(--sheet)', border: '1px solid var(--rule)', borderRadius: '6px', fontSize: '13px', fontWeight: 400, color: 'var(--ink)', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
 // Quiet top-left back link — a navigation affordance, not a competing action.
-const btnBackTop: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 4px', background: 'none', border: 'none', fontSize: '13.5px', fontWeight: 600, color: '#0d9488', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
+const btnBackTop: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 2px', background: 'none', border: 'none', fontSize: '13px', fontWeight: 400, color: 'var(--graphite)', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
 
 // ─────────────────────────────────────────────────────────────
 // SUB-COMPONENTS
 // ─────────────────────────────────────────────────────────────
 function StepLabel({ label }: { label: string }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-      <div style={{ width: '18px', height: '2px', background: '#0d9488' }} />
-      <span style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase' as const, color: '#0d9488' }}>{label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+      <div style={{ width: '15px', height: '1px', background: 'var(--teal)' }} />
+      <span className="xcv-mono" style={{ color: 'var(--teal)' }}>{label}</span>
     </div>
   )
 }
@@ -1599,8 +1718,8 @@ function StepLabel({ label }: { label: string }) {
 function ExBox({ text }: { text: string }) {
   return (
     <>
-      <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const, color: '#94a3b8', marginBottom: '6px' }}>Example</div>
-      <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '10px 14px', fontSize: '12px', color: '#64748b', lineHeight: 1.85, fontStyle: 'italic', marginBottom: '12px', border: '1px solid #f1f5f9', whiteSpace: 'pre-line' }}>{text}</div>
+      <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const, color: 'var(--muted)', marginBottom: '6px' }}>Example</div>
+      <div style={{ background: '#F5F5F1', borderRadius: '10px', padding: '10px 14px', fontSize: '12px', color: 'var(--graphite)', lineHeight: 1.85, fontStyle: 'italic', marginBottom: '12px', border: '1px solid var(--rule-soft)', whiteSpace: 'pre-line' }}>{text}</div>
     </>
   )
 }
@@ -1608,8 +1727,8 @@ function ExBox({ text }: { text: string }) {
 function Field({ label, placeholder, fieldRef }: { label: string; placeholder: string; fieldRef: React.RefObject<HTMLInputElement> }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-      <label style={{ fontSize: '12px', fontWeight: 500, color: '#475569' }}>{label}</label>
-      <input ref={fieldRef} placeholder={placeholder} style={{ padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', transition: 'border-color 0.2s' }} />
+      <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--graphite)' }}>{label}</label>
+      <input ref={fieldRef} placeholder={placeholder} style={{ padding: '10px 12px', border: '1.5px solid var(--rule)', borderRadius: '10px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: 'var(--ink)', transition: 'border-color 0.2s' }} />
     </div>
   )
 }
@@ -1633,7 +1752,7 @@ function ModeToggle({ value, onChange, options }: { value: string; onChange: (v:
         return (
           <button key={opt.id} onClick={() => onChange(opt.id)} aria-pressed={on}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '11px 8px', border: 'none', borderRadius: '11px',
-              background: on ? 'white' : 'transparent', color: on ? '#0f766e' : '#64748b', fontWeight: on ? 700 : 500, fontSize: '13px', cursor: 'pointer',
+              background: on ? 'white' : 'transparent', color: on ? 'var(--teal-deep)' : 'var(--graphite)', fontWeight: on ? 700 : 500, fontSize: '13px', cursor: 'pointer',
               fontFamily: "'DM Sans', sans-serif", boxShadow: on ? '0 1px 3px rgba(10,15,26,0.14)' : 'none', transition: 'background .15s, color .15s, box-shadow .15s' }}>
             {opt.icon}{opt.label}
           </button>
@@ -1661,9 +1780,9 @@ function TailorSection({ mode, setMode, isLetter, jdMode, setJdMode, jdPasteRef,
     { id: 'none' as const,   title: isLetter ? 'A general letter' : 'Just upgrade my CV', desc: isLetter ? 'No specific job in mind.' : 'Polish the wording and layout, without aiming at a role.' },
   ]
   return (
-    <div style={{ border: '1px solid #e7ebf0', borderRadius: '14px', background: 'white', marginBottom: '14px', padding: '16px 18px' }}>
-      <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '3px' }}>Tailor your {doc}</div>
-      <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '12px' }}>Pick one — or leave it on the last option.</div>
+    <div style={{ border: '1px solid var(--rule)', borderRadius: '14px', background: 'white', marginBottom: '14px', padding: '16px 18px' }}>
+      <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '3px' }}>Tailor your {doc}</div>
+      <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '12px' }}>Pick one — or leave it on the last option.</div>
 
       <div style={{ display: 'grid', gap: '9px' }}>
         {options.map(opt => {
@@ -1672,14 +1791,14 @@ function TailorSection({ mode, setMode, isLetter, jdMode, setJdMode, jdPasteRef,
             <div key={opt.id}>
               <button onClick={() => setMode(opt.id)} aria-pressed={on}
                 style={{ display: 'flex', alignItems: 'flex-start', gap: '11px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
-                  background: on ? '#f6fdfb' : 'white', border: on ? '2px solid #0d9488' : '1px solid #e7ebf0',
+                  background: on ? 'var(--teal-tint)' : 'white', border: on ? '2px solid var(--teal)' : '1px solid var(--rule)',
                   borderRadius: '13px', padding: on ? '12px 13px' : '13px 14px', fontFamily: "'DM Sans', sans-serif" }}>
-                <span style={{ width: '17px', height: '17px', flexShrink: 0, marginTop: '1px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? '#0d9488' : 'transparent', border: on ? 'none' : '1.5px solid #e2e8f0' }}>
+                <span style={{ width: '17px', height: '17px', flexShrink: 0, marginTop: '1px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--teal)' : 'transparent', border: on ? 'none' : '1.5px solid var(--rule)' }}>
                   {on && <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </span>
                 <span>
-                  <span style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a' }}>{opt.title}</span>
-                  <span style={{ display: 'block', fontSize: '12px', color: '#64748b', marginTop: '2px', lineHeight: 1.5 }}>{opt.desc}</span>
+                  <span style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>{opt.title}</span>
+                  <span style={{ display: 'block', fontSize: '12px', color: 'var(--graphite)', marginTop: '2px', lineHeight: 1.5 }}>{opt.desc}</span>
                 </span>
               </button>
 
@@ -1715,15 +1834,15 @@ function Collapsible({ title, hint, badge, defaultOpen = false, children }: { ti
   // reading it a single time at mount.
   useEffect(() => { if (defaultOpen) setOpen(true) }, [defaultOpen])
   return (
-    <div style={{ border: '1px solid #e7ebf0', borderRadius: '14px', background: 'white', marginBottom: '14px', overflow: 'hidden' }}>
+    <div style={{ border: '1px solid var(--rule)', borderRadius: '14px', background: 'white', marginBottom: '14px', overflow: 'hidden' }}>
       <button onClick={() => setOpen(v => !v)}
         style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '15px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' as const, fontFamily: "'DM Sans', sans-serif" }}>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a' }}>{title}</span>
-          {hint && <span style={{ display: 'block', fontSize: '12px', color: '#94a3b8', marginTop: '2px', fontWeight: 300, lineHeight: 1.5 }}>{hint}</span>}
+          <span style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>{title}</span>
+          {hint && <span style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', marginTop: '2px', fontWeight: 300, lineHeight: 1.5 }}>{hint}</span>}
         </span>
-        {badge && <span style={{ fontSize: '10.5px', fontWeight: 600, color: '#94a3b8', flexShrink: 0 }}>{badge}</span>}
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
+        {badge && <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--muted)', flexShrink: 0 }}>{badge}</span>}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       {/* Hidden rather than unmounted: an uncontrolled textarea loses whatever
           was typed the instant it unmounts (the same data-loss trap the build
@@ -1772,16 +1891,16 @@ function ErrorDisplay({ error, onRetry, onDismiss }: { error: any; onRetry: () =
       : <><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" strokeLinecap="round" /></>
 
   return (
-    <div style={{ background: 'white', border: '1px solid #e7ebf0', borderLeft: `3px solid ${c}`, borderRadius: '12px', padding: '16px 18px', marginBottom: '16px', animation: 'fadeIn 0.25s ease' }}>
+    <div style={{ background: 'white', border: '1px solid var(--rule)', borderLeft: `3px solid ${c}`, borderRadius: '12px', padding: '16px 18px', marginBottom: '16px', animation: 'fadeIn 0.25s ease' }}>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.7" style={{ flexShrink: 0, marginTop: '1px' }}>{icon}</svg>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '3px' }}>{error.title}</div>
-          <div style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.65 }}>{error.msg}</div>
+          <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '3px' }}>{error.title}</div>
+          <div style={{ fontSize: '12.5px', color: 'var(--graphite)', lineHeight: 1.65 }}>{error.msg}</div>
           <div style={{ display: 'flex', gap: '18px', alignItems: 'center', flexWrap: 'wrap' as const, marginTop: '13px' }}>
-            <button onClick={onRetry} style={{ padding: '8px 16px', background: '#0a0f1a', color: 'white', border: 'none', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Try again</button>
-            <button onClick={onDismiss} style={{ background: 'none', border: 'none', padding: 0, fontSize: '12.5px', fontWeight: 500, color: '#64748b', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Dismiss</button>
-            <a href="https://wa.me/233559519783?text=Hi,%20I%20need%20help%20with%20Extraordinary%20CV" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12.5px', fontWeight: 500, color: '#94a3b8', textDecoration: 'none', marginLeft: 'auto' }}>Need help?</a>
+            <button onClick={onRetry} style={{ padding: '8px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Try again</button>
+            <button onClick={onDismiss} style={{ background: 'none', border: 'none', padding: 0, fontSize: '12.5px', fontWeight: 500, color: 'var(--graphite)', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Dismiss</button>
+            <a href="https://wa.me/233559519783?text=Hi,%20I%20need%20help%20with%20Extraordinary%20CV" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--muted)', textDecoration: 'none', marginLeft: 'auto' }}>Need help?</a>
           </div>
         </div>
       </div>
@@ -1826,23 +1945,23 @@ function UploadZone({ label, hint, onFile, file, readError }: { label: string; h
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"/></svg>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{file.name}</div>
+        <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{file.name}</div>
         <div style={{ fontSize: '12px', color: '#b91c1c', fontWeight: 500 }}>{readError}</div>
       </div>
-      <button onClick={() => onFile(null)} style={{ fontSize: '12px', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Remove</button>
+      <button onClick={() => onFile(null)} style={{ fontSize: '12px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Remove</button>
     </div>
   )
 
   if (file) return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px', background: '#f0fdf9', border: '1.5px solid #0d9488', borderRadius: '14px' }}>
-      <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px', background: 'var(--teal-tint)', border: '1.5px solid var(--teal)', borderRadius: '14px' }}>
+      <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{file.name}</div>
-        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 300 }}>Ready — we’ll read this when you generate</div>
+        <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{file.name}</div>
+        <div style={{ fontSize: '12px', color: 'var(--graphite)', fontWeight: 300 }}>Ready — we’ll read this when you generate</div>
       </div>
-      <button onClick={() => onFile(null)} style={{ fontSize: '12px', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Remove</button>
+      <button onClick={() => onFile(null)} style={{ fontSize: '12px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Remove</button>
     </div>
   )
 
@@ -1889,17 +2008,17 @@ function UploadZone({ label, hint, onFile, file, readError }: { label: string; h
       onDragLeave={e => { e.preventDefault(); setDragging(false) }}
       onDrop={e => { e.preventDefault(); setDragging(false); pick(e.dataTransfer.files?.[0]) }}
       style={{
-        border: `2px dashed ${dragging ? '#0d9488' : fileErr ? '#fca5a5' : '#dbe2ea'}`, borderRadius: '16px',
+        border: `2px dashed ${dragging ? 'var(--teal)' : fileErr ? '#fca5a5' : '#dbe2ea'}`, borderRadius: '16px',
         padding: '38px 24px', textAlign: 'center', cursor: 'pointer',
-        background: dragging ? '#f0fdf9' : '#fcfdfe', transition: 'border-color 0.15s, background 0.15s',
+        background: dragging ? 'var(--teal-tint)' : '#fcfdfe', transition: 'border-color 0.15s, background 0.15s',
       }}
     >
-      <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: dragging ? '#0d9488' : '#eef4f8', color: dragging ? '#fff' : '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', transition: 'background 0.15s, color 0.15s' }}>
+      <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: dragging ? 'var(--teal)' : '#eef4f8', color: dragging ? '#fff' : 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', transition: 'background 0.15s, color 0.15s' }}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"/></svg>
       </div>
-      <div style={{ fontSize: '14.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '5px' }}>{label}</div>
-      <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 300, marginBottom: '16px' }}>{hint}</div>
-      <span style={{ display: 'inline-block', padding: '10px 26px', background: '#0d9488', color: 'white', borderRadius: '50px', fontSize: '13px', fontWeight: 600 }}>Browse files</span>
+      <div style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '5px' }}>{label}</div>
+      <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 300, marginBottom: '16px' }}>{hint}</div>
+      <span style={{ display: 'inline-block', padding: '10px 26px', background: 'var(--teal)', color: 'white', borderRadius: '50px', fontSize: '13px', fontWeight: 600 }}>Browse files</span>
       <input ref={ref} type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }}
         onChange={e => { const el = e.target; pick(el.files?.[0]).finally(() => { el.value = '' }) }} />
     </div>
