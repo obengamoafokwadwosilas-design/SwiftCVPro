@@ -156,15 +156,15 @@ body {
    ═══════════════════════════════════════════════════════════════ */
 :root {
   --ink:        #0B1017;   /* nav, headlines */
-  --paper:      #FAFAF7;   /* page ground — warm-neutral, never blue-grey */
+  --paper:      #FAF7F1;   /* page ground — the landing page's own paper */
   --sheet:      #FFFFFF;   /* the cards, as actual paper */
   --teal:       #0F6F66;   /* the single accent, ink-deep */
   --teal-deep:  #0A544D;
   --teal-tint:  #EFF5F3;
   --graphite:   #5B6470;   /* secondary text */
   --muted:      #8B939C;   /* tertiary, utility labels */
-  --rule:       #E5E4DE;   /* hairlines, warm to match paper */
-  --rule-soft:  #EFEEE9;
+  --rule:       #E7E3DA;   /* hairlines, warm to match paper */
+  --rule-soft:  #F1ECE3;
 
   /* Legacy aliases kept so older screens inherit the new register
      instead of drifting back to the old Tailwind-bright teal. */
