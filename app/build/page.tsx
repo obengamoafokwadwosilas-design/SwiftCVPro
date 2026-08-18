@@ -61,10 +61,6 @@ export default function BuildPage() {
   // academic extras only for academics, job details only where relevant, and a
   // cover-letter user never wades through CV-only fields.
   const [screen, setScreen] = useState<Screen>('type')
-  // Free-preview callout — a floating banner rather than permanent copy, so
-  // it's noticeable once without permanently competing with the type cards
-  // for space. Shows on load, auto-dismisses; also closeable by hand.
-  const [showFreeBanner, setShowFreeBanner] = useState(true)
   // Professional CV is the common case, so it's selected by default — the user
   // can switch, but never has to make a choice just to move forward.
   const [typeChosen, setTypeChosen] = useState(true)
@@ -200,12 +196,6 @@ export default function BuildPage() {
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get('type') as CVType
     if (t && ['professional','targeted','academic','cover_letter'].includes(t)) setCvType(t)
-  }, [])
-
-  // ── Free-preview banner auto-dismiss ──────────────────────
-  useEffect(() => {
-    const t = setTimeout(() => setShowFreeBanner(false), 6000)
-    return () => clearTimeout(t)
   }, [])
 
   // ── Restore a build seed, if one is waiting ───────────────────
@@ -499,6 +489,14 @@ export default function BuildPage() {
     clearVal(refs.extras); clearVal(refs.grants); clearVal(refs.supervision); clearVal(refs.orcid)
     clearVal(refs.jobTitle); clearVal(refs.company)
     setRestoredFromLastInput(false)
+  }
+
+  // "Switch number" — same wipe as clearSavedInfo, plus a jump back to the
+  // type screen since that's the only place phone/email are editable.
+  function switchNumber() {
+    clearSavedInfo()
+    setScreen('type')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   // ── File extract ──────────────────────────────
@@ -910,54 +908,37 @@ export default function BuildPage() {
       {/* Choose the document (1), how to share info (2), fill in & generate (3) */}
       <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
 
-      {/* Free-preview callout — floating, auto-dismissing, never part of the
-          normal-flow layout so it can't push the type cards down or linger
-          as permanent clutter. */}
-      {showFreeBanner && (
-        <div style={{ position: 'sticky', top: '12px', zIndex: 150, display: 'flex', justifyContent: 'center', padding: '0 16px', pointerEvents: 'none' }}>
-          <div style={{ pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: '10px', background: '#0a5d55', color: 'white', borderRadius: '50px', padding: '10px 14px 10px 18px', boxShadow: '0 10px 30px rgba(10,93,85,0.35)', fontFamily: "'DM Sans', sans-serif", fontSize: '13px', fontWeight: 500, maxWidth: '92vw' }}>
-            <span>✨ Your first 2 previews are free — pay only when you’re ready to download.</span>
-            <button onClick={() => setShowFreeBanner(false)} aria-label="Dismiss" style={{ flexShrink: 0, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '50%', width: '20px', height: '20px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', lineHeight: 1 }}>×</button>
+      {/* Back + status pill share one row — Back on the left when there's
+          somewhere to go back to, a quiet always-visible credits/free-preview
+          readout on the right once the phone number is known (from the method
+          screen on). Replaces the old floating "free previews" toast — a
+          sticky popup that sat on top of the page and had to be dismissed —
+          with something that's just there, the way SwiftEssayPro shows its
+          balance: inline, static, never in the way. */}
+      {(backTo || screen === 'type' || phoneNumber) && (
+        <div style={{ maxWidth: '760px', margin: '0 auto', padding: '22px 24px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' as const }}>
+          <div>
+            {(backTo || screen === 'type') && (
+              <button onClick={() => backTo ? go(backTo) : router.push('/')} style={btnBackTop}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                Back
+              </button>
+            )}
           </div>
-        </div>
-      )}
-
-      {/* Back — moves one screen back within the flow, or out to the home
-          page from the very first (type) screen so it's never a dead end. */}
-      {(backTo || screen === 'type') && (
-        <div style={{ maxWidth: '760px', margin: '0 auto', padding: '22px 24px 0' }}>
-          <button onClick={() => backTo ? go(backTo) : router.push('/')} style={btnBackTop}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Back
-          </button>
-        </div>
-      )}
-
-      {/* Credit balance — shown on the info screens once we know it, and only
-          when there's something to show (no clutter for no-credit users).
-          Only the pool that actually applies to the document being built
-          right now — a CV credit can't pay for a cover-letter download or
-          vice versa, they're separate currencies, so showing both together
-          regardless of cvType implied one covers the other when it doesn't. */}
-      {/* Shown from the method screen onwards — the balance is known as soon as
-          Continue is pressed, and seeing "no payment needed" BEFORE putting in
-          the work is the reassuring moment. Hidden only on the type screen,
-          where we haven't looked it up yet. */}
-      {screen !== 'type' && creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0) && (
-        <div style={{ maxWidth: '640px', margin: '22px auto 0', padding: '0 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'linear-gradient(135deg, #f0fdf9, #ecfdf5)', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '12px', padding: '13px 16px' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#0d9488', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.6"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </div>
-            <div>
-              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#0a0f1a' }}>
-                {cvType === 'cover_letter'
-                  ? `${creditBalance.cl} Cover Letter${creditBalance.cl === 1 ? '' : 's'}`
-                  : `${creditBalance.cv} CV${creditBalance.cv === 1 ? '' : 's'}`} remaining
+          {screen !== 'type' && phoneNumber && (
+            <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '5px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', fontWeight: 600, color: '#0f766e', background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '50px', padding: '7px 15px', whiteSpace: 'nowrap' as const }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.8" style={{ flexShrink: 0 }}><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                {creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0)
+                  ? `${cvType === 'cover_letter' ? creditBalance.cl : creditBalance.cv} ${cvType === 'cover_letter' ? 'cover letter' : 'CV'}${(cvType === 'cover_letter' ? creditBalance.cl : creditBalance.cv) === 1 ? '' : 's'} remaining`
+                  : 'First 2 previews free'}
+                <span style={{ color: '#94a3b8', fontWeight: 400 }}>· {phoneNumber}</span>
               </div>
-              <div style={{ fontSize: '12px', color: '#0f766e', marginTop: '1px' }}>No payment required.</div>
+              <button type="button" onClick={switchNumber} style={{ background: 'none', border: 'none', padding: 0, fontSize: '11px', color: '#94a3b8', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                Not you? <span style={{ color: '#0d9488', fontWeight: 600 }}>Switch number</span>
+              </button>
             </div>
-          </div>
+          )}
         </div>
       )}
 
