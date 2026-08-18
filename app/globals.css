@@ -223,31 +223,6 @@ body { background: var(--paper); color: var(--ink); }
 }
 .xcv-sheet:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; }
 
-/* The A4 miniature inside each sheet — true 1:1.414 page proportion. */
-.xcv-mini {
-  width: 44px;
-  aspect-ratio: 1 / 1.414;
-  flex-shrink: 0;
-  background: #fff;
-  border: 1px solid var(--rule);
-  border-radius: 2px;
-  padding: 5px 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 2.5px;
-  box-shadow: 0 1px 2px rgba(11,16,23,.05);
-  transition: box-shadow .22s ease, transform .22s cubic-bezier(.2,.7,.3,1);
-}
-.xcv-sheet[aria-pressed='true'] .xcv-mini {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(11,16,23,.10);
-}
-.xcv-mini i { display: block; height: 1.5px; border-radius: 1px; background: #DEDDD7; }
-.xcv-sheet[aria-pressed='true'] .xcv-mini i { background: #CFD6D3; }
-.xcv-mini i.hd { height: 4px; background: var(--ink); opacity: .78; border-radius: 1px; }
-.xcv-sheet[aria-pressed='true'] .xcv-mini i.hd { background: var(--teal); opacity: 1; }
-.xcv-mini i.rule { height: 1px; background: var(--rule); }
-
 /* ── Fields ────────────────────────────────────────────────────── */
 .xcv-field {
   width: 100%;
@@ -307,13 +282,12 @@ body { background: var(--paper); color: var(--ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .xcv-rise { animation: none; }
-  .xcv-sheet, .xcv-mini, .xcv-btn, .xcv-btn .arw, .xcv-sheet::before { transition: none; }
+  .xcv-sheet, .xcv-btn, .xcv-btn .arw, .xcv-sheet::before { transition: none; }
   .xcv-sheet:hover { transform: none; }
   .xcv-sheet[aria-pressed='true']::before { transform: scaleY(1); }
 }
 
 @media (max-width: 560px) {
-  .xcv-mini { width: 36px; }
   .xcv-actionbar { flex-direction: column; align-items: stretch !important; gap: 14px; }
   .xcv-actionbar .xcv-btn { justify-content: center; width: 100%; }
 }

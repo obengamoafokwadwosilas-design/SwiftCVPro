@@ -48,54 +48,28 @@ const CV_TYPE_META: Record<CVType, { label: string; shortLabel: string; hasJobSt
 
 // ─────────────────────────────────────────────────────────────
 // THE CHOOSER
-// Each option is described as the page it produces. A row is one line of
-// the miniature: `hd` is a heading stroke, `rule` a divider, `gap` white
-// space, and `a: 'r'` right-aligns (a letter's date line). The rhythms are
-// real — the academic sheet runs denser because an academic CV is denser,
-// and the letter is prose blocks closing on a signature.
+// One icon per document type, in the icon tile the rest of the app uses.
 // ─────────────────────────────────────────────────────────────
-type MiniRow = { w?: number; k?: 'hd' | 'rule' | 'gap'; a?: 'r' }
-
-const DOC_TYPES: { id: CVType; name: string; desc: string; note: string; rows: MiniRow[] }[] = [
+const DOC_TYPES: { id: CVType; name: string; desc: string; icon: React.ReactNode }[] = [
   {
     id: 'professional',
     name: 'Professional CV',
     desc: 'For most job applications, in any industry.',
-    note: '',
-    rows: [{ k: 'hd', w: 62 }, { w: 38 }, { k: 'rule' }, { w: 100 }, { w: 93 }, { w: 76 }, { k: 'gap' }, { w: 100 }, { w: 88 }, { w: 62 }, { k: 'gap' }, { w: 90 }],
+    icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg>,
   },
   {
     id: 'academic',
     name: 'Academic CV',
     desc: 'For research posts, postgraduate applications and lecturing.',
-    note: 'publications & research',
-    rows: [{ k: 'hd', w: 56 }, { w: 32 }, { k: 'rule' }, { w: 100 }, { w: 96 }, { w: 91 }, { w: 100 }, { w: 97 }, { w: 84 }, { w: 100 }, { w: 94 }, { w: 100 }, { w: 89 }, { w: 100 }, { w: 71 }],
+    icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>,
   },
   {
     id: 'cover_letter',
     name: 'Cover Letter',
     desc: 'One page arguing why you are right for the role.',
-    note: 'one page',
-    rows: [{ w: 30, a: 'r' }, { k: 'gap' }, { w: 44 }, { k: 'gap' }, { w: 100 }, { w: 97 }, { w: 82 }, { k: 'gap' }, { w: 100 }, { w: 93 }, { w: 68 }, { k: 'gap' }, { k: 'hd', w: 34 }],
+    icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>,
   },
 ]
-
-function MiniSheet({ rows }: { rows: MiniRow[] }) {
-  return (
-    <span className="xcv-mini" aria-hidden="true">
-      {rows.map((r, i) => {
-        if (r.k === 'gap') return <span key={i} style={{ display: 'block', height: '3px', flexShrink: 0 }} />
-        return (
-          <i
-            key={i}
-            className={r.k === 'hd' ? 'hd' : r.k === 'rule' ? 'rule' : undefined}
-            style={{ width: (r.k === 'rule' ? 100 : (r.w ?? 100)) + '%', marginLeft: r.a === 'r' ? 'auto' : undefined }}
-          />
-        )
-      })}
-    </span>
-  )
-}
 
 // A cover letter is not a CV, so it doesn't walk the CV-shaped path. It needs
 // four things — who you are, your background, the role, and why you want it —
@@ -170,10 +144,6 @@ export default function BuildPage() {
   // magic. Unticking it before Generate both skips saving and wipes anything
   // already remembered, so it actually means "stop remembering me."
   const [rememberMe, setRememberMe] = useState(true)
-  // Collapsed identity is the default for a returning user; "Change" opens
-  // the fields. One control, instead of a "Switch number" and a "Clear saved
-  // info" sitting at opposite ends of the same screen.
-  const [editIdentity, setEditIdentity] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<{ title: string; msg: string; type: 'payment' | 'input' | 'server' | 'network' } | null>(null)
 
@@ -1041,8 +1011,6 @@ export default function BuildPage() {
       {/* ══ SCREEN: CHOOSE DOCUMENT ══════════════════════════════════ */}
       {screen === 'type' && (() => {
         const hasCredits = !!creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0)
-        const identityKnown = restoredFromLastInput && !!phoneNumber.trim() && !!email.trim()
-        const collapsed = identityKnown && !editIdentity
         return (
         <div style={{ maxWidth: '680px', margin: '0 auto', padding: '38px 24px 96px' }}>
 
@@ -1074,7 +1042,6 @@ export default function BuildPage() {
           <div style={{ display: 'grid', gap: '10px', marginBottom: '38px' }}>
             {DOC_TYPES.map((card, i) => {
               const selected = typeChosen && cvType === card.id
-              const steps = CV_TYPE_META[card.id].totalFormSteps
               return (
                 <button
                   key={card.id}
@@ -1084,13 +1051,10 @@ export default function BuildPage() {
                   className="xcv-sheet xcv-rise"
                   style={{ animationDelay: (70 + i * 70) + 'ms', display: 'flex', alignItems: 'center', gap: '18px', width: '100%', textAlign: 'left' as const, cursor: 'pointer', padding: '17px 19px', fontFamily: "'DM Sans', sans-serif" }}
                 >
-                  <MiniSheet rows={card.rows} />
+                  <span style={{ width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'var(--rule-soft)', color: selected ? '#fff' : 'var(--graphite)', transition: 'background .18s ease, color .18s ease' }}>{card.icon}</span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: '1.45rem', fontWeight: 400, color: 'var(--ink)', lineHeight: 1.12, letterSpacing: '-0.005em' }}>{card.name}</span>
                     <span style={{ display: 'block', fontSize: '13px', color: 'var(--graphite)', marginTop: '5px', lineHeight: 1.5, fontWeight: 300 }}>{card.desc}</span>
-                    <span className="xcv-mono" style={{ display: 'block', marginTop: '10px', fontSize: '9px', color: 'var(--muted)' }}>
-                      {steps} steps{card.note ? ' · ' + card.note : ''}
-                    </span>
                   </span>
                   <span style={{ width: '18px', height: '18px', flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'transparent', border: '1px solid ' + (selected ? 'var(--teal)' : 'var(--rule)'), transition: 'background .18s ease, border-color .18s ease' }}>
                     {selected && <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
@@ -1100,71 +1064,58 @@ export default function BuildPage() {
             })}
           </div>
 
-          {/* Identity. One place to change who this saves to, reached by one
-              link — replacing the two differently-worded "Not you?" controls
-              that used to sit at opposite ends of this screen. */}
+          {/* Contact — collected up front (credits are linked to phone; email
+              guards the free-preview cap) but kept compact and low-key so it
+              never competes with the choice above: one small label, both
+              fields side by side, one shared caption. */}
           <div className="xcv-rise" style={{ animationDelay: '280ms', marginBottom: '34px' }}>
-            <div className="xcv-mono" style={{ color: 'var(--muted)', marginBottom: '12px' }}>Where we save it</div>
-
-            {collapsed ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' as const, border: '1px solid var(--rule)', background: 'var(--sheet)', borderRadius: '6px', padding: '13px 16px' }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '14px', color: 'var(--ink)', fontWeight: 400 }}>{phoneNumber}</div>
-                  <div style={{ fontSize: '12.5px', color: 'var(--graphite)', fontWeight: 300, marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email}</div>
-                </div>
-                <button type="button" className="xcv-link" style={{ fontSize: '13px' }} onClick={() => setEditIdentity(true)}>Change</button>
-              </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
-                  <input
-                    value={phoneNumber}
-                    onChange={e => { setPhoneNumber(e.target.value); if (typeErr) setTypeErr('') }}
-                    onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
-                    placeholder="Phone — e.g. 0551234567"
-                    aria-label="Phone number"
-                    className={'xcv-field' + (typeErr ? ' err' : '')}
-                    style={{ flex: '1 1 190px', width: 'auto' }}
-                  />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
-                    onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
-                    placeholder="Email — e.g. kwame@email.com"
-                    aria-label="Email address"
-                    className={'xcv-field' + (typeErr ? ' err' : '')}
-                    style={{ flex: '1 1 190px', width: 'auto' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' as const, marginTop: '12px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '9px', cursor: 'pointer', userSelect: 'none' }}>
-                    <input
-                      type="checkbox"
-                      checked={rememberMe}
-                      onChange={e => {
-                        setRememberMe(e.target.checked)
-                        // Take effect at once rather than waiting for Generate —
-                        // unticking should visibly mean "forget me", not "forget me
-                        // later".
-                        if (!e.target.checked) { clearLastInput(); setRestoredFromLastInput(false) }
-                      }}
-                      style={{ width: '15px', height: '15px', accentColor: 'var(--teal)', cursor: 'pointer' }}
-                    />
-                    <span style={{ fontSize: '12.5px', color: 'var(--graphite)', fontWeight: 300 }}>Keep these on this device</span>
-                  </label>
-                  {identityKnown && (
-                    <button type="button" className="xcv-link" style={{ fontSize: '12.5px', color: 'var(--muted)', fontWeight: 300 }} onClick={clearSavedInfo}>
-                      Clear saved info
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-
-            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '11px', fontWeight: 300, lineHeight: 1.65 }}>
-              No account needed. Your number is how you find these again.
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
+              <label className="xcv-mono" style={{ color: 'var(--muted)' }}>Phone &amp; email</label>
+              {restoredFromLastInput && (
+                <button type="button" onClick={clearSavedInfo} className="xcv-link" style={{ fontSize: '12.5px', whiteSpace: 'nowrap' as const }}>
+                  Not you? Clear saved info
+                </button>
+              )}
             </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
+              <input
+                value={phoneNumber}
+                onChange={e => { setPhoneNumber(e.target.value); if (typeErr) setTypeErr('') }}
+                onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
+                placeholder="Phone — e.g. 0551234567"
+                aria-label="Phone number"
+                className={'xcv-field' + (typeErr ? ' err' : '')}
+                style={{ flex: '1 1 190px', width: 'auto' }}
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
+                onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
+                placeholder="Email — e.g. kwame@email.com"
+                aria-label="Email address"
+                className={'xcv-field' + (typeErr ? ' err' : '')}
+                style={{ flex: '1 1 190px', width: 'auto' }}
+              />
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '10px', fontWeight: 300, lineHeight: 1.65 }}>
+              <span style={{ color: 'var(--teal)', fontWeight: 500 }}>No account needed.</span> Used to save and access your CVs.
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '9px', marginTop: '11px', cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={e => {
+                  setRememberMe(e.target.checked)
+                  // Take effect at once rather than waiting for Generate —
+                  // unticking should visibly mean "forget me", not "forget me
+                  // later".
+                  if (!e.target.checked) { clearLastInput(); setRestoredFromLastInput(false) }
+                }}
+                style={{ width: '15px', height: '15px', accentColor: 'var(--teal)', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '12.5px', color: 'var(--graphite)', fontWeight: 300 }}>Remember my number on this device</span>
+            </label>
           </div>
 
           {/* The commit. Bound by a rule and carrying what is being committed
@@ -1173,15 +1124,7 @@ export default function BuildPage() {
           <div style={{ height: '1px', background: 'var(--rule)', marginBottom: '22px' }} />
           <div className="xcv-actionbar xcv-rise" style={{ animationDelay: '340ms', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '18px' }}>
             <div style={{ minWidth: 0 }}>
-              {typeErr ? (
-                <div style={{ fontSize: '13px', color: '#C0392B', fontWeight: 400 }} role="alert">{typeErr}</div>
-              ) : typeChosen ? (
-                <div className="xcv-mono" style={{ color: 'var(--muted)' }}>
-                  {meta.label}<span style={{ color: 'var(--rule)', padding: '0 7px' }}>/</span>{meta.totalFormSteps} steps ahead
-                </div>
-              ) : (
-                <div className="xcv-mono" style={{ color: 'var(--muted)' }}>Choose a document to continue</div>
-              )}
+              {typeErr && <div style={{ fontSize: '13px', color: '#C0392B', fontWeight: 400 }} role="alert">{typeErr}</div>}
             </div>
             <button onClick={goAfterType} disabled={!typeChosen} className="xcv-btn">
               Continue
