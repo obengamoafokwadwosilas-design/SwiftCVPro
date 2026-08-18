@@ -993,7 +993,7 @@ export default function BuildPage() {
               <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '6px' }}>
                 <div className="xcv-mono" style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '9.5px', color: 'var(--teal)', background: 'var(--teal-tint)', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '4px', padding: '7px 12px', whiteSpace: 'nowrap' as const }}>
                   {hasCredits
-                    ? n + ' ' + (cvType === 'cover_letter' ? 'cover letter' : 'CV') + (n === 1 ? '' : 's') + ' left'
+                    ? n + ' ' + (cvType === 'cover_letter' ? 'cover letter' : 'CV') + ' credit' + (n === 1 ? '' : 's') + ' left'
                     : 'First 2 previews free'}
                   <span style={{ color: 'var(--muted)', borderLeft: '1px solid rgba(15,111,102,0.18)', paddingLeft: '9px' }}>{phoneNumber}</span>
                 </div>
@@ -1019,10 +1019,10 @@ export default function BuildPage() {
               as the top margin of a page. */}
           <div className="xcv-rise">
             <h1 className="xcv-h1" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(2.15rem, 5.5vw, 3.1rem)', fontWeight: 300, color: 'var(--ink)', lineHeight: 1.02, letterSpacing: '-0.015em', marginBottom: '15px' }}>
-              Pick your CV type
+              What should we create?
             </h1>
-            <p style={{ fontSize: '15px', color: 'var(--graphite)', fontWeight: 300, lineHeight: 1.65, maxWidth: '44ch' }}>
-              Select the option that matches your application, then click continue.
+            <p style={{ fontSize: '15px', color: 'var(--graphite)', fontWeight: 300, lineHeight: 1.65, maxWidth: '46ch' }}>
+              <span style={{ color: 'var(--ink)', fontWeight: 400 }}>Pick your CV type</span> — select the option that matches your application, then click continue.
             </p>
             {/* Shown only when the account is empty. A returning user with
                 credits sees the balance in the pill instead — one statement
@@ -1099,7 +1099,7 @@ export default function BuildPage() {
               />
             </div>
             <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '10px', fontWeight: 300, lineHeight: 1.65 }}>
-              <span style={{ color: 'var(--teal)', fontWeight: 500 }}>No account needed.</span> Used to save and access your CVs.
+              <span style={{ color: 'var(--teal)', fontWeight: 500 }}>No account needed.</span> Phone and email are used to save your CVs for future access.
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '9px', marginTop: '11px', cursor: 'pointer', userSelect: 'none' }}>
               <input
