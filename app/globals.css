@@ -310,3 +310,10 @@ body { background: var(--paper); color: var(--ink); }
 @media (max-width: 560px) {
   .xcv-duo { grid-template-columns: 1fr !important; }
 }
+
+/* The generation overlay is a deliberate mode change to dark — "we are working,
+   stay here". Fading it in keeps that from landing as a hard flash off the
+   cream pages behind it. */
+@keyframes xcv-overlay-in { from { opacity: 0; } to { opacity: 1; } }
+.xcv-overlay-in { animation: xcv-overlay-in .26s ease both; }
+@media (prefers-reduced-motion: reduce) { .xcv-overlay-in { animation: none; } }

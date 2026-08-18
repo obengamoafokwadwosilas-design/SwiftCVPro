@@ -1605,7 +1605,7 @@ export default function BuildPage() {
 
       {/* ══ LOADING OVERLAY ══════════════════════════════════ */}
       {isGenerating && (
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--ink)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '32px' }}>
+        <div className="xcv-overlay-in" style={{ position: 'fixed', inset: 0, background: 'var(--ink)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '32px' }}>
           <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(15,111,102,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
           <div style={{ width: '100%', maxWidth: '540px', textAlign: 'center' }}>
             <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 32px' }}>
@@ -1619,22 +1619,19 @@ export default function BuildPage() {
               </svg>
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
                 <span style={{ fontSize: '22px', fontWeight: 700, color: 'white', lineHeight: 1 }}>{loadingPct}</span>
-                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px' }}>%</span>
+                <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.55)', letterSpacing: '1px' }}>%</span>
               </div>
             </div>
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.6rem, 5vw, 2.2rem)', color: 'white', fontWeight: 500, marginBottom: '8px', lineHeight: 1.2 }}>
               {LOADING_STEPS[loadingStep]?.msg || 'Building your CV...'}
             </h2>
-            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)', marginBottom: '32px' }}>{LOADING_STEPS[loadingStep]?.detail || 'Please wait...'}</p>
-            <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.07)', borderRadius: '99px', overflow: 'hidden', marginBottom: '40px' }}>
-              <div style={{ height: '100%', width: `${loadingPct}%`, background: 'linear-gradient(90deg, var(--teal), var(--teal-on-dark))', borderRadius: '99px', transition: 'width 0.5s ease' }} />
-            </div>
+            <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', marginBottom: '40px' }}>{LOADING_STEPS[loadingStep]?.detail || 'Please wait...'}</p>
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '20px 24px', textAlign: 'left', opacity: didYouKnowFade ? 1 : 0, transition: 'opacity 0.4s ease' }}>
               <div style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '2px', color: 'var(--teal-on-dark)', marginBottom: '8px' }}>DID YOU KNOW?</div>
               <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.6, marginBottom: '10px' }}>{DID_YOU_KNOWS[didYouKnowIdx].fact}</div>
-              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', lineHeight: 1.6 }}>💡 {DID_YOU_KNOWS[didYouKnowIdx].tip}</div>
+              <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6 }}>💡 {DID_YOU_KNOWS[didYouKnowIdx].tip}</div>
             </div>
-            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.18)', marginTop: '24px' }}>Please do not close this page</p>
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', marginTop: '24px' }}>Please do not close this page</p>
           </div>
         </div>
       )}
