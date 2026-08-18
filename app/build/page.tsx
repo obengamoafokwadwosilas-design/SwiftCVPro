@@ -1137,27 +1137,51 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: METHOD ══════════════════════════════════ */}
       {screen === 'method' && (
-        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <h1 className="xcv-h1" style={h1Style}>How would you like to create your {meta.label}?</h1>
-          <p style={{ ...subStyle, marginBottom: '30px' }}>Both paths give the same result. Pick whichever you have to hand.</p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
-            {([
-              { id: 'paste' as const, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, iconBg: '#e1f5ee', title: 'I have an existing CV', desc: 'Upload or paste it — we’ll rebuild and improve it.' },
-              { id: 'form' as const,  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>, iconBg: '#e1f5ee', title: 'I don’t have a CV', desc: 'Fill out a short form — our AI will build your CV.' },
-            ] as any[]).map((opt: any) => (
-              <div key={opt.id} onClick={() => { setInputMethod(opt.id as 'paste' | 'form'); goFromMethod(opt.id as 'paste' | 'form') }}
-                style={{ background: opt.id === 'form' ? 'var(--teal-tint)' : 'white', border: opt.id === 'form' ? '2px solid var(--teal)' : `${inputMethod === 'paste' ? '2px solid var(--teal)' : '1px solid var(--rule)'}`, borderRadius: '16px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column', gap: '10px' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? 'var(--teal)' : 'var(--teal)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? 'var(--teal)' : inputMethod === 'paste' ? 'var(--teal)' : 'var(--rule)' }}
-              >
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: opt.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{opt.icon}</div>
-                <div style={{ fontSize: '14px', fontWeight: 500, color: opt.id === 'form' ? 'var(--teal)' : 'var(--ink)' }}>{opt.title}</div>
-                <div style={{ fontSize: '12px', color: 'var(--graphite)', lineHeight: 1.5 }}>{opt.desc}</div>
-              </div>
-            ))}
+        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '38px 24px 96px' }}>
+          <div className="xcv-rise">
+            <h1 className="xcv-h1" style={h1Style}>How would you like to create your {meta.label}?</h1>
+            <p style={{ ...subStyle, marginBottom: '0' }}>Both paths give the same result. Pick whichever you have to hand.</p>
+            <div style={{ height: '1px', background: 'var(--rule)', margin: '30px 0 24px' }} />
           </div>
 
+          {/* Selecting is a choice, not a jump. Picking a card marks it and the
+              Continue below commits — the same contract as the document
+              chooser, so the flow does not change its rules between screens. */}
+          <div className="xcv-duo" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '38px' }}>
+            {([
+              { id: 'paste' as const, title: 'I have an existing CV', desc: 'Upload or paste it — we’ll rebuild, format and tailor it.',
+                icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+              { id: 'form' as const, title: 'I don’t have a CV', desc: 'Fill out a short form — we’ll structure a professional CV for you.',
+                icon: <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg> },
+            ] as const).map((opt, i) => {
+              const selected = inputMethod === opt.id
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setInputMethod(opt.id)}
+                  className="xcv-sheet xcv-rise"
+                  style={{ animationDelay: (70 + i * 70) + 'ms', display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-start', gap: '11px', textAlign: 'left' as const, cursor: 'pointer', padding: '19px', fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  <span style={{ width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'var(--rule-soft)', color: selected ? '#fff' : 'var(--graphite)', transition: 'background .18s ease, color .18s ease' }}>{opt.icon}</span>
+                  <span style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: '1.3rem', fontWeight: 400, color: 'var(--ink)', lineHeight: 1.15, letterSpacing: '-0.005em' }}>{opt.title}</span>
+                  <span style={{ display: 'block', fontSize: '12.5px', color: 'var(--graphite)', lineHeight: 1.55, fontWeight: 300 }}>{opt.desc}</span>
+                  <span style={{ position: 'absolute' as const, top: '17px', right: '17px', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'transparent', border: '1px solid ' + (selected ? 'var(--teal)' : 'var(--rule)'), transition: 'background .18s ease, border-color .18s ease' }}>
+                    {selected && <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          <div style={{ height: '1px', background: 'var(--rule)', marginBottom: '22px' }} />
+          <div className="xcv-actionbar xcv-rise" style={{ animationDelay: '250ms', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '18px' }}>
+            <button onClick={() => goFromMethod()} className="xcv-btn">
+              Continue
+              <svg className="arw" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h15"/><path d="M13 6l6 6-6 6"/></svg>
+            </button>
+          </div>
         </div>
       )}
 

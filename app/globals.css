@@ -304,3 +304,9 @@ body { background: var(--paper); color: var(--ink); }
 
 @media (max-width: 720px) { .xcv-phase { display: none !important; } }
 @media (max-width: 420px) { .xcv-tagline { display: none !important; } }
+
+/* Two-up choices stack rather than squeeze — at 375px a pair of columns
+   leaves each card too narrow for its own description. */
+@media (max-width: 560px) {
+  .xcv-duo { grid-template-columns: 1fr !important; }
+}
