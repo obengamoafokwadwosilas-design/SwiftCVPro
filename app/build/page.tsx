@@ -906,7 +906,7 @@ export default function BuildPage() {
   // RENDER
   // ─────────────────────────────────────────────
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #f0fdf9 0%, #f8fafc 40%, #fefdfb 100%)' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, #f0fdf9 0%, #faf7f1 45%, #fdfaf4 100%)' }}>
       {/* Choose the document (1), how to share info (2), fill in & generate (3) */}
       <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
 
@@ -1077,15 +1077,15 @@ export default function BuildPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
             {([
               { id: 'paste' as const, icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, iconBg: '#e1f5ee', title: 'I have an existing CV', desc: 'Upload or paste it — we’ll rebuild and improve it.' },
-              { id: 'form' as const,  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>, iconBg: '#e6f1fb', title: 'I don’t have a CV', desc: 'Fill out a short form — our AI will build your CV.' },
+              { id: 'form' as const,  icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>, iconBg: '#e1f5ee', title: 'I don’t have a CV', desc: 'Fill out a short form — our AI will build your CV.' },
             ] as any[]).map((opt: any) => (
               <div key={opt.id} onClick={() => { setInputMethod(opt.id as 'paste' | 'form'); goFromMethod(opt.id as 'paste' | 'form') }}
-                style={{ background: opt.id === 'form' ? '#f0f7ff' : 'white', border: opt.id === 'form' ? '2px solid #185fa5' : `${inputMethod === 'paste' ? '2px solid #0d9488' : '1px solid #e2e8f0'}`, borderRadius: '16px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column', gap: '10px' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? '#185fa5' : '#0d9488' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? '#185fa5' : inputMethod === 'paste' ? '#0d9488' : '#e2e8f0' }}
+                style={{ background: opt.id === 'form' ? '#f0fdf9' : 'white', border: opt.id === 'form' ? '2px solid #0d9488' : `${inputMethod === 'paste' ? '2px solid #0d9488' : '1px solid #e2e8f0'}`, borderRadius: '16px', padding: '20px', cursor: 'pointer', transition: 'border-color 0.2s', display: 'flex', flexDirection: 'column', gap: '10px' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? '#0d9488' : '#0d9488' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = opt.id === 'form' ? '#0d9488' : inputMethod === 'paste' ? '#0d9488' : '#e2e8f0' }}
               >
                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: opt.iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{opt.icon}</div>
-                <div style={{ fontSize: '14px', fontWeight: 500, color: opt.id === 'form' ? '#185fa5' : '#0a0f1a' }}>{opt.title}</div>
+                <div style={{ fontSize: '14px', fontWeight: 500, color: opt.id === 'form' ? '#0d9488' : '#0a0f1a' }}>{opt.title}</div>
                 <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.5 }}>{opt.desc}</div>
               </div>
             ))}
@@ -1193,8 +1193,8 @@ export default function BuildPage() {
         <div style={{ display: screen === 'form-2' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           {/* Not on the cover-letter path — no step number would make sense. */}
           {!isCoverLetter && <StepLabel label={`Step 2 of ${meta.totalFormSteps}`} />}
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#e6f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
           </div>
           <h1 style={h1Style}>Education & Certifications</h1>
           <p style={subStyle}>Your schools, courses, and professional training.</p>
@@ -1235,7 +1235,7 @@ export default function BuildPage() {
       {/* ══ SCREEN: FORM STEP 3 — EXPERIENCE ══════════════════════ */}
         <div style={{ display: screen === 'form-3' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <StepLabel label={`Step ${stepNo('form-3')} of ${meta.totalFormSteps}`} />
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#eeedfe', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#534ab7" strokeWidth="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg>
           </div>
           <h1 style={h1Style}>{isCoverLetter ? 'Your Background' : cvType === 'academic' ? 'Academic & Professional Experience' : 'Work Experience'}</h1>
@@ -1367,10 +1367,10 @@ export default function BuildPage() {
           {/* Academic has no job step, so this screen is never reached there and
               a step number would be nonsense ("Step 5 of 4"). */}
           {meta.hasJobStep && <StepLabel label={`Step ${stepNo('form-5')} of ${meta.totalFormSteps}`} />}
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: cvType === 'cover_letter' ? '#fbeaf0' : '#e6f1fb', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: cvType === 'cover_letter' ? '#fbeaf0' : '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             {cvType === 'cover_letter'
               ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#185fa5" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             }
           </div>
           <h1 style={h1Style}>{cvType === 'cover_letter' ? 'The Role You’re Applying For' : 'The Role You’re Targeting'}</h1>
@@ -1573,7 +1573,7 @@ const tipToggleStyle: React.CSSProperties = { fontSize: '12px', color: '#64748b'
 const btnSkip: React.CSSProperties = { fontSize: '12px', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textDecoration: 'underline', textUnderlineOffset: '2px', display: 'block', textAlign: 'right', width: '100%', marginBottom: '8px', padding: '4px 0' }
 const TA = (minH: number): React.CSSProperties => ({ width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: '12px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: '#0a0f1a', resize: 'none', lineHeight: 1.65, minHeight: minH ? `${minH}px` : undefined, transition: 'border-color 0.2s' })
 const btnPrimary: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '14px 36px', background: 'linear-gradient(135deg, #0d9488, #0f766e)', border: 'none', borderRadius: '50px', fontSize: '14px', fontWeight: 600, color: 'white', cursor: 'pointer', letterSpacing: '0.3px', boxShadow: '0 8px 28px rgba(13,148,136,0.35)', transition: 'all 0.2s' }
-const btnBack: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '13px 22px', background: 'white', border: '2px solid #185fa5', borderRadius: '50px', fontSize: '13px', fontWeight: 600, color: '#185fa5', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
+const btnBack: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '13px 22px', background: 'white', border: '2px solid #0d9488', borderRadius: '50px', fontSize: '13px', fontWeight: 600, color: '#0d9488', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
 // Quiet top-left back link — a navigation affordance, not a competing action.
 const btnBackTop: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '6px 4px', background: 'none', border: 'none', fontSize: '13.5px', fontWeight: 600, color: '#0d9488', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
 
@@ -1620,7 +1620,7 @@ const UPLOAD_PASTE_OPTIONS = [
 
 function ModeToggle({ value, onChange, options }: { value: string; onChange: (v: any) => void; options: { id: string; label: string; icon: React.ReactNode }[] }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: '4px', background: '#eef2f7', borderRadius: '14px', padding: '4px' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${options.length}, 1fr)`, gap: '4px', background: '#f2ede2', borderRadius: '14px', padding: '4px' }}>
       {options.map(opt => {
         const on = value === opt.id
         return (
