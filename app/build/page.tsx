@@ -1019,10 +1019,10 @@ export default function BuildPage() {
               as the top margin of a page. */}
           <div className="xcv-rise">
             <h1 className="xcv-h1" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(2.15rem, 5.5vw, 3.1rem)', fontWeight: 300, color: 'var(--ink)', lineHeight: 1.02, letterSpacing: '-0.015em', marginBottom: '15px' }}>
-              What should we create?
+              Pick your CV type
             </h1>
             <p style={{ fontSize: '15px', color: 'var(--graphite)', fontWeight: 300, lineHeight: 1.65, maxWidth: '44ch' }}>
-              Pick the document. Every question after this one is shaped by what you choose here.
+              Select the option that matches your application, then click continue.
             </p>
             {/* Shown only when the account is empty. A returning user with
                 credits sees the balance in the pill instead — one statement
