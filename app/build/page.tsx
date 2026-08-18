@@ -214,7 +214,23 @@ export default function BuildPage() {
     // Nothing more specific pending — a normal fresh visit. Fall back to
     // whatever this device remembers from last time, if anything.
     const last = loadLastInput()
-    if (last) { applyLastInput(last); setRestoredFromLastInput(true) }
+    if (last) {
+      applyLastInput(last)
+      setRestoredFromLastInput(true)
+      // Know the balance as early as possible for a returning user, so the
+      // credits pill can show up top from the very first screen — same
+      // read-only check goAfterType makes, just fired sooner for display.
+      if (last.phoneNumber) {
+        fetch('/api/check-credits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber: last.phoneNumber, cvType: last.cvType }),
+        })
+          .then(res => res.json())
+          .then(d => setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 }))
+          .catch(() => {})
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -908,39 +924,43 @@ export default function BuildPage() {
       {/* Choose the document (1), how to share info (2), fill in & generate (3) */}
       <Nav step={screen === 'type' ? 1 : screen === 'method' ? 2 : 3} />
 
-      {/* Back + status pill share one row — Back on the left when there's
-          somewhere to go back to, a quiet always-visible credits/free-preview
-          readout on the right once the phone number is known (from the method
-          screen on). Replaces the old floating "free previews" toast — a
-          sticky popup that sat on top of the page and had to be dismissed —
-          with something that's just there, the way SwiftEssayPro shows its
-          balance: inline, static, never in the way. */}
-      {(backTo || screen === 'type' || phoneNumber) && (
-        <div style={{ maxWidth: '760px', margin: '0 auto', padding: '22px 24px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' as const }}>
-          <div>
-            {(backTo || screen === 'type') && (
-              <button onClick={() => backTo ? go(backTo) : router.push('/')} style={btnBackTop}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                Back
-              </button>
+      {/* Back + status pill share one row. The credits pill is permanent —
+          it shows the moment a balance is known, on any screen including the
+          very first one for a returning user, exactly like SwiftEssayPro's
+          top-of-page balance. The "first previews free" fallback only shows
+          once past the type screen, since that message already lives inline
+          there (see the CHOOSE DOCUMENT screen below). */}
+      {(() => {
+        const hasCredits = !!creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0)
+        const showPill = !!phoneNumber && (hasCredits || screen !== 'type')
+        if (!backTo && screen !== 'type' && !showPill) return null
+        return (
+          <div style={{ maxWidth: '760px', margin: '0 auto', padding: '22px 24px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' as const }}>
+            <div>
+              {(backTo || screen === 'type') && (
+                <button onClick={() => backTo ? go(backTo) : router.push('/')} style={btnBackTop}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  Back
+                </button>
+              )}
+            </div>
+            {showPill && (
+              <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '5px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', fontWeight: 600, color: '#0f766e', background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '50px', padding: '7px 15px', whiteSpace: 'nowrap' as const }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.8" style={{ flexShrink: 0 }}><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  {hasCredits
+                    ? `${cvType === 'cover_letter' ? creditBalance!.cl : creditBalance!.cv} ${cvType === 'cover_letter' ? 'cover letter' : 'CV'}${(cvType === 'cover_letter' ? creditBalance!.cl : creditBalance!.cv) === 1 ? '' : 's'} remaining`
+                    : 'First 2 previews free'}
+                  <span style={{ color: '#94a3b8', fontWeight: 400 }}>· {phoneNumber}</span>
+                </div>
+                <button type="button" onClick={switchNumber} style={{ background: 'none', border: 'none', padding: 0, fontSize: '11px', color: '#94a3b8', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                  Not you? <span style={{ color: '#0d9488', fontWeight: 600 }}>Switch number</span>
+                </button>
+              </div>
             )}
           </div>
-          {screen !== 'type' && phoneNumber && (
-            <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '5px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12.5px', fontWeight: 600, color: '#0f766e', background: '#f0fdf9', border: '1px solid rgba(13,148,136,0.25)', borderRadius: '50px', padding: '7px 15px', whiteSpace: 'nowrap' as const }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2.8" style={{ flexShrink: 0 }}><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                {creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0)
-                  ? `${cvType === 'cover_letter' ? creditBalance.cl : creditBalance.cv} ${cvType === 'cover_letter' ? 'cover letter' : 'CV'}${(cvType === 'cover_letter' ? creditBalance.cl : creditBalance.cv) === 1 ? '' : 's'} remaining`
-                  : 'First 2 previews free'}
-                <span style={{ color: '#94a3b8', fontWeight: 400 }}>· {phoneNumber}</span>
-              </div>
-              <button type="button" onClick={switchNumber} style={{ background: 'none', border: 'none', padding: 0, fontSize: '11px', color: '#94a3b8', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-                Not you? <span style={{ color: '#0d9488', fontWeight: 600 }}>Switch number</span>
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+        )
+      })()}
 
       {/* ══ SCREEN: CHOOSE DOCUMENT ══════════════════════════════════ */}
       {screen === 'type' && (
@@ -948,7 +968,13 @@ export default function BuildPage() {
           <h1 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', fontWeight: 600, color: '#0a0f1a', marginBottom: '8px', lineHeight: 1.15 }}>
             What should we <span style={{ color: '#0d9488' }}>create?</span>
           </h1>
-          <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '32px', fontWeight: 300, lineHeight: 1.7 }}>Choose the document you need — we’ll tailor everything to it.</p>
+          <p style={{ fontSize: '15px', color: '#64748b', marginBottom: '10px', fontWeight: 300, lineHeight: 1.7 }}>Choose the document you need — we’ll tailor everything to it.</p>
+          {/* A plain line in normal flow, not a floating toast — it can't
+              overlap or push anything, and it's simply gone once Continue
+              moves the user past this screen. */}
+          <p style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#0f766e', fontWeight: 600, marginBottom: '28px' }}>
+            <span aria-hidden="true">✨</span> Your first 2 previews are free — pay only when you’re ready to download.
+          </p>
 
           <div style={{ display: 'grid', gap: '12px', marginBottom: '28px' }}>
             {([
