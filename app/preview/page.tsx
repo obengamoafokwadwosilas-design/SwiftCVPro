@@ -861,7 +861,7 @@ export default function PreviewPage() {
   }
 
   return (
-    <div style={{ minHeight:'100vh', background:'#f1f5f9' }}>
+    <div style={{ minHeight:'100vh', background:'#faf7f1' }}>
       {/* Load premium fonts for screen + print */}
       <link rel="stylesheet" href={PRINT_FONTS_HREF} />
 
