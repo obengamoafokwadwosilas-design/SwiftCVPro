@@ -185,6 +185,13 @@ nav.scrolled .hamburger span { background:var(--white); }
 @media(min-width:1024px){ .hero-stop{ margin-left:0; margin-right:0; } }
 
 .hero-invest { display:flex; align-items:center; gap:9px; justify-content:center; font-weight:800; font-size:1rem; letter-spacing:0.01em; color:var(--teal-dark); margin-bottom:28px; }
+/* On mobile this line wraps to two lines — align-items:center then centers the
+   icon against the whole block instead of the first line, so it floats away
+   from the text. flex-start plus a small nudge keeps it level with the text. */
+@media(max-width:639px){
+  .hero-invest { align-items:flex-start; }
+  .hero-invest svg { margin-top:3px; }
+}
 @media(min-width:1024px){ .hero-invest{ justify-content:flex-start; } }
 
 .hero-left { margin-left:auto; margin-right:auto; }
