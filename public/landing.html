@@ -94,7 +94,11 @@ a { text-decoration: none; color: inherit; }
 nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
   padding: 22px 0; transition: all 0.45s var(--ease);
-  border-bottom: 1px solid transparent;
+  /* Opaque paper with a hairline under it, rather than fully transparent: the
+     bar reads as its own surface at rest without a white fill fighting the
+     cream. Scrolling still swaps the whole thing to navy below. */
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
 }
 nav.scrolled {
   background: rgba(10,15,26,0.97);
