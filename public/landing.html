@@ -550,6 +550,19 @@ section { padding:var(--section-y) 0; }
 }
 .testi-grid:hover { animation-play-state: paused; }
 @keyframes testiMarquee { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
+
+/* Marquee speed on small screens.
+   The tracks are content-sized, so they are the same width on a phone as on a
+   desktop and run at the same px/s — companies ~55px/s, templates ~37px/s.
+   What changes is the window onto them: a 375px screen shows 8.5% of the
+   4391px company strip at a time versus 29% on desktop, so the same speed
+   delivers a third of the content per second and reads as crawling. Shorter
+   durations restore the desktop sense of pace. */
+@media(max-width:768px){
+  .ticker-inner    { animation-duration: 24s; }
+  .template-ticker { animation-duration: 20s; }
+  .testi-grid      { animation-duration: 45s; }
+}
 .testi-card {
   width:340px; flex-shrink:0;
   border:1px solid var(--rule-strong); border-radius:16px;

@@ -23,7 +23,7 @@ QUALITY BAR:
 A senior recruiter at PwC Accra should read this CV and want to call the person within 30 seconds. If the writing feels even slightly generic, rewrite it sharper. Every word earns its place.`
 
 export function buildGenerationPrompt(formData: CVFormData): string {
-  const typeInstructions = getTypeInstructions(formData.cvType, formData.jobDescription)
+  const typeInstructions = getTypeInstructions(formData.cvType, formData.jobDescription, formData.jobTitle, formData.targetIndustry)
   const outputFormat = getOutputFormat(formData.cvType)
   const userInfo = buildUserInfoBlock(formData)
 
@@ -47,6 +47,7 @@ function buildUserInfoBlock(formData: CVFormData): string {
   const lines: string[] = []
   if (formData.fullName)      lines.push(`Full Name: ${formData.fullName}`)
   if (formData.jobTitle)      lines.push(`Target Role: ${formData.jobTitle}`)
+  if (formData.targetIndustry) lines.push(`Target Industry/Sector: ${formData.targetIndustry}`)
   if (formData.email)         lines.push(`Email: ${formData.email}`)
   if (formData.phone)         lines.push(`Phone: ${formData.phone}`)
   if (formData.location)      lines.push(`Location: ${formData.location}`)
@@ -60,15 +61,14 @@ function buildUserInfoBlock(formData: CVFormData): string {
   if (formData.references)    lines.push(`\nREFERENCES:\n${formData.references}`)
   if (formData.additionalInfo) lines.push(`\nADDITIONAL INFORMATION:\n${formData.additionalInfo}`)
   if (formData.specialRequests) lines.push(`\nSPECIAL REQUESTS (follow carefully):\n${formData.specialRequests}`)
+  if (formData.whyRole)       lines.push(`\nWHY THIS ROLE (use to sharpen the opening paragraph):\n${formData.whyRole}`)
   return lines.join('\n')
 }
 
-function getTypeInstructions(cvType: CVType, jobDescription?: string): string {
+function getTypeInstructions(cvType: CVType, jobDescription?: string, jobTitle?: string, targetIndustry?: string): string {
   switch (cvType) {
-    case 'professional':
-      return `TASK: Write a Professional CV that commands attention.
-
-STRUCTURE & STANDARDS:
+    case 'professional': {
+      const base = `STRUCTURE & STANDARDS:
 - SUMMARY (3-4 sentences): Open with years of experience and domain expertise. Include one signature achievement with numbers. End with what value the person brings to a future employer. Make it sound like an executive bio, not a job-seeker plea.
 
 - EXPERIENCE BULLETS: 4-5 per role for senior positions, 3-4 for junior.
@@ -83,6 +83,47 @@ STRUCTURE & STANDARDS:
 - EDUCATION: Highest first. Include grade/class only if shared.
 
 TONE: Confident senior professional. Never apologetic, never overstated. Specific over generic, always.`
+
+      // A pasted job advert is the strongest signal — tailor hard, the same
+      // way the (otherwise unreachable) 'targeted' case below does.
+      if (jobDescription) {
+        return `TASK: Write a Professional CV laser-focused on this specific role.
+
+THE JOB:
+${jobDescription}
+
+${base}
+
+TAILORING — READ THIS CAREFULLY:
+- Identify the top 5-7 skills/keywords/competencies the employer wants from the job description above.
+- Weave those keywords NATURALLY into the summary, bullets, and skills section.
+- Reorder bullets within each role so the most job-relevant achievement appears first.
+- The summary must directly address why THIS person fits THIS role — be specific about what they bring.
+- Do NOT keyword-stuff. Read it back: does it sound natural? If not, rewrite.
+- Match the seniority and tone of the role. Manager job → managerial language. Specialist role → technical depth.
+
+QUALITY: A hiring manager should read the first 6 lines and say "this person is exactly who we need."`
+      }
+
+      // No advert, but the user named a target role or industry — a lighter
+      // touch than a full advert: slant emphasis and tone, don't invent
+      // keywords to match a posting that doesn't exist.
+      if (jobTitle || targetIndustry) {
+        const target = [jobTitle, targetIndustry].filter(Boolean).join(' in ')
+        return `TASK: Write a Professional CV aimed at ${target}.
+
+${base}
+
+TAILORING:
+- No specific job advert was provided, but the person is aiming at ${target}.
+- Let this shape emphasis and tone: foreground the experience, skills and achievements most relevant to ${target}, and use language natural to that field.
+- Do not invent employers, skills, or experience the person doesn't have just to fit the target — work only with what's provided, emphasised toward the goal.`
+      }
+
+      return `TASK: Write a Professional CV that commands attention.
+
+${base}`
+    }
 
     case 'targeted':
       return `TASK: Write a Targeted CV laser-focused on this specific role.

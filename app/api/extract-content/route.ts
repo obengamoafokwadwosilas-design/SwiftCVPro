@@ -9,6 +9,22 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
 
+// The vision API accepts four image formats and caps each image at 10MB once
+// base64-encoded. Base64 inflates by ~4/3, so the raw file has to stay under
+// ~7.5MB; 7MB leaves headroom for the rest of the request body.
+const CLAUDE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const
+type ClaudeImageType = typeof CLAUDE_IMAGE_TYPES[number]
+const MAX_IMAGE_BYTES = 7 * 1024 * 1024
+
+const EXT_TO_IMAGE_TYPE: Record<string, ClaudeImageType> = {
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+  '.gif': 'image/gif', '.webp': 'image/webp',
+}
+
+function asMegabytes(bytes: number): string {
+  return (bytes / 1024 / 1024).toFixed(1) + 'MB'
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData()
@@ -43,15 +59,34 @@ export async function POST(req: NextRequest) {
       extractedText = result.value || ''
     }
 
-    else if (
-      mimeType.startsWith('image/') ||
-      fileName.endsWith('.jpg') ||
-      fileName.endsWith('.jpeg') ||
-      fileName.endsWith('.png') ||
-      fileName.endsWith('.webp')
-    ) {
-      const imageType = mimeType.startsWith('image/') ? mimeType : 'image/jpeg'
-      extractedText = await extractWithClaude(buffer, imageType as any)
+    else if (mimeType.startsWith('image/') || /\.(jpe?g|png|gif|webp|hei[cf])$/.test(fileName)) {
+      // Trust the extension over the browser-reported type: some mobile
+      // browsers send an empty or generic mimeType for camera photos.
+      const ext = fileName.slice(fileName.lastIndexOf('.'))
+      const imageType: ClaudeImageType | null = EXT_TO_IMAGE_TYPE[ext]
+        ?? (CLAUDE_IMAGE_TYPES.includes(mimeType as ClaudeImageType) ? (mimeType as ClaudeImageType) : null)
+
+      if (!imageType) {
+        return NextResponse.json(
+          {
+            error: /\.hei[cf]$/.test(fileName)
+              ? 'iPhone photos saved as HEIC can\'t be read. In Settings › Camera › Formats choose "Most Compatible", or send a screenshot of the photo instead.'
+              : 'That image format is not supported. Please use a JPG, PNG or WEBP.',
+          },
+          { status: 400 }
+        )
+      }
+
+      if (buffer.length > MAX_IMAGE_BYTES) {
+        return NextResponse.json(
+          {
+            error: `This photo is ${asMegabytes(buffer.length)} — too large to read (the limit is ${asMegabytes(MAX_IMAGE_BYTES)}). Send a screenshot of it, or a smaller photo.`,
+          },
+          { status: 413 }
+        )
+      }
+
+      extractedText = await extractWithClaude(buffer, imageType)
     }
 
     // The upload screen's own hint text has always advertised "Text (.txt)"
@@ -93,14 +128,28 @@ export async function POST(req: NextRequest) {
 
 async function extractWithClaude(
   buffer: Buffer,
-  mediaType: 'application/pdf' | 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
+  mediaType: 'application/pdf' | ClaudeImageType
 ): Promise<string> {
   const base64 = buffer.toString('base64')
   const isImage = mediaType.startsWith('image/')
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2000,
+    // Opus over Sonnet here on purpose: this call reads real phone photos of
+    // CVs — often skewed, poorly lit, or slightly blurry — where the extra
+    // interpretive accuracy matters more than the cost difference. Both are in
+    // the high-resolution vision tier (2576px long edge), so Opus's edge here
+    // is model quality, not image resolution.
+    model: 'claude-opus-5',
+    max_tokens: 8000,
+    // Opus 5 runs adaptive thinking whenever this field is omitted, and
+    // max_tokens caps thinking and output together. Transcription needs no
+    // reasoning, so turning it off keeps the whole budget for the extracted
+    // text. Valid because effort is left at its high default here — disabled
+    // thinking on Opus 5 only 400s above that (xhigh/max). Asserted because
+    // @anthropic-ai/sdk is pinned at 0.20.x, which predates the parameter —
+    // the client still serialises the body as-is, so it reaches the API.
+    // Drop the assertion once the SDK is upgraded.
+    thinking: { type: 'disabled' },
     messages: [
       {
         role: 'user',
@@ -120,7 +169,7 @@ async function extractWithClaude(
         ]
       }
     ]
-  })
+  } as Anthropic.MessageCreateParamsNonStreaming)
 
   return message.content
     .filter((block: any) => block.type === 'text')
