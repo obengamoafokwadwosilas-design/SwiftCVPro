@@ -1249,7 +1249,7 @@ export default function BuildPage() {
             hint={isCoverLetter
               ? 'Add achievements, strengths, or details you want highlighted — e.g. “I led the team that cut waiting times by half”.'
               : cvType === 'academic'
-                ? 'Research, teaching or publications to emphasise — e.g. “Highlight my work on climate adaptation”.'
+                ? 'Research or publications to emphasise — e.g. “Add my undergraduate project on the effects of radiation”.'
                 : 'Corrections or emphasis — e.g. “I was promoted in 2023”.'}
             badge="Optional"
           >
@@ -1781,9 +1781,9 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
   // the language that audience actually uses.
   const options = isAcademic
     ? [
-        { id: 'advert' as const, title: 'I have the call or programme details', desc: 'Paste or upload the advert, programme page or call for applications.' },
-        { id: 'aim' as const,    title: 'I don’t have the details yet', desc: 'Tell us the position or programme and your field, and we aim it there.' },
-        { id: 'none' as const,   title: 'Just polish my academic CV', desc: 'Improve the writing and structure, without aiming at anything specific.' },
+        { id: 'advert' as const, title: 'I have the school or programme details', desc: 'Paste or upload them.' },
+        { id: 'aim' as const,    title: 'I know what I’m applying for', desc: 'Tell us the position or programme and your field, and we aim it there.' },
+        { id: 'none' as const,   title: 'Just polish my academic CV', desc: 'Turn what I have into a proper academic CV — nothing specific in mind.' },
       ]
     : [
         { id: 'advert' as const, title: 'I have a job advert', desc: `Paste or upload it and we’ll tailor your ${doc} to it.` },
@@ -1819,8 +1819,8 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
                     <ModeToggle value={jdMode} onChange={setJdMode} options={UPLOAD_PASTE_OPTIONS} />
                   </div>
                   {jdMode === 'paste'
-                    ? <textarea ref={jdPasteRef} style={TA(110)} rows={5} placeholder={isAcademic ? 'Paste the call for applications, programme description or position advert here...' : 'Paste the job advert here...'} />
-                    : <UploadZone label={isAcademic ? 'Drop the call or programme details here, or click to browse' : 'Drop the job advert here, or click to browse'} hint="PDF · Word · Image (screenshot)" onFile={setJdFile} file={jdFile} />}
+                    ? <textarea ref={jdPasteRef} style={TA(110)} rows={5} placeholder={isAcademic ? 'Paste the school or programme details here...' : 'Paste the job advert here...'} />
+                    : <UploadZone label={isAcademic ? 'Drop the school or programme details here, or click to browse' : 'Drop the job advert here, or click to browse'} hint="PDF · Word · Image (screenshot)" onFile={setJdFile} file={jdFile} />}
                 </div>
               )}
 
@@ -1828,8 +1828,8 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
                 <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   {isAcademic
                     ? <>
-                        <Field label="Position or programme" placeholder="e.g. PhD in Public Health" fieldRef={jobRef} />
-                        <Field label="Field or department" placeholder="e.g. Epidemiology" fieldRef={industryRef} />
+                        <Field label="Position or programme" placeholder="e.g. Teaching Assistantship" fieldRef={jobRef} />
+                        <Field label="Field or department" placeholder="e.g. Political Science" fieldRef={industryRef} />
                       </>
                     : <>
                         <Field label="Job you want" placeholder="e.g. Banking Officer" fieldRef={jobRef} />
