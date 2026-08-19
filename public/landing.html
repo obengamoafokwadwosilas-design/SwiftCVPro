@@ -218,12 +218,14 @@ nav.scrolled .hamburger span { background:var(--white); }
 @media(min-width:1024px){ .hero-stop{ margin-left:0; margin-right:0; } }
 
 .hero-invest { display:flex; align-items:center; gap:9px; justify-content:center; font-weight:800; font-size:1rem; letter-spacing:0.01em; color:var(--teal-dark); margin-bottom:28px; }
-/* On mobile this line wraps to two lines — align-items:center then centers the
-   icon against the whole block instead of the first line, so it floats away
-   from the text. flex-start plus a small nudge keeps it level with the text. */
-@media(max-width:639px){
-  .hero-invest { align-items:flex-start; }
-  .hero-invest svg { margin-top:3px; }
+/* Where the text is centred (below 1024px) it can wrap to two lines. As a flex
+   row the wrapped text becomes a near-full-width flex item, so centring the row
+   pins the icon to the far left while the text centres inside its own box — the
+   two drift apart. Dropping to a plain centred text block puts the icon inline
+   with the first word, so it travels with the text however it wraps. */
+@media(max-width:1023px){
+  .hero-invest { display:block; text-align:center; }
+  .hero-invest svg { display:inline; vertical-align:-3px; margin-right:7px; }
 }
 @media(min-width:1024px){ .hero-invest{ justify-content:flex-start; } }
 
