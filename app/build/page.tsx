@@ -42,9 +42,15 @@ type Screen = 'type' | 'method' | 'paste' | 'form-1' | 'form-2' | 'form-3' | 'fo
 const CV_TYPE_META: Record<CVType, { label: string; shortLabel: string; hasJobStep: boolean; totalFormSteps: number }> = {
   professional: { label: 'Professional CV', shortLabel: 'Professional CV', hasJobStep: true,  totalFormSteps: 5 },
   targeted:     { label: 'Targeted CV',     shortLabel: 'Targeted CV',     hasJobStep: true,  totalFormSteps: 5 },
-  academic:     { label: 'Academic CV',     shortLabel: 'Academic CV',     hasJobStep: false, totalFormSteps: 4 },
+  academic:     { label: 'Academic CV',     shortLabel: 'Academic CV',     hasJobStep: true,  totalFormSteps: 5 },
   cover_letter: { label: 'Cover Letter',    shortLabel: 'Cover Letter',    hasJobStep: true,  totalFormSteps: 3 },
 }
+
+// Marks "we couldn't read the advert file you uploaded" so it can be told
+// apart from a genuine connection failure. Without this the extraction throw
+// fell through to doGenerate's catch-all and told people their internet had
+// dropped when the real problem was a blurry photo.
+class AdvertReadError extends Error {}
 
 // ─────────────────────────────────────────────────────────────
 // THE CHOOSER
@@ -161,11 +167,13 @@ export default function BuildPage() {
   const [didYouKnowFade, setDidYouKnowFade] = useState(true)
 
   const meta = CV_TYPE_META[cvType]
-  // JD is available/captured for everything except Academic. It is optional for
-  // Professional (tailor if given) and only genuinely required for cover letters.
-  const needsJD = cvType !== 'academic'
 
   const isCoverLetter = cvType === 'cover_letter'
+  // Academic CVs tailor too, but to a programme/fellowship/faculty call rather
+  // than a corporate advert — same plumbing, different wording and different
+  // prompt instructions (see TailorSection and prompts.ts). Everything below
+  // that used to be gated on "not academic" now applies to every type.
+  const isAcademic = cvType === 'academic'
   // Display step number: cover letters follow COVER_LETTER_PATH, so form-3 is
   // "Step 2" for them and "Step 3" for everyone else.
   const stepNo = (s: Screen) => isCoverLetter ? COVER_LETTER_PATH.indexOf(s) + 1 : Number(s.split('-')[1])
@@ -440,9 +448,8 @@ export default function BuildPage() {
         jobTitle: refs.jobTitle.current?.value || undefined,
         company: refs.company.current?.value || undefined,
       } : undefined,
-      jobDescription: needsJD
-        ? (inputMethod === 'paste' ? (refs.jdPaste.current?.value || undefined) : (refs.jobDesc.current?.value || undefined))
-        : undefined,
+      // Both entry points share one JD component now, so both read jdPaste.
+      jobDescription: refs.jdPaste.current?.value || undefined,
       whyRole: cvType === 'cover_letter' ? (refs.whyRole.current?.value || undefined) : undefined,
       landingScreen,
     }
@@ -697,6 +704,19 @@ export default function BuildPage() {
   }
 
   async function doGenerate(normalizedPhone: string) {
+    // Reads whichever advert input is in play. An uploaded file has to be
+    // extracted (a second Claude vision call for a photo), and that can fail
+    // on an unreadable scan — tagged as AdvertReadError so the catch below
+    // can say what actually went wrong.
+    const readAdvert = async (): Promise<string> => {
+      if (!(jdInputMode === 'upload' && uploadedJD)) return refs.jdPaste.current?.value || ''
+      try {
+        return await extractFile(uploadedJD)
+      } catch (err: any) {
+        throw new AdvertReadError(err?.message || '')
+      }
+    }
+
     try {
       let rawContent = ''
       let jobDescription = ''
@@ -731,11 +751,7 @@ export default function BuildPage() {
         if (clarify) rawContent += '\n\nADDITIONAL NOTES:\n' + clarify
         // Only read the advert if that's the option they actually chose, so a
         // switch to "aim" or "just upgrade" can't leave stale advert text in.
-        if (needsJD && tailorMode === 'advert') {
-          jobDescription = jdInputMode === 'upload' && uploadedJD
-            ? await extractFile(uploadedJD)
-            : refs.jdPaste.current?.value || ''
-        }
+        if (tailorMode === 'advert') jobDescription = await readAdvert()
       }
 
       if (inputMethod === 'form') {
@@ -747,11 +763,7 @@ export default function BuildPage() {
         // advert" can't leave a stale uploaded file's text behind; same
         // reasoning as the paste path's identical gate below.
         const wantsAdvertJD = cvType === 'cover_letter' || tailorMode === 'advert'
-        if (needsJD && wantsAdvertJD) {
-          jobDescription = jdInputMode === 'upload' && uploadedJD
-            ? await extractFile(uploadedJD)
-            : refs.jdPaste.current?.value || ''
-        }
+        if (wantsAdvertJD) jobDescription = await readAdvert()
         // Build structured CVFormData for the prompt builder
         const formData = {
           cvType,
@@ -779,7 +791,7 @@ export default function BuildPage() {
           // Job targeting
           company: r.company.current?.value || undefined,
           targetIndustry: r.tailorIndustryForm.current?.value || undefined,
-          jobDescription: needsJD && wantsAdvertJD ? (jobDescription || undefined) : undefined,
+          jobDescription: wantsAdvertJD ? (jobDescription || undefined) : undefined,
           whyRole: cvType === 'cover_letter' ? (r.whyRole.current?.value || undefined) : undefined,
           // Cover-letter recipient (formal Ghanaian address block)
           addressee: cvType === 'cover_letter' ? (r.addressee.current?.value || undefined) : undefined,
@@ -822,10 +834,10 @@ export default function BuildPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cvType, rawContent,
-          jobDescription: needsJD ? (jobDescription || undefined) : undefined,
+          jobDescription: jobDescription || undefined,
           // Aim fields only when that's the chosen option — never alongside an advert
-          jobTitle: needsJD && tailorMode === 'aim' ? (refs.tailorJobPaste.current?.value || undefined) : undefined,
-          targetIndustry: needsJD && tailorMode === 'aim' ? (refs.tailorIndustryPaste.current?.value || undefined) : undefined,
+          jobTitle: tailorMode === 'aim' ? (refs.tailorJobPaste.current?.value || undefined) : undefined,
+          targetIndustry: tailorMode === 'aim' ? (refs.tailorIndustryPaste.current?.value || undefined) : undefined,
           phoneNumber: normalizedPhone,
           email,
         })
@@ -851,8 +863,19 @@ export default function BuildPage() {
       else sessionStorage.removeItem('swiftcv_history_id')
       clearPreviousCoverLetter()
       finishThenGo('/preview')
-    } catch {
+    } catch (err) {
       setIsGenerating(false)
+      // An unreadable advert file is the user's photo, not their connection —
+      // saying "lost connection" here sent people to check their internet
+      // when what they needed was a clearer picture.
+      if (err instanceof AdvertReadError) {
+        setError({
+          title: 'We couldn’t read that file',
+          msg: err.message || 'It may be a blurry photo, a scan, or password-protected. Try a clearer picture or a PDF/Word file — or paste the text in instead.',
+          type: 'input',
+        })
+        return
+      }
       setError({ title: 'Network error', msg: 'Lost connection mid-generation. Please check your internet and try again.', type: 'network' })
     }
   }
@@ -1233,16 +1256,15 @@ export default function BuildPage() {
             <textarea ref={refs.clarify} style={TA(70)} rows={3} placeholder={isCoverLetter ? 'What should the letter emphasise? — or leave blank...' : 'Type any special requests — or leave blank...'} />
           </Collapsible>
 
-          {needsJD && (
-            <TailorSection
-              mode={tailorMode} setMode={setTailorMode}
-              isLetter={cvType === 'cover_letter'}
-              jdMode={jdInputMode} setJdMode={setJdInputMode}
-              jdPasteRef={refs.jdPaste}
-              jdFile={uploadedJD} setJdFile={setUploadedJD}
-              jobRef={refs.tailorJobPaste} industryRef={refs.tailorIndustryPaste}
-            />
-          )}
+          <TailorSection
+            mode={tailorMode} setMode={setTailorMode}
+            isLetter={cvType === 'cover_letter'}
+            isAcademic={isAcademic}
+            jdMode={jdInputMode} setJdMode={setJdInputMode}
+            jdPasteRef={refs.jdPaste}
+            jdFile={uploadedJD} setJdFile={setUploadedJD}
+            jobRef={refs.tailorJobPaste} industryRef={refs.tailorIndustryPaste}
+          />
 
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
@@ -1467,8 +1489,6 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: FORM STEP 5 — JOB DETAILS ══════════════════════ */}
         <div style={{ display: screen === 'form-5' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          {/* Academic has no job step, so this screen is never reached there and
-              a step number would be nonsense ("Step 5 of 4"). */}
           {meta.hasJobStep && <StepLabel label={`Step ${stepNo('form-5')} of ${meta.totalFormSteps}`} />}
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: cvType === 'cover_letter' ? '#fbeaf0' : '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             {cvType === 'cover_letter'
@@ -1476,8 +1496,12 @@ export default function BuildPage() {
               : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             }
           </div>
-          <h1 className="xcv-h1" style={h1Style}>{cvType === 'cover_letter' ? 'The Role You’re Applying For' : 'The Role You’re Targeting'}</h1>
-          <p style={subStyle}>{cvType === 'cover_letter' ? 'Add the role to produce a compelling, tailored letter.' : 'Add the role to tailor your CV to it — the more detail, the sharper the result.'}</p>
+          <h1 className="xcv-h1" style={h1Style}>{cvType === 'cover_letter' ? 'The Role You’re Applying For' : isAcademic ? 'The Position Or Programme' : 'The Role You’re Targeting'}</h1>
+          <p style={subStyle}>{cvType === 'cover_letter'
+            ? 'Add the role to produce a compelling, tailored letter.'
+            : isAcademic
+              ? 'Add the programme, fellowship or faculty position to tailor your CV to it — the more detail, the sharper the result.'
+              : 'Add the role to tailor your CV to it — the more detail, the sharper the result.'}</p>
 
           {cvType === 'cover_letter' ? (
             // A cover letter is inherently about ONE specific job, so there's
@@ -1512,6 +1536,7 @@ export default function BuildPage() {
             <TailorSection
               mode={tailorMode} setMode={setTailorMode}
               isLetter={false}
+              isAcademic={isAcademic}
               jdMode={jdInputMode} setJdMode={setJdInputMode}
               jdPasteRef={refs.jdPaste}
               jdFile={uploadedJD} setJdFile={setUploadedJD}
@@ -1548,7 +1573,7 @@ export default function BuildPage() {
             { title: 'Education', val: refs.education.current?.value || '', editScreen: 'form-2' as Screen },
             { title: isCoverLetter ? 'Your Background' : 'Work Experience', val: refs.experience.current?.value || '', editScreen: 'form-3' as Screen },
             { title: 'Skills & Extras', val: refs.extras.current?.value || '', editScreen: 'form-4' as Screen },
-            ...(meta.hasJobStep ? [{ title: 'Target Role', val: [refs.jobTitle.current?.value, refs.company.current?.value].filter(Boolean).join(' at '), editScreen: 'form-5' as Screen }] : []),
+            ...(meta.hasJobStep ? [{ title: isAcademic ? 'Position / Programme' : 'Target Role', val: [refs.jobTitle.current?.value, refs.company.current?.value].filter(Boolean).join(' at '), editScreen: 'form-5' as Screen }] : []),
           ].filter(b => (b as any).alwaysShow || b.val).map(b => (
             <div key={b.title} style={{ border: '1px solid var(--rule)', borderRadius: '12px', padding: '14px 16px', marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -1741,20 +1766,30 @@ function ModeToggle({ value, onChange, options }: { value: string; onChange: (v:
 // One exclusive choice for how to aim the document, replacing the two separate
 // optional boxes that could both be filled. Fields appear only under the
 // selected option — greyed-out-but-visible inputs are just noise on a phone.
-function TailorSection({ mode, setMode, isLetter, jdMode, setJdMode, jdPasteRef, jdFile, setJdFile, jobRef, industryRef }: {
+function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode, jdPasteRef, jdFile, setJdFile, jobRef, industryRef }: {
   mode: 'advert' | 'aim' | 'none'; setMode: (m: 'advert' | 'aim' | 'none') => void
   isLetter: boolean
+  isAcademic?: boolean
   jdMode: 'paste' | 'upload'; setJdMode: (m: 'paste' | 'upload') => void
   jdPasteRef: React.RefObject<HTMLTextAreaElement>
   jdFile: File | null; setJdFile: (f: File | null) => void
   jobRef: React.RefObject<HTMLInputElement>; industryRef: React.RefObject<HTMLInputElement>
 }) {
   const doc = isLetter ? 'letter' : 'CV'
-  const options = [
-    { id: 'advert' as const, title: 'I have a job advert', desc: `Paste or upload it and we’ll tailor your ${doc} to it.` },
-    { id: 'aim' as const,    title: 'I don’t have an advert', desc: 'Tell us the job or industry you want, and we aim it there.' },
-    { id: 'none' as const,   title: isLetter ? 'A general letter' : 'Just upgrade my CV', desc: isLetter ? 'No specific job in mind.' : 'Polish the wording and layout, without aiming at a role.' },
-  ]
+  // An academic application is aimed at a programme, fellowship or faculty
+  // post — not a corporate advert — so the same three choices are worded in
+  // the language that audience actually uses.
+  const options = isAcademic
+    ? [
+        { id: 'advert' as const, title: 'I have the call or programme details', desc: 'Paste or upload the advert, programme page or call for applications.' },
+        { id: 'aim' as const,    title: 'I don’t have the details yet', desc: 'Tell us the position or programme and your field, and we aim it there.' },
+        { id: 'none' as const,   title: 'Just polish my academic CV', desc: 'Improve the writing and structure, without aiming at anything specific.' },
+      ]
+    : [
+        { id: 'advert' as const, title: 'I have a job advert', desc: `Paste or upload it and we’ll tailor your ${doc} to it.` },
+        { id: 'aim' as const,    title: 'I don’t have an advert', desc: 'Tell us the job or industry you want, and we aim it there.' },
+        { id: 'none' as const,   title: isLetter ? 'A general letter' : 'Just upgrade my CV', desc: isLetter ? 'No specific job in mind.' : 'Polish the wording and layout, without aiming at a role.' },
+      ]
   return (
     <div style={{ border: '1px solid var(--rule)', borderRadius: '14px', background: 'white', marginBottom: '14px', padding: '16px 18px' }}>
       <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '3px' }}>Tailor your {doc}</div>
@@ -1784,15 +1819,22 @@ function TailorSection({ mode, setMode, isLetter, jdMode, setJdMode, jdPasteRef,
                     <ModeToggle value={jdMode} onChange={setJdMode} options={UPLOAD_PASTE_OPTIONS} />
                   </div>
                   {jdMode === 'paste'
-                    ? <textarea ref={jdPasteRef} style={TA(110)} rows={5} placeholder="Paste the job advert here..." />
-                    : <UploadZone label="Drop the job advert here, or click to browse" hint="PDF · Word · Image (screenshot)" onFile={setJdFile} file={jdFile} />}
+                    ? <textarea ref={jdPasteRef} style={TA(110)} rows={5} placeholder={isAcademic ? 'Paste the call for applications, programme description or position advert here...' : 'Paste the job advert here...'} />
+                    : <UploadZone label={isAcademic ? 'Drop the call or programme details here, or click to browse' : 'Drop the job advert here, or click to browse'} hint="PDF · Word · Image (screenshot)" onFile={setJdFile} file={jdFile} />}
                 </div>
               )}
 
               {on && opt.id === 'aim' && (
                 <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  <Field label="Job you want" placeholder="e.g. Banking Officer" fieldRef={jobRef} />
-                  <Field label="Industry" placeholder="e.g. Banking & Finance" fieldRef={industryRef} />
+                  {isAcademic
+                    ? <>
+                        <Field label="Position or programme" placeholder="e.g. PhD in Public Health" fieldRef={jobRef} />
+                        <Field label="Field or department" placeholder="e.g. Epidemiology" fieldRef={industryRef} />
+                      </>
+                    : <>
+                        <Field label="Job you want" placeholder="e.g. Banking Officer" fieldRef={jobRef} />
+                        <Field label="Industry" placeholder="e.g. Banking & Finance" fieldRef={industryRef} />
+                      </>}
                 </div>
               )}
             </div>

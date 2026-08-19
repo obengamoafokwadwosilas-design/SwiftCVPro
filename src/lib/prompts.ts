@@ -223,8 +223,8 @@ QUALITY: it should read as their real career, told in a way that makes sense to 
       return base
     }
 
-    case 'academic':
-      return `TASK: Write a full Academic CV in scholarly format.
+    case 'academic': {
+      const academicBase = `TASK: Write a full Academic CV in scholarly format.
 
 SECTIONS (in this order, include only those with content):
 - Professional Profile / Research Statement (4-5 sentences, scholarly tone)
@@ -240,6 +240,49 @@ SECTIONS (in this order, include only those with content):
 
 TONE: Scholarly, precise, no marketing language. Use academic conventions throughout.
 CRITICAL: Never fabricate publications, conference presentations, awards, or affiliations.`
+
+      // An academic application is judged on FIT with a specific programme,
+      // fellowship or faculty post — which is a different question from "does
+      // this CV contain the employer's keywords". Order and emphasis are the
+      // levers here, never invention: the section order above is a convention,
+      // and the record itself is fixed.
+      if (jobDescription && jobDescription.trim()) {
+        return `${academicBase}
+
+TAILOR THIS ACADEMIC CV TO THE POSITION / PROGRAMME BELOW:
+${jobDescription}
+${company ? `\nINSTITUTION / DEPARTMENT: ${company}` : ''}
+
+ACADEMIC TAILORING APPROACH:
+- Read the call carefully. Identify what it is actually selecting for: research area and methods, teaching load and level, funding or publication expectations, and any named specialisms.
+- The RESEARCH STATEMENT is the main lever. Rewrite it so the person's genuine research trajectory is framed towards this specific position or programme — naming the shared subject area in their own terms. It must read as a scholar describing their work, never as an application letter.
+- REORDER WITHIN SECTIONS so the most relevant items come first: publications closest to the call's subject area lead the Publications list; the most relevant courses lead Teaching; the most relevant projects lead Research. Never drop or hide items to make the fit look better — reorder only.
+- WEIGHT the emphasis correctly: a research-intensive post or PhD place leads with research and publications; a teaching-focused lectureship leads with teaching experience and courses taught. Follow what the call actually asks for.
+- Use the field's own vocabulary where it genuinely describes work the person has done.
+- ⚠️ NEVER invent or upgrade anything to fit: no added publications, no inflated authorship position, no claimed methods, no unearned affiliation with the institution, no fabricated funding. Wanting a position is not evidence of doing its work. An unverifiable claim on an academic CV ends an application.
+- If the person's background only partly matches, foreground the genuinely transferable methods, teaching and subject knowledge and let those stand on their own.
+
+QUALITY: a selection committee in this field should see the fit in the first paragraph and the first three publications — because of what is genuinely there, ordered well.`
+      }
+
+      // No call to hand — but they named the position/field they're aiming at.
+      if ((jobTitle && jobTitle.trim()) || (targetIndustry && targetIndustry.trim())) {
+        const aim = [jobTitle?.trim(), targetIndustry?.trim()].filter(Boolean).join(' — ')
+        return `${academicBase}
+
+THE CANDIDATE IS APPLYING FOR: ${aim}
+${company ? `INSTITUTION / DEPARTMENT: ${company}` : ''}
+
+AIMING APPROACH (no call was provided, so there is nothing to match against):
+- Frame the research statement towards this position/field, drawing only on the person's real work.
+- Order publications, teaching and research so the items closest to that field come first.
+- ⚠️ NEVER claim research, methods, teaching, or affiliations the person's details do not show. Aiming at a field is not evidence of working in it.
+
+QUALITY: it should read as their real scholarly record, ordered so it makes sense to a committee in ${aim}.`
+      }
+
+      return academicBase
+    }
 
 
     case 'cover_letter':
