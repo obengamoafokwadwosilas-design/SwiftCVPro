@@ -268,6 +268,9 @@ export async function POST(req: NextRequest) {
         // can still be aimed at a job/industry.
         jobTitle: body.jobTitle || '',
         targetIndustry: body.targetIndustry || undefined,
+        // Academic aiming: the institution and course being applied to.
+        company: body.company || undefined,
+        targetProgramme: body.targetProgramme || undefined,
         rawContent,
         jobDescription
       }

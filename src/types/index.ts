@@ -73,6 +73,11 @@ export interface CVFormData {
   // Target industry/sector — lets someone aim the CV ("banking", "NGO work")
   // when they have no specific advert to paste. Slants emphasis only.
   targetIndustry?: string
+  // Academic only: the programme being applied to ("MPhil Economics"), kept
+  // separate from jobTitle because an applicant can be after BOTH a programme
+  // and a position within it — a graduate assistantship attached to a master's
+  // place is the common Ghanaian case, and collapsing the two loses that.
+  targetProgramme?: string
 
   // Cover-letter recipient (all optional) — for the formal Ghanaian address block
   addressee?: string        // e.g. "The Human Resource Manager", "The Registrar"

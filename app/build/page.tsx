@@ -223,6 +223,13 @@ export default function BuildPage() {
     tailorJobPaste: useRef<HTMLInputElement>(null),
     tailorIndustryPaste: useRef<HTMLInputElement>(null),
     tailorIndustryForm: useRef<HTMLInputElement>(null),
+    // Academic only: school and programme are asked for alongside the position,
+    // since an academic application names an institution and a course, not just
+    // a role. Separate per screen for the same display:none reason as above.
+    tailorSchoolPaste: useRef<HTMLInputElement>(null),
+    tailorProgrammePaste: useRef<HTMLInputElement>(null),
+    tailorSchoolForm: useRef<HTMLInputElement>(null),
+    tailorProgrammeForm: useRef<HTMLInputElement>(null),
   }
 
   // ── URL param pre-select ──────────────────────
@@ -230,6 +237,13 @@ export default function BuildPage() {
     const t = new URLSearchParams(window.location.search).get('type') as CVType
     if (t && ['professional','targeted','academic','cover_letter'].includes(t)) setCvType(t)
   }, [])
+
+  // Academic offers no standalone "advert" option, so a mode carried over from
+  // another document type would leave no card selected and strand whatever was
+  // typed into it. Fall back to the equivalent academic choice.
+  useEffect(() => {
+    if (isAcademic && tailorMode === 'advert') setTailorMode('aim')
+  }, [isAcademic, tailorMode])
 
   // ── Restore a build seed, if one is waiting ───────────────────
   // Two unrelated flows leave this page and come back with a seed saved in
@@ -709,7 +723,11 @@ export default function BuildPage() {
     // on an unreadable scan — tagged as AdvertReadError so the catch below
     // can say what actually went wrong.
     const readAdvert = async (): Promise<string> => {
-      if (!(jdInputMode === 'upload' && uploadedJD)) return refs.jdPaste.current?.value || ''
+      // Academic offers no upload option, so it must never pick up a file left
+      // behind by another document type — switching from Professional (where
+      // an advert had been uploaded) to Academic would otherwise silently
+      // tailor the academic CV to that stale job advert.
+      if (isAcademic || !(jdInputMode === 'upload' && uploadedJD)) return refs.jdPaste.current?.value || ''
       try {
         return await extractFile(uploadedJD)
       } catch (err: any) {
@@ -751,7 +769,9 @@ export default function BuildPage() {
         if (clarify) rawContent += '\n\nADDITIONAL NOTES:\n' + clarify
         // Only read the advert if that's the option they actually chose, so a
         // switch to "aim" or "just upgrade" can't leave stale advert text in.
-        if (tailorMode === 'advert') jobDescription = await readAdvert()
+        // Academic has no separate advert option — its optional call sits
+        // inside "applying somewhere specific", so it reads on 'aim' instead.
+        if (isAcademic ? tailorMode === 'aim' : tailorMode === 'advert') jobDescription = await readAdvert()
       }
 
       if (inputMethod === 'form') {
@@ -762,7 +782,7 @@ export default function BuildPage() {
         // choice — see form-5's JSX) so switching away from "I have an
         // advert" can't leave a stale uploaded file's text behind; same
         // reasoning as the paste path's identical gate below.
-        const wantsAdvertJD = cvType === 'cover_letter' || tailorMode === 'advert'
+        const wantsAdvertJD = cvType === 'cover_letter' || (isAcademic ? tailorMode === 'aim' : tailorMode === 'advert')
         if (wantsAdvertJD) jobDescription = await readAdvert()
         // Build structured CVFormData for the prompt builder
         const formData = {
@@ -788,9 +808,13 @@ export default function BuildPage() {
           grants: r.grants.current?.value || undefined,
           supervision: r.supervision.current?.value || undefined,
           orcid: r.orcid.current?.value || undefined,
-          // Job targeting
-          company: r.company.current?.value || undefined,
+          // Job targeting. On the academic path the institution comes from the
+          // tailoring block's School field — refs.company only ever renders on
+          // the cover-letter branch of this screen, so reading it here would
+          // always be empty for an academic applicant.
+          company: (isAcademic ? r.tailorSchoolForm.current?.value : r.company.current?.value) || undefined,
           targetIndustry: r.tailorIndustryForm.current?.value || undefined,
+          targetProgramme: isAcademic ? (r.tailorProgrammeForm.current?.value || undefined) : undefined,
           jobDescription: wantsAdvertJD ? (jobDescription || undefined) : undefined,
           whyRole: cvType === 'cover_letter' ? (r.whyRole.current?.value || undefined) : undefined,
           // Cover-letter recipient (formal Ghanaian address block)
@@ -838,6 +862,9 @@ export default function BuildPage() {
           // Aim fields only when that's the chosen option — never alongside an advert
           jobTitle: tailorMode === 'aim' ? (refs.tailorJobPaste.current?.value || undefined) : undefined,
           targetIndustry: tailorMode === 'aim' ? (refs.tailorIndustryPaste.current?.value || undefined) : undefined,
+          // Academic only — the institution and course being applied to.
+          company: tailorMode === 'aim' ? (refs.tailorSchoolPaste.current?.value || undefined) : undefined,
+          targetProgramme: tailorMode === 'aim' ? (refs.tailorProgrammePaste.current?.value || undefined) : undefined,
           phoneNumber: normalizedPhone,
           email,
         })
@@ -1264,6 +1291,7 @@ export default function BuildPage() {
             jdPasteRef={refs.jdPaste}
             jdFile={uploadedJD} setJdFile={setUploadedJD}
             jobRef={refs.tailorJobPaste} industryRef={refs.tailorIndustryPaste}
+            schoolRef={refs.tailorSchoolPaste} programmeRef={refs.tailorProgrammePaste}
           />
 
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
@@ -1541,6 +1569,7 @@ export default function BuildPage() {
               jdPasteRef={refs.jdPaste}
               jdFile={uploadedJD} setJdFile={setUploadedJD}
               jobRef={refs.jobTitle} industryRef={refs.tailorIndustryForm}
+              schoolRef={refs.tailorSchoolForm} programmeRef={refs.tailorProgrammeForm}
             />
           )}
 
@@ -1766,7 +1795,7 @@ function ModeToggle({ value, onChange, options }: { value: string; onChange: (v:
 // One exclusive choice for how to aim the document, replacing the two separate
 // optional boxes that could both be filled. Fields appear only under the
 // selected option — greyed-out-but-visible inputs are just noise on a phone.
-function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode, jdPasteRef, jdFile, setJdFile, jobRef, industryRef }: {
+function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode, jdPasteRef, jdFile, setJdFile, jobRef, industryRef, schoolRef, programmeRef }: {
   mode: 'advert' | 'aim' | 'none'; setMode: (m: 'advert' | 'aim' | 'none') => void
   isLetter: boolean
   isAcademic?: boolean
@@ -1774,6 +1803,7 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
   jdPasteRef: React.RefObject<HTMLTextAreaElement>
   jdFile: File | null; setJdFile: (f: File | null) => void
   jobRef: React.RefObject<HTMLInputElement>; industryRef: React.RefObject<HTMLInputElement>
+  schoolRef?: React.RefObject<HTMLInputElement>; programmeRef?: React.RefObject<HTMLInputElement>
 }) {
   const doc = isLetter ? 'letter' : 'CV'
   // An academic application is aimed at a programme, fellowship or faculty
@@ -1781,9 +1811,12 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
   // the language that audience actually uses.
   const options = isAcademic
     ? [
-        { id: 'advert' as const, title: 'I have the school or programme details', desc: 'Paste or upload them.' },
-        { id: 'aim' as const,    title: 'I know what I’m applying for', desc: 'Tell us the position or programme and your field, and we aim it there.' },
-        { id: 'none' as const,   title: 'Just polish my academic CV', desc: 'Turn what I have into a proper academic CV — nothing specific in mind.' },
+        // Deliberately two, not three. An academic applicant usually has BOTH
+        // the institution/programme AND (sometimes) a call document — they are
+        // not alternatives, so making them rival options threw away whichever
+        // half wasn't picked. The call is now an optional extra inside this one.
+        { id: 'aim' as const,  title: 'I’m applying somewhere specific', desc: 'Tell us where — and paste the advert or call if you have one.' },
+        { id: 'none' as const, title: 'Just build me an academic CV', desc: 'Create a full academic CV from my details — no specific school or position in mind.' },
       ]
     : [
         { id: 'advert' as const, title: 'I have a job advert', desc: `Paste or upload it and we’ll tailor your ${doc} to it.` },
@@ -1813,28 +1846,52 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
                 </span>
               </button>
 
+              {/* Non-academic only — academic has no separate advert option
+                  (its call lives inside "applying somewhere specific"). Job
+                  adverts really do arrive as PDFs and WhatsApp screenshots,
+                  so upload stays here. */}
               {on && opt.id === 'advert' && (
                 <div style={{ marginTop: '10px', paddingLeft: '2px' }}>
                   <div style={{ marginBottom: '10px' }}>
                     <ModeToggle value={jdMode} onChange={setJdMode} options={UPLOAD_PASTE_OPTIONS} />
                   </div>
                   {jdMode === 'paste'
-                    ? <textarea ref={jdPasteRef} style={TA(110)} rows={5} placeholder={isAcademic ? 'Paste the school or programme details here...' : 'Paste the job advert here...'} />
-                    : <UploadZone label={isAcademic ? 'Drop the school or programme details here, or click to browse' : 'Drop the job advert here, or click to browse'} hint="PDF · Word · Image (screenshot)" onFile={setJdFile} file={jdFile} />}
+                    ? <textarea ref={jdPasteRef} style={TA(110)} rows={5} placeholder="Paste the job advert here..." />
+                    : <UploadZone label="Drop the job advert here, or click to browse" hint="PDF · Word · Image (screenshot)" onFile={setJdFile} file={jdFile} />}
                 </div>
               )}
 
               {on && opt.id === 'aim' && (
-                <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                  {isAcademic
-                    ? <>
-                        <Field label="Position or programme" placeholder="e.g. Teaching Assistantship" fieldRef={jobRef} />
-                        <Field label="Field or department" placeholder="e.g. Political Science" fieldRef={industryRef} />
-                      </>
-                    : <>
-                        <Field label="Job you want" placeholder="e.g. Banking Officer" fieldRef={jobRef} />
-                        <Field label="Industry" placeholder="e.g. Banking & Finance" fieldRef={industryRef} />
-                      </>}
+                <div style={{ marginTop: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    {isAcademic
+                      ? <>
+                          {/* An academic application is to an institution and a
+                              course first. Position is separate and optional —
+                              it only applies to assistantships and faculty posts,
+                              not to someone simply applying for a place. */}
+                          <Field label="School / University" placeholder="e.g. University of Ghana" fieldRef={schoolRef!} />
+                          <Field label="Programme" placeholder="e.g. MPhil Economics" fieldRef={programmeRef!} />
+                          <Field label="Position (if any)" placeholder="e.g. Graduate Assistant" fieldRef={jobRef} />
+                          <Field label="Department" placeholder="e.g. Economics" fieldRef={industryRef} />
+                        </>
+                      : <>
+                          <Field label="Job you want" placeholder="e.g. Banking Officer" fieldRef={jobRef} />
+                          <Field label="Industry" placeholder="e.g. Banking & Finance" fieldRef={industryRef} />
+                        </>}
+                  </div>
+                  {/* The four fields above cover most applicants. A real call
+                      for applications carries more than they can hold — research
+                      area, supervisor, selection criteria — so it rides along
+                      here as an optional extra rather than a rival choice. */}
+                  {isAcademic && (
+                    <div style={{ marginTop: '12px' }}>
+                      <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        Advert or call <span style={optBadge}>Optional</span>
+                      </label>
+                      <textarea ref={jdPasteRef} style={{ ...TA(72), marginTop: '5px' }} rows={3} placeholder="Paste it here if you have one — otherwise leave this blank." />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
