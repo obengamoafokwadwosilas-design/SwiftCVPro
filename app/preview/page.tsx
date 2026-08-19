@@ -37,6 +37,26 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'atlas',     name: 'Atlas',           tag: 'Timeline Rail · Chronological',     color: '#3b82f6', formats: 'pdf',  category: 'premium',  customizable: true  },
 ]
 
+// The template a freshly generated CV lands on. Rotated at random so the
+// first thing a user sees is one of the three designs that actually sell,
+// rather than the plain ATS default. Picked once and remembered for the
+// session, so a refresh doesn't re-roll the design out from under them.
+// Academic CVs and cover letters are excluded — they have their own allowed
+// lists (ACADEMIC_ALLOWED / COVER_LETTER_ALLOWED) and none of these are on them.
+const LANDING_TEMPLATES: TemplateId[] = ['regent', 'tandem', 'ascend']
+
+function pickLandingTemplate(): TemplateId {
+  try {
+    const held = sessionStorage.getItem('swiftcv_landing_tpl')
+    if (held && (LANDING_TEMPLATES as string[]).includes(held)) return held as TemplateId
+    const picked = LANDING_TEMPLATES[Math.floor(Math.random() * LANDING_TEMPLATES.length)]
+    sessionStorage.setItem('swiftcv_landing_tpl', picked)
+    return picked
+  } catch {
+    return LANDING_TEMPLATES[0]
+  }
+}
+
 // Color swatches for picker
 const COLOR_SWATCHES: { name: string; value: string }[] = [
   { name: 'Navy',    value: '#0a1f44' },
@@ -172,7 +192,8 @@ export default function PreviewPage() {
       setCvType(storedCvType)
       if (storedCvType === 'cover_letter' || parsed.coverLetterBody) setIsCoverLetter(true)
       if (storedCvType === 'academic') { setIsAcademicCV(true); setTemplate('academic') }
-      if (storedCvType === 'cover_letter') setTemplate('classic')
+      else if (storedCvType === 'cover_letter') setTemplate('classic')
+      else setTemplate(pickLandingTemplate())
     } catch { router.push('/build') }
     const warn = (e: BeforeUnloadEvent) => {
       if (leavingOnPurposeRef.current) return

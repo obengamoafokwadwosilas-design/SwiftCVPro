@@ -308,6 +308,18 @@ export default function BuildPage() {
     return () => { clearTimeout(timeoutId); clearInterval(dyk) }
   }, [isGenerating])
 
+  // The progress climb is a fake timer — one blocking call, nothing to stream
+  // — so it deliberately stops at 99 and waits. This is the other half of that:
+  // when the response actually lands, finish the bar to 100, hold long enough
+  // for the eye to register it, and only then move. Without it the bar either
+  // sat frozen at 99 while the request ran on, or the page jumped away
+  // mid-climb — both of which read as the timing being broken.
+  const finishThenGo = (to: string) => {
+    setLoadingPct(100)
+    setLoadingStep(LOADING_STEPS.length - 1)
+    setTimeout(() => router.push(to), 520)
+  }
+
   // ── Navigation ────────────────────────────────
   // Every screen change is also a save point — it's the one moment we know
   // the user has finished with the fields on the screen they're leaving
@@ -801,7 +813,7 @@ export default function BuildPage() {
         if (data.historyId) sessionStorage.setItem('swiftcv_history_id', String(data.historyId))
         else sessionStorage.removeItem('swiftcv_history_id')
         clearPreviousCoverLetter()
-        router.push('/preview')
+        finishThenGo('/preview')
         return
       }
 
@@ -838,7 +850,7 @@ export default function BuildPage() {
       if (data.historyId) sessionStorage.setItem('swiftcv_history_id', String(data.historyId))
       else sessionStorage.removeItem('swiftcv_history_id')
       clearPreviousCoverLetter()
-      router.push('/preview')
+      finishThenGo('/preview')
     } catch {
       setIsGenerating(false)
       setError({ title: 'Network error', msg: 'Lost connection mid-generation. Please check your internet and try again.', type: 'network' })
