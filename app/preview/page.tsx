@@ -961,6 +961,9 @@ export default function PreviewPage() {
 
         .scv-tpl { transition: transform .16s ease, box-shadow .16s ease, background .16s ease; }
         .scv-tpl:hover { transform: translateY(-2px); box-shadow: 0 1px 2px rgba(10,15,26,.06), 0 10px 22px -10px rgba(10,15,26,.22); background:#fafbfc; }
+        .scv-tpl:focus-visible { outline: 2px solid #0f766e; outline-offset: 2px; }
+        .scv-swatch:focus-visible { outline: 2px solid #0f766e; outline-offset: 3px; }
+        @media (prefers-reduced-motion: reduce) { .scv-tpl { transition: none; } .scv-tpl:hover { transform: none; } }
       `}</style>
 
       <nav className="no-print" style={{ background:'#0a0f1a', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap:'wrap', gap:'10px' }}>
@@ -1021,18 +1024,18 @@ export default function PreviewPage() {
             {/* ── COLOUR — always visible, premium ── */}
             {currentTpl?.customizable && (
               <div style={{ marginBottom:'22px' }}>
-                <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#94a3b8', marginBottom:'12px' }}>Choose Colour</div>
-                <div style={{ display:'flex', gap:'9px', flexWrap:'wrap' }}>
-                  <button onClick={() => setAccentColor(null)} title="Default" style={{ width:'26px', height:'26px', borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #fff, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0', transition:'all 0.15s' }} />
+                <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#475569', marginBottom:'12px' }}>Choose Colour</div>
+                <div role="group" aria-label="Accent colour" style={{ display:'flex', gap:'9px', flexWrap:'wrap' }}>
+                  <button onClick={() => setAccentColor(null)} className="scv-swatch" title="Default" aria-label="Template default colour" aria-pressed={accentColor === null} style={{ width:'26px', height:'26px', borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #fff, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0', transition:'all 0.15s' }} />
                   {COLOR_SWATCHES.map(s => (
-                    <button key={s.value} onClick={() => setAccentColor(s.value)} title={s.name} style={{ width:'26px', height:'26px', borderRadius:'50%', background: s.value, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === s.value ? `0 0 0 2px #fff, 0 0 0 4px ${s.value}` : '0 0 0 1px #e2e8f0', transition:'all 0.15s' }} />
+                    <button key={s.value} onClick={() => setAccentColor(s.value)} className="scv-swatch" title={s.name} aria-label={s.name} aria-pressed={accentColor === s.value} style={{ width:'26px', height:'26px', borderRadius:'50%', background: s.value, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === s.value ? `0 0 0 2px #fff, 0 0 0 4px ${s.value}` : '0 0 0 1px #e2e8f0', transition:'all 0.15s' }} />
                   ))}
                 </div>
               </div>
             )}
             <div style={{ height:'1px', background:'#eef2f6', margin:'0 0 18px' }} />
 
-            <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#94a3b8', marginBottom:'12px' }}>Choose Template</div>
+            <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'1.5px', color:'#475569', marginBottom:'12px' }}>Choose Template</div>
 
             {/* PREMIUM */}
             {premiumTemplates.length > 0 && (<>
@@ -1151,14 +1154,14 @@ export default function PreviewPage() {
                 <div style={{ height:'7px', background:'#e9eef4', borderRadius:'99px', overflow:'hidden' }}>
                   <div style={{ height:'100%', width:`${coverPct}%`, background:'linear-gradient(90deg,#0d9488,#5eead4)', borderRadius:'99px', transition:'width .25s ease' }} />
                 </div>
-                <div style={{ textAlign:'center', fontSize:'11.5px', color:'#94a3b8', marginTop:'10px' }}>Usually about 20 seconds — please keep this open.</div>
+                <div style={{ textAlign:'center', fontSize:'11.5px', color:'#64748b', marginTop:'10px' }}>Usually about 20 seconds — please keep this open.</div>
               </div>
             ) : (
               <>
                 <button onClick={handleGenerateCover} disabled={coverReadingFile} style={{ width:'100%', marginTop:'16px', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
                   <span style={{ color:'#fff' }}>✦</span> Generate Cover Letter
                 </button>
-                <div style={{ textAlign:'center', fontSize:'11px', color:'#94a3b8', marginTop:'10px' }}>{coverIncluded ? 'Included in your pack' : 'GH₵15'} · takes about 20 seconds</div>
+                <div style={{ textAlign:'center', fontSize:'11px', color:'#64748b', marginTop:'10px' }}>{coverIncluded ? 'Included in your pack' : 'GH₵15'} · takes about 20 seconds</div>
               </>
             )}
           </div>
@@ -1371,23 +1374,23 @@ function DownIcon() {
 // SIDEBAR UI
 // ══════════════════════════════════════════════════════
 function CategoryHeader({ children }: { children: string }) {
-  return <div style={{ fontSize:'9.5px', fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'#b0bccb', marginBottom:'2px', marginTop:'18px' }}>{children}</div>
+  return <div style={{ fontSize:'9.5px', fontWeight:700, letterSpacing:'2px', textTransform:'uppercase', color:'#64748b', marginBottom:'2px', marginTop:'18px' }}>{children}</div>
 }
 
 function TemplateCard({ tpl, active, onClick }: { tpl: typeof TEMPLATES[0]; active: boolean; onClick: () => void }) {
   const both = tpl.formats === 'both'
   return (
-    <div onClick={onClick} className="scv-tpl" title={tpl.tag} style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', gap:'8px', padding:'12px 8px 11px', borderRadius:'12px', background: active ? '#f6fdfb' : '#fff', boxShadow: active ? '0 0 0 1.5px #0d9488' : '0 0 0 1px #eef2f6', cursor:'pointer' }}>
+    <button type="button" onClick={onClick} aria-pressed={active} aria-label={`${tpl.name} template — ${both ? 'PDF and Word' : 'PDF only'}`} className="scv-tpl" title={tpl.tag} style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', gap:'8px', width:'100%', padding:'12px 8px 11px', border:'none', font:'inherit', textAlign:'center', borderRadius:'12px', background: active ? '#f6fdfb' : '#fff', boxShadow: active ? '0 0 0 1.5px #0d9488' : '0 0 0 1px #eef2f6', cursor:'pointer' }}>
       {active && <span style={{ position:'absolute', top:'6px', right:'6px', width:'16px', height:'16px', borderRadius:'50%', background:'#0d9488', display:'flex', alignItems:'center', justifyContent:'center' }}><svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>}
       <TemplatePreview templateId={tpl.id} />
       <div style={{ textAlign:'center', width:'100%' }}>
-        <div style={{ fontSize:'12px', fontWeight:600, color: active ? '#0d9488' : '#0a0f1a', lineHeight:1.2 }}>{tpl.name}</div>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:'4px', marginTop:'5px', fontSize:'7.5px', fontWeight:700, letterSpacing:'0.4px', padding:'2.5px 7px', borderRadius:'20px', background: both ? '#ecfdf5' : '#fffbeb', color: both ? '#0d9488' : '#b45309' }}>
+        <div style={{ fontSize:'12px', fontWeight:600, color: active ? '#0f766e' : '#0a0f1a', lineHeight:1.2 }}>{tpl.name}</div>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:'4px', marginTop:'5px', fontSize:'7.5px', fontWeight:700, letterSpacing:'0.4px', padding:'2.5px 7px', borderRadius:'20px', background: both ? '#ecfdf5' : '#fffbeb', color: both ? '#0f766e' : '#b45309' }}>
           <svg width="8" height="9" viewBox="0 0 12 14" fill="none"><path d="M2 1h5l3 3v9H2V1z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/><path d="M7 1v3h3" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/></svg>
           {both ? 'PDF · WORD' : 'PDF ONLY'}
         </div>
       </div>
-    </div>
+    </button>
   )
 }
 
