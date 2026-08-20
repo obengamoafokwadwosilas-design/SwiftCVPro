@@ -1086,7 +1086,12 @@ export default function BuildPage() {
               register rather than the heavy one — closed by a rule that reads
               as the top margin of a page. */}
           <div className="xcv-rise">
-            <h1 className="xcv-h1" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(2.15rem, 5.5vw, 3.1rem)', fontWeight: 300, color: 'var(--ink)', lineHeight: 1.02, letterSpacing: '-0.015em', marginBottom: '15px' }}>
+            {/* Floor lowered from 2.15rem. The vw term only engages above
+                ~625px, so on every phone the floor WAS the size — a flat
+                34.4px, which wrapped this to two lines and ate ~70px before
+                any content. The coefficient and cap are untouched, so 768px
+                and up render exactly as before; only phones come down. */}
+            <h1 className="xcv-h1" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.6rem, 5.5vw, 3.1rem)', fontWeight: 300, color: 'var(--ink)', lineHeight: 1.02, letterSpacing: '-0.015em', marginBottom: '15px' }}>
               What should we create?
             </h1>
             <p style={{ fontSize: '15px', color: 'var(--graphite)', fontWeight: 300, lineHeight: 1.65, maxWidth: '46ch' }}>
@@ -1121,7 +1126,12 @@ export default function BuildPage() {
                 >
                   <span style={{ width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'var(--rule-soft)', color: selected ? '#fff' : 'var(--graphite)', transition: 'background .18s ease, color .18s ease' }}>{card.icon}</span>
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: '1.45rem', fontWeight: 400, color: 'var(--ink)', lineHeight: 1.12, letterSpacing: '-0.005em' }}>{card.name}</span>
+                    {/* Was a flat 1.45rem (23.2px) at every width, with no
+                        responsive rule at all — big enough on a phone to
+                        compete with the page title, so the options shouted as
+                        loudly as the question. Capped at the old value, so
+                        desktop is unchanged. */}
+                    <span style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.15rem, 4.8vw, 1.45rem)', fontWeight: 400, color: 'var(--ink)', lineHeight: 1.12, letterSpacing: '-0.005em' }}>{card.name}</span>
                     <span style={{ display: 'block', fontSize: '13px', color: 'var(--graphite)', marginTop: '5px', lineHeight: 1.5, fontWeight: 300 }}>{card.desc}</span>
                   </span>
                   <span style={{ width: '18px', height: '18px', flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'transparent', border: '1px solid ' + (selected ? 'var(--teal)' : 'var(--rule)'), transition: 'background .18s ease, border-color .18s ease' }}>
@@ -1722,7 +1732,10 @@ export default function BuildPage() {
 // ─────────────────────────────────────────────────────────────
 // STYLE CONSTANTS
 // ─────────────────────────────────────────────────────────────
-const h1Style: React.CSSProperties = { fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.9rem, 4.6vw, 2.7rem)', fontWeight: 300, color: 'var(--ink)', marginBottom: '12px', lineHeight: 1.05, letterSpacing: '-0.015em' }
+// Same correction as the type-screen h1 above: the floor, not the vw term,
+// was setting the size on every phone. Coefficient and cap unchanged, so
+// desktop is byte-identical — only sub-660px viewports change.
+const h1Style: React.CSSProperties = { fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.5rem, 4.6vw, 2.7rem)', fontWeight: 300, color: 'var(--ink)', marginBottom: '12px', lineHeight: 1.05, letterSpacing: '-0.015em' }
 const subStyle: React.CSSProperties = { fontSize: '14.5px', color: 'var(--graphite)', marginBottom: '26px', fontWeight: 300, lineHeight: 1.65 }
 const cardStyle: React.CSSProperties = { background: 'var(--sheet)', border: '1px solid var(--rule)', borderRadius: '6px', padding: '20px 22px', marginBottom: '12px', boxShadow: '0 1px 1px rgba(11,16,23,0.03)' }
 const cardTitleStyle: React.CSSProperties = { fontFamily: "'Cormorant Garamond', serif", fontSize: '1.32rem', fontWeight: 400, color: 'var(--ink)', marginBottom: '5px', letterSpacing: '-0.005em' }
