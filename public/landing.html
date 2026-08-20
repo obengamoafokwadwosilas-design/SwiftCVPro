@@ -291,6 +291,36 @@ nav.scrolled .hamburger span { background:var(--white); }
   letter-spacing:0.16em; text-transform:uppercase;
   margin-bottom:14px;
 }
+/* ── SOCIAL PROOF STRIP ── */
+.social-proof {
+  display:flex; align-items:center; justify-content:center;
+  flex-wrap:wrap; gap:8px 14px;
+  margin-bottom:26px;
+}
+/* Stays collapsed until the faces are cloned in, so a script failure leaves
+   no empty gap sitting above the label. */
+.social-proof-faces { display:none; align-items:center; }
+.social-proof-faces.is-ready { display:flex; }
+.social-proof-faces img {
+  width:34px; height:34px; border-radius:50%;
+  object-fit:cover; object-position:top;
+  border:2px solid var(--white);
+  box-shadow:0 1px 3px rgba(23,19,16,0.16);
+  display:block;
+}
+.social-proof-faces img + img { margin-left:-11px; }
+.social-proof-stars { color:#f0a500; font-size:0.95rem; letter-spacing:2px; }
+.social-proof-text {
+  font-family:var(--font-body); font-size:0.95rem;
+  font-weight:600; color:var(--navy);
+}
+@media(max-width:479px){
+  .social-proof { gap:6px 10px; }
+  .social-proof-faces img { width:29px; height:29px; }
+  .social-proof-faces img + img { margin-left:-9px; }
+  .social-proof-text { font-size:0.88rem; }
+}
+
 .ticker-label {
   text-align:center; color:var(--ink-70);
   font-family:var(--font-display); font-style:italic;
@@ -847,6 +877,21 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 <!-- COMPANY TICKER — WHITE -->
 <div class="ticker-section">
   <div class="ticker-positioning">Ghana's Job-Winning CV Builder</div>
+
+  <!-- Social-proof strip. The faces are CLONED AT RUNTIME from the real
+       testimonial cards further down the page (see cloneTestimonialFaces at
+       the foot of this file) rather than pasted in as a second copy of the
+       base64. Two reasons: it keeps ~1MB of duplicate image data out of the
+       file, and it means these can only ever be the actual people quoted on
+       this page — if a testimonial is edited or removed, this updates itself.
+       The stars are a summary of the ratings those same testimonials already
+       carry, not a separate rating from anywhere else. -->
+  <div class="social-proof">
+    <div class="social-proof-faces" aria-hidden="true"></div>
+    <div class="social-proof-stars" aria-hidden="true">★★★★★</div>
+    <div class="social-proof-text">Job seekers' 1st choice</div>
+  </div>
+
   <div class="ticker-label">Users of Extraordinary CV have landed roles at</div>
   <div class="ticker-track">
     <div class="ticker-inner">
@@ -1487,6 +1532,37 @@ if (imgs.length > 1) {
     imgs[cur].classList.add('active');
   }, 3000);
 }
+
+/* Social-proof faces — cloned from the real testimonial cards rather than
+   duplicated into the markup, so this strip can only ever show people who are
+   actually quoted on this page, and the ~1MB of base64 is stored once. The
+   testimonial ticker renders each person twice for the seamless marquee, so
+   de-duplicate on the name before taking the first few. */
+(function cloneTestimonialFaces() {
+  const slot = document.querySelector('.social-proof-faces');
+  if (!slot) return;
+  const seen = new Set();
+  const picked = [];
+  document.querySelectorAll('.testi-grid .testi-author').forEach(author => {
+    if (picked.length >= 4) return;
+    const nameEl = author.querySelector('.testi-name');
+    const img = author.querySelector('.testi-avatar-img img');
+    if (!nameEl || !img) return;
+    const name = nameEl.textContent.trim();
+    if (seen.has(name)) return;
+    seen.add(name);
+    picked.push({ img, name });
+  });
+  if (!picked.length) return;   // no testimonials → no faces, no empty gap
+  picked.forEach(p => {
+    const clone = document.createElement('img');
+    clone.src = p.img.src;
+    clone.alt = '';
+    clone.loading = 'lazy';
+    slot.appendChild(clone);
+  });
+  slot.classList.add('is-ready');
+})();
 </script>
 </body>
 </html>
