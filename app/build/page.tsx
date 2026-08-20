@@ -295,39 +295,45 @@ export default function BuildPage() {
 
   // ── Loading animation ─────────────────────────
   // There's no real progress to report — it's one blocking AI call, not a
-  // stream — so this is a deliberately fake timer. It used to run on a fixed
-  // 180ms tick, reaching 99% in ~19s regardless of how long the actual
-  // request takes. Real generations (especially ones that trigger the
-  // pagination-risk follow-up pass) routinely run longer than that, so the
-  // bar reliably finished and froze at 99% before the response arrived —
-  // reading as a stall right when it should feel busiest. Slowing down as it
-  // climbs stretches the animated portion closer to ~25s and makes the final
-  // stretch visibly decelerate rather than snap to 99 and sit frozen.
+  // stream — so the climb is synthetic. The previous versions all shared the
+  // same flaw: a FIXED-LENGTH animation cannot match a VARIABLE-LENGTH
+  // request. Whatever duration was picked (~19s, then ~25s), any generation
+  // that ran longer — an uploaded photo adds a vision call, and the
+  // pagination-risk pass adds another round trip — left the bar parked at 99%
+  // for the remainder. 99% that isn't moving reads as broken, precisely when
+  // the work is still going.
+  //
+  // So the climb is asymptotic instead: each tick closes a fixed FRACTION of
+  // the remaining distance to a ceiling it never actually reaches. That means
+  // it can never run out of runway no matter how long the request takes, it
+  // decelerates naturally (fast at first, crawling at the end, which is how
+  // people expect progress to behave), and it is mathematically incapable of
+  // arriving before the response does. Only the real response completes it —
+  // see finishThenGo.
   useEffect(() => {
     if (!isGenerating) { setLoadingPct(0); setLoadingStep(0); return }
-    let stepIdx = 0
-    const targets = LOADING_STEPS.map(s => s.pct)
-    let current = 0
-    let timeoutId: ReturnType<typeof setTimeout>
-    const tick = () => {
-      const target = targets[Math.min(stepIdx, targets.length - 1)]
-      if (current < target) {
-        current = Math.min(current + 1, target)
-        setLoadingPct(current)
-        const si = LOADING_STEPS.findIndex(s => s.pct >= current)
-        setLoadingStep(Math.max(0, si))
-      } else if (stepIdx < LOADING_STEPS.length - 1) {
-        stepIdx++
-      }
-      const delay = current < 50 ? 160 : current < 85 ? 260 : 420
-      timeoutId = setTimeout(tick, delay)
-    }
-    timeoutId = setTimeout(tick, 160)
+    // Tuned so the displayed whole number is still visibly changing at ~65s —
+    // comfortably past any realistic generation, including a photo upload plus
+    // the pagination pass. Faster rates saturate the integer display sooner and
+    // reintroduce the stall; slower ones feel sluggish in the first few seconds.
+    const CEILING = 98   // approached, never reached
+    const RATE = 0.014   // fraction of the remaining gap closed per tick
+    const TICK_MS = 200
+    // Every step except the last. "Your CV is ready!" must not appear while
+    // we're still waiting — finishThenGo is the only thing allowed to show it.
+    const climbing = LOADING_STEPS.slice(0, -1)
+    let exact = 0
+    const id = setInterval(() => {
+      exact += (CEILING - exact) * RATE
+      setLoadingPct(Math.floor(exact))
+      const si = climbing.findIndex(s => s.pct >= exact)
+      setLoadingStep(si === -1 ? climbing.length - 1 : si)
+    }, TICK_MS)
     const dyk = setInterval(() => {
       setDidYouKnowFade(false)
       setTimeout(() => { setDidYouKnowIdx(i => (i + 1) % DID_YOU_KNOWS.length); setDidYouKnowFade(true) }, 400)
     }, 5000)
-    return () => { clearTimeout(timeoutId); clearInterval(dyk) }
+    return () => { clearInterval(id); clearInterval(dyk) }
   }, [isGenerating])
 
   // The progress climb is a fake timer — one blocking call, nothing to stream

@@ -313,6 +313,11 @@ section { padding:var(--section-y) 0; }
 .section-title { font-family:var(--font-display); font-size:clamp(1.9rem,3.4vw,2.6rem); font-weight:600; color:var(--navy); line-height:1.18; letter-spacing:-0.3px; margin-bottom:14px; }
 .section-title.light { color:var(--white); }
 .section-sub { font-size:0.98rem; color:var(--ink-55); max-width:46ch; line-height:1.75; }
+
+/* Trustpilot TrustBox. Collapses to nothing until the widget script fills it,
+   so an unconfigured or unreachable widget leaves no gap or broken badge. */
+.trustpilot-strip { margin-top:22px; min-height:0; }
+.trustpilot-strip .trustpilot-widget:empty { display:none; }
 .section-head { text-align:center; margin-bottom:60px; }
 .section-head .section-sub { margin:0 auto; }
 
@@ -729,6 +734,11 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 }
 
 </style>
+
+<!-- Trustpilot TrustBox loader. async so it can never block first paint, and
+     the page is fully functional without it — if it fails to load, the widget
+     container simply stays empty. -->
+<script async src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js"></script>
 </head>
 <body>
 
@@ -1133,6 +1143,35 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
       <span class="section-eyebrow label">Success stories</span>
       <h2 class="section-title">What people say</h2>
       <p class="section-sub">Real feedback from people who used Extraordinary CV.</p>
+
+      <!-- ══ TRUSTPILOT ═══════════════════════════════════════════════
+           ⚠️ ONE VALUE STILL NEEDED: replace REPLACE_WITH_BUSINESS_UNIT_ID
+           below with the Business Unit ID from your Trustpilot Business
+           account (Integrations → TrustBox → any widget → it appears in the
+           generated code as data-businessunit-id).
+
+           This is the official TrustBox widget, NOT a static image, on
+           purpose. It reads the score live from Trustpilot, so it always
+           shows your real current rating and cannot drift out of date — a
+           hardcoded "4.8 / 300+ reviews" becomes a false claim the moment
+           the real number moves, and displaying the rating this way is the
+           only method Trustpilot's brand terms permit.
+
+           Until the ID is filled in, the widget renders nothing at all —
+           no broken badge, no invented number. Nothing else on the page
+           depends on it, so it is safe to deploy in this state.
+      ═════════════════════════════════════════════════════════════════ -->
+      <div class="trustpilot-strip reveal">
+        <div class="trustpilot-widget"
+             data-locale="en-GB"
+             data-template-id="5419b6ffb0d04a076446a9af"
+             data-businessunit-id="REPLACE_WITH_BUSINESS_UNIT_ID"
+             data-style-height="20px"
+             data-style-width="100%"
+             data-theme="light">
+          <a href="https://www.trustpilot.com/review/" target="_blank" rel="noopener noreferrer">Trustpilot</a>
+        </div>
+      </div>
     </div>
   </div>
 
