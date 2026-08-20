@@ -310,12 +310,6 @@ nav.scrolled .hamburger span { background:var(--white); }
 }
 .social-proof-faces img + img { margin-left:-11px; }
 .social-proof-stars { color:#f0a500; font-size:0.95rem; letter-spacing:2px; }
-/* Same gold as the stars so the two read as one mark rather than two
-   competing ornaments. Sits on the text baseline, not the flex centre. */
-.social-proof-award {
-  width:18px; height:18px; flex-shrink:0;
-  color:#f0a500; margin-left:-4px;
-}
 .social-proof-text {
   font-family:var(--font-body); font-size:0.95rem;
   font-weight:600; color:var(--navy);
@@ -325,7 +319,6 @@ nav.scrolled .hamburger span { background:var(--white); }
   .social-proof-faces img { width:29px; height:29px; }
   .social-proof-faces img + img { margin-left:-9px; }
   .social-proof-text { font-size:0.88rem; }
-  .social-proof-award { width:16px; height:16px; }
 }
 
 .ticker-label {
@@ -896,17 +889,6 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
   <div class="social-proof">
     <div class="social-proof-faces" aria-hidden="true"></div>
     <div class="social-proof-stars" aria-hidden="true">★★★★★</div>
-    <!-- Decorative only. A generic trophy mark, deliberately NOT a seal,
-         ribbon or badge naming an awarding body — nothing here should read as
-         a specific award from a specific organisation, because there isn't
-         one. It reinforces the line beside it, nothing more. -->
-    <svg class="social-proof-award" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-      <path d="M7 4h10v6a5 5 0 0 1-10 0V4z"/>
-      <path d="M17 5h2.4a1.6 1.6 0 0 1 0 4.6H17"/>
-      <path d="M7 5H4.6a1.6 1.6 0 0 0 0 4.6H7"/>
-      <path d="M12 15.2v2.6"/>
-      <path d="M8.6 21h6.8l-.75-3.2H9.35z"/>
-    </svg>
     <div class="social-proof-text">Job seekers' 1st choice</div>
   </div>
 
