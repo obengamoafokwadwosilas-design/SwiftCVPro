@@ -1601,9 +1601,9 @@ export default function BuildPage() {
               : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             }
           </div>
-          <h1 className="xcv-h1" style={h1Style}>{cvType === 'cover_letter' ? 'The Role You’re Applying For' : isAcademic ? 'The Position Or Programme' : 'The Role You’re Targeting'}</h1>
+          <h1 className="xcv-h1" style={h1Style}>{cvType === 'cover_letter' ? 'What role are you targeting?' : isAcademic ? 'The Position Or Programme' : 'The Role You’re Targeting'}</h1>
           <p style={subStyle}>{cvType === 'cover_letter'
-            ? 'Add the role to produce a compelling, tailored letter.'
+            ? 'Share the job details so we can tailor your cover letter to match.'
             : isAcademic
               ? 'Add the programme, fellowship or faculty position to tailor your CV to it — the more detail, the sharper the result.'
               : 'Add the role to tailor your CV to it — the more detail, the sharper the result.'}</p>
