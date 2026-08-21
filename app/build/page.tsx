@@ -1276,7 +1276,7 @@ export default function BuildPage() {
         <div style={{ maxWidth: '680px', margin: '0 auto', padding: '38px 24px 96px' }}>
           <div className="xcv-rise">
             <h1 className="xcv-h1" style={h1Style}>How would you like to create your {meta.label}?</h1>
-            <p style={{ ...subStyle, marginBottom: '0' }}>Both paths give the same result. Pick whichever you have to hand.</p>
+            <p style={{ ...subStyle, marginBottom: '0' }}>Both paths give the same result.</p>
             <div style={{ height: '1px', background: 'var(--rule)', margin: '30px 0 24px' }} />
           </div>
 
@@ -1430,7 +1430,8 @@ export default function BuildPage() {
             <ExBox text={cvType === 'academic'
               ? 'PhD Development Economics, University of Ghana, 2020–2024\nMPhil Economics, KNUST, 2017–2019\nBA Economics (First Class), University of Cape Coast, 2013–2017'
               : 'BSc Nursing, University of Cape Coast, 2018–2022\nCertificate in Critical Care Nursing, 2024\nWASSCE, St Thomas Aquinas SHS, 2018'} />
-            <textarea ref={refs.education} style={TA(110)} rows={5} placeholder="Write your education and certifications here..." />
+            <textarea ref={refs.education} style={TA(110)} rows={5} placeholder={`e.g. BSc Computer Science, KNUST, 2018–2022
+WASSCE, St Thomas Aquinas SHS, 2020`} />
 
             {/* Academic optional expand */}
             {cvType === 'academic' && (
