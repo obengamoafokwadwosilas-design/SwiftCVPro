@@ -233,9 +233,17 @@ export default function BuildPage() {
   }
 
   // ── URL param pre-select ──────────────────────
-  useEffect(() => {
+  // Shared with applyLastInput, which must not overwrite an explicit ?type=.
+  const urlCvType = (): CVType | null => {
+    if (typeof window === 'undefined') return null
     const t = new URLSearchParams(window.location.search).get('type') as CVType
-    if (t && ['professional','targeted','academic','cover_letter'].includes(t)) setCvType(t)
+    return t && ['professional', 'targeted', 'academic', 'cover_letter'].includes(t) ? t : null
+  }
+
+  useEffect(() => {
+    const t = urlCvType()
+    if (t) setCvType(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Academic offers no standalone "advert" option, so a mode carried over from
@@ -534,7 +542,15 @@ export default function BuildPage() {
   // this is a passive pre-fill on an ordinary fresh visit, not a resume-where-
   // I-left-off flow.
   function applyLastInput(seed: BuildSeed) {
-    setCvType(seed.cvType)
+    // A ?type= in the URL is an explicit choice the user just made by clicking
+    // a specific link ("Build my letter →", the Academic CV card, the footer
+    // links). It MUST beat whatever this device happens to remember.
+    //
+    // This effect runs after the URL-param effect, so an unconditional
+    // setCvType here silently overwrote it: a returning user — which is almost
+    // everyone, since "Remember my number on this device" defaults on — asked
+    // for a Cover Letter and landed on whatever they built last time.
+    if (!urlCvType()) setCvType(seed.cvType)
     setInputMethod(seed.inputMethod)
     if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
     if (seed.email) setEmail(seed.email)

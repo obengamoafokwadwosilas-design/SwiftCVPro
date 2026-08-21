@@ -27,12 +27,36 @@ function asMegabytes(bytes: number): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData()
-    const file = formData.get('file') as File | null
+    // req.formData() THROWS on a body that isn't multipart/form-data (a JSON
+    // post, an empty body, a truncated upload). Letting that reach the
+    // catch-all below reported a malformed request as a 500 "Failed to process
+    // file" — a server fault for what is squarely a bad request, which is both
+    // wrong for the caller and noise when reading logs for real failures.
+    let formData: FormData
+    try {
+      formData = await req.formData()
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid upload. Please attach the file again.' },
+        { status: 400 }
+      )
+    }
 
-    if (!file) {
+    const entry = formData.get('file')
+
+    if (!entry) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
+    // A form field named "file" that carries a plain string rather than a file
+    // has no arrayBuffer(), so the old `as File` cast turned it into a 500 the
+    // moment it was read. Check the shape instead of asserting it.
+    if (typeof entry === 'string' || typeof (entry as File).arrayBuffer !== 'function') {
+      return NextResponse.json(
+        { error: 'That was not a file. Please attach a PDF, Word document, or image.' },
+        { status: 400 }
+      )
+    }
+    const file = entry as File
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
