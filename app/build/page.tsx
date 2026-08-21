@@ -43,7 +43,10 @@ const CV_TYPE_META: Record<CVType, { label: string; shortLabel: string; hasJobSt
   professional: { label: 'Professional CV', shortLabel: 'Professional CV', hasJobStep: true,  totalFormSteps: 5 },
   targeted:     { label: 'Targeted CV',     shortLabel: 'Targeted CV',     hasJobStep: true,  totalFormSteps: 5 },
   academic:     { label: 'Academic CV',     shortLabel: 'Academic CV',     hasJobStep: true,  totalFormSteps: 5 },
-  cover_letter: { label: 'Cover Letter',    shortLabel: 'Cover Letter',    hasJobStep: true,  totalFormSteps: 3 },
+  // 2, not 3: the role screen now runs BEFORE the method screen, outside the
+  // numbered form sequence (see COVER_LETTER_PATH), so only Personal Details
+  // and Your Background are numbered steps.
+  cover_letter: { label: 'Cover Letter',    shortLabel: 'Cover Letter',    hasJobStep: true,  totalFormSteps: 2 },
 }
 
 // Marks "we couldn't read the advert file you uploaded" so it can be told
@@ -81,14 +84,20 @@ const DOC_TYPES: { id: CVType; name: string; desc: string; icon: React.ReactNode
 // four things — who you are, your background, the role, and why you want it —
 // which is three screens, not five. Education and Skills are skipped: a
 // ~300-word letter draws on a summary of your background, not a full breakdown.
-// Role FIRST for a cover letter. A CV is a standing document — your history
-// exists whether or not you have a job in mind — so there the advert is a
-// modifier applied at the end, matching the site's own "upload CV → add the
-// job → generate" story. A cover letter is the opposite: it is addressed to
-// one employer about one role, and every sentence argues for that job, so
-// asking "which job?" last inverted the document's own logic and buried the
-// highest-intent question behind two screens of admin.
-const COVER_LETTER_PATH: Screen[] = ['form-5', 'form-1', 'form-3']
+// A cover letter asks for the ROLE first — before even "how would you like to
+// create this?" — because the role is what the document IS. It is addressed to
+// one employer about one job and every sentence argues for it, so asking how to
+// gather someone's background before knowing what they're applying for puts the
+// admin question ahead of the only one that carries intent.
+//
+// The role screen (form-5) therefore sits between the type screen and the
+// method screen, OUTSIDE this array — see goAfterType. What remains here is
+// just the numbered form sequence that runs after the method choice.
+//
+// CVs are deliberately untouched: there a CV is a standing document and the
+// advert is a modifier applied at the end, which matches the site's own
+// "upload your CV → add the job → generate" story.
+const COVER_LETTER_PATH: Screen[] = ['form-1', 'form-3']
 
 
 export default function BuildPage() {
@@ -385,9 +394,18 @@ export default function BuildPage() {
 
   // Header progress. Phase 3 covers every form screen, so it advances with
   // them — the bar and the screen's own "Step N of M" now tell one story.
-  const navPhase: 1 | 2 | 3 = screen === 'type' ? 1 : screen === 'method' ? 2 : 3
+  // The cover-letter role screen sits between "type" and "method", so it stays
+  // in phase 1 — naming the role is still part of defining the document, and
+  // giving it phase 3 would make the bar jump forward then snap back when the
+  // method screen follows.
+  const navPhase: 1 | 2 | 3 =
+    screen === 'type' ? 1
+      : (isCoverLetter && screen === 'form-5') ? 1
+        : screen === 'method' ? 2
+          : 3
   const navSub = (() => {
     if (screen === 'type') return typeChosen ? 1 : 0.45
+    if (isCoverLetter && screen === 'form-5') return 1
     if (screen === 'method') return 1
     if (screen === 'summary') return 1
     if (screen === 'paste') return 0.5
@@ -413,15 +431,15 @@ export default function BuildPage() {
   // Keeping it in a single place means the bottom row holds only the primary
   // action, so there is no duplicated control competing for attention.
   const backTargets: Partial<Record<Screen, Screen>> = {
-    method: 'type',
+    // Cover letters run type → form-5 (role) → method → form-1 → form-3, so
+    // Back has to walk that order rather than the numeric one.
+    method: isCoverLetter ? 'form-5' : 'type',
     paste: 'method',
-    // Cover letters run form-5 → form-1 → form-3 (see COVER_LETTER_PATH), so
-    // Back has to walk that order, not the numeric one.
-    'form-1': isCoverLetter ? 'form-5' : 'method',
+    'form-1': 'method',
     'form-2': 'form-1',
     'form-3': isCoverLetter ? 'form-1' : 'form-2',
     'form-4': 'form-3',
-    'form-5': isCoverLetter ? 'method' : 'form-4',
+    'form-5': isCoverLetter ? 'type' : 'form-4',
     summary: isCoverLetter ? 'form-3' : (meta.hasJobStep ? 'form-5' : 'form-4'),
   }
   const backTo = backTargets[screen]
@@ -439,7 +457,9 @@ export default function BuildPage() {
     // fetched in the background purely so the info screens can show what's
     // left; if it's slow or fails, the user never notices (Generate re-checks
     // authoritatively anyway).
-    go('method')
+    // A cover letter asks which role first; everything else goes straight to
+    // the method choice.
+    go(isCoverLetter ? 'form-5' : 'method')
     fetch('/api/check-credits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1575,7 +1595,10 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: FORM STEP 5 — JOB DETAILS ══════════════════════ */}
         <div style={{ display: screen === 'form-5' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          {meta.hasJobStep && <StepLabel label={`Step ${stepNo('form-5')} of ${meta.totalFormSteps}`} />}
+          {/* No step number on the cover-letter role screen: it runs before the
+              method choice, outside the numbered sequence, so calling it
+              "Step 1 of 2" would clash with Personal Details also being 1. */}
+          {meta.hasJobStep && !isCoverLetter && <StepLabel label={`Step ${stepNo('form-5')} of ${meta.totalFormSteps}`} />}
           <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: cvType === 'cover_letter' ? '#fbeaf0' : '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             {cvType === 'cover_letter'
               ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
@@ -1659,15 +1682,15 @@ export default function BuildPage() {
           )}
 
           {/* For a CV this is the last step, so both buttons land on the
-              summary. For a cover letter it is now the FIRST step, so they
-              continue along COVER_LETTER_PATH instead. */}
-          <button onClick={() => go(isCoverLetter ? nextAfter('form-5') : 'summary')} style={btnSkip}>
+              summary. For a cover letter it runs before the method screen, so
+              they continue there instead. */}
+          <button onClick={() => go(isCoverLetter ? 'method' : 'summary')} style={btnSkip}>
             {isCoverLetter ? 'Skip for now →' : 'Skip job details →'}
           </button>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={() => go(isCoverLetter ? nextAfter('form-5') : 'summary')} style={btnPrimary}>
-              {isCoverLetter ? 'Next →' : 'Review Details →'}
+            <button onClick={() => go(isCoverLetter ? 'method' : 'summary')} style={btnPrimary}>
+              {isCoverLetter ? 'Continue →' : 'Review Details →'}
             </button>
           </div>
         </div>
