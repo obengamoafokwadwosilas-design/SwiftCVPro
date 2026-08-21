@@ -81,7 +81,14 @@ const DOC_TYPES: { id: CVType; name: string; desc: string; icon: React.ReactNode
 // four things — who you are, your background, the role, and why you want it —
 // which is three screens, not five. Education and Skills are skipped: a
 // ~300-word letter draws on a summary of your background, not a full breakdown.
-const COVER_LETTER_PATH: Screen[] = ['form-1', 'form-3', 'form-5']
+// Role FIRST for a cover letter. A CV is a standing document — your history
+// exists whether or not you have a job in mind — so there the advert is a
+// modifier applied at the end, matching the site's own "upload CV → add the
+// job → generate" story. A cover letter is the opposite: it is addressed to
+// one employer about one role, and every sentence argues for that job, so
+// asking "which job?" last inverted the document's own logic and buried the
+// highest-intent question behind two screens of admin.
+const COVER_LETTER_PATH: Screen[] = ['form-5', 'form-1', 'form-3']
 
 
 export default function BuildPage() {
@@ -253,6 +260,17 @@ export default function BuildPage() {
     if (isAcademic && tailorMode === 'advert') setTailorMode('aim')
   }, [isAcademic, tailorMode])
 
+  // Sensible starting choice per document type. A CV defaults to "no target"
+  // (just improve what I have), which is the common case. A cover letter is
+  // almost always written for one advertised job, so defaulting it to "A
+  // general letter" would quietly give most people the weakest of the three
+  // outputs. Keyed on the document type only, so a user's own later choice is
+  // never overwritten.
+  useEffect(() => {
+    setTailorMode(isCoverLetter ? 'advert' : 'none')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCoverLetter])
+
   // ── Restore a build seed, if one is waiting ───────────────────
   // Two unrelated flows leave this page and come back with a seed saved in
   // sessionStorage (see lib/buildSeed.ts): an in-app-browser Paystack
@@ -381,7 +399,9 @@ export default function BuildPage() {
   function goFromMethod(m?: 'paste' | 'form') {
     const method = m || inputMethod
     if (method === 'paste') go('paste')
-    else go('form-1')
+    // The guided path starts at whatever the document's own order puts first —
+    // form-1 for CVs, the role screen for cover letters (COVER_LETTER_PATH).
+    else go(isCoverLetter ? COVER_LETTER_PATH[0] : 'form-1')
   }
 
   function goFromForm4() {
@@ -395,12 +415,14 @@ export default function BuildPage() {
   const backTargets: Partial<Record<Screen, Screen>> = {
     method: 'type',
     paste: 'method',
-    'form-1': 'method',
+    // Cover letters run form-5 → form-1 → form-3 (see COVER_LETTER_PATH), so
+    // Back has to walk that order, not the numeric one.
+    'form-1': isCoverLetter ? 'form-5' : 'method',
     'form-2': 'form-1',
     'form-3': isCoverLetter ? 'form-1' : 'form-2',
     'form-4': 'form-3',
-    'form-5': isCoverLetter ? 'form-3' : 'form-4',
-    summary: meta.hasJobStep ? 'form-5' : 'form-4',
+    'form-5': isCoverLetter ? 'method' : 'form-4',
+    summary: isCoverLetter ? 'form-3' : (meta.hasJobStep ? 'form-5' : 'form-4'),
   }
   const backTo = backTargets[screen]
 
@@ -804,7 +826,11 @@ export default function BuildPage() {
         // choice — see form-5's JSX) so switching away from "I have an
         // advert" can't leave a stale uploaded file's text behind; same
         // reasoning as the paste path's identical gate below.
-        const wantsAdvertJD = cvType === 'cover_letter' || (isAcademic ? tailorMode === 'aim' : tailorMode === 'advert')
+        // Cover letters used to force-read the advert here regardless of what
+        // was chosen, because the guided path had no chooser to respect. Now
+        // that both paths offer the same three options, both honour them —
+        // otherwise picking "A general letter" would still pull in advert text.
+        const wantsAdvertJD = isAcademic ? tailorMode === 'aim' : tailorMode === 'advert'
         if (wantsAdvertJD) jobDescription = await readAdvert()
         // Build structured CVFormData for the prompt builder
         const formData = {
@@ -1564,31 +1590,58 @@ export default function BuildPage() {
               : 'Add the role to tailor your CV to it — the more detail, the sharper the result.'}</p>
 
           {cvType === 'cover_letter' ? (
-            // A cover letter is inherently about ONE specific job, so there's
-            // no "tailor mode" choice here — Job Title/Employer are always
-            // the addressing fields, required, not a tailoring option.
-            <div style={cardStyle}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                <Field label="Job Title *" placeholder="e.g. Staff Nurse" fieldRef={refs.jobTitle} />
-                <Field label="Employer / Institution *" placeholder="e.g. Korle Bu Hospital" fieldRef={refs.company} />
+            // The guided path used to force Job Title and Employer as REQUIRED
+            // fields with no way out, while the paste path offered the same
+            // three choices as a CV — including "A general letter". Same
+            // document, two contradictory rules, decided only by which entry
+            // point someone happened to pick several screens earlier.
+            //
+            // Both paths now offer the same three options. A general
+            // application letter is a real and common Ghanaian format, and the
+            // prompt already handles it properly (it produces "APPLICATION FOR
+            // EMPLOYMENT" rather than inventing a job title), so forcing a role
+            // here denied a use case the generator already supported.
+            <>
+              <TailorSection
+                mode={tailorMode} setMode={setTailorMode}
+                isLetter
+                jdMode={jdInputMode} setJdMode={setJdInputMode}
+                jdPasteRef={refs.jdPaste}
+                jdFile={uploadedJD} setJdFile={setUploadedJD}
+                jobRef={refs.jobTitle} industryRef={refs.company}
+              />
+
+              {/* Who the letter is aimed at. Hidden for a general letter, which
+                  by definition names no role — that is the whole point of the
+                  third option. */}
+              {tailorMode !== 'none' && (
+                <div style={cardStyle}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <Field label="Job Title" placeholder="e.g. Staff Nurse" fieldRef={refs.jobTitle} />
+                    <Field label="Employer / Institution" placeholder="e.g. Korle Bu Hospital" fieldRef={refs.company} />
+                  </div>
+                </div>
+              )}
+
+              <div style={cardStyle}>
+                {/* Formal address block for the letter — optional; sensible
+                    defaults ("The Human Resource Manager", "Dear Sir/Madam,") are
+                    used when left blank, so there are never empty placeholders. */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <Field label="Addressed to (optional)" placeholder="e.g. The Human Resource Manager" fieldRef={refs.addressee} />
+                  <Field label="Employer address (optional)" placeholder="e.g. P. O. Box GP 667, Accra" fieldRef={refs.companyAddress} />
+                </div>
+                <div>
+                  <label style={labelStyle}>
+                    {tailorMode === 'none' ? 'What kind of work are you seeking?' : 'Why do you want this role?'}
+                    {' '}<span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 400 }}>Optional</span>
+                  </label>
+                  <textarea ref={refs.whyRole} style={{ ...TA(70), marginTop: '5px' }} rows={3} placeholder={tailorMode === 'none'
+                    ? 'e.g. Any administrative or customer-service role where I can use my 3 years in telecoms...'
+                    : 'e.g. I have 3 years experience in telecoms and admire this company’s values...'} />
+                </div>
               </div>
-              {/* Formal address block for the letter — optional; sensible
-                  defaults ("The Human Resource Manager", "Dear Sir/Madam,") are
-                  used when left blank, so there are never empty placeholders. */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                <Field label="Addressed to (optional)" placeholder="e.g. The Human Resource Manager" fieldRef={refs.addressee} />
-                <Field label="Employer address (optional)" placeholder="e.g. P. O. Box GP 667, Accra" fieldRef={refs.companyAddress} />
-              </div>
-              {/* Same job-posting component as the paste path, so the guided flow
-                  can upload a PDF/Word/image posting instead of only pasting. */}
-              <div style={{ marginBottom: '12px' }}>
-                <JDSection method={jdInputMode} setMethod={setJdInputMode} pasteRef={refs.jdPaste} uploadedFile={uploadedJD} setUploadedFile={setUploadedJD} cvType={cvType} />
-              </div>
-              <div>
-                <label style={labelStyle}>Why do you want this role? <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 400 }}>Optional</span></label>
-                <textarea ref={refs.whyRole} style={{ ...TA(70), marginTop: '5px' }} rows={3} placeholder="e.g. I have 3 years experience in telecoms and admire this company’s values..." />
-              </div>
-            </div>
+            </>
           ) : (
             // Same 3-way choice as the paste path's "Tailor your CV" —
             // consistent interaction pattern regardless of which entry point
@@ -1605,10 +1658,17 @@ export default function BuildPage() {
             />
           )}
 
-          <button onClick={() => go('summary')} style={btnSkip}>Skip job details →</button>
+          {/* For a CV this is the last step, so both buttons land on the
+              summary. For a cover letter it is now the FIRST step, so they
+              continue along COVER_LETTER_PATH instead. */}
+          <button onClick={() => go(isCoverLetter ? nextAfter('form-5') : 'summary')} style={btnSkip}>
+            {isCoverLetter ? 'Skip for now →' : 'Skip job details →'}
+          </button>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={() => go('summary')} style={btnPrimary}>Review Details →</button>
+            <button onClick={() => go(isCoverLetter ? nextAfter('form-5') : 'summary')} style={btnPrimary}>
+              {isCoverLetter ? 'Next →' : 'Review Details →'}
+            </button>
           </div>
         </div>
 
@@ -1896,7 +1956,11 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
                 </div>
               )}
 
-              {on && opt.id === 'aim' && (
+              {/* A letter collects Job Title / Employer in its own card below
+                  this component (it needs them for the address block whichever
+                  option is chosen), so rendering them here too would show the
+                  same two fields twice on one screen. */}
+              {on && opt.id === 'aim' && !isLetter && (
                 <div style={{ marginTop: '10px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     {isAcademic
@@ -1960,30 +2024,6 @@ function Collapsible({ title, hint, badge, defaultOpen = false, children }: { ti
           be pre-filled when restoring a previous visit. */}
       <div style={{ padding: '0 18px 18px', display: open ? 'block' : 'none' }}>{children}</div>
     </div>
-  )
-}
-
-function JDSection({ method, setMethod, pasteRef, uploadedFile, setUploadedFile, cvType }: any) {
-  const required = cvType === 'cover_letter'
-  // "Job advert / vacancy" is the everyday term here — clearer than the
-  // American "job posting".
-  return (
-    <Collapsible
-      title={required ? 'Add the job advert or vacancy' : 'Applying for a specific role?'}
-      hint={required
-        ? 'We’ll tailor your letter to match what the employer is asking for.'
-        : 'Paste or upload the job advert and we’ll tailor your CV to it.'}
-      badge={required ? 'Recommended' : 'Optional'}
-      defaultOpen={required}
-    >
-      <div style={{ marginBottom: '14px' }}>
-        <ModeToggle value={method} onChange={setMethod} options={UPLOAD_PASTE_OPTIONS} />
-      </div>
-      {method === 'paste'
-        ? <textarea ref={pasteRef} style={TA(110)} rows={5} placeholder="Paste the job advert or describe the role here..." />
-        : <UploadZone label="Drop the job advert here, or click to browse" hint="PDF · Word · Image (screenshot)" onFile={setUploadedFile} file={uploadedFile} />
-      }
-    </Collapsible>
   )
 }
 
