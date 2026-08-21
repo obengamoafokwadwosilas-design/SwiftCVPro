@@ -230,7 +230,6 @@ export default function BuildPage() {
     jobTitle: useRef<HTMLInputElement>(null),
     company: useRef<HTMLInputElement>(null),
     jobDesc: useRef<HTMLTextAreaElement>(null),
-    whyRole: useRef<HTMLTextAreaElement>(null),
     addressee: useRef<HTMLInputElement>(null),
     companyAddress: useRef<HTMLInputElement>(null),
     // "Tailor my CV for…" — for people with no specific advert who still know
@@ -520,7 +519,6 @@ export default function BuildPage() {
       } : undefined,
       // Both entry points share one JD component now, so both read jdPaste.
       jobDescription: refs.jdPaste.current?.value || undefined,
-      whyRole: cvType === 'cover_letter' ? (refs.whyRole.current?.value || undefined) : undefined,
       landingScreen,
     }
   }
@@ -571,7 +569,6 @@ export default function BuildPage() {
         setVal(refs.jobTitle, f.jobTitle); setVal(refs.company, f.company)
       }
       if (seed.jobDescription) { setJdInputMode('paste'); setVal(refs.jdPaste, seed.jobDescription); setVal(refs.jobDesc, seed.jobDescription) }
-      setVal(refs.whyRole, seed.whyRole)
     })
     go(seed.landingScreen)
   }
@@ -608,7 +605,7 @@ export default function BuildPage() {
         requestAnimationFrame(() => setVal(refs.paste, seed.pasteContent))
       }
       // Clarify notes are deliberately NOT restored here — see the comment
-      // in rememberCurrentInput. Same reasoning as jobDescription/whyRole
+      // in rememberCurrentInput. Same reasoning as jobDescription
       // below: correct for one specific attempt, wrong to resurface later.
       if (seed.form) {
         const f = seed.form
@@ -677,7 +674,7 @@ export default function BuildPage() {
     if (!rememberMe) return
     const seed = captureBuildSeed('type')
     // Clarify notes are corrections/emphasis for THIS specific CV attempt —
-    // same category as jobDescription/whyRole below, not identity — so they
+    // same category as jobDescription below, not identity — so they
     // never belong in the permanent "remember me" carry-forward. Stripped
     // here rather than in captureBuildSeed, which is also used for the
     // one-shot session seed (payment/rewrite round trips) where keeping them
@@ -884,7 +881,6 @@ export default function BuildPage() {
           targetIndustry: r.tailorIndustryForm.current?.value || undefined,
           targetProgramme: isAcademic ? (r.tailorProgrammeForm.current?.value || undefined) : undefined,
           jobDescription: wantsAdvertJD ? (jobDescription || undefined) : undefined,
-          whyRole: cvType === 'cover_letter' ? (r.whyRole.current?.value || undefined) : undefined,
           // Cover-letter recipient (formal Ghanaian address block)
           addressee: cvType === 'cover_letter' ? (r.addressee.current?.value || undefined) : undefined,
           companyAddress: cvType === 'cover_letter' ? (r.companyAddress.current?.value || undefined) : undefined,
@@ -1650,18 +1646,9 @@ export default function BuildPage() {
                 {/* Formal address block for the letter — optional; sensible
                     defaults ("The Human Resource Manager", "Dear Sir/Madam,") are
                     used when left blank, so there are never empty placeholders. */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <Field label="Addressed to (optional)" placeholder="e.g. The Human Resource Manager" fieldRef={refs.addressee} />
                   <Field label="Employer address (optional)" placeholder="e.g. P. O. Box GP 667, Accra" fieldRef={refs.companyAddress} />
-                </div>
-                <div>
-                  <label style={labelStyle}>
-                    {tailorMode === 'none' ? 'What kind of work are you seeking?' : 'Why do you want this role?'}
-                    {' '}<span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 400 }}>Optional</span>
-                  </label>
-                  <textarea ref={refs.whyRole} style={{ ...TA(70), marginTop: '5px' }} rows={3} placeholder={tailorMode === 'none'
-                    ? 'e.g. Any administrative or customer-service role where I can use my 3 years in telecoms...'
-                    : 'e.g. I have 3 years experience in telecoms and admire this company’s values...'} />
                 </div>
               </div>
             </>
