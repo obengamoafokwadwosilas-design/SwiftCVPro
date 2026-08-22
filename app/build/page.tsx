@@ -1814,11 +1814,27 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
           <div style={{ width: '100%', maxWidth: '540px', textAlign: 'center' }}>
             {/* The nav is a fixed full-screen overlay above everything on this
                 screen (z-index 500 vs the nav's 50), so it's the one moment the
-                brand mark disappears from view during a 20-60s wait. This does
-                NOT touch the ring or its percentage below — that number was the
-                whole point of an earlier fix (it used to freeze at 99%), and
-                nothing here should risk it. */}
-            <img src="/logo-icon-dark.png" alt="" aria-hidden="true" style={{ height: '26px', width: 'auto', marginBottom: '20px', opacity: 0.85 }} />
+                brand mark disappears from view during a 20-60s wait — the
+                longest anyone spends looking at one still screen anywhere in
+                the app, and worth a real brand moment rather than a small
+                dimmed afterthought. Full icon + wordmark now, same pairing as
+                the nav, just sized for this screen. This does NOT touch the
+                ring or its percentage below — that number was the whole point
+                of an earlier fix (it used to freeze at 99%), and nothing here
+                should risk it. */}
+            <div style={{ marginBottom: '30px' }}>
+              {/* Tailwind's base reset sets img{display:block} globally, which
+                  means the parent's text-align:center — which DOES center the
+                  wordmark's text right below — has no effect on the image
+                  itself; a block box needs its own margin:auto to center.
+                  Without this the icon sat flush at the column's left edge
+                  while the wordmark centered normally, reading as two
+                  unrelated things instead of one lockup. */}
+              <img src="/logo-icon-dark.png" alt="" aria-hidden="true" style={{ display: 'block', height: '44px', width: 'auto', margin: '0 auto 12px' }} />
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 500, color: 'white', letterSpacing: '0.005em' }}>
+                Extraordinary <span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
+              </div>
+            </div>
             <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 32px' }}>
               <svg width="100" height="100" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
                 <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
