@@ -49,23 +49,30 @@ export default function Nav({ step, subProgress = 1, rightSlot }: NavProps) {
       zIndex: 50,
       borderBottom: '1px solid rgba(255,255,255,0.07)'
     }}>
-      <a href="/" title="Back to home" style={{ textDecoration: 'none', display: 'block', flexShrink: 0 }}>
-        <div style={{
-          fontFamily: "'Cormorant Garamond', serif",
-          fontSize: '1.5rem',
-          fontWeight: 400,
-          color: '#F6F6F3',
-          letterSpacing: '0.005em',
-          lineHeight: 1.05
-        }}>
-          Extraordinary <span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
-        </div>
-        <div className="xcv-mono xcv-tagline" style={{
-          fontSize: '9px',
-          color: 'rgba(255,255,255,0.5)',
-          marginTop: '3px'
-        }}>
-          Every job deserves its own
+      <a href="/" title="Back to home" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        {/* logo-icon-dark.png: navy recoloured to white, since the icon's
+            original navy is close enough to this bar's near-black background
+            (#0B1017) that it would nearly disappear otherwise — verified by
+            compositing onto the real nav colour before committing to this. */}
+        <img src="/logo-icon-dark.png" alt="" aria-hidden="true" style={{ height: '30px', width: 'auto', flexShrink: 0 }} />
+        <div>
+          <div style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontSize: '1.5rem',
+            fontWeight: 400,
+            color: '#F6F6F3',
+            letterSpacing: '0.005em',
+            lineHeight: 1.05
+          }}>
+            Extraordinary <span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
+          </div>
+          <div className="xcv-mono xcv-tagline" style={{
+            fontSize: '9px',
+            color: 'rgba(255,255,255,0.5)',
+            marginTop: '3px'
+          }}>
+            Every job deserves its own
+          </div>
         </div>
       </a>
 

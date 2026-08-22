@@ -54,6 +54,11 @@ const CV_TYPE_META: Record<CVType, { label: string; shortLabel: string; hasJobSt
 // fell through to doGenerate's catch-all and told people their internet had
 // dropped when the real problem was a blurry photo.
 class AdvertReadError extends Error {}
+// Same idea for the CV file itself. Without this, a second failed read (the
+// upload handler already tried once and shown why) fell through to the
+// generic network-error branch below — telling someone to check their wifi
+// when the real problem was sitting in their camera roll the whole time.
+class CVReadError extends Error {}
 
 // ─────────────────────────────────────────────────────────────
 // THE CHOOSER
@@ -808,7 +813,13 @@ export default function BuildPage() {
         rawContent = fromUpload
           ? (extractedCVText?.file === uploadedCV
               ? extractedCVText.text
-              : await extractFile(uploadedCV as File))
+              : await (async () => {
+                  try {
+                    return await extractFile(uploadedCV as File)
+                  } catch (err: any) {
+                    throw new CVReadError(err?.message || '')
+                  }
+                })())
           : refs.paste.current?.value || ''
 
         // A CV that yields almost no text is either an unreadable scan, a
@@ -959,6 +970,14 @@ export default function BuildPage() {
       // An unreadable advert file is the user's photo, not their connection —
       // saying "lost connection" here sent people to check their internet
       // when what they needed was a clearer picture.
+      if (err instanceof CVReadError) {
+        setError({
+          title: 'We couldn’t read your CV file',
+          msg: err.message || 'It may be a blurry photo, a scan, or password-protected. Try a clearer picture or a PDF/Word file — or paste the text in instead.',
+          type: 'input',
+        })
+        return
+      }
       if (err instanceof AdvertReadError) {
         setError({
           title: 'We couldn’t read that file',
@@ -1371,7 +1390,7 @@ export default function BuildPage() {
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={handleGenerate} disabled={isGenerating} style={{ ...btnPrimary, opacity: isGenerating ? 0.6 : 1 }}>
+            <button onClick={handleGenerate} disabled={isGenerating || (pasteInputMode === 'upload' && !!uploadReadError)} style={{ ...btnPrimary, opacity: (isGenerating || (pasteInputMode === 'upload' && !!uploadReadError)) ? 0.6 : 1 }}>
               {isGenerating ? 'Generating…' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
           </div>
@@ -1732,7 +1751,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
           )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={handleGenerate} disabled={isGenerating || !!paymentPending} style={{ ...btnPrimary, opacity: (isGenerating || paymentPending) ? 0.6 : 1 }}>
+            <button onClick={handleGenerate} disabled={isGenerating || !!paymentPending || (pasteInputMode === 'upload' && !!uploadReadError)} style={{ ...btnPrimary, opacity: (isGenerating || paymentPending || (pasteInputMode === 'upload' && !!uploadReadError)) ? 0.6 : 1 }}>
               {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
           </div>
@@ -1777,6 +1796,13 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
         <div className="xcv-overlay-in" style={{ position: 'fixed', inset: 0, background: 'var(--ink)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '32px' }}>
           <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(15,111,102,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
           <div style={{ width: '100%', maxWidth: '540px', textAlign: 'center' }}>
+            {/* The nav is a fixed full-screen overlay above everything on this
+                screen (z-index 500 vs the nav's 50), so it's the one moment the
+                brand mark disappears from view during a 20-60s wait. This does
+                NOT touch the ring or its percentage below — that number was the
+                whole point of an earlier fix (it used to freeze at 99%), and
+                nothing here should risk it. */}
+            <img src="/logo-icon-dark.png" alt="" aria-hidden="true" style={{ height: '26px', width: 'auto', marginBottom: '20px', opacity: 0.85 }} />
             <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 32px' }}>
               <svg width="100" height="100" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
                 <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
