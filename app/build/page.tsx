@@ -1213,7 +1213,12 @@ export default function BuildPage() {
                     <span style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.15rem, 4.8vw, 1.3rem)', fontWeight: 400, color: 'var(--ink)', lineHeight: 1.12, letterSpacing: '-0.005em' }}>{card.name}</span>
                     <span style={{ display: 'block', fontSize: '13px', color: 'var(--graphite)', marginTop: '3px', lineHeight: 1.45, fontWeight: 300 }}>{card.desc}</span>
                   </span>
-                  <span style={{ width: '18px', height: '18px', flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'transparent', border: '1px solid ' + (selected ? 'var(--teal)' : 'var(--rule)'), transition: 'background .18s ease, border-color .18s ease' }}>
+                  {/* var(--rule) measures ~1.3:1 against this card's white
+                      background — WCAG's own bar for a UI component boundary
+                      like a radio outline is 3:1, so the unselected state was
+                      failing by a wide margin, not just reading as subtle on
+                      purpose. --graphite clears ~6:1. */}
+                  <span style={{ width: '18px', height: '18px', flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'transparent', border: '1.5px solid ' + (selected ? 'var(--teal)' : 'var(--graphite)'), transition: 'background .18s ease, border-color .18s ease' }}>
                     {selected && <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   </span>
                 </button>
@@ -1331,7 +1336,9 @@ export default function BuildPage() {
                   <span style={{ width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'var(--rule-soft)', color: selected ? '#fff' : 'var(--graphite)', transition: 'background .18s ease, color .18s ease' }}>{opt.icon}</span>
                   <span style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: '1.3rem', fontWeight: 400, color: 'var(--ink)', lineHeight: 1.15, letterSpacing: '-0.005em' }}>{opt.title}</span>
                   <span style={{ display: 'block', fontSize: '12.5px', color: 'var(--graphite)', lineHeight: 1.55, fontWeight: 300 }}>{opt.desc}</span>
-                  <span style={{ position: 'absolute' as const, top: '17px', right: '17px', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'transparent', border: '1px solid ' + (selected ? 'var(--teal)' : 'var(--rule)'), transition: 'background .18s ease, border-color .18s ease' }}>
+                  {/* Same fix as the type-screen radio: var(--rule) fails the
+                      3:1 boundary-contrast bar, var(--graphite) clears it. */}
+                  <span style={{ position: 'absolute' as const, top: '17px', right: '17px', width: '18px', height: '18px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'transparent', border: '1.5px solid ' + (selected ? 'var(--teal)' : 'var(--graphite)'), transition: 'background .18s ease, border-color .18s ease' }}>
                     {selected && <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   </span>
                 </button>
@@ -1983,7 +1990,9 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
                 style={{ display: 'flex', alignItems: 'flex-start', gap: '11px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
                   background: on ? 'var(--teal-tint)' : 'white', border: on ? '2px solid var(--teal)' : '1px solid var(--rule)',
                   borderRadius: '13px', padding: on ? '12px 13px' : '13px 14px', fontFamily: "'DM Sans', sans-serif" }}>
-                <span style={{ width: '17px', height: '17px', flexShrink: 0, marginTop: '1px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--teal)' : 'transparent', border: on ? 'none' : '1.5px solid var(--rule)' }}>
+                {/* Same fix as the other radio circles on this flow —
+                    var(--rule) fails the 3:1 boundary-contrast bar. */}
+                <span style={{ width: '17px', height: '17px', flexShrink: 0, marginTop: '1px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--teal)' : 'transparent', border: on ? 'none' : '1.5px solid var(--graphite)' }}>
                   {on && <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                 </span>
                 <span>
