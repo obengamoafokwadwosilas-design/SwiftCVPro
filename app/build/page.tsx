@@ -1176,7 +1176,7 @@ export default function BuildPage() {
               What should we create?
             </h1>
             <p style={{ fontSize: '15px', color: 'var(--graphite)', fontWeight: 300, lineHeight: 1.65, maxWidth: '46ch' }}>
-              <span style={{ color: 'var(--ink)', fontWeight: 400 }}>Pick your CV type</span> — select the option that matches your application, then click continue.
+              Select the option that matches your application, then click continue.
             </p>
             {/* Shown only when the account is empty. A returning user with
                 credits sees the balance in the pill instead — one statement
