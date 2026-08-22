@@ -1890,7 +1890,12 @@ function Field({ label, placeholder, fieldRef }: { label: string; placeholder: s
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
       <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--graphite)' }}>{label}</label>
-      <input ref={fieldRef} placeholder={placeholder} style={{ padding: '10px 12px', border: '1.5px solid var(--rule)', borderRadius: '10px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: 'var(--ink)', transition: 'border-color 0.2s' }} />
+      {/* width:100% is required here. An <input> with no width falls back to
+          its own intrinsic browser size rather than stretching to fill this
+          div — invisible when a Field sits alone, but on a phone-width
+          two-column grid (Phone/Email) it let Email push past the card and
+          off the edge of the screen, clipping half the placeholder text. */}
+      <input ref={fieldRef} placeholder={placeholder} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--rule)', borderRadius: '10px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: 'var(--ink)', transition: 'border-color 0.2s' }} />
     </div>
   )
 }
