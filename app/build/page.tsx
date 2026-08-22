@@ -1163,12 +1163,16 @@ export default function BuildPage() {
               register rather than the heavy one — closed by a rule that reads
               as the top margin of a page. */}
           <div className="xcv-rise">
-            {/* Floor lowered from 2.15rem. The vw term only engages above
-                ~625px, so on every phone the floor WAS the size — a flat
-                34.4px, which wrapped this to two lines and ate ~70px before
-                any content. The coefficient and cap are untouched, so 768px
-                and up render exactly as before; only phones come down. */}
-            <h1 className="xcv-h1" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.6rem, 5.5vw, 3.1rem)', fontWeight: 300, color: 'var(--ink)', lineHeight: 1.02, letterSpacing: '-0.015em', marginBottom: '15px' }}>
+            {/* Floor lowered from 2.15rem (see below); cap ALSO lowered here,
+                from 3.1rem to 2.7rem — at 49.6px this was the single biggest
+                element on a functional step screen, bigger than any other
+                screen's heading in the flow (all of which cap at 2.7rem via
+                h1Style). 2.7rem brings this screen in line with the rest of
+                the flow rather than starting oversized and shrinking after —
+                still a real display headline, just not louder than the
+                screens that follow it. Coefficient (5.5vw) untouched, so
+                mobile is unaffected by this specific change. */}
+            <h1 className="xcv-h1" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.6rem, 5.5vw, 2.7rem)', fontWeight: 300, color: 'var(--ink)', lineHeight: 1.02, letterSpacing: '-0.015em', marginBottom: '15px' }}>
               What should we create?
             </h1>
             <p style={{ fontSize: '15px', color: 'var(--graphite)', fontWeight: 300, lineHeight: 1.65, maxWidth: '46ch' }}>
@@ -1203,13 +1207,11 @@ export default function BuildPage() {
                 >
                   <span style={{ width: '42px', height: '42px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'var(--rule-soft)', color: selected ? '#fff' : 'var(--graphite)', transition: 'background .18s ease, color .18s ease' }}>{card.icon}</span>
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    {/* Was a flat 1.45rem (23.2px) at every width, with no
-                        responsive rule at all — big enough on a phone to
-                        compete with the page title, so the options shouted as
-                        loudly as the question. Capped at the old value, so
-                        desktop is unchanged. */}
-                    <span style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.15rem, 4.8vw, 1.45rem)', fontWeight: 400, color: 'var(--ink)', lineHeight: 1.12, letterSpacing: '-0.005em' }}>{card.name}</span>
-                    <span style={{ display: 'block', fontSize: '13px', color: 'var(--graphite)', marginTop: '5px', lineHeight: 1.5, fontWeight: 300 }}>{card.desc}</span>
+                    {/* Cap trimmed from 1.45rem (23.2px) to 1.3rem (20.8px) —
+                        a card label doesn't need full headline weight. Floor
+                        and coefficient untouched, so phones are unaffected. */}
+                    <span style={{ display: 'block', fontFamily: "'Cormorant Garamond', serif", fontSize: 'clamp(1.15rem, 4.8vw, 1.3rem)', fontWeight: 400, color: 'var(--ink)', lineHeight: 1.12, letterSpacing: '-0.005em' }}>{card.name}</span>
+                    <span style={{ display: 'block', fontSize: '13px', color: 'var(--graphite)', marginTop: '3px', lineHeight: 1.45, fontWeight: 300 }}>{card.desc}</span>
                   </span>
                   <span style={{ width: '18px', height: '18px', flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: selected ? 'var(--teal)' : 'transparent', border: '1px solid ' + (selected ? 'var(--teal)' : 'var(--rule)'), transition: 'background .18s ease, border-color .18s ease' }}>
                     {selected && <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round"/></svg>}
@@ -1225,7 +1227,14 @@ export default function BuildPage() {
               fields side by side, one shared caption. */}
           <div className="xcv-rise" style={{ animationDelay: '280ms', marginBottom: '34px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
-              <label className="xcv-mono" style={{ color: 'var(--muted)' }}>Phone &amp; email</label>
+              {/* var(--muted) here measures ~2.95:1 against var(--paper) —
+                  well under the 4.5:1 minimum for text this size, so the
+                  label really was getting lost, not just reading quiet on
+                  purpose. --graphite clears ~5.6:1. Size bumped 10px -> 12px
+                  to match; xcv-mono's shared 10px default is untouched since
+                  its other two usages already override size/color per call
+                  site and aren't part of this complaint. */}
+              <label className="xcv-mono" style={{ fontSize: '12px', color: 'var(--graphite)' }}>Phone &amp; email</label>
               {restoredFromLastInput && (
                 <button type="button" onClick={clearSavedInfo} className="xcv-link" style={{ fontSize: '12.5px', whiteSpace: 'nowrap' as const }}>
                   Not you? Clear saved info
