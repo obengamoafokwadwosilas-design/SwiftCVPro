@@ -658,6 +658,21 @@ export default function BuildPage() {
     setRestoredFromLastInput(false)
   }
 
+  // Buying credits up front, before generating anything. Credits attach to a
+  // phone number — that IS the account — so we can't open a payment we'd have
+  // nowhere to credit. Hence the guard rather than a silent no-op.
+  function startBuyCredits() {
+    const digits = phoneNumber.replace(/\D/g, '')
+    if (!phoneNumber.trim() || digits.length < 9) {
+      setTypeErr('Enter your phone number first — your credits are saved to it.')
+      return
+    }
+    setTypeErr('')
+    setPayPhone(normalizePhone(phoneNumber))
+    setBuyingStandalone(true)
+    setShowPricing(true)
+  }
+
   // "Switch number" — same wipe as clearSavedInfo, plus a jump back to the
   // type screen since that's the only place phone/email are editable.
   function switchNumber() {
@@ -1151,9 +1166,19 @@ export default function BuildPage() {
           that used to sit here is gone. */}
       {(() => {
         const hasCredits = !!creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0)
-        const showPill = !!phoneNumber && (hasCredits || screen !== 'type')
+        // Show the pill — and with it the "Buy credits" button — as soon as we
+        // know which number to credit. This used to also require
+        // `hasCredits || screen !== 'type'`, which hid the buy button from
+        // exactly the person most likely to use it: someone who just clicked a
+        // pricing button on the landing page and has no credits yet.
+        const showPill = !!phoneNumber
         if (!backTo && screen !== 'type' && !showPill) return null
         const n = cvType === 'cover_letter' ? (creditBalance?.cl ?? 0) : (creditBalance?.cv ?? 0)
+        // The type screen already states the free-preview offer inline below,
+        // so the pill drops that label there and shows only the number.
+        const pillLabel = hasCredits
+          ? n + ' ' + (cvType === 'cover_letter' ? 'cover letter' : 'CV') + ' credit' + (n === 1 ? '' : 's') + ' left'
+          : (screen === 'type' ? '' : 'First 2 previews free')
         return (
           <div style={{ maxWidth: '680px', margin: '0 auto', padding: '26px 24px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' as const }}>
             <div>
@@ -1167,13 +1192,11 @@ export default function BuildPage() {
             {showPill && (
               <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '6px' }}>
                 <div className="xcv-mono" style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '9.5px', color: 'var(--teal)', background: 'var(--teal-tint)', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '4px', padding: '7px 12px', whiteSpace: 'nowrap' as const }}>
-                  {hasCredits
-                    ? n + ' ' + (cvType === 'cover_letter' ? 'cover letter' : 'CV') + ' credit' + (n === 1 ? '' : 's') + ' left'
-                    : 'First 2 previews free'}
-                  <span style={{ color: 'var(--muted)', borderLeft: '1px solid rgba(15,111,102,0.18)', paddingLeft: '9px' }}>{phoneNumber}</span>
+                  {pillLabel}
+                  <span style={{ color: 'var(--muted)', ...(pillLabel ? { borderLeft: '1px solid rgba(15,111,102,0.18)', paddingLeft: '9px' } : {}) }}>{phoneNumber}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button type="button" onClick={() => { setPayPhone(normalizePhone(phoneNumber)); setBuyingStandalone(true); setShowPricing(true) }} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--teal)', fontWeight: 500 }}>
+                  <button type="button" onClick={startBuyCredits} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--teal)', fontWeight: 500 }}>
                     Buy credits
                   </button>
                   {screen !== 'type' && (
@@ -1222,6 +1245,27 @@ export default function BuildPage() {
                 Your first two previews are free. You pay only when you download.
               </p>
             )}
+            {/* Someone arriving from a landing-page pricing button (?pkg=gold
+                etc.) had picked a package and then landed here with no way to
+                pay for it — the id was read but only used to highlight a row
+                inside a modal that never opened on its own. This turns that
+                click back into a real path to checkout. Hidden once they
+                already hold credits, so it can't nag a paying customer. */}
+            {(() => {
+              const picked = pkgFromUrl ? PACKAGES.find(p => p.id === pkgFromUrl) : null
+              if (!picked || hasCredits) return null
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' as const, marginTop: '18px', padding: '14px 16px', background: 'var(--teal-tint)', border: '1px solid rgba(15,111,102,0.18)', borderRadius: '12px' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>{picked.emoji} {picked.name} · GH₵{picked.price}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '2px', lineHeight: 1.5 }}>{picked.blurb} — credits never expire.</div>
+                  </div>
+                  <button type="button" onClick={startBuyCredits} style={{ flexShrink: 0, padding: '10px 18px', background: 'var(--teal)', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                    Continue to payment
+                  </button>
+                </div>
+              )
+            })()}
             <div style={{ height: '1px', background: 'var(--rule)', margin: '32px 0 24px' }} />
           </div>
 
@@ -1865,8 +1909,13 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
               <div style={{ fontSize: '12px', color: 'var(--graphite)', lineHeight: 1.6 }}>This phone number is how you get back to your CVs and credits — from any device, any time. Anyone who knows the number can too, so set a 4-digit PIN to keep your history private.</div>
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' as const }}>
-              <button onClick={() => router.push('/my-cvs')} style={{ padding: '11px 20px', background: 'var(--teal)', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set a PIN</button>
-              <button onClick={() => setPurchasedPkg(null)} style={{ padding: '11px 20px', background: 'transparent', color: 'var(--graphite)', border: '1px solid var(--rule)', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Continue</button>
+              {/* This modal only ever shows for a standalone purchase — buying
+                  at the download paywall goes straight back to generating — so
+                  the person seeing it has credits and nothing in progress.
+                  "Continue" just closed the box and left them with no next
+                  step; the primary action now names it. */}
+              <button onClick={() => setPurchasedPkg(null)} style={{ padding: '11px 20px', background: 'var(--teal)', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Build my CV now</button>
+              <button onClick={() => router.push('/my-cvs')} style={{ padding: '11px 20px', background: 'transparent', color: 'var(--graphite)', border: '1px solid var(--rule)', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set a PIN</button>
             </div>
           </div>
         </div>
