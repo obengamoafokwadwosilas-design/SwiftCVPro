@@ -1034,6 +1034,22 @@ export default function BuildPage() {
     return /FBAN|FBAV|Instagram|Line\/|Twitter|WhatsApp|MicroMessenger/i.test(navigator.userAgent || '')
   }
 
+  // After a standalone purchase, the client's credit balance is still
+  // whatever it was before paying — the pill, and the "you already picked
+  // this package" banner on the type screen, would otherwise keep showing
+  // stale info (worst case: inviting someone to buy a package they just
+  // bought). Re-checks the same way goAfterType does on first load.
+  function refreshCreditBalance(phoneForBalance: string) {
+    fetch('/api/check-credits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber: phoneForBalance, cvType }),
+    })
+      .then(res => res.json())
+      .then(d => setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 }))
+      .catch(() => {})
+  }
+
   async function confirmPayment(reference: string): Promise<boolean> {
     try {
       const res = await fetch('/api/verify-payment', {
@@ -1098,7 +1114,7 @@ export default function BuildPage() {
             onSuccess: async () => {
               if (buyingStandalone) {
                 const ok = await confirmPayment(data.reference)
-                if (ok) setPurchasedPkg(pkg)
+                if (ok) { setPurchasedPkg(pkg); refreshCreditBalance(normalizedPhone) }
                 return
               }
               setIsGenerating(true)
@@ -1138,6 +1154,7 @@ export default function BuildPage() {
     setPaymentPending(null)
     if (standalone) {
       setPurchasedPkg(pkg)
+      refreshCreditBalance(payPhone)
       return
     }
     setIsGenerating(true)
