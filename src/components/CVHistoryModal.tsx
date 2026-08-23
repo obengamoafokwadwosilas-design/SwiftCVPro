@@ -305,8 +305,7 @@ export default function CVHistoryModal({ open, onClose, initialPhone, autoSetPin
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="#0d9488"/></svg>
                   </div>
                   <div>
-                    <div style={{ fontFamily: serif, fontSize: '1.05rem', fontWeight: 600, color: '#0a0f1a', lineHeight: 1.25, marginBottom: '3px' }}>One CV rarely wins every job</div>
-                    <div style={{ fontSize: '12px', color: '#64748b', lineHeight: 1.55 }}>Recruiters — and the software that screens CVs — favour one aimed at the specific role. Same background, sharper aim: use <strong style={{ color: '#0a5d55', fontWeight: 600 }}>Tailor for another job</strong> below.</div>
+                    <div style={{ fontFamily: serif, fontSize: '1.05rem', fontWeight: 600, color: '#0a0f1a', lineHeight: 1.25 }}>Tailor for another job</div>
                   </div>
                 </div>
               </>
