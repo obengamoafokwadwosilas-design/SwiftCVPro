@@ -9,6 +9,16 @@ import BalanceModal from '@/components/BalanceModal'
 import HeaderMenu from '@/components/HeaderMenu'
 import { PACKAGES, packagesForDoc } from '@/lib/packages'
 
+// Pricing modal icons — one accent (teal, for the recommended card) plus a
+// neutral weight ramp for the rest, matching the same treatment on the
+// build page's copy of this modal rather than a colour per tier.
+const PKG_ICON: Record<string, JSX.Element> = {
+  silver: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>,
+  gold: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.5l2.9 6.5 7.1.6-5.4 4.6 1.7 7-6.3-4-6.3 4 1.7-7-5.4-4.6 7.1-.6z"/></svg>,
+  coverletter: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>,
+  platinum: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
+}
+
 // ══════════════════════════════════════════════════════
 // TEMPLATE LIBRARY — Premium first, then ATS, then Academic
 // ══════════════════════════════════════════════════════
@@ -1416,20 +1426,24 @@ export default function PreviewPage() {
               </div>
             ) : (
               <div style={{ display: 'grid', gap: '11px' }}>
-                {packagesForDoc(isCoverLetter).map(pkg => (
+                {packagesForDoc(isCoverLetter).map(pkg => {
+                  const iconBg = pkg.recommended ? 'rgba(13,148,136,0.12)' : pkg.id === 'platinum' ? 'rgba(10,15,26,0.08)' : 'rgba(15,23,42,0.05)'
+                  const iconFg = pkg.recommended ? '#0d9488' : pkg.id === 'platinum' ? '#0a0f1a' : '#64748b'
+                  return (
                   <button key={pkg.id} onClick={() => triggerPreviewPaystack(pkg)}
                     style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
                       background: pkg.recommended ? '#f6fdfb' : 'white', border: pkg.recommended ? '2px solid #0d9488' : '1px solid #e7ebf0',
                       borderRadius: '16px', padding: pkg.recommended ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
                     {pkg.recommended && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: '#0d9488', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>BEST VALUE</span>}
-                    <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', background: pkg.recommended ? 'rgba(13,148,136,0.12)' : 'rgba(15,23,42,0.05)' }}>{pkg.emoji}</span>
+                    <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: iconBg, color: iconFg }}>{PKG_ICON[pkg.id]}</span>
                     <span style={{ flex: 1 }}>
                       <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: '#0a0f1a' }}>{pkg.name}</span>
                       <span style={{ display: 'block', fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>{pkg.blurb}</span>
                     </span>
                     <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 700, color: pkg.recommended ? '#0d9488' : '#0a0f1a', whiteSpace: 'nowrap' as const }}>GH₵{pkg.price}</span>
                   </button>
-                ))}
+                  )
+                })}
               </div>
             )}
 

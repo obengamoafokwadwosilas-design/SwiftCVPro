@@ -9,6 +9,20 @@ import { normalizePhone } from '@/lib/phone'
 import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed, saveLastInput, loadLastInput, clearLastInput, clearPreviousCoverLetter } from '@/lib/buildSeed'
 
 // ─────────────────────────────────────────────────────────────
+// PRICING MODAL ICONS — one restrained accent (teal, for whichever card is
+// highlighted) plus a light↔dark neutral weight ramp for the rest, instead
+// of a different hue per tier. Keeps the badges inside this app's actual
+// two-colour system rather than importing a rainbow that doesn't exist
+// anywhere else on the site.
+// ─────────────────────────────────────────────────────────────
+const PKG_ICON: Record<string, JSX.Element> = {
+  silver: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>,
+  gold: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.5l2.9 6.5 7.1.6-5.4 4.6 1.7 7-6.3-4-6.3 4 1.7-7-5.4-4.6 7.1-.6z"/></svg>,
+  coverletter: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>,
+  platinum: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
+}
+
+// ─────────────────────────────────────────────────────────────
 // LOADING SCREEN DATA
 // ─────────────────────────────────────────────────────────────
 const LOADING_STEPS = [
@@ -1890,13 +1904,19 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
               {packagesForDoc(cvType === 'cover_letter').map(pkg => {
                 const isPicked = pkg.id === pkgFromUrl
                 const isHighlighted = isPicked || pkg.recommended
+                // The recommended/picked card gets the one brand accent;
+                // Platinum (the top tier, when not otherwise highlighted)
+                // gets a darker neutral instead of a louder one — weight
+                // increases with the tier rather than switching hue.
+                const iconBg = isHighlighted ? 'rgba(15,111,102,0.12)' : pkg.id === 'platinum' ? 'rgba(11,16,23,0.08)' : 'rgba(15,23,42,0.05)'
+                const iconFg = isHighlighted ? 'var(--teal)' : pkg.id === 'platinum' ? 'var(--ink)' : 'var(--graphite)'
                 return (
                 <button key={pkg.id} onClick={() => { setShowPricing(false); triggerPaystack(payPhone, pkg) }}
                   style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
                     background: isHighlighted ? 'var(--teal-tint)' : 'white', border: isHighlighted ? '2px solid var(--teal)' : '1px solid var(--rule)',
                     borderRadius: '16px', padding: isHighlighted ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
                   {isHighlighted && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: 'var(--teal)', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>{isPicked ? 'YOUR PICK' : 'BEST VALUE'}</span>}
-                  <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', background: isHighlighted ? 'rgba(15,111,102,0.12)' : 'rgba(15,23,42,0.05)' }}>{pkg.emoji}</span>
+                  <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: iconBg, color: iconFg }}>{PKG_ICON[pkg.id]}</span>
                   <span style={{ flex: 1 }}>
                     <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>{pkg.name}</span>
                     <span style={{ display: 'block', fontSize: '12.5px', color: 'var(--graphite)', marginTop: '2px' }}>{pkg.blurb}</span>
