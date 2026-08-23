@@ -9,17 +9,23 @@ import { normalizePhone } from '@/lib/phone'
 import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed, saveLastInput, loadLastInput, clearLastInput, clearPreviousCoverLetter } from '@/lib/buildSeed'
 
 // ─────────────────────────────────────────────────────────────
-// PRICING MODAL ICONS — one restrained accent (teal, for whichever card is
-// highlighted) plus a light↔dark neutral weight ramp for the rest, instead
-// of a different hue per tier. Keeps the badges inside this app's actual
-// two-colour system rather than importing a rainbow that doesn't exist
-// anywhere else on the site.
+// PRICING MODAL ICONS — each tier gets its own icon colour (a real "these
+// are different products" signal), while the card-level highlight (border,
+// tinted background, BEST VALUE badge) stays reserved for Gold alone. The
+// two are separate signals: hue says which tier this is, the highlight says
+// which one to buy.
 // ─────────────────────────────────────────────────────────────
 const PKG_ICON: Record<string, JSX.Element> = {
   silver: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>,
   gold: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.5l2.9 6.5 7.1.6-5.4 4.6 1.7 7-6.3-4-6.3 4 1.7-7-5.4-4.6 7.1-.6z"/></svg>,
   coverletter: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>,
   platinum: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
+}
+const TIER_ICON_COLOR: Record<string, { bg: string; fg: string }> = {
+  silver: { bg: 'rgba(100,116,139,0.14)', fg: '#64748b' },   // steel grey
+  gold: { bg: 'rgba(180,131,15,0.14)', fg: '#b4830f' },      // warm gold
+  platinum: { bg: 'rgba(76,29,149,0.10)', fg: '#4c1d95' },   // deep indigo
+  default: { bg: 'rgba(15,23,42,0.05)', fg: 'var(--graphite)' },
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1286,9 +1292,10 @@ export default function BuildPage() {
               const picked = pkgFromUrl ? PACKAGES.find(p => p.id === pkgFromUrl) : null
               if (!picked || hasCredits) return null
               return (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' as const, marginTop: '18px', padding: '14px 16px', background: 'var(--teal-tint)', border: '1px solid rgba(15,111,102,0.18)', borderRadius: '12px' }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>{picked.emoji} {picked.name} · GH₵{picked.price}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' as const, marginTop: '18px', padding: '14px 16px', background: 'var(--teal-tint)', border: '1px solid rgba(15,111,102,0.18)', borderRadius: '12px' }}>
+                  <span style={{ width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: (TIER_ICON_COLOR[picked.id] || TIER_ICON_COLOR.default).bg, color: (TIER_ICON_COLOR[picked.id] || TIER_ICON_COLOR.default).fg }}>{PKG_ICON[picked.id]}</span>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>{picked.name} · GH₵{picked.price}</div>
                     <div style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '2px', lineHeight: 1.5 }}>{picked.blurb} — credits never expire.</div>
                   </div>
                   <button type="button" onClick={startBuyCredits} style={{ flexShrink: 0, padding: '10px 18px', background: 'var(--teal)', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
@@ -1397,7 +1404,7 @@ export default function BuildPage() {
             </label>
             {phoneNumber.trim() && (
               <button type="button" onClick={() => router.push(`/my-cvs?phone=${encodeURIComponent(normalizePhone(phoneNumber))}&setpin=1`)} className="xcv-link" style={{ display: 'block', marginTop: '8px', fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
-                Optional — <span style={{ color: 'var(--teal)', fontWeight: 500 }}>protect this number with a PIN</span>
+                Optional — <span style={{ color: 'var(--teal)', fontWeight: 500 }}>🔒 protect this number with a PIN</span>
               </button>
             )}
           </div>
@@ -1902,21 +1909,21 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             <div style={{ display: 'grid', gap: '11px' }}>
               {/* Only the packages that grant the credit this document needs. */}
               {packagesForDoc(cvType === 'cover_letter').map(pkg => {
-                const isPicked = pkg.id === pkgFromUrl
-                const isHighlighted = isPicked || pkg.recommended
-                // The recommended/picked card gets the one brand accent;
-                // Platinum (the top tier, when not otherwise highlighted)
-                // gets a darker neutral instead of a louder one — weight
-                // increases with the tier rather than switching hue.
-                const iconBg = isHighlighted ? 'rgba(15,111,102,0.12)' : pkg.id === 'platinum' ? 'rgba(11,16,23,0.08)' : 'rgba(15,23,42,0.05)'
-                const iconFg = isHighlighted ? 'var(--teal)' : pkg.id === 'platinum' ? 'var(--ink)' : 'var(--graphite)'
+                // The card border/background/badge stays reserved for Gold
+                // alone — that's the single visual anchor. Each tier's icon
+                // still gets its own colour so Silver/Gold/Platinum read as
+                // genuinely different tiers, not just "one highlighted, two
+                // identical greys" — a smaller, secondary signal that
+                // doesn't compete with the card-level highlight.
+                const isHighlighted = pkg.recommended
+                const tierColor = TIER_ICON_COLOR[pkg.id] || TIER_ICON_COLOR.default
                 return (
                 <button key={pkg.id} onClick={() => { setShowPricing(false); triggerPaystack(payPhone, pkg) }}
                   style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
                     background: isHighlighted ? 'var(--teal-tint)' : 'white', border: isHighlighted ? '2px solid var(--teal)' : '1px solid var(--rule)',
                     borderRadius: '16px', padding: isHighlighted ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
-                  {isHighlighted && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: 'var(--teal)', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>{isPicked ? 'YOUR PICK' : 'BEST VALUE'}</span>}
-                  <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: iconBg, color: iconFg }}>{PKG_ICON[pkg.id]}</span>
+                  {isHighlighted && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: 'var(--teal)', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>BEST VALUE</span>}
+                  <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: tierColor.bg, color: tierColor.fg }}>{PKG_ICON[pkg.id]}</span>
                   <span style={{ flex: 1 }}>
                     <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>{pkg.name}</span>
                     <span style={{ display: 'block', fontSize: '12.5px', color: 'var(--graphite)', marginTop: '2px' }}>{pkg.blurb}</span>

@@ -9,14 +9,20 @@ import BalanceModal from '@/components/BalanceModal'
 import HeaderMenu from '@/components/HeaderMenu'
 import { PACKAGES, packagesForDoc } from '@/lib/packages'
 
-// Pricing modal icons — one accent (teal, for the recommended card) plus a
-// neutral weight ramp for the rest, matching the same treatment on the
-// build page's copy of this modal rather than a colour per tier.
+// Pricing modal icons — each tier gets its own icon colour; the card-level
+// highlight (border, tint, BEST VALUE badge) stays reserved for Gold alone.
+// Matches the same treatment on the build page's copy of this modal.
 const PKG_ICON: Record<string, JSX.Element> = {
   silver: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>,
   gold: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.5l2.9 6.5 7.1.6-5.4 4.6 1.7 7-6.3-4-6.3 4 1.7-7-5.4-4.6 7.1-.6z"/></svg>,
   coverletter: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>,
   platinum: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
+}
+const TIER_ICON_COLOR: Record<string, { bg: string; fg: string }> = {
+  silver: { bg: 'rgba(100,116,139,0.14)', fg: '#64748b' },
+  gold: { bg: 'rgba(180,131,15,0.14)', fg: '#b4830f' },
+  platinum: { bg: 'rgba(76,29,149,0.10)', fg: '#4c1d95' },
+  default: { bg: 'rgba(15,23,42,0.05)', fg: '#64748b' },
 }
 
 // ══════════════════════════════════════════════════════
@@ -1307,7 +1313,7 @@ export default function PreviewPage() {
         <div className="scv-sheet no-print" style={{ position:'fixed', bottom:'24px', right:'24px', zIndex:150, background:'white', borderRadius:'16px', padding:'18px 20px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)', border:'1px solid #e2e8f0', maxWidth:'300px' }}>
           <button onClick={() => setShowPinNudge(false)} style={{ position:'absolute', top:'10px', right:'12px', background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
           <div style={{ display:'flex', alignItems:'center', gap:'9px', marginBottom:'6px' }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="1.9"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+            <span style={{ fontSize:'16px' }}>🔒</span>
             <div style={{ fontSize:'1.12rem', fontWeight:600, color:'#0a0f1a', fontFamily:"'Cormorant Garamond', serif" }}>Protect your CVs</div>
           </div>
           <div style={{ fontSize:'12px', color:'#64748b', lineHeight:1.6, marginBottom:'14px' }}>Right now anyone who knows your number could open your CV history. Add a 4-digit PIN — it takes a moment.</div>
@@ -1332,7 +1338,7 @@ export default function PreviewPage() {
             ) : (
               <>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'4px' }}>
-                  <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>Set your PIN</div>
+                  <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>🔒 Set your PIN</div>
                   <button onClick={() => !pinSaving && setShowPinModal(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
                 </div>
                 <p style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.55, margin:'0 0 16px' }}>You&apos;ll enter this whenever you open <strong style={{ color:'#0a0f1a', fontWeight:600 }}>My CVs</strong> on {phone || 'your number'}.</p>
@@ -1362,8 +1368,8 @@ export default function PreviewPage() {
         <div onClick={() => { setShowDownloadPinModal(false); setDownloadPin(''); setDownloadPinErr('') }} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.55)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:230, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
           <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'360px', padding:'28px 24px', boxShadow:'0 24px 60px -12px rgba(10,15,26,0.38)', fontFamily:"'DM Sans', sans-serif" }}>
             <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'6px' }}>
-              <div style={{ width:'36px', height:'36px', borderRadius:'50%', background:'#f0fdf9', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+              <div style={{ width:'36px', height:'36px', borderRadius:'50%', background:'#f0fdf9', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:'16px' }}>
+                🔒
               </div>
               <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.35rem', fontWeight:600, color:'#0a0f1a' }}>Enter your PIN</div>
               <button onClick={() => { setShowDownloadPinModal(false); setDownloadPin(''); setDownloadPinErr('') }} style={{ marginLeft:'auto', background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
@@ -1427,15 +1433,14 @@ export default function PreviewPage() {
             ) : (
               <div style={{ display: 'grid', gap: '11px' }}>
                 {packagesForDoc(isCoverLetter).map(pkg => {
-                  const iconBg = pkg.recommended ? 'rgba(13,148,136,0.12)' : pkg.id === 'platinum' ? 'rgba(10,15,26,0.08)' : 'rgba(15,23,42,0.05)'
-                  const iconFg = pkg.recommended ? '#0d9488' : pkg.id === 'platinum' ? '#0a0f1a' : '#64748b'
+                  const tierColor = TIER_ICON_COLOR[pkg.id] || TIER_ICON_COLOR.default
                   return (
                   <button key={pkg.id} onClick={() => triggerPreviewPaystack(pkg)}
                     style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
                       background: pkg.recommended ? '#f6fdfb' : 'white', border: pkg.recommended ? '2px solid #0d9488' : '1px solid #e7ebf0',
                       borderRadius: '16px', padding: pkg.recommended ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
                     {pkg.recommended && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: '#0d9488', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>BEST VALUE</span>}
-                    <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: iconBg, color: iconFg }}>{PKG_ICON[pkg.id]}</span>
+                    <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: tierColor.bg, color: tierColor.fg }}>{PKG_ICON[pkg.id]}</span>
                     <span style={{ flex: 1 }}>
                       <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: '#0a0f1a' }}>{pkg.name}</span>
                       <span style={{ display: 'block', fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>{pkg.blurb}</span>

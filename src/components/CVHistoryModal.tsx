@@ -240,7 +240,7 @@ export default function CVHistoryModal({ open, onClose, initialPhone, autoSetPin
 
         {step === 'pin' && (
           <>
-            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px', lineHeight: 1.6 }}>This number is protected by a 4-digit code.</p>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px', lineHeight: 1.6 }}>🔒 This number is protected by a 4-digit code.</p>
             <input value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="••••" inputMode="numeric" style={{ ...inputStyle, textAlign: 'center' as const, letterSpacing: '8px', fontSize: '20px' }} />
             <button onClick={handlePinSubmit} disabled={loading} style={{ ...btnPrimary, width: '100%', marginTop: '14px', opacity: loading ? 0.6 : 1 }}>
               {loading ? 'Checking…' : 'Unlock'}
@@ -271,7 +271,7 @@ export default function CVHistoryModal({ open, onClose, initialPhone, autoSetPin
         {step === 'setPin' && (
           <>
             <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '14px', lineHeight: 1.6 }}>
-              {pinAlreadySet ? 'Change your PIN.' : 'Add a 4-digit code so only you can view this history.'}
+              🔒 {pinAlreadySet ? 'Change your PIN.' : 'Add a 4-digit code so only you can view this history.'}
               {' '}There is no way to recover a PIN without a recovery email — keep it somewhere safe.
             </p>
             {pinAlreadySet && <input value={oldPin} onChange={e => setOldPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="Current PIN" inputMode="numeric" style={{ ...inputStyle, marginBottom: '10px' }} />}
@@ -291,7 +291,7 @@ export default function CVHistoryModal({ open, onClose, initialPhone, autoSetPin
         {step === 'list' && (
           <>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px' }}>
-              <button onClick={() => { setStep('setPin'); setError('') }} style={linkBtn}>{pinAlreadySet ? 'Change PIN' : 'Protect with a PIN'}</button>
+              <button onClick={() => { setStep('setPin'); setError('') }} style={linkBtn}>{pinAlreadySet ? '🔒 Change PIN' : '🔒 Protect with a PIN'}</button>
             </div>
             {items.length === 0 ? (
               <p style={{ fontSize: '13.5px', color: '#64748b', textAlign: 'center' as const, padding: '30px 0' }}>No CVs generated yet with this number.</p>
