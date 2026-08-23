@@ -108,24 +108,24 @@ nav.scrolled {
   padding: 14px 0;
 }
 .nav-inner { display:flex; justify-content:space-between; align-items:center; }
-.logo { display:flex; align-items:center; gap:10px; }
-.logo-text { display:flex; flex-direction:column; gap:4px; }
+.logo { display:flex; align-items:center; gap:11px; }
+.logo-text { display:flex; flex-direction:column; gap:4.4px; }
 /* Two images stacked in one slot, crossfaded by the same nav.scrolled class
    that already flips the wordmark's colour — light-context icon at rest (the
    bar is var(--paper) here), dark-context icon once scrolled (bar goes navy).
    The icon's own navy fill is close enough in tone to that scrolled navy that
    it would nearly disappear without this swap — confirmed by compositing the
    icon onto the real colour before deciding this was necessary. */
-.logo-icon-wrap { position:relative; width:22px; height:29px; flex-shrink:0; }
+.logo-icon-wrap { position:relative; width:24.2px; height:31.9px; flex-shrink:0; }
 .logo-icon { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; transition:opacity 0.4s var(--ease); }
 .logo-icon-dark { opacity:0; }
 nav.scrolled .logo-icon-light { opacity:0; }
 nav.scrolled .logo-icon-dark { opacity:1; }
-.logo-name { font-family:var(--font-display); font-size:1.5rem; font-weight:600; color:var(--navy); line-height:1; letter-spacing:-0.2px; transition:color 0.4s; }
+.logo-name { font-family:var(--font-display); font-size:1.65rem; font-weight:600; color:var(--navy); line-height:1; letter-spacing:-0.22px; transition:color 0.4s; }
 .logo-name span { color:var(--teal); }
 nav.scrolled .logo-name { color:var(--white); }
 nav.scrolled .logo-name span { color:var(--teal-light); }
-.logo-sub { font-family:var(--font-mono); font-size:0.62rem; font-weight:400; letter-spacing:0.06em; color:var(--ink-38); transition:color 0.4s; }
+.logo-sub { font-family:var(--font-mono); font-size:0.682rem; font-weight:400; letter-spacing:0.06em; color:var(--ink-38); transition:color 0.4s; }
 nav.scrolled .logo-sub { color:rgba(255,255,255,0.4); }
 .nav-links { display:none; gap:34px; list-style:none; }
 @media(min-width:900px){ .nav-links{display:flex;} }
