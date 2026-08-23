@@ -739,8 +739,10 @@ export default function BuildPage() {
     if (!phoneNumber.trim()) return 'phone'
     if (!email.trim()) return 'email'
     if (inputMethod === 'paste') {
-      if (pasteInputMode === 'paste' && !refs.paste.current?.value.trim()) return 'content'
-      if (pasteInputMode === 'upload' && !uploadedCV) return 'file'
+      // Switching tabs is a display choice, not a delete — a remembered
+      // upload stays valid whichever tab happens to be open. Only complain
+      // when neither source actually has anything.
+      if (!refs.paste.current?.value.trim() && !uploadedCV) return pasteInputMode === 'upload' ? 'file' : 'content'
     }
     if (inputMethod === 'form') {
       if (!refs.fullName.current?.value.trim()) return 'name'
@@ -793,7 +795,9 @@ export default function BuildPage() {
       // behind by another document type — switching from Professional (where
       // an advert had been uploaded) to Academic would otherwise silently
       // tailor the academic CV to that stale job advert.
-      if (isAcademic || !(jdInputMode === 'upload' && uploadedJD)) return refs.jdPaste.current?.value || ''
+      if (isAcademic) return refs.jdPaste.current?.value || ''
+      const jdPastedByHand = !!refs.jdPaste.current?.value.trim()
+      if (!uploadedJD || jdPastedByHand) return refs.jdPaste.current?.value || ''
       try {
         return await extractFile(uploadedJD)
       } catch (err: any) {
@@ -806,7 +810,8 @@ export default function BuildPage() {
       let jobDescription = ''
 
       if (inputMethod === 'paste') {
-        const fromUpload = pasteInputMode === 'upload' && !!uploadedCV
+        const pastedByHand = !!refs.paste.current?.value.trim()
+        const fromUpload = !!uploadedCV && !pastedByHand
         // Reuse the text already pulled out when the file was added — for an
         // image or scanned PDF a second extraction means a second Claude
         // vision call, i.e. paying twice to read the same document.
