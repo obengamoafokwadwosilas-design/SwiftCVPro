@@ -17,6 +17,7 @@ type Body = {
   phoneNumber?: string
   isCoverLetter?: boolean
   historyId?: number
+  pin?: string
 }
 
 type Api2PdfResponse = {
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Too many downloads in a short time. Please wait a moment and try again.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
     }
 
-    const { html, fullName, phoneNumber, isCoverLetter, historyId }: Body = await req.json()
+    const { html, fullName, phoneNumber, isCoverLetter, historyId, pin }: Body = await req.json()
 
     if (!html) {
       return NextResponse.json({ error: 'No CV HTML received.' }, { status: 400 })
@@ -68,6 +69,16 @@ export async function POST(req: Request) {
     const { normalizePhone } = await import('@/lib/phone')
     const { hasCredits, hasCoverLetterCredit, deductCredit, deductCoverLetterCredit, isDownloadPaid, markDownloadPaid } = await import('@/lib/credits')
     const phone = normalizePhone(phoneNumber)
+
+    // PIN gate — enforced only when the user has set one (phones without a PIN
+    // pass through instantly). Guards against anyone who knows a phone number
+    // draining that account's credits by calling this route directly.
+    const { checkHistoryAccess } = await import('@/lib/pinAuth')
+    const pinCheck = await checkHistoryAccess(phone, pin)
+    if (!pinCheck.ok) {
+      return NextResponse.json({ error: 'PIN_REQUIRED', message: pinCheck.error }, { status: pinCheck.status })
+    }
+
     const alreadyPaid = historyId ? await isDownloadPaid(phone, historyId) : false
     if (!alreadyPaid) {
       const paid = isCoverLetter ? await hasCoverLetterCredit(phone) : await hasCredits(phone)

@@ -279,6 +279,12 @@ export default function PreviewPage() {
   const [pinSaving, setPinSaving] = useState(false)
   const [pinErr, setPinErr] = useState('')
   const [pinSaved, setPinSaved] = useState(false)
+
+  // PIN entry for download — shown when the server returns PIN_REQUIRED
+  const [showDownloadPinModal, setShowDownloadPinModal] = useState(false)
+  const [downloadPin, setDownloadPin] = useState('')
+  const [downloadPinErr, setDownloadPinErr] = useState('')
+  const [pendingDownloadKind, setPendingDownloadKind] = useState<'pdf' | 'docx' | null>(null)
   // Cover-letter credit balance for this phone, so the offer tells the truth:
   // "Included" when a pack already paid for one, or the GH₵15 price when not.
   // null = not checked yet.
@@ -434,8 +440,17 @@ export default function PreviewPage() {
         headers: { 'Content-Type': 'application/json' },
         // historyId lets the server charge once per DOCUMENT rather than per
         // download, so PDF + Word (and any re-download) cost a single credit.
-        body: JSON.stringify({ cv, templateId: template, accentColor, phoneNumber: phone, historyId: paidDocumentId() })
+        body: JSON.stringify({ cv, templateId: template, accentColor, phoneNumber: phone, historyId: paidDocumentId(), pin: downloadPin || undefined })
       })
+      if (res.status === 401) {
+        const data = await res.json().catch(() => ({}))
+        if (data.error === 'PIN_REQUIRED') {
+          setDownloadPinErr(data.message || 'Enter your PIN to download.')
+          setPendingDownloadKind('docx')
+          setShowDownloadPinModal(true)
+          return
+        }
+      }
       if (res.status === 402) {
         const data = await res.json().catch(() => ({}))
         if (data.error === 'NO_CREDITS') { setPendingDownload('docx'); setShowPricing(true); return }
@@ -495,9 +510,18 @@ export default function PreviewPage() {
       const res = await fetch('/api/export-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html, fullName: cv.fullName, phoneNumber: phone, isCoverLetter, historyId: paidDocumentId() }),
+        body: JSON.stringify({ html, fullName: cv.fullName, phoneNumber: phone, isCoverLetter, historyId: paidDocumentId(), pin: downloadPin || undefined }),
       })
 
+      if (res.status === 401) {
+        const data = await res.json().catch(() => ({}))
+        if (data.error === 'PIN_REQUIRED') {
+          setDownloadPinErr(data.message || 'Enter your PIN to download.')
+          setPendingDownloadKind('pdf')
+          setShowDownloadPinModal(true)
+          return
+        }
+      }
       if (res.status === 402) {
         const data = await res.json().catch(() => ({}))
         if (data.error === 'NO_CREDITS') { setPendingDownload('pdf'); setShowPricing(true); return }
@@ -541,6 +565,16 @@ export default function PreviewPage() {
     const kind = pendingDownload
     setShowPricing(false)
     setPendingDownload(null)
+    if (kind === 'pdf') await handleDownloadPdf()
+    else if (kind === 'docx') await handleDownloadDocx()
+  }
+
+  async function confirmDownloadPin() {
+    if (!/^\d{4}$/.test(downloadPin)) { setDownloadPinErr('Enter your 4-digit PIN.'); return }
+    const kind = pendingDownloadKind
+    setShowDownloadPinModal(false)
+    setDownloadPinErr('')
+    setPendingDownloadKind(null)
     if (kind === 'pdf') await handleDownloadPdf()
     else if (kind === 'docx') await handleDownloadDocx()
   }
@@ -1309,6 +1343,35 @@ export default function PreviewPage() {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* DOWNLOAD PIN MODAL — shown when server requires PIN verification */}
+      {showDownloadPinModal && (
+        <div onClick={() => { setShowDownloadPinModal(false); setDownloadPin(''); setDownloadPinErr('') }} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.55)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:230, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+          <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'360px', padding:'28px 24px', boxShadow:'0 24px 60px -12px rgba(10,15,26,0.38)', fontFamily:"'DM Sans', sans-serif" }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'6px' }}>
+              <div style={{ width:'36px', height:'36px', borderRadius:'50%', background:'#f0fdf9', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0d9488" strokeWidth="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+              </div>
+              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.35rem', fontWeight:600, color:'#0a0f1a' }}>Enter your PIN</div>
+              <button onClick={() => { setShowDownloadPinModal(false); setDownloadPin(''); setDownloadPinErr('') }} style={{ marginLeft:'auto', background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+            </div>
+            <p style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.55, margin:'0 0 18px' }}>This number is protected by a PIN. Enter it below to continue your download.</p>
+            <input
+              value={downloadPin}
+              onChange={e => { setDownloadPin(e.target.value.replace(/\D/g,'').slice(0,4)); setDownloadPinErr('') }}
+              onKeyDown={e => e.key === 'Enter' && confirmDownloadPin()}
+              inputMode="numeric"
+              placeholder="••••"
+              autoFocus
+              style={{ width:'100%', padding:'13px 15px', border:`1px solid ${downloadPinErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius:'12px', fontSize:'20px', letterSpacing:'10px', textAlign:'center', outline:'none', boxSizing:'border-box', fontFamily:"'DM Sans', sans-serif" }}
+            />
+            {downloadPinErr && <div style={{ marginTop:'10px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'9px 12px' }}>{downloadPinErr}</div>}
+            <button onClick={confirmDownloadPin} style={{ width:'100%', marginTop:'16px', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
+              Continue download
+            </button>
           </div>
         </div>
       )}

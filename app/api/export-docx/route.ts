@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Too many downloads in a short time. Please wait a moment and try again.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
     }
 
-    const { cv, templateId, accentColor, phoneNumber, historyId } = await req.json() as { cv: GeneratedCV; templateId: TemplateId; accentColor?: string | null; phoneNumber?: string; historyId?: number }
+    const { cv, templateId, accentColor, phoneNumber, historyId, pin } = await req.json() as { cv: GeneratedCV; templateId: TemplateId; accentColor?: string | null; phoneNumber?: string; historyId?: number; pin?: string }
     if (!cv) return NextResponse.json({ error: 'No CV data' }, { status: 400 })
     if (!phoneNumber) return NextResponse.json({ error: 'Please enter your phone number.' }, { status: 400 })
 
@@ -87,6 +87,14 @@ export async function POST(req: NextRequest) {
     const { normalizePhone } = await import('@/lib/phone')
     const { hasCredits, hasCoverLetterCredit, deductCredit, deductCoverLetterCredit, isDownloadPaid, markDownloadPaid } = await import('@/lib/credits')
     const phone = normalizePhone(phoneNumber)
+
+    // PIN gate — same guard as export-pdf. Phones without a PIN pass instantly.
+    const { checkHistoryAccess } = await import('@/lib/pinAuth')
+    const pinCheck = await checkHistoryAccess(phone, pin)
+    if (!pinCheck.ok) {
+      return NextResponse.json({ error: 'PIN_REQUIRED', message: pinCheck.error }, { status: pinCheck.status })
+    }
+
     const isCoverLetterDoc = !!cv.coverLetterBody
     const alreadyPaid = historyId ? await isDownloadPaid(phone, historyId) : false
     if (!alreadyPaid) {
