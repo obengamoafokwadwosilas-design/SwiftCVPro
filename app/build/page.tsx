@@ -1909,10 +1909,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             </div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>Payment successful</div>
             <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '18px', lineHeight: 1.6 }}>{purchasedPkg.blurb} added to <strong style={{ color: 'var(--ink)' }}>{payPhone}</strong>. Credits never expire — use them whenever you're ready.</p>
-            <div style={{ background: 'var(--paper)', border: '1px solid var(--rule)', borderRadius: '12px', padding: '14px 16px', marginBottom: '18px', textAlign: 'left' as const }}>
-              <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>There's no account or password</div>
-              <div style={{ fontSize: '12px', color: 'var(--graphite)', lineHeight: 1.6 }}>This phone number is how you get back to your CVs and credits — from any device, any time. Anyone who knows the number can too, so set a 4-digit PIN to keep your history private.</div>
-            </div>
+            <div style={{ fontSize: '12px', color: 'var(--graphite)', marginBottom: '18px' }}>🔒 Set a PIN — 4-digit PIN for privacy.</div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' as const }}>
               {/* This modal only ever shows for a standalone purchase — buying
                   at the download paywall goes straight back to generating — so
