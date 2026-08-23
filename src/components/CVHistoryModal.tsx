@@ -271,8 +271,7 @@ export default function CVHistoryModal({ open, onClose, initialPhone, autoSetPin
         {step === 'setPin' && (
           <>
             <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '14px', lineHeight: 1.6 }}>
-              🔒 {pinAlreadySet ? 'Change your PIN.' : 'Add a 4-digit code so only you can view this history.'}
-              {' '}There is no way to recover a PIN without a recovery email — keep it somewhere safe.
+              🔒 {pinAlreadySet ? 'Change your PIN.' : 'Lock your history with a 4-digit PIN.'}{' '}Add a recovery email in case you forget it.
             </p>
             {pinAlreadySet && <input value={oldPin} onChange={e => setOldPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="Current PIN" inputMode="numeric" style={{ ...inputStyle, marginBottom: '10px' }} />}
             <input value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="New 4-digit PIN" inputMode="numeric" style={{ ...inputStyle, marginBottom: '10px' }} />
