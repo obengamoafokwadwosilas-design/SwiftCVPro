@@ -1364,6 +1364,11 @@ export default function BuildPage() {
               />
               <span style={{ fontSize: '12.5px', color: 'var(--graphite)', fontWeight: 300 }}>Remember my number on this device</span>
             </label>
+            {phoneNumber.trim() && (
+              <button type="button" onClick={() => router.push('/my-cvs')} className="xcv-link" style={{ display: 'block', marginTop: '8px', fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
+                Optional — <span style={{ color: 'var(--teal)', fontWeight: 500 }}>protect this number with a PIN</span>
+              </button>
+            )}
           </div>
 
           {/* The commit. Bound by a rule and carrying what is being committed
