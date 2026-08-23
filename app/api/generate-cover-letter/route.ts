@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'
+﻿export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
@@ -86,42 +86,51 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Too many attempts. Please wait ${mins} minutes and try again.` }, { status: 429 })
     }
 
-    // ── Generation is free (capped) — download is the real gate ──
-    // Same model as app/api/generate/route.ts: a paying customer (real
-    // cover-letter credit) is exempt from the free cap entirely; everyone
-    // else gets a small number of free generations, enforced against both
-    // phone and email. Nothing is deducted here — a credit is only spent at
-    // download time (app/api/export-pdf, app/api/export-docx).
+    // Credit deducted at generation (same model as app/api/generate/route.ts).
+    // Paid users spend the cover-letter credit here, before the AI call.
+    // Free users get the small free cap, also consumed before the AI call.
+    // Either way, any failure below refunds what was reserved.
     let consumedFreeUse = false
+    let consumedPaidCredit = false
     try {
-      const { hasCoverLetterCredit } = await import('@/lib/credits')
+      const { hasCoverLetterCredit, deductCoverLetterCredit } = await import('@/lib/credits')
       const paid = await hasCoverLetterCredit(phone)
-      if (!paid) {
+      if (paid) {
+        const ok = await deductCoverLetterCredit(phone)
+        if (!ok) {
+          return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a cover-letter credit to generate. Please buy a package first.' }, { status: 402 })
+        }
+        consumedPaidCredit = true
+      } else {
         const { consumeFreeGeneration } = await import('@/lib/freeGenerations')
         const { allowed } = await consumeFreeGeneration(phone, identityEmail, true)
         if (!allowed) {
           return NextResponse.json({
             error: 'FREE_CAP_REACHED',
-            message: 'You’ve used your free cover-letter previews. Buy credits to keep generating and download.'
+            message: "You've used your free cover-letter previews. Buy credits to keep generating and download."
           }, { status: 402 })
         }
         consumedFreeUse = true
       }
     } catch (err) {
-      console.error('Cover-letter free-generation/credits check error:', err)
+      console.error('Cover-letter credits check error:', err)
       return NextResponse.json({ error: 'Payment verification failed. Please check your connection or contact support.' }, { status: 503 })
     }
 
-    // The free use is taken before the AI call, so every failure below has to
-    // give it back — a server-side failure must never cost someone one of
-    // their few free tries. See the same pattern in app/api/generate.
     const refundFree = async () => {
       if (!consumedFreeUse) return
       consumedFreeUse = false
       const { refundFreeGeneration } = await import('@/lib/freeGenerations')
       await refundFreeGeneration(phone, identityEmail, true)
     }
-    refundOnFailure = refundFree
+    const refundPaid = async () => {
+      if (!consumedPaidCredit) return
+      consumedPaidCredit = false
+      const { grantCoverLetterCredit } = await import('@/lib/credits')
+      await grantCoverLetterCredit(phone, 1)
+      console.log(`[CoverLetter] Refunded 1 cover-letter credit to ${phone} after failure`)
+    }
+    refundOnFailure = async () => { await refundFree(); await refundPaid() }
 
     // ── Build the cover-letter prompt from the existing CV ──
     const formData: CVFormData = {
@@ -210,6 +219,15 @@ export async function POST(req: NextRequest) {
         landingScreen: 'type',
       },
     })
+
+    if (consumedPaidCredit && historyId) {
+      try {
+        const { markDownloadPaid } = await import('@/lib/credits')
+        await markDownloadPaid(phone, historyId)
+      } catch (err) {
+        console.error('[CoverLetter] markDownloadPaid failed (non-fatal):', err)
+      }
+    }
 
     return NextResponse.json({ success: true, coverLetter, historyId })
   } catch (error: any) {

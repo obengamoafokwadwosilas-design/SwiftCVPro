@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'
+﻿export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
@@ -221,40 +221,57 @@ export async function POST(req: NextRequest) {
     // not generation, is what actually costs a credit — see
     // app/api/export-pdf/route.ts and app/api/export-docx/route.ts.
     const isCoverLetterDoc = cvType === 'cover_letter'
-    // Tracks whether a free use was actually taken for THIS request, so any
-    // failure below can hand it straight back — see refundFree().
+    // Tracks whether a free or paid use was reserved for this request so any
+    // failure path can hand it back — nobody should lose a credit to our error.
     let consumedFreeUse = false
+    let consumedPaidCredit = false
     try {
-      const { hasCredits, hasCoverLetterCredit } = await import('@/lib/credits')
+      const { hasCredits, hasCoverLetterCredit, deductCredit, deductCoverLetterCredit } = await import('@/lib/credits')
       const paid = isCoverLetterDoc ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
-      if (!paid) {
+      if (paid) {
+        // Deduct the credit BEFORE the AI call. This directly ties one API
+        // call to one credit — a paid user cannot run the AI 500 times on a
+        // single credit by never downloading. The export routes will see
+        // download_paid=true (set below after history is saved) and serve the
+        // file without a second charge.
+        const ok = isCoverLetterDoc ? await deductCoverLetterCredit(phone) : await deductCredit(phone)
+        if (!ok) {
+          return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a credit to generate. Please buy a package first.' }, { status: 402 })
+        }
+        consumedPaidCredit = true
+      } else {
         const { consumeFreeGeneration } = await import('@/lib/freeGenerations')
         const { allowed } = await consumeFreeGeneration(phone, email, isCoverLetterDoc)
         if (!allowed) {
           return NextResponse.json({
             error: 'FREE_CAP_REACHED',
-            message: 'You’ve used your free previews. Buy credits to keep generating and download your CV.'
+            message: "You've used your free previews. Buy credits to keep generating and download your CV."
           }, { status: 402 })
         }
         consumedFreeUse = true
       }
     } catch (err) {
-      console.error('Free-generation/credits check error:', err)
+      console.error('Credits check error:', err)
       return NextResponse.json({
         error: 'Payment verification failed. Please check your connection or contact support.'
       }, { status: 503 })
     }
 
-    // A free use is taken before the AI is called (so parallel requests can't
-    // all slip past the cap), so every failure path from here on has to give
-    // it back — nobody should lose one of their few free tries to our error.
     const refundFree = async () => {
       if (!consumedFreeUse) return
       consumedFreeUse = false
       const { refundFreeGeneration } = await import('@/lib/freeGenerations')
       await refundFreeGeneration(phone, email, isCoverLetterDoc)
     }
-    refundOnFailure = refundFree
+    const refundPaid = async () => {
+      if (!consumedPaidCredit) return
+      consumedPaidCredit = false
+      const { addCredits, grantCoverLetterCredit } = await import('@/lib/credits')
+      if (isCoverLetterDoc) await grantCoverLetterCredit(phone, 1)
+      else await addCredits(phone, 1)
+      console.log(`[Generate] Refunded 1 credit to ${phone} after failure`)
+    }
+    refundOnFailure = async () => { await refundFree(); await refundPaid() }
 
     // ── Build prompt ──────────────────────────────
     let prompt: string
@@ -340,12 +357,19 @@ export async function POST(req: NextRequest) {
       console.error('Pagination-risk pass failed (non-fatal):', err)
     }
 
-    // No credit deduction here — generation is free (or covered by the free
-    // cap above). A credit is only ever spent at download time, in
-    // app/api/export-pdf/route.ts and app/api/export-docx/route.ts.
-
-    // ── Save to history (best-effort, never blocks delivery) ──
+    // ── Save to history, then mark download paid for paid generations ──
+    // Paid users spend their credit at generate time (above). The export routes
+    // check download_paid=true and serve the file without a second charge.
     const historyId = await saveToHistory(phone, cvType, formData, rawContent, jobDescription, generatedCV)
+
+    if (consumedPaidCredit && historyId) {
+      try {
+        const { markDownloadPaid } = await import('@/lib/credits')
+        await markDownloadPaid(phone, historyId)
+      } catch (err) {
+        console.error('[Generate] markDownloadPaid failed (non-fatal):', err)
+      }
+    }
 
     console.log(`[Generate] ✅ Success for ${phone}`)
     return NextResponse.json({ success: true, cv: generatedCV, historyId })

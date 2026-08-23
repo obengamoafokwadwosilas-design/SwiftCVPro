@@ -1528,6 +1528,10 @@ export default function BuildPage() {
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
+            {(() => {
+              const hasCred = !!creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0)
+              return hasCred && !isGenerating ? <span style={{ fontSize: '12px', color: 'var(--graphite)' }}>Uses 1 credit</span> : null
+            })()}
             <button onClick={handleGenerate} disabled={isGenerating || (pasteInputMode === 'upload' && !!uploadReadError)} style={{ ...btnPrimary, opacity: (isGenerating || (pasteInputMode === 'upload' && !!uploadReadError)) ? 0.6 : 1 }}>
               {isGenerating ? 'Generating…' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
@@ -1888,7 +1892,11 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
+            {(() => {
+              const hasCred = !!creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0)
+              return hasCred && !isGenerating ? <span style={{ fontSize: '12px', color: 'var(--graphite)' }}>Uses 1 credit</span> : null
+            })()}
             <button onClick={handleGenerate} disabled={isGenerating || !!paymentPending || (pasteInputMode === 'upload' && !!uploadReadError)} style={{ ...btnPrimary, opacity: (isGenerating || paymentPending || (pasteInputMode === 'upload' && !!uploadReadError)) ? 0.6 : 1 }}>
               {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
