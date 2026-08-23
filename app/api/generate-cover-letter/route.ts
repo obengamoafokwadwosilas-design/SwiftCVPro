@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         if (!allowed) {
           return NextResponse.json({
             error: 'FREE_CAP_REACHED',
-            message: "You've used your free cover-letter previews. Buy CV credits to keep generating and download."
+            message: "You've used your free cover-letter previews. Purchase CV credits to keep generating and download."
           }, { status: 402 })
         }
         consumedFreeUse = true

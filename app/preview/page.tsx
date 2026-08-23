@@ -424,7 +424,7 @@ export default function PreviewPage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        if (data.error === 'FREE_CAP_REACHED') setCoverErr(data.message || 'You\u2019ve used your free cover-letter previews. Buy CV credits to keep generating.')
+        if (data.error === 'FREE_CAP_REACHED') setCoverErr(data.message || 'You\u2019ve used your free cover-letter previews. Purchase CV credits to keep generating.')
         else setCoverErr(data.error || 'Generation failed. Please try again.')
         return
       }

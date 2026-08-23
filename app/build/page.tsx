@@ -1234,7 +1234,7 @@ export default function BuildPage() {
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button type="button" onClick={startBuyCredits} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--teal)', fontWeight: 500 }}>
-                    Buy CV credits
+                    Purchase CV credits
                   </button>
                   {screen !== 'type' && (
                     <button type="button" onClick={switchNumber} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
