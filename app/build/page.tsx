@@ -1926,7 +1926,10 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             </div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>Payment successful</div>
             <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '18px', lineHeight: 1.6 }}>{purchasedPkg.blurb} added to <strong style={{ color: 'var(--ink)' }}>{payPhone}</strong>. Credits never expire — use them whenever you're ready.</p>
-            <div style={{ fontSize: '12px', color: 'var(--graphite)', marginBottom: '18px' }}>🔒 Protect your info & credits with a 4-digit PIN.</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '12px', color: 'var(--graphite)', marginBottom: '18px' }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+              Protect your info & credits with a 4-digit PIN.
+            </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' as const }}>
               {/* This modal only ever shows for a standalone purchase — buying
                   at the download paywall goes straight back to generating — so
