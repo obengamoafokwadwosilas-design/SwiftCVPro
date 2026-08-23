@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { TemplateId, GeneratedCV } from '@/types'
 import { saveBuildSeed, BuildSeed, clearPreviousCoverLetter } from '@/lib/buildSeed'
@@ -21,7 +21,7 @@ type Step = 'phone' | 'pin' | 'list' | 'setPin' | 'forgotPin'
 const font = "'DM Sans', sans-serif"
 const serif = "'Cormorant Garamond', serif"
 
-export default function CVHistoryModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function CVHistoryModal({ open, onClose, initialPhone, autoSetPin }: { open: boolean; onClose: () => void; initialPhone?: string; autoSetPin?: boolean }) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('phone')
   const [phone, setPhone] = useState('')
@@ -44,6 +44,17 @@ export default function CVHistoryModal({ open, onClose }: { open: boolean; onClo
   const [otp, setOtp] = useState('')
   const [resetNewPin, setResetNewPin] = useState('')
 
+  // Coming from a place that already knows the phone number (e.g. "Set a
+  // PIN" right after a purchase) — skip re-typing it and the empty history
+  // list, and go straight to whatever's actually useful: PIN entry if one's
+  // already set, otherwise the setup form itself.
+  useEffect(() => {
+    if (!open || !initialPhone) return
+    setPhone(initialPhone)
+    checkStatusAndProceed(initialPhone, !!autoSetPin)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialPhone])
+
   if (!open) return null
 
   function reset() {
@@ -52,13 +63,13 @@ export default function CVHistoryModal({ open, onClose }: { open: boolean; onClo
     setOtpSent(false); setOtp(''); setResetNewPin('')
   }
 
-  async function loadHistory(withPin?: string) {
+  async function loadHistory(withPin?: string, phoneOverride?: string) {
     setLoading(true); setError('')
     try {
       const res = await fetch('/api/cv-history/list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone, pin: withPin }),
+        body: JSON.stringify({ phoneNumber: phoneOverride ?? phone, pin: withPin }),
       })
       const data = await res.json()
       if (!res.ok || !data.success) { setError(data.error || 'Could not load your CVs.'); return }
@@ -71,23 +82,28 @@ export default function CVHistoryModal({ open, onClose }: { open: boolean; onClo
     }
   }
 
-  async function handlePhoneSubmit() {
-    if (!phone.trim()) { setError('Enter your phone number.'); return }
+  async function checkStatusAndProceed(phoneToUse: string, forceSetup: boolean) {
     setLoading(true); setError('')
     try {
       const res = await fetch('/api/cv-pin/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone }),
+        body: JSON.stringify({ phoneNumber: phoneToUse }),
       })
       const data = await res.json()
       setPinAlreadySet(!!data.pin_set)
       if (data.pin_set) { setStep('pin'); setLoading(false) }
-      else await loadHistory()
+      else if (forceSetup) { setStep('setPin'); setLoading(false) }
+      else await loadHistory(undefined, phoneToUse)
     } catch {
       setError('Could not connect. Please check your internet and try again.')
       setLoading(false)
     }
+  }
+
+  async function handlePhoneSubmit() {
+    if (!phone.trim()) { setError('Enter your phone number.'); return }
+    await checkStatusAndProceed(phone, false)
   }
 
   async function handlePinSubmit() {
@@ -263,7 +279,12 @@ export default function CVHistoryModal({ open, onClose }: { open: boolean; onClo
             <input value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="Confirm new PIN" inputMode="numeric" style={{ ...inputStyle, marginBottom: '10px' }} />
             <input value={pinEmail} onChange={e => setPinEmail(e.target.value)} placeholder="Recovery email" type="email" style={inputStyle} />
             <button onClick={handleSetPin} disabled={loading} style={{ ...btnPrimary, width: '100%', marginTop: '14px', opacity: loading ? 0.6 : 1 }}>{loading ? 'Saving…' : 'Save PIN'}</button>
-            <button onClick={() => { setStep('list'); setError('') }} style={{ ...linkBtn, marginTop: '10px', width: '100%', textAlign: 'center' as const }}>Cancel</button>
+            {/* Re-fetches rather than just switching back to 'list' — this
+                step can be reached before the list was ever loaded (arriving
+                here already knowing the phone number skips straight past
+                it), so a bare step change could show a stale empty list even
+                when real history exists. */}
+            <button onClick={() => { setError(''); loadHistory(pinAlreadySet ? pin : undefined) }} style={{ ...linkBtn, marginTop: '10px', width: '100%', textAlign: 'center' as const }}>Cancel</button>
           </>
         )}
 

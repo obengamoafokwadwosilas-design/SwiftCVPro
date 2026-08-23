@@ -1365,7 +1365,7 @@ export default function BuildPage() {
               <span style={{ fontSize: '12.5px', color: 'var(--graphite)', fontWeight: 300 }}>Remember my number on this device</span>
             </label>
             {phoneNumber.trim() && (
-              <button type="button" onClick={() => router.push('/my-cvs')} className="xcv-link" style={{ display: 'block', marginTop: '8px', fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
+              <button type="button" onClick={() => router.push(`/my-cvs?phone=${encodeURIComponent(normalizePhone(phoneNumber))}&setpin=1`)} className="xcv-link" style={{ display: 'block', marginTop: '8px', fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
                 Optional — <span style={{ color: 'var(--teal)', fontWeight: 500 }}>protect this number with a PIN</span>
               </button>
             )}
@@ -1909,7 +1909,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             </div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>Payment successful</div>
             <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '18px', lineHeight: 1.6 }}>{purchasedPkg.blurb} added to <strong style={{ color: 'var(--ink)' }}>{payPhone}</strong>. Credits never expire — use them whenever you're ready.</p>
-            <div style={{ fontSize: '12px', color: 'var(--graphite)', marginBottom: '18px' }}>🔒 Set a PIN — 4-digit PIN for privacy.</div>
+            <div style={{ fontSize: '12px', color: 'var(--graphite)', marginBottom: '18px' }}>🔒 Protect your info & credits with a 4-digit PIN.</div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' as const }}>
               {/* This modal only ever shows for a standalone purchase — buying
                   at the download paywall goes straight back to generating — so
@@ -1917,7 +1917,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                   "Continue" just closed the box and left them with no next
                   step; the primary action now names it. */}
               <button onClick={() => setPurchasedPkg(null)} style={{ padding: '11px 20px', background: 'var(--teal)', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Build my CV now</button>
-              <button onClick={() => router.push('/my-cvs')} style={{ padding: '11px 20px', background: 'transparent', color: 'var(--graphite)', border: '1px solid var(--rule)', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set a PIN</button>
+              <button onClick={() => router.push(`/my-cvs?phone=${encodeURIComponent(payPhone)}&setpin=1`)} style={{ padding: '11px 20px', background: 'transparent', color: 'var(--graphite)', border: '1px solid var(--rule)', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set a PIN</button>
             </div>
           </div>
         </div>
