@@ -466,7 +466,17 @@ section { padding:var(--section-y) 0; }
 .how-diagram-icon svg { width:34px; height:34px; }
 .how-diagram-step span { font-family:var(--font-display); font-size:1.1rem; font-weight:600; color:rgba(255,255,255,0.92); }
 .how-diagram-arrow { color:rgba(20,184,166,0.45); flex-shrink:0; margin-top:62px; line-height:0; }
-@media(max-width:700px){ .how-diagram-arrow{ transform:rotate(90deg); margin-top:0; } .how-diagram-inner{ flex-direction:column; gap:28px; } }
+@media(max-width:700px){
+  .how-diagram-arrow{ transform:rotate(90deg); margin-top:0; }
+  .how-diagram-inner{ flex-direction:column; gap:28px; }
+  /* 76px/40px is sized for the video hitting its 820px cap on desktop, where
+     the padding reads as a thin frame. On mobile the video runs full-width
+     inside this card with no cap to shrink it, so the same absolute padding
+     becomes the dominant shape — 152px of vertical navy around a video only
+     119px tall. Cut down to a frame that still reads as a frame, not a box
+     the video is hiding inside. */
+  .how-diagram{ padding:28px 20px; }
+}
 
 .how-diagram-video {
   position:relative; z-index:2;
