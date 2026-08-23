@@ -1359,7 +1359,7 @@ export default function PreviewPage() {
                       background: pkg.recommended ? '#f6fdfb' : 'white', border: pkg.recommended ? '2px solid #0d9488' : '1px solid #e7ebf0',
                       borderRadius: '16px', padding: pkg.recommended ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
                     {pkg.recommended && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: '#0d9488', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>BEST VALUE</span>}
-                    <span style={{ fontSize: '20px', flexShrink: 0 }}>{pkg.emoji}</span>
+                    <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', background: pkg.recommended ? 'rgba(13,148,136,0.12)' : 'rgba(15,23,42,0.05)' }}>{pkg.emoji}</span>
                     <span style={{ flex: 1 }}>
                       <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: '#0a0f1a' }}>{pkg.name}</span>
                       <span style={{ display: 'block', fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>{pkg.blurb}</span>

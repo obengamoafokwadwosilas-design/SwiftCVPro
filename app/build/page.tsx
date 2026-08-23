@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import { CVType } from '@/types'
-import { PACKAGES, packagesForDoc } from '@/lib/packages'
+import { PACKAGES, packagesForDoc, PackageId } from '@/lib/packages'
+import { normalizePhone } from '@/lib/phone'
 import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed, saveLastInput, loadLastInput, clearLastInput, clearPreviousCoverLetter } from '@/lib/buildSeed'
 
 // ─────────────────────────────────────────────────────────────
@@ -141,9 +142,20 @@ export default function BuildPage() {
   // Pricing modal: shown when the user has no credits and must buy a package.
   const [showPricing, setShowPricing] = useState(false)
   const [payPhone, setPayPhone] = useState('')
+  // Which package (if any) the user already decided on before landing here —
+  // e.g. clicked "Get Gold" on the pricing page. Highlighted in the modal so
+  // that choice isn't thrown away and re-asked from scratch.
+  const [pkgFromUrl, setPkgFromUrl] = useState<PackageId | null>(null)
+  // True when the pricing modal was opened voluntarily via "Buy credits"
+  // rather than because generation just hit the free cap — in that case a
+  // successful payment shouldn't auto-generate (there may be no finished
+  // form yet), it should just confirm the purchase and explain how to get
+  // back to it later, since there's no account/password here.
+  const [buyingStandalone, setBuyingStandalone] = useState(false)
+  const [purchasedPkg, setPurchasedPkg] = useState<typeof PACKAGES[number] | null>(null)
   // Set only on the "popup blocked, opened a new tab instead" fallback path —
   // shows a manual "Verify Payment" prompt until the user confirms they paid.
-  const [paymentPending, setPaymentPending] = useState<{ reference: string } | null>(null)
+  const [paymentPending, setPaymentPending] = useState<{ reference: string; standalone: boolean; pkg: typeof PACKAGES[number] } | null>(null)
   const [verifyingPayment, setVerifyingPayment] = useState(false)
   const [uploadedJD, setUploadedJD] = useState<File | null>(null)
   const [jdInputMode, setJdInputMode] = useState<'paste' | 'upload'>('paste')
@@ -263,6 +275,8 @@ export default function BuildPage() {
   useEffect(() => {
     const t = urlCvType()
     if (t) setCvType(t)
+    const p = new URLSearchParams(window.location.search).get('pkg') as PackageId
+    if (p && PACKAGES.some(pkg => pkg.id === p)) setPkgFromUrl(p)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -914,6 +928,7 @@ export default function BuildPage() {
             // Free generations used up on this phone/email → let them choose
             // a package before paying, same modal the export routes' 402s use.
             setPayPhone(normalizedPhone)
+            setBuyingStandalone(false)
             setShowPricing(true)
           } else if (res.status === 503) {
             setError({ title: 'Service busy', msg: data.error || 'The AI is handling many requests right now. Please wait 30 seconds and try again.', type: 'server' })
@@ -954,6 +969,7 @@ export default function BuildPage() {
         setIsGenerating(false)
         if (data.error === 'FREE_CAP_REACHED') {
           setPayPhone(normalizedPhone)
+          setBuyingStandalone(false)
           setShowPricing(true)
         } else if (res.status === 503) {
           setError({ title: 'Service busy', msg: data.error || 'The AI is handling many requests right now. Please wait 30 seconds and try again.', type: 'server' })
@@ -1025,7 +1041,7 @@ export default function BuildPage() {
   // Popup blocked (or PaystackPop itself failed to load) → open the real
   // hosted page in a new tab and let the user come back and click Verify,
   // rather than failing the purchase outright.
-  function openHostedFallback(authorizationUrl: string, reference: string) {
+  function openHostedFallback(authorizationUrl: string, reference: string, pkg: typeof PACKAGES[number]) {
     const popup = window.open(authorizationUrl, '_blank', 'width=500,height=700')
     if (!popup) {
       // Even a new tab was blocked — this browser leaves us no choice but to
@@ -1035,7 +1051,7 @@ export default function BuildPage() {
       window.location.assign(authorizationUrl)
       return
     }
-    setPaymentPending({ reference })
+    setPaymentPending({ reference, standalone: buyingStandalone, pkg })
   }
 
   async function triggerPaystack(normalizedPhone: string, pkg: typeof PACKAGES[number]) {
@@ -1060,21 +1076,26 @@ export default function BuildPage() {
 
       const openPopup = () => {
         const PaystackPop = (window as any).PaystackPop
-        if (!PaystackPop) { openHostedFallback(data.authorization_url, data.reference); return }
+        if (!PaystackPop) { openHostedFallback(data.authorization_url, data.reference, pkg); return }
         try {
           const instance = new PaystackPop()
           instance.resumeTransaction(data.access_code, {
             onSuccess: async () => {
+              if (buyingStandalone) {
+                const ok = await confirmPayment(data.reference)
+                if (ok) setPurchasedPkg(pkg)
+                return
+              }
               setIsGenerating(true)
               const ok = await confirmPayment(data.reference)
               if (ok) await doGenerate(normalizedPhone)
               else setIsGenerating(false)
             },
             onCancel: () => setError({ title: 'Payment cancelled', msg: 'Payment was not completed. Your CV has not been generated. Try again whenever you are ready.', type: 'payment' }),
-            onError: () => openHostedFallback(data.authorization_url, data.reference),
+            onError: () => openHostedFallback(data.authorization_url, data.reference, pkg),
           })
         } catch {
-          openHostedFallback(data.authorization_url, data.reference)
+          openHostedFallback(data.authorization_url, data.reference, pkg)
         }
       }
 
@@ -1084,7 +1105,7 @@ export default function BuildPage() {
         const script = document.createElement('script')
         script.src = 'https://js.paystack.co/v2/inline.js'
         script.onload = openPopup
-        script.onerror = () => openHostedFallback(data.authorization_url, data.reference)
+        script.onerror = () => openHostedFallback(data.authorization_url, data.reference, pkg)
         document.body.appendChild(script)
       }
     } catch {
@@ -1097,11 +1118,15 @@ export default function BuildPage() {
     setVerifyingPayment(true)
     const ok = await confirmPayment(paymentPending.reference)
     setVerifyingPayment(false)
-    if (ok) {
-      setPaymentPending(null)
-      setIsGenerating(true)
-      await doGenerate(phoneNumber)
+    if (!ok) return
+    const { standalone, pkg } = paymentPending
+    setPaymentPending(null)
+    if (standalone) {
+      setPurchasedPkg(pkg)
+      return
     }
+    setIsGenerating(true)
+    await doGenerate(phoneNumber)
   }
 
   // ─────────────────────────────────────────────
@@ -1147,11 +1172,16 @@ export default function BuildPage() {
                     : 'First 2 previews free'}
                   <span style={{ color: 'var(--muted)', borderLeft: '1px solid rgba(15,111,102,0.18)', paddingLeft: '9px' }}>{phoneNumber}</span>
                 </div>
-                {screen !== 'type' && (
-                  <button type="button" onClick={switchNumber} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
-                    Not you? <span style={{ color: 'var(--teal)', fontWeight: 500 }}>Switch number</span>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="button" onClick={() => { setPayPhone(normalizePhone(phoneNumber)); setBuyingStandalone(true); setShowPricing(true) }} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--teal)', fontWeight: 500 }}>
+                    Buy credits
                   </button>
-                )}
+                  {screen !== 'type' && (
+                    <button type="button" onClick={switchNumber} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
+                      Not you? <span style={{ color: 'var(--teal)', fontWeight: 500 }}>Switch number</span>
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1761,7 +1791,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
           {paymentPending && (
             <div style={{ background: '#fffbf5', border: '1.5px solid #f59e0b', borderRadius: '14px', padding: '16px 18px', marginBottom: '14px' }}>
               <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>Complete payment in the window that opened</div>
-              <div style={{ fontSize: '12.5px', color: 'var(--graphite)', marginBottom: '12px', lineHeight: 1.6 }}>Once you&apos;ve paid, click below to confirm — your CV will generate right after.</div>
+              <div style={{ fontSize: '12.5px', color: 'var(--graphite)', marginBottom: '12px', lineHeight: 1.6 }}>Once you&apos;ve paid, click below to confirm{paymentPending.standalone ? '.' : ' — your CV will generate right after.'}</div>
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
                 <button onClick={handleManualVerify} disabled={verifyingPayment} style={{ ...btnPrimary, opacity: verifyingPayment ? 0.6 : 1 }}>
                   {verifyingPayment ? 'Checking…' : 'Verify Payment'}
@@ -1791,23 +1821,53 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
 
             <div style={{ display: 'grid', gap: '11px' }}>
               {/* Only the packages that grant the credit this document needs. */}
-              {packagesForDoc(cvType === 'cover_letter').map(pkg => (
+              {packagesForDoc(cvType === 'cover_letter').map(pkg => {
+                const isPicked = pkg.id === pkgFromUrl
+                const isHighlighted = isPicked || pkg.recommended
+                return (
                 <button key={pkg.id} onClick={() => { setShowPricing(false); triggerPaystack(payPhone, pkg) }}
                   style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
-                    background: pkg.recommended ? 'var(--teal-tint)' : 'white', border: pkg.recommended ? '2px solid var(--teal)' : '1px solid var(--rule)',
-                    borderRadius: '16px', padding: pkg.recommended ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
-                  {pkg.recommended && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: 'var(--teal)', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>BEST VALUE</span>}
-                  <span style={{ fontSize: '20px', flexShrink: 0 }}>{pkg.emoji}</span>
+                    background: isHighlighted ? 'var(--teal-tint)' : 'white', border: isHighlighted ? '2px solid var(--teal)' : '1px solid var(--rule)',
+                    borderRadius: '16px', padding: isHighlighted ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
+                  {isHighlighted && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: 'var(--teal)', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>{isPicked ? 'YOUR PICK' : 'BEST VALUE'}</span>}
+                  <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px', background: isHighlighted ? 'rgba(15,111,102,0.12)' : 'rgba(15,23,42,0.05)' }}>{pkg.emoji}</span>
                   <span style={{ flex: 1 }}>
                     <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>{pkg.name}</span>
                     <span style={{ display: 'block', fontSize: '12.5px', color: 'var(--graphite)', marginTop: '2px' }}>{pkg.blurb}</span>
                   </span>
-                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 700, color: pkg.recommended ? 'var(--teal)' : 'var(--ink)', whiteSpace: 'nowrap' as const }}>GH₵{pkg.price}</span>
+                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 700, color: isHighlighted ? 'var(--teal)' : 'var(--ink)', whiteSpace: 'nowrap' as const }}>GH₵{pkg.price}</span>
                 </button>
-              ))}
+                )
+              })}
             </div>
 
             <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '16px', textAlign: 'center' as const, lineHeight: 1.5 }}>Secure payment via Paystack · MTN MoMo, Vodafone Cash & card</p>
+          </div>
+        </div>
+      )}
+
+      {/* ══ PURCHASE CONFIRMATION ══════════════════════════════════
+          Shown only after a standalone "Buy credits" purchase (not the
+          pay-to-generate path, which goes straight into generating). There
+          are no accounts here — this phone number is the only key to a
+          paid balance, so this is the one moment to say that plainly and
+          point at the PIN that locks it, while the purchase is freshest. */}
+      {purchasedPkg && (
+        <div onClick={() => setPurchasedPkg(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(8,13,24,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '22px', width: '100%', maxWidth: '400px', padding: '30px 26px', boxShadow: '0 25px 80px rgba(0,0,0,0.4)', fontFamily: "'DM Sans', sans-serif", textAlign: 'center' as const }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--teal-tint)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>Payment successful</div>
+            <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '18px', lineHeight: 1.6 }}>{purchasedPkg.blurb} added to <strong style={{ color: 'var(--ink)' }}>{payPhone}</strong>. Credits never expire — use them whenever you're ready.</p>
+            <div style={{ background: 'var(--paper)', border: '1px solid var(--rule)', borderRadius: '12px', padding: '14px 16px', marginBottom: '18px', textAlign: 'left' as const }}>
+              <div style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>There's no account or password</div>
+              <div style={{ fontSize: '12px', color: 'var(--graphite)', lineHeight: 1.6 }}>This phone number is how you get back to your CVs and credits — from any device, any time. Anyone who knows the number can too, so set a 4-digit PIN to keep your history private.</div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' as const }}>
+              <button onClick={() => router.push('/my-cvs')} style={{ padding: '11px 20px', background: 'var(--teal)', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set a PIN</button>
+              <button onClick={() => setPurchasedPkg(null)} style={{ padding: '11px 20px', background: 'transparent', color: 'var(--graphite)', border: '1px solid var(--rule)', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Continue</button>
+            </div>
           </div>
         </div>
       )}
