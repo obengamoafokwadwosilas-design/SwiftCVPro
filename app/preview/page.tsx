@@ -148,6 +148,8 @@ function normalizeCV(raw: any): GeneratedCV {
 
 export default function PreviewPage() {
   const router = useRouter()
+  const [isMobile, setIsMobile] = useState(false)
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   const [cv, setCV] = useState<GeneratedCV | null>(null)
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -186,6 +188,13 @@ export default function PreviewPage() {
   const [showDownloadMenu, setShowDownloadMenu] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [showBalanceModal, setShowBalanceModal] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     const stored = sessionStorage.getItem('swiftcv_cv')
@@ -1052,6 +1061,12 @@ export default function PreviewPage() {
           <button onClick={() => setActiveTab('edit')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12.5px', fontWeight:activeTab==='edit'?600:500, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.72)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
         </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
+          {isMobile && !isCoverLetter && (
+            <button onClick={() => setShowMobileSidebar(true)} style={{ padding:'8px 14px', background:'rgba(255,255,255,0.1)', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', fontFamily:"'DM Sans',sans-serif" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="3" y="15" width="7" height="6" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></svg>
+              Templates
+            </button>
+          )}
           <HeaderMenu items={[
             { label: 'My CVs', onClick: () => setShowHistoryModal(true), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
             { label: 'Check my balance', onClick: () => setShowBalanceModal(true), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="17" cy="14.5" r="1" fill="currentColor" stroke="none"/></svg> },
@@ -1088,8 +1103,8 @@ export default function PreviewPage() {
           </div>
         </div>
       )}
-      <div style={{ display:'grid', gridTemplateColumns: isCoverLetter ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
-        {!isCoverLetter && (
+      <div style={{ display:'grid', gridTemplateColumns: (isCoverLetter || isMobile) ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
+        {!isCoverLetter && !isMobile && (
           <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'22px 20px', overflowY:'auto', height:'calc(100vh - 57px)' }}>
 
             {/* ── COLOUR — always visible, premium ── */}
@@ -1133,7 +1148,7 @@ export default function PreviewPage() {
           </div>
         )}
 
-        <div style={{ padding:'24px', overflowY:'auto', overflowX:'auto', background:'#f1f5f9' }}>
+        <div style={{ padding: isMobile ? '16px 0' : '24px', overflowY:'auto', overflowX: isMobile ? 'hidden' : 'auto', background:'#f1f5f9' }}>
           {/* CV / Cover Letter switch — shown to EVERYONE on a CV, not only
               once a letter exists. It's how people discover the letter at all:
               if none has been made yet, the tab opens the generate sheet (which
@@ -1154,10 +1169,21 @@ export default function PreviewPage() {
             </div>
           )}
           {activeTab === 'preview' ? (
-            <div style={{ background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'visible', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', width:'210mm', maxWidth:'210mm', margin:'0 auto' }}>
+            <div style={isMobile ? {
+              width: '100vw',
+              display: 'flex',
+              justifyContent: 'center',
+            } : {}}>
+            <div style={isMobile ? {
+              transformOrigin: 'top center',
+              transform: `scale(${Math.min(1, (typeof window !== 'undefined' ? window.innerWidth : 375) / 820)})`,
+              width: '210mm',
+              flexShrink: 0,
+            } : { background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'visible', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', width:'210mm', maxWidth:'210mm', margin:'0 auto' }}>
               <div id="cv-print-area">
                 <CVPreview cv={cv} templateId={template} accentColor={accentColor} />
               </div>
+            </div>
             </div>
           ) : (
             <div style={{ maxWidth:'720px', margin:'0 auto' }}>
@@ -1304,6 +1330,43 @@ export default function PreviewPage() {
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <div style={{ fontSize:'12px', fontWeight:700, color:'#0d9488', background:'#f0fdf9', padding:'4px 10px', borderRadius:'20px' }}>{coverIncluded ? 'Included in your pack' : 'GH₵15'}</div>
             <button onClick={() => { setShowUpsell(false); setCoverErr(''); setShowCoverModal(true) }} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'9px 18px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>Generate<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
+          </div>
+        </div>
+      )}
+
+      {/* MOBILE TEMPLATE / COLOUR SIDEBAR — bottom sheet */}
+      {showMobileSidebar && !isCoverLetter && (
+        <div onClick={() => setShowMobileSidebar(false)} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:220, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', width:'100%', maxHeight:'80vh', overflowY:'auto', padding:'20px 20px 32px', fontFamily:"'DM Sans', sans-serif" }}>
+            <div style={{ width:'36px', height:'4px', borderRadius:'99px', background:'#e2e8f0', margin:'0 auto 20px' }} />
+            {currentTpl?.customizable && (
+              <div style={{ marginBottom:'22px' }}>
+                <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase' as const, letterSpacing:'1.5px', color:'#475569', marginBottom:'12px' }}>Choose Colour</div>
+                <div style={{ display:'flex', gap:'10px', flexWrap:'wrap' as const }}>
+                  <button onClick={() => setAccentColor(null)} title="Default" style={{ width:'28px', height:'28px', borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #fff, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0' }} />
+                  {COLOR_SWATCHES.map(s => (
+                    <button key={s.value} onClick={() => setAccentColor(s.value)} title={s.name} style={{ width:'28px', height:'28px', borderRadius:'50%', background: s.value, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === s.value ? `0 0 0 2px #fff, 0 0 0 4px ${s.value}` : '0 0 0 1px #e2e8f0' }} />
+                  ))}
+                </div>
+              </div>
+            )}
+            <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase' as const, letterSpacing:'1.5px', color:'#475569', marginBottom:'12px' }}>Choose Template</div>
+            {premiumTemplates.length > 0 && (<>
+              <div style={{ fontSize:'11px', fontWeight:600, color:'#94a3b8', letterSpacing:'0.5px', textTransform:'uppercase' as const, marginBottom:'8px' }}>Premium</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'9px', marginBottom:'16px' }}>
+                {premiumTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => { setTemplate(tpl.id); setShowMobileSidebar(false) }} />)}
+              </div>
+            </>)}
+            <div style={{ fontSize:'11px', fontWeight:600, color:'#94a3b8', letterSpacing:'0.5px', textTransform:'uppercase' as const, marginBottom:'8px' }}>ATS Templates</div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'9px', marginBottom:'16px' }}>
+              {atsTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => { setTemplate(tpl.id); setShowMobileSidebar(false) }} />)}
+            </div>
+            {academicTemplates.length > 0 && (<>
+              <div style={{ fontSize:'11px', fontWeight:600, color:'#94a3b8', letterSpacing:'0.5px', textTransform:'uppercase' as const, marginBottom:'8px' }}>Academic</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'9px' }}>
+                {academicTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => { setTemplate(tpl.id); setShowMobileSidebar(false) }} />)}
+              </div>
+            </>)}
           </div>
         </div>
       )}
