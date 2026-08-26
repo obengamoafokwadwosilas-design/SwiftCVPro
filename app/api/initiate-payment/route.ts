@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: `${phone.replace('+', '')}@extraordinarycv.com`,
+        email: `${phone.replace('+', '')}@remarkablecv.com`,
         amount: pkg.amount,
         currency: 'GHS',
         reference,

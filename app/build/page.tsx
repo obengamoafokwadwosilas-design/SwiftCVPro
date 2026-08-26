@@ -1992,7 +1992,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                   unrelated things instead of one lockup. */}
               <img src="/logo-icon-dark.png" alt="" aria-hidden="true" style={{ display: 'block', height: '44px', width: 'auto', margin: '0 auto 12px' }} />
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 500, color: 'white', letterSpacing: '0.005em' }}>
-                Extraordinary <span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
+                Remarkable <span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
               </div>
             </div>
             <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 32px' }}>
@@ -2286,7 +2286,7 @@ function ErrorDisplay({ error, onRetry, onDismiss }: { error: any; onRetry: () =
           <div style={{ display: 'flex', gap: '18px', alignItems: 'center', flexWrap: 'wrap' as const, marginTop: '13px' }}>
             <button onClick={onRetry} style={{ padding: '8px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: '9px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Try again</button>
             <button onClick={onDismiss} style={{ background: 'none', border: 'none', padding: 0, fontSize: '12.5px', fontWeight: 500, color: 'var(--graphite)', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Dismiss</button>
-            <a href="https://wa.me/233559519783?text=Hi,%20I%20need%20help%20with%20Extraordinary%20CV" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--muted)', textDecoration: 'none', marginLeft: 'auto' }}>Need help?</a>
+            <a href="https://wa.me/233559519783?text=Hi,%20I%20need%20help%20with%20Remarkable%20CV" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12.5px', fontWeight: 500, color: 'var(--muted)', textDecoration: 'none', marginLeft: 'auto' }}>Need help?</a>
           </div>
         </div>
       </div>

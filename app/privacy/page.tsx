@@ -11,7 +11,7 @@ export default function Page() {
     >
       <h1 style={{ fontSize: '2rem', marginBottom: '16px' }}>Privacy Policy</h1>
       <p>
-        Extraordinary CV processes the information you provide to generate your document. We do not
+        Remarkable CV processes the information you provide to generate your document. We do not
         sell your personal information. Information submitted for generation should only be used
         to deliver your requested document and support your download experience.
       </p>

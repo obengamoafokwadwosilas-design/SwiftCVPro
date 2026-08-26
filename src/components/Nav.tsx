@@ -64,7 +64,7 @@ export default function Nav({ step, subProgress = 1, rightSlot }: NavProps) {
             letterSpacing: '0.005em',
             lineHeight: 1.05
           }}>
-            Extraordinary <span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
+            Remarkable <span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
           </div>
           <div className="xcv-mono xcv-tagline" style={{
             fontSize: '9px',

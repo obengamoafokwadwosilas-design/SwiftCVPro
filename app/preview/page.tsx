@@ -889,7 +889,7 @@ export default function PreviewPage() {
       script.onload = () => {
         const handler = (window as any).PaystackPop.setup({
           key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-          email: `${phone.replace('+','')}@extraordinarycv.com`,
+          email: `${phone.replace('+','')}@remarkablecv.com`,
           amount: 500, // GH₵5 — Paystack amounts are in pesewas (GH₵1 = 100)
           currency: 'GHS',
           ref: `rev_${Date.now()}`,
@@ -1050,7 +1050,7 @@ export default function PreviewPage() {
         {/* The logo is the universal "get me home" control — clicking it
             leaves the preview for the home page, so the header is never a
             dead end even if someone misses the menu. */}
-        <a href="/" title="Back to home" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', fontWeight:600, color:'white', textDecoration:'none', cursor:'pointer' }}>Extraordinary <span style={{ color:'#5eead4' }}>CV</span></a>
+        <a href="/" title="Back to home" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', fontWeight:600, color:'white', textDecoration:'none', cursor:'pointer' }}>Remarkable <span style={{ color:'#5eead4' }}>CV</span></a>
         <div style={{ display:'flex', background:'rgba(255,255,255,0.08)', borderRadius:'50px', padding:'3px', gap:'2px' }}>
           {/* Inactive tab was rgba(255,255,255,0.4) at weight 400 — near
               invisible on the dark bar, so people could not find Edit. */}
