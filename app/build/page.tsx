@@ -150,6 +150,12 @@ export default function BuildPage() {
   // where it's read).
   const [pasteInputMode, setPasteInputMode] = useState<'upload' | 'paste'>('upload')
   const [uploadedCV, setUploadedCV] = useState<File | null>(null)
+  // True between picking a file and extraction finishing. uploadedCV is set
+  // the instant a file is picked — without this, the screen would already
+  // say "CV uploaded ✓" and show an empty review box while a scanned PDF or
+  // photo is still being read (a real wait: that path is a Claude vision
+  // call, not the near-instant local parse a text-based PDF/Word file gets).
+  const [isExtracting, setIsExtracting] = useState(false)
   // Text pulled out of the uploaded CV file as soon as it's added. A File
   // object can't be stored in localStorage, so this is the only form an
   // upload can be remembered in for a restored session (see
@@ -774,6 +780,7 @@ export default function BuildPage() {
     setUploadedCV(file)
     setUploadReadError('')
     if (!file) {
+      setIsExtracting(false)
       setExtractedCVText(null)
       // Clears whatever the removed file had auto-filled, so "Remove" doesn't
       // leave orphaned text sitting in the review box with nothing to show
@@ -785,6 +792,7 @@ export default function BuildPage() {
       if (prev) { delete prev.pasteContent; delete prev.uploadedFileName; saveLastInput(prev) }
       return
     }
+    setIsExtracting(true)
     try {
       const text = await extractFile(file)
       setExtractedCVText({ file, text })
@@ -797,6 +805,8 @@ export default function BuildPage() {
     } catch (err: any) {
       setExtractedCVText(null)
       setUploadReadError(err?.message || 'Could not read this file. Try a different one, or paste your CV text instead.')
+    } finally {
+      setIsExtracting(false)
     }
   }
 
@@ -1488,12 +1498,20 @@ export default function BuildPage() {
               mounted (hidden, not removed) whenever its tab isn't active, so
               switching tabs never loses what was typed. */}
           {(() => {
-            const isReview = !!uploadedCV && !uploadReadError
+            // isExtracting is its own state, not inferred from uploadedCV,
+            // because uploadedCV is set the instant a file is picked — well
+            // before extraction resolves. A text-based PDF/Word file parses
+            // locally and is done in a blink; a photo or scanned PDF is a
+            // real Claude vision call and can take a few seconds. Without
+            // this, the screen would already say "CV uploaded ✓" over an
+            // empty review box for however long that call takes.
+            const isReview = !!uploadedCV && !uploadReadError && !isExtracting
+            const showLoading = pasteInputMode === 'upload' && isExtracting
             const toggleOptions = [
-              { id: 'upload', label: isReview ? 'CV uploaded ✓' : 'Upload a file', icon: UPLOAD_PASTE_OPTIONS[0].icon },
+              { id: 'upload', label: isExtracting ? 'Reading CV…' : isReview ? 'CV uploaded ✓' : 'Upload a file', icon: UPLOAD_PASTE_OPTIONS[0].icon },
               UPLOAD_PASTE_OPTIONS[1],
             ]
-            const showUploadZone = pasteInputMode === 'upload' && !isReview
+            const showUploadZone = pasteInputMode === 'upload' && !isReview && !isExtracting
             return (
               <>
                 <div style={{ marginBottom: '16px' }}>
@@ -1504,8 +1522,15 @@ export default function BuildPage() {
                   <UploadZone label="Upload CV / Résumé" hint="PDF or Word (.pdf, .docx) · Max 10 MB" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} />
                 </div>
 
-                <div style={{ ...cardStyle, display: showUploadZone ? 'none' : 'block' }}>
-                  {pasteInputMode === 'upload' && isReview ? (
+                <div style={{ ...cardStyle, display: (showUploadZone) ? 'none' : 'block' }}>
+                  {showLoading ? (
+                    <div style={{ textAlign: 'center' as const, padding: '18px 8px' }}>
+                      <div style={{ position: 'relative', height: '4px', borderRadius: '4px', background: 'var(--rule)', overflow: 'hidden', marginBottom: '14px' }}>
+                        <div style={{ position: 'absolute', top: 0, left: '-40%', height: '100%', width: '40%', borderRadius: '4px', background: 'var(--teal)', animation: 'xcv-loadbar 1.2s ease-in-out infinite' }} />
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--graphite)', fontWeight: 400 }}>Reading your CV…</div>
+                    </div>
+                  ) : pasteInputMode === 'upload' && isReview ? (
                     <>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
                         <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 0 }}>Review your CV</div>
@@ -1545,7 +1570,7 @@ export default function BuildPage() {
                       textarea (TA()) — this is the one field on the whole screen
                       someone actually writes or reviews a document in, so it should
                       read like a page, not a form input. */}
-                  <textarea ref={refs.paste} style={{ ...TA(180), fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', lineHeight: 1.75 }} rows={8} placeholder="Start with your name, contact details, education and experience — rough notes are welcome." />
+                  <textarea ref={refs.paste} style={{ ...TA(180), fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', lineHeight: 1.75, display: showLoading ? 'none' : undefined }} rows={8} placeholder="Start with your name, contact details, education and experience — rough notes are welcome." />
                 </div>
               </>
             )
@@ -2098,6 +2123,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        @keyframes xcv-loadbar { 0% { left: -40%; } 100% { left: 100%; } }
         * { box-sizing: border-box; }
         textarea:focus, input:focus { outline: none; border-color: var(--teal) !important; box-shadow: 0 0 0 3px rgba(10,138,63,0.1); }
       `}</style>
