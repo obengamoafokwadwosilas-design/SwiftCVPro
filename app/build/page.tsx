@@ -1561,7 +1561,11 @@ export default function BuildPage() {
                       </div>
                       {showCvExample && (
                         <div style={{ background: '#f7fcf8', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '10px', padding: '12px 14px', marginBottom: '12px', fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '15px', lineHeight: 1.6, color: 'var(--ink)' }}>
-                          &quot;Wendy Brown. Phone: 0266688845. Email: wendy.brown@email.com. Education: BSc Business Administration, University of Ghana, 2020–2024. Experience: Sales Intern, Example Company — helped with customer records, weekly reports, and client follow-ups. Skills: Microsoft Office, communication, customer service.&quot;
+                          {cvType === 'academic'
+                            ? '"Kwame Owusu. PhD Candidate, Physics, University of Ghana, 2021–present. Research: thin-film solar cell efficiency under Prof. Mensah. Teaching: Teaching Assistant, Introductory Physics, 2022–2024. Publications: ‘Title of paper’, Journal of X, 2023."'
+                            : cvType === 'cover_letter'
+                              ? '"Ama Boateng. Applying for Marketing Officer at XYZ Ltd. 3 years in digital marketing at ABC Media — grew social engagement by 40%. Passionate about consumer brands and keen to bring my campaign experience to a growing team."'
+                              : '"Wendy Brown. Phone: 0266688845. Email: wendy.brown@email.com. Education: BSc Business Administration, University of Ghana, 2020–2024. Experience: Sales Intern, Example Company — helped with customer records, weekly reports, and client follow-ups. Skills: Microsoft Office, communication, customer service."'}
                         </div>
                       )}
                     </>
@@ -1589,13 +1593,18 @@ export default function BuildPage() {
             <textarea ref={refs.tailorEmphasisPaste} style={TA(70)} rows={3}
               placeholder={tailorMode !== 'none'
                 ? (cvType === 'cover_letter' ? 'e.g. My leadership experience and passion for this industry' : 'e.g. My project management experience for this specific role')
-                : '"Keep it concise" or "Emphasize leadership over technical skills"'} />
+                : (cvType === 'academic'
+                    ? '"Emphasize my research over teaching" or "Keep the tone formal and precise"'
+                    : cvType === 'cover_letter'
+                      ? '"Keep it warm and enthusiastic" or "Mention my passion for the industry"'
+                      : '"Keep it concise" or "Emphasize leadership over technical skills"')} />
           </Collapsible>
 
           <TailorSection
             mode={tailorMode} setMode={setTailorMode}
             isLetter={cvType === 'cover_letter'}
             isAcademic={isAcademic}
+            docLabel={meta.label}
             jdMode={jdInputMode} setJdMode={setJdInputMode}
             jdPasteRef={refs.jdPaste}
             jdFile={uploadedJD} setJdFile={setUploadedJD}
@@ -1863,12 +1872,13 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                 badge="Optional"
               >
                 <textarea ref={refs.tailorEmphasisForm} style={TA(70)} rows={3}
-                  placeholder={tailorMode !== 'none' ? 'e.g. My leadership experience and passion for this industry' : 'e.g. Keep it warm but professional'} />
+                  placeholder={tailorMode !== 'none' ? 'e.g. My leadership experience and passion for this industry' : '"Keep it warm and enthusiastic" or "Mention my passion for the industry"'} />
               </Collapsible>
 
               <TailorSection
                 mode={tailorMode} setMode={setTailorMode}
                 isLetter
+                docLabel="Cover Letter"
                 jdMode={jdInputMode} setJdMode={setJdInputMode}
                 jdPasteRef={refs.jdPaste}
                 jdFile={uploadedJD} setJdFile={setUploadedJD}
@@ -1907,13 +1917,18 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                 badge="Optional"
               >
                 <textarea ref={refs.tailorEmphasisForm} style={TA(70)} rows={3}
-                  placeholder={tailorMode !== 'none' ? 'e.g. My project management experience for this specific role' : '"Keep it concise" or "Emphasize leadership over technical skills"'} />
+                  placeholder={tailorMode !== 'none'
+                    ? 'e.g. My project management experience for this specific role'
+                    : (isAcademic
+                        ? '"Emphasize my research over teaching" or "Keep the tone formal and precise"'
+                        : '"Keep it concise" or "Emphasize leadership over technical skills"')} />
               </Collapsible>
 
               <TailorSection
                 mode={tailorMode} setMode={setTailorMode}
                 isLetter={false}
                 isAcademic={isAcademic}
+                docLabel={meta.label}
                 jdMode={jdInputMode} setJdMode={setJdInputMode}
                 jdPasteRef={refs.jdPaste}
                 jdFile={uploadedJD} setJdFile={setUploadedJD}
@@ -2222,10 +2237,14 @@ function ModeToggle({ value, onChange, options }: { value: string; onChange: (v:
 // One exclusive choice for how to aim the document, replacing the two separate
 // optional boxes that could both be filled. Fields appear only under the
 // selected option — greyed-out-but-visible inputs are just noise on a phone.
-function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode, jdPasteRef, jdFile, setJdFile, jobRef, industryRef, schoolRef, programmeRef }: {
+function TailorSection({ mode, setMode, isLetter, isAcademic, docLabel, jdMode, setJdMode, jdPasteRef, jdFile, setJdFile, jobRef, industryRef, schoolRef, programmeRef }: {
   mode: 'advert' | 'aim' | 'none'; setMode: (m: 'advert' | 'aim' | 'none') => void
   isLetter: boolean
   isAcademic?: boolean
+  // The specific document name ("Professional CV", "Academic CV", "Cover
+  // Letter") for the section heading — a generic "Tailor your CV" didn't
+  // distinguish which of the three someone was actually building.
+  docLabel: string
   jdMode: 'paste' | 'upload'; setJdMode: (m: 'paste' | 'upload') => void
   jdPasteRef: React.RefObject<HTMLTextAreaElement>
   jdFile: File | null; setJdFile: (f: File | null) => void
@@ -2242,7 +2261,7 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
         // the institution/programme AND (sometimes) a call document — they are
         // not alternatives, so making them rival options threw away whichever
         // half wasn't picked. The call is now an optional extra inside this one.
-        { id: 'aim' as const,  title: 'I’m applying somewhere specific', desc: 'Tell us where — and paste the advert or call if you have one.' },
+        { id: 'aim' as const,  title: 'I’m applying for a specific school, programme, etc.', desc: 'Tell us where — and paste the advert or call if you have one.' },
         { id: 'none' as const, title: 'Just build me an academic CV', desc: 'Create a full academic CV from my details — no specific school or position in mind.' },
       ]
     : [
@@ -2256,7 +2275,7 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
     // heading, more padding, a tinted background that sets it apart from the
     // plain white cards above it.
     <div style={{ border: '1.5px solid var(--rule)', borderRadius: '16px', background: 'var(--paper)', marginTop: '20px', marginBottom: '14px', padding: '24px 22px' }}>
-      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 500, color: 'var(--ink)', marginBottom: '4px', letterSpacing: '-0.005em' }}>Tailor your {doc}</div>
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.15rem', fontWeight: 500, color: 'var(--ink)', marginBottom: '4px', letterSpacing: '-0.005em' }}>Tailor your {docLabel}</div>
       <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginBottom: '16px' }}>Pick one — or leave it on the last option.</div>
 
       <div style={{ display: 'grid', gap: '9px' }}>
@@ -2353,7 +2372,14 @@ function Collapsible({ title, hint, badge, defaultOpen = false, children }: { ti
           <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink)' }}>{title}</span>
           {hint && <span style={{ display: 'block', fontSize: '10.5px', color: 'var(--muted)', marginTop: '2px', fontWeight: 300, lineHeight: 1.5 }}>{hint}</span>}
         </span>
-        {badge && <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--muted)', flexShrink: 0 }}>{badge}</span>}
+        {/* The rotated chevron alone didn't read as "click to close" —
+            swapping the badge for an explicit "Hide" while open, same
+            pattern as the "See example" toggle elsewhere on this screen. */}
+        {open ? (
+          <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--teal)', flexShrink: 0 }}>Hide</span>
+        ) : (
+          badge && <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--muted)', flexShrink: 0 }}>{badge}</span>
+        )}
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       {/* Hidden rather than unmounted: an uncontrolled textarea loses whatever
