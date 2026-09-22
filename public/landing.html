@@ -339,20 +339,20 @@ section { padding:var(--section-y) 0; }
 
 /* ── TEMPLATES TICKER ── */
 .templates-section { background:var(--white); overflow:hidden; padding-top:2.75rem; }
-.template-ticker-outer { overflow-x:auto; position:relative; margin-top:48px; scroll-snap-type:x mandatory; scrollbar-width:none; }
-.template-ticker-outer::-webkit-scrollbar { display:none; }
+.template-ticker-outer { overflow:hidden; position:relative; margin-top:48px; }
 .template-ticker-outer::before, .template-ticker-outer::after { content:''; position:absolute; top:0; bottom:0; width:120px; z-index:2; pointer-events:none; }
 .template-ticker-outer::before { left:0; background:linear-gradient(90deg,var(--white),transparent); }
 .template-ticker-outer::after { right:0; background:linear-gradient(-90deg,var(--white),transparent); }
-.template-ticker { display:flex; align-items:flex-end; gap:16px; width:max-content; padding:14px max(32px,calc((100vw - 230px) / 2)) 34px; }
+.template-ticker { display:flex; align-items:flex-end; gap:16px; width:max-content; padding:14px 0 34px; will-change:transform; }
+.template-ticker.is-moving { animation:templateMarquee 64s linear infinite; }
+@keyframes templateMarquee { to { transform:translateX(calc(-1 * var(--template-cycle-width))); } }
 .tmpl-chip {
   appearance:none; border:0; padding:0; background:none; color:inherit; font:inherit;
-  display:flex; flex-direction:column; align-items:flex-start; flex:0 0 150px;
-  cursor:pointer; text-align:left; opacity:0.52; filter:saturate(0.58);
-  transform:scale(0.92); transform-origin:center bottom; scroll-snap-align:center;
-  transition:flex-basis 0.55s var(--ease), transform 0.55s var(--ease), opacity 0.55s var(--ease), filter 0.55s var(--ease);
+  display:flex; flex-direction:column; align-items:flex-start; flex:0 0 174px;
+  cursor:pointer; text-align:left; opacity:0.9; filter:saturate(0.88);
+  transition:opacity 0.3s var(--ease), filter 0.3s var(--ease);
 }
-.tmpl-chip.is-active { flex-basis:230px; opacity:1; filter:none; transform:translateY(-12px) scale(1); }
+.tmpl-chip:hover, .tmpl-chip:focus-visible, .tmpl-chip.is-active { opacity:1; filter:none; }
 .tmpl-img-wrap {
   width:100%; aspect-ratio:210/297; height:auto;
   border-radius:6px; overflow:hidden;
@@ -362,9 +362,9 @@ section { padding:var(--section-y) 0; }
   transition:transform 0.45s var(--ease), box-shadow 0.45s var(--ease), border-color 0.45s var(--ease);
   position:relative;
 }
-.tmpl-chip.is-active .tmpl-img-wrap, .tmpl-chip:hover .tmpl-img-wrap {
+.tmpl-chip.is-active .tmpl-img-wrap, .tmpl-chip:hover .tmpl-img-wrap, .tmpl-chip:focus-visible .tmpl-img-wrap {
   border-color:var(--teal);
-  box-shadow:0 28px 52px -20px rgba(10,164,71,0.3);
+  box-shadow:0 20px 42px -20px rgba(10,164,71,0.26);
 }
 .tmpl-img-wrap img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
 .tmpl-name { margin-top:13px; font-family:var(--font-display); font-size:1rem; font-weight:600; color:var(--navy); white-space:normal; }
@@ -373,9 +373,8 @@ section { padding:var(--section-y) 0; }
 .tmpl-chip:focus-visible { outline:2px solid var(--teal); outline-offset:6px; border-radius:6px; }
 @media(max-width:700px){
   .template-ticker-outer { margin-top:34px; }
-  .template-ticker { gap:12px; padding:12px 32px 28px; }
+  .template-ticker { gap:12px; padding:12px 0 28px; }
   .tmpl-chip { flex-basis:42vw; }
-  .tmpl-chip.is-active { flex-basis:62vw; transform:translateY(-8px) scale(1); }
 }
 
 /* ── PRICING ── */
@@ -1603,11 +1602,10 @@ const obs = new IntersectionObserver(entries => {
 }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 
-// Template gallery focus rail
+// Template gallery continuous rail
 (function initTemplateGallery() {
   const rail = document.querySelector('[data-template-gallery]');
-  const viewport = rail?.closest('.template-ticker-outer');
-  if (!rail || !viewport) return;
+  if (!rail) return;
 
   const baseCards = [...rail.querySelectorAll('[data-template-card]')];
   const cycleLength = baseCards.length;
@@ -1624,104 +1622,30 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
   }
 
   const cards = [...rail.querySelectorAll('[data-template-card]')];
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let activeIndex = cycleLength;
-  let scrollTimer;
-  let rotationTimer;
-  let normalizeTimer;
-  let isVisible = false;
-  let isHovering = false;
-
-  function setActive(index, moveViewport = true, behavior, shouldNormalize = true) {
-    activeIndex = (index + cards.length) % cards.length;
+  function selectTemplate(index) {
     cards.forEach((card, cardIndex) => {
-      const isActive = cardIndex === activeIndex;
-      card.classList.toggle('is-active', isActive);
-      card.setAttribute('aria-pressed', String(isActive));
+      const isSelected = cardIndex % cycleLength === index;
+      card.classList.toggle('is-active', isSelected);
+      if (cardIndex < cycleLength) card.setAttribute('aria-pressed', String(isSelected));
     });
-
-    if (moveViewport) {
-      const card = cards[activeIndex];
-      const left = card.offsetLeft - (viewport.clientWidth - card.offsetWidth) / 2;
-      viewport.scrollTo({ left, behavior: behavior || (reducedMotion ? 'auto' : 'smooth') });
-    }
-
-    if (shouldNormalize) normalizePosition();
   }
 
-  function nearestCycleIndex(templateIndex) {
-    return cards.reduce((nearest, card, index) => {
-      if (index % cycleLength !== templateIndex) return nearest;
-      return Math.abs(index - activeIndex) < Math.abs(nearest - activeIndex) ? index : nearest;
-    }, activeIndex);
-  }
-
-  function normalizePosition() {
-    window.clearTimeout(normalizeTimer);
-    if (activeIndex >= cycleLength && activeIndex < cycleLength * 2) return;
-
-    const matchingIndex = activeIndex < cycleLength ? activeIndex + cycleLength : activeIndex - cycleLength;
-    normalizeTimer = window.setTimeout(() => {
-      if (activeIndex === (matchingIndex - cycleLength) || activeIndex === (matchingIndex + cycleLength)) {
-        setActive(matchingIndex, true, 'auto', false);
-      }
-    }, 720);
+  function setCycleWidth() {
+    const firstContinuation = cards[cycleLength];
+    rail.style.setProperty('--template-cycle-width', `${firstContinuation.offsetLeft - cards[0].offsetLeft}px`);
   }
 
   baseCards.forEach((card, index) => {
-    card.addEventListener('click', () => {
-      setActive(nearestCycleIndex(index));
-      startRotation();
-    });
-    card.addEventListener('focus', () => {
-      setActive(nearestCycleIndex(index));
-      stopRotation();
-    });
+    card.addEventListener('click', () => selectTemplate(index));
+    card.addEventListener('focus', () => selectTemplate(index));
   });
 
-  viewport.addEventListener('scroll', () => {
-    window.clearTimeout(scrollTimer);
-    scrollTimer = window.setTimeout(() => {
-      const viewportCenter = viewport.scrollLeft + viewport.clientWidth / 2;
-      const nearest = cards.reduce((best, card, index) => {
-        const distance = Math.abs(card.offsetLeft + card.offsetWidth / 2 - viewportCenter);
-        return distance < best.distance ? { index, distance } : best;
-      }, { index:activeIndex, distance:Infinity });
-      setActive(nearest.index, false);
-    }, 120);
-  }, { passive:true });
-
-  function stopRotation() {
-    window.clearInterval(rotationTimer);
-  }
-
-  function startRotation() {
-    stopRotation();
-    if (reducedMotion || !isVisible || isHovering) return;
-    rotationTimer = window.setInterval(() => setActive(activeIndex + 1), 3600);
-  }
-
-  viewport.addEventListener('pointerenter', () => {
-    isHovering = true;
-    stopRotation();
+  window.addEventListener('resize', setCycleWidth, { passive:true });
+  window.requestAnimationFrame(() => {
+    setCycleWidth();
+    selectTemplate(0);
+    rail.classList.add('is-moving');
   });
-  viewport.addEventListener('pointerleave', () => {
-    isHovering = false;
-    startRotation();
-  });
-  viewport.addEventListener('focusout', () => {
-    window.setTimeout(() => {
-      if (!viewport.contains(document.activeElement)) startRotation();
-    }, 0);
-  });
-
-  const galleryObserver = new IntersectionObserver(([entry]) => {
-    isVisible = entry.isIntersecting;
-    startRotation();
-  }, { threshold:0.25 });
-  galleryObserver.observe(viewport);
-
-  window.requestAnimationFrame(() => setActive(cycleLength, true, 'auto', false));
 })();
 
 // Document showcase rotation
