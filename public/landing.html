@@ -1055,6 +1055,9 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
       <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-5.webp" alt="Nordic template"></span><span class="tmpl-name">Nordic</span><span class="tmpl-tag">Clean · Modern</span></button>
       <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-6.webp" alt="New York template"></span><span class="tmpl-name">New York</span><span class="tmpl-tag">Bold Serif · Crimson</span></button>
       <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-7.webp" alt="Graduate template"></span><span class="tmpl-name">Graduate</span><span class="tmpl-tag">Optimistic · Fresh</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-academic-classic-wendy.png" alt="Classic academic CV template"></span><span class="tmpl-name">Academia</span><span class="tmpl-tag">Traditional · Research</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-academic-scholarly-wendy.png" alt="Scholarly academic CV template"></span><span class="tmpl-name">Scholar</span><span class="tmpl-tag">Structured · PhD</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-executive-forest-wendy.png" alt="Green executive CV template"></span><span class="tmpl-name">Canopy</span><span class="tmpl-tag">Executive · Green</span></button>
     </div>
   </div>
 </section>
@@ -1610,6 +1613,9 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let activeIndex = 0;
   let scrollTimer;
+  let rotationTimer;
+  let isVisible = false;
+  let isHovering = false;
 
   function setActive(index, moveViewport = true) {
     activeIndex = (index + cards.length) % cards.length;
@@ -1627,8 +1633,14 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
   }
 
   cards.forEach((card, index) => {
-    card.addEventListener('click', () => setActive(index));
-    card.addEventListener('focus', () => setActive(index));
+    card.addEventListener('click', () => {
+      setActive(index);
+      startRotation();
+    });
+    card.addEventListener('focus', () => {
+      setActive(index);
+      stopRotation();
+    });
   });
 
   viewport.addEventListener('scroll', () => {
@@ -1642,6 +1654,36 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
       setActive(nearest.index, false);
     }, 120);
   }, { passive:true });
+
+  function stopRotation() {
+    window.clearInterval(rotationTimer);
+  }
+
+  function startRotation() {
+    stopRotation();
+    if (reducedMotion || !isVisible || isHovering) return;
+    rotationTimer = window.setInterval(() => setActive(activeIndex + 1), 3600);
+  }
+
+  viewport.addEventListener('pointerenter', () => {
+    isHovering = true;
+    stopRotation();
+  });
+  viewport.addEventListener('pointerleave', () => {
+    isHovering = false;
+    startRotation();
+  });
+  viewport.addEventListener('focusout', () => {
+    window.setTimeout(() => {
+      if (!viewport.contains(document.activeElement)) startRotation();
+    }, 0);
+  });
+
+  const galleryObserver = new IntersectionObserver(([entry]) => {
+    isVisible = entry.isIntersecting;
+    startRotation();
+  }, { threshold:0.25 });
+  galleryObserver.observe(viewport);
 })();
 
 // Document showcase rotation
