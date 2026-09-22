@@ -385,14 +385,22 @@ section { padding:var(--section-y) 0; }
 .pricing-more { display:none; margin-top:18px; }
 .pricing-more.is-open { display:block; }
 .pricing-viewmore {
-  display:flex; align-items:center; justify-content:center; gap:7px;
-  margin:26px auto 0; padding:10px 4px; background:none; border:0; cursor:pointer;
-  font-family:var(--font-body); font-size:0.86rem; font-weight:600; color:var(--teal-dark);
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  margin:30px auto 0; padding:10px 4px; background:none; border:0; cursor:pointer;
+  font-family:var(--font-body); font-size:0.95rem; font-weight:700; color:var(--teal-dark);
 }
-.pricing-viewmore svg { transition:transform 0.3s var(--ease); flex-shrink:0; }
-.pricing-viewmore[aria-expanded="true"] svg { transform:rotate(180deg); }
+.pricing-viewmore svg { transition:transform 0.3s var(--ease); flex-shrink:0; animation:pricing-nudge 2.2s ease-in-out infinite; }
+.pricing-viewmore[aria-expanded="true"] svg { animation:none; transform:rotate(180deg); }
 .pricing-viewmore:hover { color:var(--navy); }
+.pricing-viewmore:hover svg { animation-play-state:paused; }
 .pricing-viewmore:focus-visible { outline:2px solid var(--teal); outline-offset:4px; border-radius:4px; }
+@keyframes pricing-nudge {
+  0%, 100% { transform:translateY(0); }
+  50% { transform:translateY(5px); }
+}
+@media(prefers-reduced-motion:reduce){
+  .pricing-viewmore svg { animation:none; }
+}
 .price-card {
   position:relative; isolation:isolate; overflow:hidden; background:var(--white);
   border:1px solid var(--rule-strong); border-radius:8px;
