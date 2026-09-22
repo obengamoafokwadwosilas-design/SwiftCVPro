@@ -940,7 +940,7 @@ export default function BuildPage() {
           targetIndustry: r.tailorIndustryForm.current?.value || undefined,
           targetProgramme: isAcademic ? (r.tailorProgrammeForm.current?.value || undefined) : undefined,
           jobDescription: wantsAdvertJD ? (jobDescription || undefined) : undefined,
-          whyRole: tailorMode !== 'none' ? (r.tailorEmphasisForm.current?.value || undefined) : undefined,
+          whyRole: r.tailorEmphasisForm.current?.value || undefined,
           // Cover-letter recipient (formal Ghanaian address block)
           addressee: cvType === 'cover_letter' ? (r.addressee.current?.value || undefined) : undefined,
           companyAddress: cvType === 'cover_letter' ? (r.companyAddress.current?.value || undefined) : undefined,
@@ -990,7 +990,7 @@ export default function BuildPage() {
           // Academic only — the institution and course being applied to.
           company: tailorMode === 'aim' ? (refs.tailorSchoolPaste.current?.value || undefined) : undefined,
           targetProgramme: tailorMode === 'aim' ? (refs.tailorProgrammePaste.current?.value || undefined) : undefined,
-          whyRole: tailorMode !== 'none' ? (refs.tailorEmphasisPaste.current?.value || undefined) : undefined,
+          whyRole: refs.tailorEmphasisPaste.current?.value || undefined,
           phoneNumber: normalizedPhone,
           email,
         })
@@ -1468,45 +1468,38 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: PASTE PATH ══════════════════════════════════ */}
         <div style={{ display: screen === 'paste' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <h1 className="xcv-h1" style={h1Style}>Upload or paste your CV</h1>
-          {/* Name the document they'll get, so there's no doubt what this input
-              is being turned into. */}
-          <p style={subStyle}>Start with what you have — you&apos;ll review it before we build your {meta.label}.</p>
+          <h1 className="xcv-h1" style={{ ...h1Style, fontSize: 'clamp(1.25rem, 3.2vw, 1.7rem)', marginBottom: '22px' }}>Upload or paste your CV</h1>
 
           {/* Upload and typing both land in the same box below, so there's no
               either/or tab to pick — just an upload option up front (its own
               "Ready" chip replaces the dropzone once a file's in) and a review/
               type box that's always there. */}
-          <UploadZone label="Upload CV / Résumé" hint="PDF, Word, text, or a photo — or drag and drop" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} readyNote="Your details are ready below — review and edit before you build." />
+          <UploadZone label="Upload CV / Résumé" hint="PDF or Word (.pdf, .docx) · Max 10 MB" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} readyNote="Ready — review the text below." />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }} aria-hidden="true">
             <div style={{ flex: 1, height: '1px', background: 'var(--rule)' }} />
-            <span style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 500 }}>{uploadedCV ? 'or edit it below' : 'or type it below'}</span>
+            <span style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 500 }}>{uploadedCV ? 'Upload successful — extracted below' : 'or type it below'}</span>
             <div style={{ flex: 1, height: '1px', background: 'var(--rule)' }} />
           </div>
 
           <div style={cardStyle}>
             {uploadedCV ? (
               <>
-                <div style={cardTitleStyle}>Review your CV</div>
+                <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: '6px' }}>Review your CV</div>
                 <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>We pulled this out of your file — check it&apos;s correct and fix anything wrong or missing.</p>
               </>
             ) : (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: '8px', marginBottom: '4px' }}>
-                  <div style={cardTitleStyle}>Paste your CV here</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: '8px', marginBottom: '10px' }}>
+                  <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 0 }}>Paste your CV here</div>
                   <button type="button" onClick={() => setShowCvExample(v => !v)}
-                    style={{ fontSize: '12px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
-                    {showCvExample ? '− Hide example' : '→ Not sure what to write? See example'}
+                    style={{ fontSize: '11px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
+                    {showCvExample ? '− Hide example' : '→ See example'}
                   </button>
                 </div>
-                <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>Any format works — Word, PDF, rough notes.</p>
                 {showCvExample && (
-                  <div style={{ background: '#f7fcf8', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '10px', padding: '12px 14px', marginBottom: '12px', fontSize: '12.5px', color: 'var(--graphite)', lineHeight: 1.7 }}>
-                    Rough notes are enough — we&apos;ll turn them into a polished CV. For example:
-                    <div style={{ marginTop: '6px', fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '15px', lineHeight: 1.6, color: 'var(--ink)' }}>
-                      &quot;Wendy Brown. Phone: 0266688845. Email: wendy.brown@email.com. Education: BSc Business Administration, University of Ghana, 2020–2024. Experience: Sales Intern, Example Company — helped with customer records, weekly reports, and client follow-ups. Skills: Microsoft Office, communication, customer service.&quot;
-                    </div>
+                  <div style={{ background: '#f7fcf8', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '10px', padding: '12px 14px', marginBottom: '12px', fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '15px', lineHeight: 1.6, color: 'var(--ink)' }}>
+                    &quot;Wendy Brown. Phone: 0266688845. Email: wendy.brown@email.com. Education: BSc Business Administration, University of Ghana, 2020–2024. Experience: Sales Intern, Example Company — helped with customer records, weekly reports, and client follow-ups. Skills: Microsoft Office, communication, customer service.&quot;
                   </div>
                 )}
               </>
@@ -1518,6 +1511,22 @@ export default function BuildPage() {
             <textarea ref={refs.paste} style={{ ...TA(180), fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', lineHeight: 1.75 }} rows={8} placeholder="Start with your name, contact details, education and experience — rough notes are welcome." />
           </div>
 
+          {/* Ahead of Tailor your CV — this is about the CV itself (fix or add
+              something), the section below is about the target it's aimed at.
+              Collapsed by default so it doesn't compete for space. */}
+          <Collapsible
+            title={tailorMode !== 'none' ? `Anything to emphasize for this ${isAcademic ? 'application' : 'role'}?` : 'Anything to add or clarify?'}
+            hint={cvType === 'cover_letter'
+              ? 'Add achievements, strengths, or details you want highlighted.'
+              : 'Corrections, additions, or emphasis — e.g. "I was promoted in 2023".'}
+            badge="Optional"
+          >
+            <textarea ref={refs.tailorEmphasisPaste} style={TA(70)} rows={3}
+              placeholder={tailorMode !== 'none'
+                ? (cvType === 'cover_letter' ? 'e.g. My leadership experience and passion for this industry' : 'e.g. My project management experience for this specific role')
+                : 'e.g. I was promoted in 2023 — add this'} />
+          </Collapsible>
+
           <TailorSection
             mode={tailorMode} setMode={setTailorMode}
             isLetter={cvType === 'cover_letter'}
@@ -1527,7 +1536,6 @@ export default function BuildPage() {
             jdFile={uploadedJD} setJdFile={setUploadedJD}
             jobRef={refs.tailorJobPaste} industryRef={refs.tailorIndustryPaste}
             schoolRef={refs.tailorSchoolPaste} programmeRef={refs.tailorProgrammePaste}
-            emphasisRef={refs.tailorEmphasisPaste}
           />
 
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
@@ -1784,6 +1792,15 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             // EMPLOYMENT" rather than inventing a job title), so forcing a role
             // here denied a use case the generator already supported.
             <>
+              <Collapsible
+                title={tailorMode !== 'none' ? 'Anything to emphasize for this role?' : 'Anything to add or clarify?'}
+                hint="Add achievements, strengths, or details you want highlighted."
+                badge="Optional"
+              >
+                <textarea ref={refs.tailorEmphasisForm} style={TA(70)} rows={3}
+                  placeholder={tailorMode !== 'none' ? 'e.g. My leadership experience and passion for this industry' : 'e.g. I was promoted in 2023 — add this'} />
+              </Collapsible>
+
               <TailorSection
                 mode={tailorMode} setMode={setTailorMode}
                 isLetter
@@ -1791,7 +1808,6 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                 jdPasteRef={refs.jdPaste}
                 jdFile={uploadedJD} setJdFile={setUploadedJD}
                 jobRef={refs.jobTitle} industryRef={refs.company}
-                emphasisRef={refs.tailorEmphasisForm}
               />
 
               {/* Who the letter is aimed at. Hidden for a general letter, which
@@ -1820,17 +1836,27 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             // Same 3-way choice as the paste path's "Tailor your CV" —
             // consistent interaction pattern regardless of which entry point
             // (upload/paste vs. guided form) someone used to get here.
-            <TailorSection
-              mode={tailorMode} setMode={setTailorMode}
-              isLetter={false}
-              isAcademic={isAcademic}
-              jdMode={jdInputMode} setJdMode={setJdInputMode}
-              jdPasteRef={refs.jdPaste}
-              jdFile={uploadedJD} setJdFile={setUploadedJD}
-              jobRef={refs.jobTitle} industryRef={refs.tailorIndustryForm}
-              schoolRef={refs.tailorSchoolForm} programmeRef={refs.tailorProgrammeForm}
-              emphasisRef={refs.tailorEmphasisForm}
-            />
+            <>
+              <Collapsible
+                title={tailorMode !== 'none' ? `Anything to emphasize for this ${isAcademic ? 'application' : 'role'}?` : 'Anything to add or clarify?'}
+                hint='Corrections, additions, or emphasis — e.g. "I was promoted in 2023".'
+                badge="Optional"
+              >
+                <textarea ref={refs.tailorEmphasisForm} style={TA(70)} rows={3}
+                  placeholder={tailorMode !== 'none' ? 'e.g. My project management experience for this specific role' : 'e.g. I was promoted in 2023 — add this'} />
+              </Collapsible>
+
+              <TailorSection
+                mode={tailorMode} setMode={setTailorMode}
+                isLetter={false}
+                isAcademic={isAcademic}
+                jdMode={jdInputMode} setJdMode={setJdInputMode}
+                jdPasteRef={refs.jdPaste}
+                jdFile={uploadedJD} setJdFile={setUploadedJD}
+                jobRef={refs.jobTitle} industryRef={refs.tailorIndustryForm}
+                schoolRef={refs.tailorSchoolForm} programmeRef={refs.tailorProgrammeForm}
+              />
+            </>
           )}
 
           {/* For a CV this is the last step, so both buttons land on the
@@ -2131,7 +2157,7 @@ function ModeToggle({ value, onChange, options }: { value: string; onChange: (v:
 // One exclusive choice for how to aim the document, replacing the two separate
 // optional boxes that could both be filled. Fields appear only under the
 // selected option — greyed-out-but-visible inputs are just noise on a phone.
-function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode, jdPasteRef, jdFile, setJdFile, jobRef, industryRef, schoolRef, programmeRef, emphasisRef }: {
+function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode, jdPasteRef, jdFile, setJdFile, jobRef, industryRef, schoolRef, programmeRef }: {
   mode: 'advert' | 'aim' | 'none'; setMode: (m: 'advert' | 'aim' | 'none') => void
   isLetter: boolean
   isAcademic?: boolean
@@ -2140,7 +2166,6 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
   jdFile: File | null; setJdFile: (f: File | null) => void
   jobRef: React.RefObject<HTMLInputElement>; industryRef: React.RefObject<HTMLInputElement>
   schoolRef?: React.RefObject<HTMLInputElement>; programmeRef?: React.RefObject<HTMLInputElement>
-  emphasisRef: React.RefObject<HTMLTextAreaElement>
 }) {
   const doc = isLetter ? 'letter' : 'CV'
   // An academic application is aimed at a programme, fellowship or faculty
@@ -2161,9 +2186,13 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
         { id: 'none' as const,   title: isLetter ? 'A general letter' : 'Just upgrade my CV', desc: isLetter ? 'No specific job in mind.' : 'Polish the wording and layout, without aiming at a role.' },
       ]
   return (
-    <div style={{ border: '1px solid var(--rule)', borderRadius: '14px', background: 'white', marginBottom: '14px', padding: '16px 18px' }}>
-      <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '3px' }}>Tailor your {doc}</div>
-      <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '12px' }}>Pick one — or leave it on the last option.</div>
+    // Visibly its own zone, not just another card in the stack — a step the
+    // person actively decides on, not a passive field to fill. Bigger
+    // heading, more padding, a tinted background that sets it apart from the
+    // plain white cards above it.
+    <div style={{ border: '1.5px solid var(--rule)', borderRadius: '16px', background: 'var(--paper)', marginTop: '20px', marginBottom: '14px', padding: '24px 22px' }}>
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 500, color: 'var(--ink)', marginBottom: '4px', letterSpacing: '-0.005em' }}>Tailor your {doc}</div>
+      <div style={{ fontSize: '12.5px', color: 'var(--muted)', marginBottom: '16px' }}>Pick one — or leave it on the last option.</div>
 
       <div style={{ display: 'grid', gap: '9px' }}>
         {options.map(opt => {
@@ -2241,18 +2270,32 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
           )
         })}
       </div>
+    </div>
+  )
+}
 
-      {/* Only makes sense once there's an actual target — "just upgrade my
-          CV" / "a general letter" name no role to emphasize anything for. */}
-      {mode !== 'none' && (
-        <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--rule)' }}>
-          <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            Anything to emphasize for this {isAcademic ? 'application' : 'role'}? <span style={optBadge}>Optional</span>
-          </label>
-          <textarea ref={emphasisRef} style={{ ...TA(60), marginTop: '5px' }} rows={2}
-            placeholder={isLetter ? 'e.g. My leadership experience and passion for this industry' : 'e.g. My project management experience for this specific role'} />
-        </div>
-      )}
+function Collapsible({ title, hint, badge, defaultOpen = false, children }: { title: string; hint?: string; badge?: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen)
+  // defaultOpen can turn true after mount — restoring saved notes on a return
+  // visit only happens once the seed has been read — so follow it rather than
+  // reading it a single time at mount.
+  useEffect(() => { if (defaultOpen) setOpen(true) }, [defaultOpen])
+  return (
+    <div style={{ border: '1px solid var(--rule)', borderRadius: '14px', background: 'white', marginBottom: '14px', overflow: 'hidden' }}>
+      <button onClick={() => setOpen(v => !v)}
+        style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '15px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' as const, fontFamily: "'DM Sans', sans-serif" }}>
+        <span style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink)' }}>{title}</span>
+          {hint && <span style={{ display: 'block', fontSize: '10.5px', color: 'var(--muted)', marginTop: '2px', fontWeight: 300, lineHeight: 1.5 }}>{hint}</span>}
+        </span>
+        {badge && <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--muted)', flexShrink: 0 }}>{badge}</span>}
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      {/* Hidden rather than unmounted: an uncontrolled textarea loses whatever
+          was typed the instant it unmounts (the same data-loss trap the build
+          screens already avoid), and a ref pointing at an unmounted node can't
+          be pre-filled when restoring a previous visit. */}
+      <div style={{ padding: '0 18px 18px', display: open ? 'block' : 'none' }}>{children}</div>
     </div>
   )
 }
