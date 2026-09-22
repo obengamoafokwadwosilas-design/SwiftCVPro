@@ -37,7 +37,7 @@ export default function Nav({ step, subProgress = 1, rightSlot }: NavProps) {
   return (
     <>
     <nav style={{
-      background: '#0B1017',
+      background: '#07182C',
       padding: '0 clamp(20px, 4vw, 44px)',
       height: '66px',
       display: 'flex',
@@ -50,28 +50,23 @@ export default function Nav({ step, subProgress = 1, rightSlot }: NavProps) {
       borderBottom: '1px solid rgba(255,255,255,0.07)'
     }}>
       <a href="/" title="Back to home" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-        {/* logo-icon-dark.png: navy recoloured to white, since the icon's
-            original navy is close enough to this bar's near-black background
-            (#0B1017) that it would nearly disappear otherwise — verified by
-            compositing onto the real nav colour before committing to this. */}
-        <img src="/logo-icon-dark.png" alt="" aria-hidden="true" style={{ height: '30px', width: 'auto', flexShrink: 0 }} />
+        <img src="/remarkable-cv-mark.png" alt="" aria-hidden="true" style={{ height: '40px', width: '36px', objectFit: 'contain', flexShrink: 0 }} />
         <div>
           <div style={{
-            fontFamily: "'Cormorant Garamond', serif",
-            fontSize: '1.5rem',
-            fontWeight: 400,
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: '1.28rem',
+            fontWeight: 700,
             color: '#F6F6F3',
-            letterSpacing: '0.005em',
             lineHeight: 1.05
           }}>
-            Remarkable <span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
+            Remarkable<span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
           </div>
           <div className="xcv-mono xcv-tagline" style={{
             fontSize: '9px',
             color: 'rgba(255,255,255,0.5)',
             marginTop: '3px'
           }}>
-            Every job deserves its own
+            Ghana&apos;s Job-Winning CV Builder
           </div>
         </div>
       </a>

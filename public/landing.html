@@ -6,7 +6,7 @@
 <title>Remarkable CV — Professional CVs That Get You Shortlisted</title>
 <meta name="description" content="Build an ATS-ready CV tailored to the job you're applying for — in under a minute. Start from scratch or upload your existing CV. No login required.">
 <meta name="theme-color" content="#0a0f1a">
-<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="icon" type="image/png" href="/remarkable-cv-mark.png">
 <link rel="canonical" href="https://swift-cv-pro.vercel.app/">
 
 <!-- Open Graph — this is what renders when the link is shared on WhatsApp,
@@ -37,15 +37,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  /* brand — unchanged from the rest of the app */
-  --teal: #0d9488;
-  --teal-dark: #0f766e;
-  --teal-light: #14b8a6;
-  --navy: #0a0f1a;
+  /* Brand palette sampled from the new RemarkableCV mark. */
+  --teal: #0aa447;
+  --teal-dark: #087a36;
+  --teal-light: #42e45f;
+  --navy: #07182c;
 
   /* warm document paper, replacing the old cool slate off-white */
-  --paper: #faf7f1;
-  --paper-2: #f2ede2;
+  --paper: #fbf8f2;
+  --paper-2: #f3eee4;
   --white: #ffffff;
 
   /* ink scale — soft black, not slate gray */
@@ -94,58 +94,36 @@ a { text-decoration: none; color: inherit; }
 /* ── NAV ── */
 nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  padding: 22px 0; transition: all 0.45s var(--ease);
-  /* Opaque paper with a hairline under it, rather than fully transparent: the
-     bar reads as its own surface at rest without a white fill fighting the
-     cream. Scrolling still swaps the whole thing to navy below. */
-  background: var(--paper);
+  padding: 18px 0; transition: padding 0.35s var(--ease), box-shadow 0.35s var(--ease);
+  background: var(--white);
   border-bottom: 1px solid var(--rule);
 }
 nav.scrolled {
-  background: rgba(10,15,26,0.97);
-  backdrop-filter: blur(20px);
-  border-bottom-color: rgba(255,255,255,0.07);
-  padding: 14px 0;
+  padding: 13px 0;
+  box-shadow: 0 10px 28px rgba(7,24,44,0.08);
 }
 .nav-inner { display:flex; justify-content:space-between; align-items:center; }
-.logo { display:flex; align-items:center; gap:11px; }
-.logo-text { display:flex; flex-direction:column; gap:4.4px; }
-/* Two images stacked in one slot, crossfaded by the same nav.scrolled class
-   that already flips the wordmark's colour — light-context icon at rest (the
-   bar is var(--paper) here), dark-context icon once scrolled (bar goes navy).
-   The icon's own navy fill is close enough in tone to that scrolled navy that
-   it would nearly disappear without this swap — confirmed by compositing the
-   icon onto the real colour before deciding this was necessary. */
-.logo-icon-wrap { position:relative; width:24.2px; height:31.9px; flex-shrink:0; }
-.logo-icon { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; transition:opacity 0.4s var(--ease); }
-.logo-icon-dark { opacity:0; }
-nav.scrolled .logo-icon-light { opacity:0; }
-nav.scrolled .logo-icon-dark { opacity:1; }
-.logo-name { font-family:var(--font-display); font-size:1.65rem; font-weight:600; color:var(--navy); line-height:1; letter-spacing:-0.22px; transition:color 0.4s; }
+.logo { display:flex; align-items:center; gap:12px; }
+.logo-text { display:flex; flex-direction:column; gap:3px; }
+.logo-icon-wrap { width:42px; height:46px; flex-shrink:0; display:block; }
+.logo-icon { width:100%; height:100%; object-fit:contain; display:block; }
+.logo-name { font-family:var(--font-body); font-size:1.42rem; font-weight:800; color:var(--navy); line-height:1; }
 .logo-name span { color:var(--teal); }
-nav.scrolled .logo-name { color:var(--white); }
-nav.scrolled .logo-name span { color:var(--teal-light); }
-.logo-sub { font-family:var(--font-mono); font-size:0.682rem; font-weight:400; letter-spacing:0.06em; color:var(--ink-38); transition:color 0.4s; }
-nav.scrolled .logo-sub { color:rgba(255,255,255,0.4); }
+.logo-sub { font-family:var(--font-body); font-size:0.62rem; font-weight:600; color:var(--ink-55); }
 .nav-links { display:none; gap:34px; list-style:none; }
 @media(min-width:900px){ .nav-links{display:flex;} }
-.nav-links a { font-size:0.84rem; font-weight:500; color:var(--ink-55); transition:color 0.3s; }
-nav.scrolled .nav-links a { color:rgba(255,255,255,0.62); }
+.nav-links a { font-size:0.86rem; font-weight:600; color:var(--ink-70); transition:color 0.3s; }
 .nav-links a:hover { color:var(--teal); }
-nav.scrolled .nav-links a:hover { color:var(--teal-light); }
-.nav-cta { display:none; background:var(--navy); color:var(--white); padding:11px 24px; border-radius:100px; font-weight:600; font-size:0.82rem; letter-spacing:0.1px; transition:all 0.35s var(--ease); }
+.nav-cta { display:none; background:var(--teal); color:var(--white); padding:12px 24px; border-radius:8px; font-weight:700; font-size:0.84rem; transition:all 0.35s var(--ease); }
 @media(min-width:900px){ .nav-cta{display:inline-block;} }
 .nav-cta:hover { background:var(--teal-dark); transform:translateY(-1px); }
-nav.scrolled .nav-cta { background:var(--teal); }
-nav.scrolled .nav-cta:hover { background:var(--teal-light); color:var(--navy); }
 .hamburger { display:flex; flex-direction:column; gap:5px; cursor:pointer; background:none; border:none; padding:6px; }
 .hamburger span { width:20px; height:1.5px; background:var(--navy); border-radius:1px; display:block; transition:all 0.3s; }
-nav.scrolled .hamburger span { background:var(--white); }
 .hamburger.open span:nth-child(1){ transform:rotate(45deg) translate(5px,5px); }
 .hamburger.open span:nth-child(2){ opacity:0; }
 .hamburger.open span:nth-child(3){ transform:rotate(-45deg) translate(5px,-5px); }
 @media(min-width:900px){ .hamburger{display:none;} }
-.mobile-menu { display:none; position:fixed; inset:0; background:var(--navy); z-index:99; padding:104px 28px 40px; flex-direction:column; }
+.mobile-menu { display:none; position:fixed; inset:0; background:var(--navy); z-index:99; padding:112px 28px 40px; flex-direction:column; }
 .mobile-menu.open { display:flex; }
 .mobile-menu a { color:var(--white); font-family:var(--font-display); font-size:1.7rem; font-weight:500; padding:16px 0; border-bottom:1px solid rgba(255,255,255,0.09); transition:color 0.3s; }
 .mobile-menu a:hover { color:var(--teal-light); }
@@ -158,9 +136,7 @@ nav.scrolled .hamburger span { background:var(--white); }
 .hero {
   background:var(--paper);
   display:flex; align-items:center;
-  /* Floor raised from 96px: the fixed nav is 89px tall, so the old value
-     left the headline only 7px of clearance and it read as touching. */
-  padding: clamp(112px, 9vh, 132px) 0 clamp(28px, 4vh, 44px);
+  padding: clamp(132px, 13vh, 156px) 0 clamp(44px, 7vh, 72px);
   position:relative; overflow:hidden;
   border-bottom: 1px solid var(--rule);
 }
@@ -172,7 +148,7 @@ nav.scrolled .hamburger span { background:var(--white); }
 }
 
 .hero-inner { display:grid; grid-template-columns:1fr; gap:56px; align-items:center; position:relative; z-index:2; }
-@media(min-width:1024px){ .hero-inner{grid-template-columns:1.12fr 1fr; gap:64px; align-items:center; padding-top:0;} }
+@media(min-width:1024px){ .hero-inner{grid-template-columns:1.08fr 0.92fr; gap:72px; align-items:center; padding-top:0;} }
 .hero-left { text-align:center; }
 @media(min-width:1024px){ .hero-left{text-align:left;} }
 
@@ -186,45 +162,42 @@ nav.scrolled .hamburger span { background:var(--white); }
 /* Rhythm below is deliberately uneven — each gap is sized to how much of a
    beat that statement deserves before the next one, not a uniform stack. */
 .hero-eyebrow {
-  font-family: var(--font-mono); font-size:0.78rem; font-weight:500; letter-spacing:0.02em;
-  color: var(--teal-dark);
-  margin-bottom:26px;
-  text-transform: none;
+  font-family: var(--font-body); font-size:1rem; font-weight:500;
+  color: var(--ink-70);
+  margin-bottom:18px;
 }
 
 /* ── HERO HEADLINE ── */
 .hero-h1 {
   font-family: var(--font-display);
   color: var(--navy);
-  margin-bottom: 32px;
+  font-size:clamp(3.15rem, 5.8vw, 5.25rem);
+  font-weight:600;
+  line-height:0.94;
+  margin-bottom: 28px;
 }
-.hero-h1 .line-small {
-  display:block; font-weight:500;
-  font-size: clamp(1.3rem, 2.6vw, 1.8rem);
-  color: var(--ink-55);
-  line-height:1.2;
-}
-.hero-h1 .line-large {
-  display:block; margin:2px 0 2px;
-  font-weight:600; font-style:italic;
-  font-size: clamp(2.2rem, 5.6vw, 4.3rem);
-  line-height:1.02; letter-spacing:-1px;
-  color: var(--teal);
-}
-.hero-h1 .line-small.bottom {
-  margin-top:14px; font-family:var(--font-body); font-style:normal;
-  font-size:0.85rem; font-weight:500; letter-spacing:0.02em;
-  color:var(--ink-38);
-  display:flex; align-items:center; gap:8px;
+.hero-h1 span { display:block; }
+.hero-h1 .line-accent { color:var(--teal); }
+.hero-h1 .line-timing {
+  margin-top:16px;
+  font-family:var(--font-body);
+  font-size:0.92rem;
+  font-weight:600;
+  line-height:1.4;
+  color:var(--ink-70);
+  display:flex;
+  align-items:center;
   justify-content:center;
+  gap:8px;
 }
-@media(min-width:1024px){ .hero-h1 .line-small.bottom{ justify-content:flex-start; } }
-.hero-h1 .line-small.bottom svg { flex-shrink:0; }
+.hero-h1 .line-timing svg { flex-shrink:0; }
+@media(min-width:1024px){ .hero-h1 .line-timing{ justify-content:flex-start; } }
+@media(max-width:479px){ .hero-h1{ font-size:2.65rem; line-height:0.98; } }
 
-.hero-hook { margin-bottom:24px; max-width:50ch; }
+.hero-hook { margin-bottom:26px; max-width:56ch; }
 @media(min-width:1024px){ .hero-hook{ margin-left:0; margin-right:0; } }
 /* Medium tier: legible dark-gray, not the faint muted tone used for captions */
-.hero-hook p { font-size:1rem; color:var(--ink-80); line-height:1.68; }
+.hero-hook p { font-size:1.03rem; color:var(--ink-80); line-height:1.72; }
 .hero-hook p + p { margin-top:10px; }
 
 .hero-stop { font-weight:700; font-size:1.2rem; color:var(--navy); margin-bottom:24px; max-width:46ch; letter-spacing:-0.1px; }
@@ -246,19 +219,19 @@ nav.scrolled .hamburger span { background:var(--white); }
 @media(min-width:1024px){ .hero-left{ margin-left:0; margin-right:0; } }
 
 /* Trust indicators recede — quieter and smaller, so they support rather than compete */
-.hero-pills { display:flex; flex-wrap:wrap; gap:9px 24px; justify-content:center; margin-bottom:32px; }
+.hero-pills { display:flex; flex-wrap:wrap; gap:9px 22px; justify-content:center; margin-bottom:30px; }
 @media(min-width:1024px){ .hero-pills{ justify-content:flex-start; } }
-.hero-pill { display:inline-flex; align-items:center; gap:6px; font-size:0.74rem; font-weight:600; color:var(--ink-70); }
+.hero-pill { display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; font-weight:600; color:var(--ink-70); }
 .hero-pill svg { color:var(--teal-dark); flex-shrink:0; }
 
 /* CTA gets a deliberate action area, not just two buttons in a row */
 .hero-ctas { display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center; margin-bottom:22px; }
 @media(min-width:1024px){ .hero-ctas{justify-content:flex-start;} }
-.btn-primary { background:var(--navy); color:var(--white); padding:17px 34px; border-radius:100px; font-weight:600; font-size:0.94rem; letter-spacing:0.1px; transition:all 0.35s var(--ease); border:none; cursor:pointer; display:inline-flex; align-items:center; gap:9px; }
-.btn-primary:hover { background:var(--teal-dark); transform:translateY(-2px); box-shadow:0 14px 32px rgba(13,148,136,0.28); }
+.btn-primary { background:var(--teal); color:var(--white); padding:17px 32px; border-radius:8px; font-weight:700; font-size:0.96rem; transition:all 0.35s var(--ease); border:none; cursor:pointer; display:inline-flex; align-items:center; gap:9px; }
+.btn-primary:hover { background:var(--teal-dark); transform:translateY(-2px); box-shadow:0 14px 32px rgba(10,164,71,0.24); }
 .btn-primary svg { transition: transform 0.3s var(--ease); }
 .btn-primary:hover svg { transform: translateX(3px); }
-.btn-ghost { color:var(--navy); font-weight:600; font-size:0.94rem; padding:16px 32px; border-radius:100px; border:1.5px solid var(--rule-strong); transition:all 0.3s var(--ease); }
+.btn-ghost { color:var(--navy); background:var(--white); font-weight:600; font-size:0.94rem; padding:16px 30px; border-radius:8px; border:1.5px solid var(--rule-strong); transition:all 0.3s var(--ease); }
 .btn-ghost:hover { border-color:var(--navy); background:var(--white); }
 
 .hero-meta { color:var(--ink-38); font-size:0.85rem; text-align:center; }
@@ -266,14 +239,14 @@ nav.scrolled .hamburger span { background:var(--white); }
 
 /* ── HERO RIGHT: TRANSFORMATION (side-by-side, the hero's dominant visual) ── */
 .hero-right { opacity:0; animation:fadeUp 0.9s var(--ease) 0.3s forwards; display:flex; justify-content:center; width:100%; }
-.transform-wrap { position:relative; width:100%; max-width:600px; display:grid; grid-template-columns:1fr auto 1fr; align-items:start; gap:0 14px; }
+.transform-wrap { position:relative; width:100%; max-width:540px; display:grid; grid-template-columns:1fr auto 1fr; align-items:start; gap:0 14px; }
 
 .doc-col { display:flex; flex-direction:column; align-items:center; gap:10px; width:100%; }
 .cv-frame { width:100%; border-radius:7px; overflow:hidden; position:relative; aspect-ratio:210/297; background:var(--white); box-shadow:0 1px 2px rgba(23,19,16,0.06), 0 20px 44px -18px rgba(23,19,16,0.3); }
 .cv-frame img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
 .cv-frame.before-frame { border:1px solid var(--rule-strong); }
 .cv-frame.before-frame img { filter:saturate(0.35) contrast(0.94) brightness(1.01); }
-.cv-frame.after-frame { border:1px solid rgba(13,148,136,0.4); box-shadow:0 1px 2px rgba(23,19,16,0.06), 0 26px 52px -18px rgba(13,148,136,0.28); }
+.cv-frame.after-frame { border:1px solid rgba(10,164,71,0.4); box-shadow:0 1px 2px rgba(23,19,16,0.06), 0 26px 52px -18px rgba(10,164,71,0.24); }
 
 .doc-caption { font-family:var(--font-mono); font-size:0.66rem; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-38); text-align:center; }
 .doc-caption.good { color:var(--teal-dark); }
@@ -295,7 +268,7 @@ nav.scrolled .hamburger span { background:var(--white); }
 
 /* ── COMPANY TICKER — genuine social proof, not fine print ── */
 .ticker-section {
-  background: var(--paper);
+  background: var(--white);
   padding: 60px 0 52px; overflow: hidden;
 }
 .ticker-positioning {
@@ -387,43 +360,56 @@ section { padding:var(--section-y) 0; }
 .tmpl-chip:hover .tmpl-img-wrap {
   border-color:var(--teal);
   transform:translateY(-6px);
-  box-shadow:0 24px 46px -16px rgba(13,148,136,0.3);
+  box-shadow:0 24px 46px -16px rgba(10,164,71,0.26);
 }
 .tmpl-img-wrap img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
 .tmpl-name { margin-top:14px; font-family:var(--font-display); font-size:1.02rem; font-weight:600; color:var(--navy); white-space:normal; }
 .tmpl-tag { font-family:var(--font-mono); font-size:0.68rem; letter-spacing:0.04em; color:var(--ink-38); margin-top:3px; white-space:normal; }
 
 /* ── PRICING ── */
-.pricing-section { background:var(--white); }
+.pricing-section { background:var(--paper); overflow:hidden; }
 .pricing-note { text-align:center; color:var(--ink-38); margin-bottom:8px; }
-.pricing-grid { display:grid; grid-template-columns:1fr; gap:20px; max-width:1040px; margin:0 auto; }
-@media(min-width:720px){ .pricing-grid{ grid-template-columns:repeat(3,1fr); align-items:start; } }
+.pricing-grid { display:grid; grid-template-columns:1fr; gap:18px; max-width:1100px; margin:0 auto; }
+@media(min-width:940px){ .pricing-grid{ grid-template-columns:repeat(3,1fr); align-items:stretch; } }
 .price-card {
-  position:relative; background:var(--white);
-  border:1px solid var(--rule-strong); border-radius:16px;
-  padding:34px 28px; transition:transform 0.35s var(--ease), box-shadow 0.35s var(--ease), border-color 0.35s var(--ease);
+  position:relative; isolation:isolate; overflow:hidden; background:var(--white);
+  border:1px solid var(--rule-strong); border-radius:8px;
+  padding:34px 30px 30px; min-height:510px;
+  display:flex; flex-direction:column;
+  box-shadow:0 18px 54px -42px rgba(7,25,45,0.45);
+  transition:transform 0.35s var(--ease), box-shadow 0.35s var(--ease), border-color 0.35s var(--ease);
 }
-.price-card:hover { transform:translateY(-4px); box-shadow:0 26px 50px -22px rgba(23,19,16,0.2); }
-.price-card.featured { border-color:var(--teal); border-width:2px; }
-@media(min-width:720px){ .price-card.featured{ padding-top:40px; } }
+.price-card::before { content:""; position:absolute; z-index:-1; left:0; right:0; top:0; height:5px; background:#b9c0c6; }
+.price-card:hover { transform:translateY(-6px); box-shadow:0 30px 64px -34px rgba(7,25,45,0.38); }
+.price-card.featured {
+  color:var(--white); background:var(--navy); border-color:var(--navy);
+  box-shadow:0 34px 70px -32px rgba(7,25,45,0.65);
+}
+.price-card.featured::before { height:6px; background:var(--teal); }
+.price-card.platinum::before { background:var(--navy); }
+@media(min-width:940px){ .price-card.featured{ transform:translateY(-14px); } .price-card.featured:hover{ transform:translateY(-20px); } }
 .price-badge {
-  position:absolute; top:-13px; left:50%; transform:translateX(-50%);
-  background:var(--teal); color:var(--white);
-  font-family:var(--font-mono); font-size:0.64rem; font-weight:600; letter-spacing:0.08em; text-transform:uppercase;
-  padding:6px 14px; border-radius:100px; white-space:nowrap;
-  display:inline-flex; align-items:center; gap:5px;
+  color:#73ef91; margin-bottom:28px;
+  font-family:var(--font-mono); font-size:0.68rem; font-weight:700; letter-spacing:0;
 }
-.price-name { font-family:var(--font-display); font-size:1.35rem; font-weight:600; color:var(--navy); margin-bottom:8px; }
-.price-figure { display:flex; align-items:baseline; gap:4px; font-family:var(--font-display); font-weight:600; color:var(--navy); margin-bottom:14px; }
-.price-figure .cur { font-family:var(--font-mono); font-size:0.85rem; color:var(--ink-38); font-weight:400; }
-.price-figure .num { font-size:2.5rem; }
-.price-desc { font-size:0.86rem; color:var(--ink-55); line-height:1.6; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--rule); }
-.price-features { list-style:none; display:flex; flex-direction:column; gap:11px; margin-bottom:26px; min-height:100px; }
-.price-features li { display:flex; align-items:flex-start; gap:9px; font-size:0.85rem; color:var(--ink-80); line-height:1.4; }
+.price-name { font-family:var(--font-display); font-size:1.5rem; font-weight:600; color:var(--navy); margin-bottom:11px; }
+.price-figure { display:flex; align-items:baseline; gap:5px; font-family:var(--font-display); font-weight:600; color:var(--navy); margin-bottom:16px; }
+.price-figure .cur { font-family:var(--font-mono); font-size:0.82rem; color:var(--ink-38); font-weight:500; }
+.price-figure .num { font-size:3.2rem; line-height:0.9; }
+.price-desc { font-size:0.88rem; color:var(--ink-55); line-height:1.65; min-height:58px; margin-bottom:18px; }
+.price-bonus { color:var(--teal-dark); font-size:0.78rem; font-weight:700; min-height:21px; margin-bottom:18px; }
+.price-divider { height:1px; background:var(--rule-strong); margin-bottom:22px; }
+.price-features { list-style:none; display:flex; flex-direction:column; gap:12px; margin-bottom:28px; }
+.price-features li { display:flex; align-items:flex-start; gap:9px; font-size:0.84rem; color:var(--ink-80); line-height:1.45; }
 .price-features li svg { color:var(--teal-dark); flex-shrink:0; margin-top:2px; }
+.price-card.featured .price-name, .price-card.featured .price-figure { color:var(--white); }
+.price-card.featured .price-figure .cur, .price-card.featured .price-desc, .price-card.featured .price-features li { color:rgba(255,255,255,0.7); }
+.price-card.featured .price-bonus { color:#73ef91; }
+.price-card.featured .price-divider { background:rgba(255,255,255,0.15); }
+.price-card.featured .price-features li svg { color:#73ef91; }
 .price-btn {
-  display:block; width:100%; text-align:center;
-  padding:13px; border-radius:100px; font-weight:600; font-size:0.86rem;
+  display:block; width:100%; text-align:center; margin-top:auto;
+  padding:14px; border-radius:6px; font-weight:700; font-size:0.86rem;
   border:1.5px solid var(--navy); color:var(--navy);
   transition:all 0.3s var(--ease);
 }
@@ -433,15 +419,18 @@ section { padding:var(--section-y) 0; }
 .pricing-foot { text-align:center; margin-top:38px; }
 .pricing-foot .label { display:block; color:var(--ink-38); }
 .pricing-foot .label + .label { margin-top:4px; }
-/* Below 720px, cards stack in a single column instead of sitting side by side —
-   the generous desktop padding then repeats 4 times in a row instead of once,
-   so it's tightened specifically here rather than globally. */
-@media(max-width:719px){
-  .pricing-grid { gap:14px; }
-  .price-card { padding:24px 22px; }
-  .price-desc { margin-bottom:14px; padding-bottom:14px; }
-  .price-features { gap:8px; margin-bottom:18px; min-height:0; }
-  .price-figure { margin-bottom:10px; }
+@media(max-width:939px){
+  .pricing-grid {
+    display:flex; gap:14px; max-width:none;
+    margin:0 -32px; padding:12px 32px 24px;
+    overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none;
+  }
+  .pricing-grid::-webkit-scrollbar { display:none; }
+  .price-card { flex:0 0 auto; width:min(84vw,390px); min-height:500px; scroll-snap-align:center; }
+}
+@media(max-width:560px){
+  .price-card { padding:28px 24px 24px; }
+  .price-figure .num { font-size:2.8rem; }
 }
 
 /* ── HOW IT WORKS ── */
@@ -521,59 +510,134 @@ section { padding:var(--section-y) 0; }
   .how-step-arrow { transform:rotate(90deg); padding:0; }
 }
 
-/* ── FEATURES (document types) — card grid ── */
-.cv-types-section { background:var(--white); }
-.cv-types-grid { display:grid; grid-template-columns:1fr; gap:18px; max-width:900px; margin:0 auto; }
-@media(min-width:720px){ .cv-types-grid{ grid-template-columns:repeat(3,1fr); } }
+/* ── DOCUMENT SHOWCASE ── */
+.cv-types-section { background:var(--white); overflow:hidden; }
+.cv-types-grid { display:flex; align-items:stretch; gap:18px; max-width:1080px; margin:0 auto; }
 .cv-type-card {
-  border:1px solid var(--rule-strong); border-radius:16px;
-  padding:30px 26px; transition:transform 0.35s var(--ease), box-shadow 0.35s var(--ease), border-color 0.35s var(--ease);
+  min-width:0; min-height:480px;
+  border:1px solid var(--rule-strong); border-radius:8px;
+  background:var(--paper); overflow:hidden;
+  display:flex; flex-direction:column;
+  flex:1 1 0; opacity:0.62; filter:saturate(0.72);
+  transform:scale(0.97); transform-origin:center;
+  transition:flex-grow 0.8s var(--ease), transform 0.8s var(--ease), opacity 0.8s var(--ease), filter 0.8s var(--ease), box-shadow 0.8s var(--ease), border-color 0.8s var(--ease);
 }
-.cv-type-card:hover { transform:translateY(-4px); box-shadow:0 24px 46px -20px rgba(23,19,16,0.18); border-color:var(--teal); }
-.cv-type-icon { width:38px; height:38px; border-radius:10px; background:rgba(13,148,136,0.08); display:flex; align-items:center; justify-content:center; color:var(--teal-dark); margin-bottom:16px; }
-.cv-type-icon svg { width:19px; height:19px; }
-.cv-type-name { font-family:var(--font-display); font-size:1.2rem; font-weight:600; color:var(--navy); margin-bottom:8px; }
-.cv-type-desc { font-size:0.86rem; color:var(--ink-55); line-height:1.6; margin-bottom:16px; }
-.cv-type-features { list-style:none; display:flex; flex-direction:column; gap:7px; margin-bottom:20px; }
-.cv-type-features li { display:flex; align-items:center; gap:7px; font-size:0.8rem; color:var(--ink-80); font-weight:500; }
+.cv-type-card.is-active {
+  flex-grow:1.65; opacity:1; filter:none; transform:translateY(-8px) scale(1);
+  z-index:2; border-color:rgba(10,164,71,0.5);
+  box-shadow:0 30px 62px -28px rgba(7,25,45,0.34);
+}
+.cv-types-grid .cv-type-card:not(.is-active) { opacity:0.62; transform:scale(0.97); }
+.cv-types-grid .cv-type-card.is-active { opacity:1; transform:translateY(-8px) scale(1); }
+.cv-type-visual {
+  height:238px; flex-shrink:0; position:relative; overflow:hidden;
+  display:flex; align-items:flex-end; justify-content:center;
+  background:var(--navy);
+  border-bottom:1px solid var(--rule-strong);
+  transition:height 0.8s var(--ease), background-color 0.8s var(--ease);
+}
+.cv-type-visual::before {
+  content:""; position:absolute; inset:0;
+  background-image:linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px);
+  background-size:30px 30px;
+}
+.cv-type-preview {
+  position:relative; width:154px; height:218px; object-fit:contain; object-position:bottom;
+  border-radius:2px 2px 0 0; box-shadow:0 18px 46px rgba(0,0,0,0.36);
+  transform:translateY(14px);
+  transition:width 0.8s var(--ease), height 0.8s var(--ease), transform 0.8s var(--ease);
+}
+.cv-type-card.is-active .cv-type-visual { height:278px; }
+.cv-type-card.is-active .cv-type-preview { width:190px; height:266px; transform:translateY(18px); }
+.cv-type-visual.academic { background:#26302d; }
+.cv-type-visual.academic .cv-type-preview { transform:translateY(14px) rotate(1deg); }
+.cv-type-card.is-active .cv-type-visual.academic .cv-type-preview { transform:translateY(18px) rotate(0); }
+.cv-type-visual.letter { background:#132843; }
+.cv-type-body { padding:24px 24px 22px; display:flex; flex-direction:column; flex:1; }
+.cv-type-heading { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.cv-type-icon { color:var(--teal-dark); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.cv-type-icon svg { width:20px; height:20px; }
+.cv-type-name { font-family:var(--font-display); font-size:1.34rem; font-weight:600; color:var(--navy); line-height:1.15; }
+.cv-type-desc { font-size:0.86rem; color:var(--ink-55); line-height:1.65; margin-bottom:18px; }
+.cv-type-features { list-style:none; display:flex; flex-wrap:wrap; gap:7px 16px; margin-bottom:22px; }
+.cv-type-features li { display:flex; align-items:center; gap:7px; font-size:0.8rem; color:var(--ink-80); font-weight:600; }
 .cv-type-features li svg { color:var(--teal-dark); flex-shrink:0; }
-.cv-type-link { font-size:0.82rem; font-weight:600; color:var(--teal-dark); display:inline-flex; align-items:center; gap:5px; transition:gap 0.25s; }
-.cv-type-card:hover .cv-type-link { gap:9px; }
-@media(max-width:639px){
-  .cv-types-grid { gap:10px; }
-  .cv-type-card { padding:18px 18px; }
-  .cv-type-icon { width:32px; height:32px; margin-bottom:10px; }
-  .cv-type-icon svg { width:16px; height:16px; }
-  .cv-type-name { margin-bottom:5px; }
-  .cv-type-desc { margin-bottom:10px; }
-  /* Most cards only carry one feature — a stacked list wastes a whole line on
-     just that. Row-flow so it sits inline, only wrapping if there's more than one. */
-  .cv-type-features { flex-direction:row; flex-wrap:wrap; gap:4px 14px; margin-bottom:10px; }
+.cv-type-link {
+  margin-top:auto; padding-top:15px; border-top:1px solid var(--rule-strong);
+  font-size:0.84rem; font-weight:700; color:var(--teal-dark);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.cv-type-card:focus-within { border-color:rgba(10,164,71,0.65); }
+.cv-type-link:focus-visible { outline:2px solid var(--teal); outline-offset:4px; border-radius:2px; }
+.cv-type-link svg { transition:transform 0.25s var(--ease); }
+.cv-type-card:hover .cv-type-link svg, .cv-type-card.is-active .cv-type-link svg { transform:translateX(4px); }
+.cv-types-controls { display:flex; align-items:center; justify-content:center; gap:13px; margin-top:26px; }
+.cv-types-dots { display:flex; align-items:center; gap:8px; }
+.cv-types-dot {
+  width:7px; height:7px; padding:0; border:0; border-radius:50%;
+  background:var(--ink-20); cursor:pointer;
+  transition:width 0.4s var(--ease), border-radius 0.4s var(--ease), background-color 0.4s var(--ease);
+}
+.cv-types-dot[aria-current="true"] { width:28px; border-radius:5px; background:var(--teal); }
+.cv-types-pause {
+  width:30px; height:30px; padding:0; border:1px solid var(--rule-strong); border-radius:50%;
+  background:var(--white); color:var(--navy); display:grid; place-items:center; cursor:pointer;
+}
+.cv-types-pause svg { width:13px; height:13px; }
+.cv-types-pause .play-icon { display:none; }
+.cv-types-pause.is-paused .pause-icon { display:none; }
+.cv-types-pause.is-paused .play-icon { display:block; }
+.cv-types-dot:focus-visible, .cv-types-pause:focus-visible { outline:2px solid var(--teal); outline-offset:4px; }
+@media(max-width:999px){
+  .cv-types-grid {
+    display:flex; gap:14px; max-width:none;
+    margin:0 -32px; padding:8px 32px 18px;
+    overflow-x:auto; scroll-snap-type:x mandatory;
+    overscroll-behavior-inline:contain;
+    scrollbar-width:none;
+  }
+  .cv-types-grid::-webkit-scrollbar { display:none; }
+  .cv-type-card { flex:0 0 auto; width:82vw; max-width:620px; min-height:500px; scroll-snap-align:center; }
+  .cv-type-card.is-active { transform:scale(1); }
+  .cv-type-visual, .cv-type-card.is-active .cv-type-visual { height:245px; }
+  .cv-type-card.is-active .cv-type-preview { width:174px; height:238px; transform:translateY(16px); }
+  .cv-type-body { padding:22px 21px 20px; }
+}
+@media(prefers-reduced-motion:reduce){
+  .cv-type-card, .cv-type-visual, .cv-type-preview { transition:none; }
 }
 
 /* ── WHY EXTRAORDINARY CV ── */
-.why-section { background:var(--paper); }
-.why-grid { display:grid; grid-template-columns:1fr; gap:24px; max-width:1040px; margin:0 auto; }
-@media(min-width:820px){ .why-grid{ grid-template-columns:repeat(3,1fr); } }
-.why-card { background:var(--white); border:1px solid var(--rule-strong); border-radius:16px; overflow:hidden; }
-.why-visual { aspect-ratio:16/10; background:var(--navy); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
-.why-visual svg { position:relative; z-index:2; }
-.why-visual-bg { position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px); background-size:28px 28px; }
-.why-body { padding:24px 24px 28px; }
-.why-title { font-family:var(--font-display); font-size:1.2rem; font-weight:600; color:var(--navy); margin-bottom:8px; }
-.why-desc { font-size:0.86rem; color:var(--ink-55); line-height:1.65; }
-@media(max-width:819px){
-  .why-grid { gap:12px; }
-  .why-visual { aspect-ratio:16/7; }
-  .why-body { padding:18px 20px; }
-  .why-title { margin-bottom:5px; }
+.why-section { background:var(--white); padding:72px 0; }
+.why-section .section-head { margin-bottom:34px; }
+.why-grid {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  max-width:1060px; margin:0 auto;
+  border-top:1px solid var(--rule-strong); border-bottom:1px solid var(--rule-strong);
 }
-/* Below 560px the illustrations are decoration, not information — the title
-   and description already say what the panel shows. Hiding them (text only,
-   nothing removed) is where the real height was going on a phone. */
-@media(max-width:559px){
-  .why-visual { display:none; }
-  .why-body { padding:18px 20px; }
+.why-card { display:grid; grid-template-columns:42px 1fr; gap:15px; padding:28px 30px; align-items:start; }
+.why-card + .why-card { border-left:1px solid var(--rule-strong); }
+.why-icon {
+  width:42px; height:42px; border-radius:50%; display:grid; place-items:center;
+  color:var(--teal-dark); background:var(--mint); border:1px solid rgba(10,164,71,0.18);
+}
+.why-icon svg { width:19px; height:19px; }
+.why-title { font-family:var(--font-display); font-size:1.12rem; font-weight:600; color:var(--navy); margin-bottom:5px; }
+.why-desc { font-size:0.8rem; color:var(--ink-55); line-height:1.55; }
+@media(max-width:780px){
+  .why-section { padding:58px 0; }
+  .why-section .section-head { margin-bottom:26px; }
+  .why-grid {
+    display:flex; max-width:none; margin:0 -32px; padding:0 32px 12px;
+    border:0; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none;
+  }
+  .why-grid::-webkit-scrollbar { display:none; }
+  .why-card {
+    flex:0 0 min(78vw,390px); padding:22px 20px;
+    border-top:1px solid var(--rule-strong); border-bottom:1px solid var(--rule-strong);
+    scroll-snap-align:center;
+  }
+  .why-card + .why-card { border-left:1px solid var(--rule-strong); }
 }
 
 /* ── FAQS — plain divided list ── */
@@ -627,7 +691,7 @@ section { padding:var(--section-y) 0; }
   padding:28px 26px; transition:box-shadow 0.35s var(--ease), border-color 0.35s var(--ease);
   background:var(--white);
 }
-.testi-card:hover { border-color:var(--teal); box-shadow:0 22px 44px -22px rgba(13,148,136,0.22); }
+.testi-card:hover { border-color:var(--teal); box-shadow:0 22px 44px -22px rgba(10,164,71,0.22); }
 .testi-stars { color:var(--teal); font-size:0.85rem; letter-spacing:2px; margin-bottom:14px; }
 .testi-text { font-size:0.9rem; color:var(--ink-80); line-height:1.72; margin-bottom:20px; }
 .testi-author { display:flex; align-items:center; gap:12px; }
@@ -725,9 +789,11 @@ section { padding:var(--section-y) 0; }
 footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); padding:40px 0; }
 .footer-inner { display:flex; flex-direction:column; gap:22px; align-items:center; text-align:center; }
 @media(min-width:768px){ .footer-inner{flex-direction:row; justify-content:space-between; text-align:left;} }
-.footer-logo-name { font-family:var(--font-display); font-size:1.2rem; font-weight:600; color:var(--white); }
+.footer-brand { display:flex; align-items:center; gap:10px; }
+.footer-brand img { width:34px; height:38px; object-fit:contain; }
+.footer-logo-name { font-family:var(--font-body); font-size:1.08rem; font-weight:800; color:var(--white); line-height:1; }
 .footer-logo-name span { color:var(--teal-light); }
-.footer-tagline { font-family:var(--font-mono); font-size:0.66rem; color:var(--ink-on-ink-45); margin-top:5px; letter-spacing:0.02em; }
+.footer-tagline { font-family:var(--font-body); font-size:0.62rem; color:var(--ink-on-ink-70); margin-top:5px; }
 .footer-links { display:flex; gap:22px; flex-wrap:wrap; justify-content:center; }
 .footer-links a { font-size:0.82rem; color:var(--ink-on-ink-70); transition:color 0.3s; }
 .footer-links a:hover { color:var(--teal-light); }
@@ -768,7 +834,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
   font-family: var(--font-body); font-size: 0.75rem; font-weight: 700;
   letter-spacing: 0.3px;
   padding: 8px 18px; border-radius: 100px;
-  box-shadow: 0 4px 20px rgba(13,148,136,0.35);
+  box-shadow: 0 4px 20px rgba(10,164,71,0.3);
 }
 @media(max-width:700px){ .founder-badge{ left:50%; transform:translateX(-50%); white-space:nowrap; } }
 .founder-eyebrow { color: var(--teal-dark); margin-bottom: 10px; }
@@ -806,12 +872,11 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
     <div class="nav-inner">
       <a href="#" class="logo">
         <span class="logo-icon-wrap">
-          <img src="logo-icon.png" alt="" aria-hidden="true" class="logo-icon logo-icon-light">
-          <img src="logo-icon-dark.png" alt="" aria-hidden="true" class="logo-icon logo-icon-dark">
+          <img src="remarkable-cv-mark.png" alt="" aria-hidden="true" class="logo-icon">
         </span>
         <span class="logo-text">
-          <div class="logo-name">Remarkable <span>CV</span></div>
-          <div class="logo-sub">Every job deserves its own CV.</div>
+          <div class="logo-name">Remarkable<span>CV</span></div>
+          <div class="logo-sub">Ghana's Job-Winning CV Builder</div>
         </span>
       </a>
       <ul class="nav-links">
@@ -845,22 +910,15 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
   <div class="container">
     <div class="hero-inner">
       <div class="hero-left">
+        <p class="hero-eyebrow">Applying for your next role?</p>
         <h1 class="hero-h1">
-          <span class="line-small">Build your perfect</span>
-          <span class="line-large">Job-Winning CV</span>
-          <span class="line-small bottom"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>in less than a minute.</span>
+          <span>Build your perfect</span>
+          <span class="line-accent">Job-Winning CV</span>
+          <span class="line-timing"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>in less than a minute.</span>
         </h1>
 
         <div class="hero-hook">
-          <p>Start from scratch or upload your existing CV. Add the job advert.</p>
-          <p>Remarkable CV builds a professional, ATS-ready CV tailored specifically to that opportunity — in under a minute.</p>
-        </div>
-
-        <p class="hero-stop">Stop sending the same CV to every job.</p>
-
-        <div class="hero-invest">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 13h20"/></svg>
-          Invest 60 seconds. Land more interviews.
+          <p>Create a professional, ATS-ready CV tailored to the job in under a minute. Start from scratch or upload your existing CV.</p>
         </div>
 
         <div class="hero-pills">
@@ -870,7 +928,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </div>
 
         <div class="hero-ctas">
-          <a href="/build" class="btn-primary">Build my CV <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+          <a href="/build" class="btn-primary">Build My CV Now <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
           <a href="#templates" class="btn-ghost">View templates</a>
         </div>
         <p class="hero-meta">Generate free. Pay only when you're ready to download — no login required.</p>
@@ -998,36 +1056,53 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
       <span class="section-eyebrow label">Choose what you need</span>
       <h2 class="section-title">One platform. Every application document you need.</h2>
     </div>
-    <div class="cv-types-grid">
-      <div class="cv-type-card reveal rd1">
-        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg></div>
-        <div class="cv-type-name">Job-Winning CV</div>
-        <p class="cv-type-desc">A polished, ATS-ready CV — tailored to a specific role when you add the job advert.</p>
-        <ul class="cv-type-features">
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ATS-ready</li>
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Job-specific</li>
-        </ul>
-        <a href="/build?type=professional" class="cv-type-link">Build now →</a>
+    <div class="cv-types-grid" data-document-showcase>
+      <div class="cv-type-card reveal rd1 is-active" data-showcase-card>
+        <div class="cv-type-visual"><img src="document-professional-wendy.webp" alt="Modern professional CV for Wendy Brown" class="cv-type-preview"></div>
+        <div class="cv-type-body">
+          <div class="cv-type-heading"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg></div><div class="cv-type-name">Job-Winning CV</div></div>
+          <p class="cv-type-desc">A polished, ATS-ready CV — tailored to a specific role when you add the job advert.</p>
+          <ul class="cv-type-features">
+            <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ATS-ready</li>
+            <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Job-specific</li>
+          </ul>
+          <a href="/build?type=professional" class="cv-type-link"><span>Build this CV</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
       </div>
-      <div class="cv-type-card reveal rd2">
-        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div>
-        <div class="cv-type-name">Academic CV</div>
-        <p class="cv-type-desc">For researchers, lecturers and postgraduate applicants — tailored to the programme or post you’re applying to.</p>
-        <ul class="cv-type-features">
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Research-first</li>
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Programme-specific</li>
-        </ul>
-        <a href="/build?type=academic" class="cv-type-link">Build now →</a>
+      <div class="cv-type-card reveal rd2" data-showcase-card>
+        <div class="cv-type-visual academic"><img src="document-academic-wendy.webp" alt="Traditional academic CV for Wendy Brown" class="cv-type-preview"></div>
+        <div class="cv-type-body">
+          <div class="cv-type-heading"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div><div class="cv-type-name">Academic CV</div></div>
+          <p class="cv-type-desc">For researchers, lecturers and postgraduate applicants — tailored to the programme or post you’re applying to.</p>
+          <ul class="cv-type-features">
+            <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Research-first</li>
+            <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Programme-specific</li>
+          </ul>
+          <a href="/build?type=academic" class="cv-type-link"><span>Build this CV</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
       </div>
-      <div class="cv-type-card reveal rd3">
-        <div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-        <div class="cv-type-name">Cover Letter</div>
-        <p class="cv-type-desc">A compelling letter tailored to the role.</p>
-        <ul class="cv-type-features">
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Your voice</li>
-        </ul>
-        <a href="/build?type=cover_letter" class="cv-type-link">Build now →</a>
+      <div class="cv-type-card reveal rd3" data-showcase-card>
+        <div class="cv-type-visual letter"><img src="document-cover-letter-wendy.webp" alt="Formal cover letter for Wendy Brown" class="cv-type-preview"></div>
+        <div class="cv-type-body">
+          <div class="cv-type-heading"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="cv-type-name">Cover Letter</div></div>
+          <p class="cv-type-desc">A compelling letter tailored to the role.</p>
+          <ul class="cv-type-features">
+            <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Your voice</li>
+          </ul>
+          <a href="/build?type=cover_letter" class="cv-type-link"><span>Build this letter</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
       </div>
+    </div>
+    <div class="cv-types-controls" aria-label="Document showcase controls">
+      <div class="cv-types-dots">
+        <button class="cv-types-dot" type="button" aria-label="Show Job-Winning CV" aria-current="true" data-showcase-dot></button>
+        <button class="cv-types-dot" type="button" aria-label="Show Academic CV" aria-current="false" data-showcase-dot></button>
+        <button class="cv-types-dot" type="button" aria-label="Show Cover Letter" aria-current="false" data-showcase-dot></button>
+      </div>
+      <button class="cv-types-pause" type="button" aria-label="Pause document rotation" title="Pause rotation" data-showcase-pause>
+        <svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+        <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+      </button>
     </div>
   </div>
 </section>
@@ -1106,8 +1181,10 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
     <div class="pricing-grid reveal">
       <div class="price-card">
         <div class="price-name">Silver CV</div>
-        <div class="price-figure"><span class="cur">GH₵</span><span class="num">29</span></div>
+        <div class="price-figure"><span class="cur">GH₵</span><span class="num">39</span></div>
         <p class="price-desc">One professional, ATS-optimised CV.</p>
+        <div class="price-bonus" aria-hidden="true">&nbsp;</div>
+        <div class="price-divider"></div>
         <ul class="price-features">
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 CV credit</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
@@ -1117,43 +1194,34 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
       </div>
 
       <div class="price-card featured">
-        <div class="price-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2H22l-6 4.6 2.3 7.2-6.3-4.5-6.3 4.5 2.3-7.2-6-4.6h7.6z"/></svg>Recommended</div>
+        <div class="price-badge">★ Recommended</div>
         <div class="price-name">Gold Application Pack</div>
-        <div class="price-figure"><span class="cur">GH₵</span><span class="num">49</span></div>
-        <p class="price-desc">Two professional CVs, plus a cover letter.</p>
+        <div class="price-figure"><span class="cur">GH₵</span><span class="num">69</span></div>
+        <p class="price-desc">Two CVs + one cover letter — best value for active job seekers.</p>
+        <div class="price-bonus">Cover letter worth GH₵20 included</div>
+        <div class="price-divider"></div>
         <ul class="price-features">
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>2 CV credits</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 cover-letter credit</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 cover letter credit</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
         </ul>
         <a href="/build?pkg=gold" class="price-btn">Get Gold →</a>
       </div>
 
-      <div class="price-card">
+      <div class="price-card platinum">
         <div class="price-name">Platinum Career Pack</div>
-        <div class="price-figure"><span class="cur">GH₵</span><span class="num">99</span></div>
-        <p class="price-desc">Four professional CVs and two cover letters — best price per document.</p>
+        <div class="price-figure"><span class="cur">GH₵</span><span class="num">119</span></div>
+        <p class="price-desc">For those applying to 4+ roles — best price per document.</p>
+        <div class="price-bonus" aria-hidden="true">&nbsp;</div>
+        <div class="price-divider"></div>
         <ul class="price-features">
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>4 CV credits</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>2 cover-letter credits</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>2 cover letter credits</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
         </ul>
         <a href="/build?pkg=platinum" class="price-btn">Get Platinum</a>
-      </div>
-    </div>
-
-    <div class="reveal" style="max-width:340px; margin:20px auto 0; display:grid;">
-      <div class="price-card">
-        <div class="price-name">Cover Letter Pro</div>
-        <div class="price-figure"><span class="cur">GH₵</span><span class="num">15</span></div>
-        <p class="price-desc">One cover letter, tailored to a role or general.</p>
-        <ul class="price-features">
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>General or role-specific</li>
-        </ul>
-        <a href="/build?type=cover_letter&pkg=coverletter" class="price-btn">Build my letter →</a>
       </div>
     </div>
 
@@ -1165,7 +1233,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 </section>
 
 <!-- WHY EXTRAORDINARY CV -->
-<section class="why-section">
+<section class="why-section" id="why">
   <div class="container">
     <div class="section-head reveal">
       <span class="section-eyebrow label">Why Remarkable CV</span>
@@ -1173,20 +1241,8 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
     </div>
     <div class="why-grid">
       <div class="why-card reveal rd1">
-        <div class="why-visual">
-          <div class="why-visual-bg"></div>
-          <svg width="140" height="72" viewBox="0 0 140 72" fill="none">
-            <rect x="6" y="8" width="52" height="56" rx="4" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
-            <line x1="14" y1="20" x2="50" y2="20" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
-            <line x1="14" y1="28" x2="42" y2="28" stroke="rgba(255,255,255,0.35)" stroke-width="1.5"/>
-            <line x1="14" y1="36" x2="46" y2="36" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
-            <path d="M64 36h12" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="3 3"/>
-            <path d="M72 30l6 6-6 6" stroke="#14b8a6" stroke-width="1.6" fill="none"/>
-            <rect x="82" y="8" width="52" height="56" rx="4" stroke="#14b8a6" stroke-width="1.5"/>
-            <line x1="90" y1="20" x2="126" y2="20" stroke="#14b8a6" stroke-width="1.5"/>
-            <line x1="90" y1="28" x2="118" y2="28" stroke="#14b8a6" stroke-width="1.5" opacity="0.7"/>
-            <line x1="90" y1="36" x2="122" y2="36" stroke="#14b8a6" stroke-width="1.5" opacity="0.5"/>
-          </svg>
+        <div class="why-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 19.5V4.5A1.5 1.5 0 015.5 3h9L20 8.5v11a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 19.5z"/><path d="M14 3v6h6M8 13h8M8 17h6"/></svg>
         </div>
         <div class="why-body">
           <div class="why-title">Tailored to the job</div>
@@ -1194,13 +1250,8 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </div>
       </div>
       <div class="why-card reveal rd2">
-        <div class="why-visual">
-          <div class="why-visual-bg"></div>
-          <svg width="140" height="72" viewBox="0 0 140 72" fill="none">
-            <circle cx="70" cy="36" r="26" stroke="rgba(255,255,255,0.25)" stroke-width="1.5"/>
-            <circle cx="70" cy="36" r="26" stroke="#14b8a6" stroke-width="2" stroke-dasharray="163" stroke-dashoffset="30" stroke-linecap="round" transform="rotate(-90 70 36)"/>
-            <path d="M60 36l7 7 13-14" stroke="#14b8a6" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+        <div class="why-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12l2.6 2.6L16.5 9"/></svg>
         </div>
         <div class="why-body">
           <div class="why-title">ATS optimised</div>
@@ -1208,20 +1259,8 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </div>
       </div>
       <div class="why-card reveal rd3">
-        <div class="why-visual">
-          <div class="why-visual-bg"></div>
-          <svg width="140" height="72" viewBox="0 0 140 72" fill="none">
-            <path d="M10 20h30M10 28h22M10 36h26" stroke="rgba(255,255,255,0.3)" stroke-width="1.6" stroke-linecap="round"/>
-            <path d="M46 36h14" stroke="#14b8a6" stroke-width="1.6" stroke-dasharray="3 3"/>
-            <path d="M54 30l6 6-6 6" stroke="#14b8a6" stroke-width="1.6" fill="none"/>
-            <rect x="68" y="10" width="62" height="52" rx="4" stroke="#14b8a6" stroke-width="1.5"/>
-            <circle cx="82" cy="24" r="6" stroke="#14b8a6" stroke-width="1.4"/>
-            <line x1="94" y1="21" x2="120" y2="21" stroke="#14b8a6" stroke-width="1.4"/>
-            <line x1="94" y1="27" x2="112" y2="27" stroke="#14b8a6" stroke-width="1.4" opacity="0.6"/>
-            <line x1="76" y1="40" x2="122" y2="40" stroke="#14b8a6" stroke-width="1.4" opacity="0.7"/>
-            <line x1="76" y1="47" x2="118" y2="47" stroke="#14b8a6" stroke-width="1.4" opacity="0.5"/>
-            <line x1="76" y1="54" x2="110" y2="54" stroke="#14b8a6" stroke-width="1.4" opacity="0.35"/>
-          </svg>
+        <div class="why-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21a9 9 0 100-18 9 9 0 000 18z"/><path d="M8.5 15.5c.8-1.4 2-2.1 3.5-2.1s2.7.7 3.5 2.1M12 11a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/></svg>
         </div>
         <div class="why-body">
           <div class="why-title">Written in your voice</div>
@@ -1499,7 +1538,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
     <h2 class="cta-title reveal rd1">Your next job starts with <em>the right CV.</em></h2>
     <p class="cta-sub reveal rd2">Paste your details. We write it. See it free — pay only to download.</p>
     <a href="/build" class="cta-btn reveal rd3">Build my CV now <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-    <p class="cta-note label reveal rd4">2 free previews · From GH₵29 · No subscription · Pay with Mobile Money</p>
+    <p class="cta-note label reveal rd4">2 free previews · From GH₵39 · No subscription · Pay with Mobile Money</p>
   </div>
 </section>
 
@@ -1507,7 +1546,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 <footer>
   <div class="container">
     <div class="footer-inner">
-      <div><div class="footer-logo-name">Remarkable <span>CV</span></div><div class="footer-tagline">Every job deserves its own CV.</div></div>
+      <div class="footer-brand"><img src="remarkable-cv-mark.png" alt="" aria-hidden="true"><div><div class="footer-logo-name">Remarkable<span>CV</span></div><div class="footer-tagline">Ghana's Job-Winning CV Builder</div></div></div>
       <div class="footer-links">
         <a href="/build?type=professional">Professional CV</a>
         <a href="/build?type=targeted">Targeted CV</a>
@@ -1532,16 +1571,11 @@ const mob = document.getElementById('mobileMenu');
 ham.addEventListener('click', () => {
   ham.classList.toggle('open');
   mob.classList.toggle('open');
-  // Mobile menu is a dark, full-screen overlay — the fixed nav sits above it,
-  // so it needs its dark-safe ("scrolled") treatment even at the very top of
-  // the page, or the wordmark renders dark-on-dark and disappears.
-  nav.classList.toggle('scrolled', mob.classList.contains('open') || window.scrollY > 40);
   document.body.style.overflow = mob.classList.contains('open') ? 'hidden' : '';
 });
 function closeMob() {
   ham.classList.remove('open');
   mob.classList.remove('open');
-  nav.classList.toggle('scrolled', window.scrollY > 40);
   document.body.style.overflow = '';
 }
 
@@ -1556,6 +1590,92 @@ const obs = new IntersectionObserver(entries => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
 }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// Document showcase rotation
+(function initDocumentShowcase() {
+  const rail = document.querySelector('[data-document-showcase]');
+  if (!rail) return;
+
+  const cards = [...rail.querySelectorAll('[data-showcase-card]')];
+  const dots = [...document.querySelectorAll('[data-showcase-dot]')];
+  const pauseButton = document.querySelector('[data-showcase-pause]');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let activeIndex = 0;
+  let timer;
+  let isVisible = false;
+  let isPaused = reducedMotion;
+  let scrollTimer;
+
+  function setActive(index, moveRail = true) {
+    activeIndex = (index + cards.length) % cards.length;
+    cards.forEach((card, cardIndex) => card.classList.toggle('is-active', cardIndex === activeIndex));
+    dots.forEach((dot, dotIndex) => dot.setAttribute('aria-current', dotIndex === activeIndex ? 'true' : 'false'));
+
+    if (moveRail && window.matchMedia('(max-width: 999px)').matches) {
+      const card = cards[activeIndex];
+      const left = card.offsetLeft - (rail.clientWidth - card.offsetWidth) / 2;
+      rail.scrollTo({ left, behavior: reducedMotion ? 'auto' : 'smooth' });
+    }
+  }
+
+  function stopRotation() {
+    window.clearInterval(timer);
+  }
+
+  function startRotation() {
+    stopRotation();
+    if (isPaused || !isVisible) return;
+    timer = window.setInterval(() => setActive(activeIndex + 1), 4800);
+  }
+
+  dots.forEach((dot, index) => dot.addEventListener('click', () => {
+    setActive(index);
+    startRotation();
+  }));
+
+  cards.forEach((card, index) => card.addEventListener('click', event => {
+    if (!event.target.closest('a')) setActive(index);
+  }));
+
+  if (pauseButton) {
+    if (reducedMotion) {
+      pauseButton.classList.add('is-paused');
+      pauseButton.setAttribute('aria-label', 'Play document rotation');
+      pauseButton.title = 'Play rotation';
+    }
+    pauseButton.addEventListener('click', () => {
+      isPaused = !isPaused;
+      pauseButton.classList.toggle('is-paused', isPaused);
+      pauseButton.setAttribute('aria-label', isPaused ? 'Play document rotation' : 'Pause document rotation');
+      pauseButton.title = isPaused ? 'Play rotation' : 'Pause rotation';
+      if (isPaused) stopRotation(); else startRotation();
+    });
+  }
+
+  rail.addEventListener('mouseenter', stopRotation);
+  rail.addEventListener('mouseleave', startRotation);
+  rail.addEventListener('focusin', stopRotation);
+  rail.addEventListener('focusout', startRotation);
+  rail.addEventListener('scroll', () => {
+    window.clearTimeout(scrollTimer);
+    scrollTimer = window.setTimeout(() => {
+      if (!window.matchMedia('(max-width: 999px)').matches) return;
+      const railCenter = rail.scrollLeft + rail.clientWidth / 2;
+      const nearest = cards.reduce((best, card, index) => {
+        const distance = Math.abs(card.offsetLeft + card.offsetWidth / 2 - railCenter);
+        return distance < best.distance ? { index, distance } : best;
+      }, { index: activeIndex, distance: Infinity });
+      setActive(nearest.index, false);
+    }, 120);
+  }, { passive:true });
+
+  const showcaseObserver = new IntersectionObserver(entries => {
+    isVisible = entries[0].isIntersecting;
+    if (isVisible) startRotation(); else stopRotation();
+  }, { threshold:0.25 });
+  showcaseObserver.observe(rail);
+  document.addEventListener('visibilitychange', () => document.hidden ? stopRotation() : startRotation());
+})();
 
 // Cycle after-CVs
 const imgs = document.querySelectorAll('.after-img');

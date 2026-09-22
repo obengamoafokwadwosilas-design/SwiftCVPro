@@ -53,7 +53,7 @@ export default function PaymentReturnPage() {
       <div style={{ background: 'white', borderRadius: '18px', padding: '36px 32px', maxWidth: '380px', width: '100%', textAlign: 'center' as const, boxShadow: '0 8px 40px rgba(0,0,0,0.08)' }}>
         {status === 'checking' ? (
           <>
-            <div style={{ width: '38px', height: '38px', border: '3px solid rgba(13,148,136,0.2)', borderTopColor: '#0d9488', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 18px' }} />
+            <div style={{ width: '38px', height: '38px', border: '3px solid rgba(10,164,71,0.2)', borderTopColor: '#0aa447', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 18px' }} />
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.2rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '6px' }}>Confirming your payment…</div>
             <div style={{ fontSize: '13px', color: '#64748b' }}>This only takes a moment.</div>
             <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
@@ -62,7 +62,7 @@ export default function PaymentReturnPage() {
           <>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.2rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '6px' }}>We couldn&apos;t confirm that payment</div>
             <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px', lineHeight: 1.6 }}>{message} If you completed payment, your details are still saved — just go back and try again.</div>
-            <button onClick={() => router.replace('/build')} style={{ padding: '12px 26px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Back to CV builder</button>
+            <button onClick={() => router.replace('/build')} style={{ padding: '12px 26px', background: '#0aa447', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Back to CV builder</button>
           </>
         )}
       </div>

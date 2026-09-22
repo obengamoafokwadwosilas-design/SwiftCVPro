@@ -42,7 +42,7 @@ closed rather than crash.
    any reintroduced, that's a regression, not a feature.
 
 3. **Payment packages are the single source of truth in `src/lib/packages.ts`**
-   — Silver 29 / Gold 49 / Cover Letter Pro 15 / Platinum 99 (GH₵, in
+   — Silver 39 / Gold 69 / Cover Letter Pro 20 / Platinum 119 (GH₵, in
    pesewas for Paystack amounts). The public landing page
    (`public/landing.html`) must mirror these exactly — it has drifted out
    of sync before and caused a real pricing mismatch bug.

@@ -1228,9 +1228,9 @@ export default function BuildPage() {
             </div>
             {showPill && (
               <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '6px' }}>
-                <div className="xcv-mono" style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '9.5px', color: 'var(--teal)', background: 'var(--teal-tint)', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '4px', padding: '7px 12px', whiteSpace: 'nowrap' as const }}>
+                <div className="xcv-mono" style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '9.5px', color: 'var(--teal)', background: 'var(--teal-tint)', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '4px', padding: '7px 12px', whiteSpace: 'nowrap' as const }}>
                   {pillLabel}
-                  <span style={{ color: 'var(--muted)', ...(pillLabel ? { borderLeft: '1px solid rgba(15,111,102,0.18)', paddingLeft: '9px' } : {}) }}>{phoneNumber}</span>
+                  <span style={{ color: 'var(--muted)', ...(pillLabel ? { borderLeft: '1px solid rgba(10,138,63,0.18)', paddingLeft: '9px' } : {}) }}>{phoneNumber}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button type="button" onClick={startBuyCredits} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--teal)', fontWeight: 500 }}>
@@ -1292,7 +1292,7 @@ export default function BuildPage() {
               const picked = pkgFromUrl ? PACKAGES.find(p => p.id === pkgFromUrl) : null
               if (!picked || hasCredits) return null
               return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' as const, marginTop: '18px', padding: '14px 16px', background: 'var(--teal-tint)', border: '1px solid rgba(15,111,102,0.18)', borderRadius: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' as const, marginTop: '18px', padding: '14px 16px', background: 'var(--teal-tint)', border: '1px solid rgba(10,138,63,0.18)', borderRadius: '12px' }}>
                   <span style={{ width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: (TIER_ICON_COLOR[picked.id] || TIER_ICON_COLOR.default).bg, color: (TIER_ICON_COLOR[picked.id] || TIER_ICON_COLOR.default).fg }}>{PKG_ICON[picked.id]}</span>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>{picked.name} · GH₵{picked.price}</div>
@@ -1558,7 +1558,7 @@ export default function BuildPage() {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showOptionalPersonal ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             {showOptionalPersonal && (
-              <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '10px' }}>
+              <div style={{ marginTop: '10px', padding: '14px', background: '#f7fcf8', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '10px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   <Field label="Date of Birth" placeholder="e.g. 14 March 1995" fieldRef={refs.dob} />
                   <Field label="Nationality" placeholder="e.g. Ghanaian" fieldRef={refs.nationality} />
@@ -1598,7 +1598,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showAcademicEdu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 {showAcademicEdu && (
-                  <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '10px' }}>
+                  <div style={{ marginTop: '10px', padding: '14px', background: '#f7fcf8', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '10px' }}>
                     <Field label="GPA or Class of Degree" placeholder="e.g. First Class, GPA 3.8 / 4.0" fieldRef={refs.gpa} />
                     <div style={{ marginTop: '10px' }}><Field label="Thesis / Dissertation Title" placeholder="e.g. Climate Change Adaptation in Rural Ghana" fieldRef={refs.thesis} /></div>
                     <div style={{ marginTop: '10px' }}>
@@ -1664,7 +1664,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showAcademicExp ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 {showAcademicExp && (
-                  <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column' as const, gap: '12px' }}>
+                  <div style={{ marginTop: '10px', padding: '14px', background: '#f7fcf8', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column' as const, gap: '12px' }}>
                     <div>
                       <label style={labelStyle}>Publications & Papers</label>
                       <div style={{ fontSize: '11px', color: 'var(--muted)', fontStyle: 'italic', margin: '4px 0 6px' }}>e.g. Mensah K. (2023). Climate Change in Rural Ghana. Journal of African Studies, 12(3), 45–62.</div>
@@ -1729,7 +1729,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: showAcademicExtras ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
                 {showAcademicExtras && (
-                  <div style={{ marginTop: '10px', padding: '14px', background: '#f8fffe', border: '1px solid rgba(15,111,102,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column' as const, gap: '12px', marginBottom: '12px' }}>
+                  <div style={{ marginTop: '10px', padding: '14px', background: '#f7fcf8', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '10px', display: 'flex', flexDirection: 'column' as const, gap: '12px', marginBottom: '12px' }}>
                     <div><label style={labelStyle}>Grants & Fellowships</label><textarea ref={refs.grants} style={{ ...TA(60), marginTop: '5px' }} rows={2} placeholder="e.g. DAAD Research Fellowship, 2022 – University of Bonn" /></div>
                     <div><label style={labelStyle}>Student Supervision</label><textarea ref={refs.supervision} style={{ ...TA(60), marginTop: '5px' }} rows={2} placeholder="e.g. Supervised 4 BSc dissertations, KNUST, 2021–2023" /></div>
                     <div><Field label="ORCID ID" placeholder="e.g. 0000-0002-1825-0097" fieldRef={refs.orcid} /></div>
@@ -1970,7 +1970,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
       {/* ══ LOADING OVERLAY ══════════════════════════════════ */}
       {isGenerating && (
         <div className="xcv-overlay-in" style={{ position: 'fixed', inset: 0, background: 'var(--ink)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '32px' }}>
-          <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(15,111,102,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '400px', height: '400px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(10,138,63,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
           <div style={{ width: '100%', maxWidth: '540px', textAlign: 'center' }}>
             {/* The nav is a fixed full-screen overlay above everything on this
                 screen (z-index 500 vs the nav's 50), so it's the one moment the
@@ -1990,9 +1990,9 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                   Without this the icon sat flush at the column's left edge
                   while the wordmark centered normally, reading as two
                   unrelated things instead of one lockup. */}
-              <img src="/logo-icon-dark.png" alt="" aria-hidden="true" style={{ display: 'block', height: '44px', width: 'auto', margin: '0 auto 12px' }} />
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 500, color: 'white', letterSpacing: '0.005em' }}>
-                Remarkable <span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
+              <img src="/remarkable-cv-mark.png" alt="" aria-hidden="true" style={{ display: 'block', height: '54px', width: '50px', objectFit: 'contain', margin: '0 auto 12px' }} />
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '1.35rem', fontWeight: 700, color: 'white' }}>
+                Remarkable<span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
               </div>
             </div>
             <div style={{ position: 'relative', width: '100px', height: '100px', margin: '0 auto 32px' }}>
@@ -2027,7 +2027,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         * { box-sizing: border-box; }
-        textarea:focus, input:focus { outline: none; border-color: var(--teal) !important; box-shadow: 0 0 0 3px rgba(15,111,102,0.1); }
+        textarea:focus, input:focus { outline: none; border-color: var(--teal) !important; box-shadow: 0 0 0 3px rgba(10,138,63,0.1); }
       `}</style>
     </div>
   )
@@ -2046,7 +2046,7 @@ const cardStyle: React.CSSProperties = { background: 'var(--sheet)', border: '1p
 const cardTitleStyle: React.CSSProperties = { fontFamily: "'Cormorant Garamond', serif", fontSize: '1.32rem', fontWeight: 400, color: 'var(--ink)', marginBottom: '5px', letterSpacing: '-0.005em' }
 const optBadge: React.CSSProperties = { fontSize: '10px', fontWeight: 500, color: 'var(--muted)', background: 'var(--rule-soft)', padding: '2px 8px', borderRadius: '20px' }
 const labelStyle: React.CSSProperties = { fontSize: '12px', fontWeight: 500, color: 'var(--graphite)', display: 'block' }
-const expandToggleStyle: React.CSSProperties = { fontSize: '12px', color: 'var(--teal)', background: 'none', border: '1px solid rgba(15,111,102,0.2)', borderRadius: '8px', padding: '9px 14px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left' }
+const expandToggleStyle: React.CSSProperties = { fontSize: '12px', color: 'var(--teal)', background: 'none', border: '1px solid rgba(10,138,63,0.2)', borderRadius: '8px', padding: '9px 14px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left' }
 const tipToggleStyle: React.CSSProperties = { fontSize: '12px', color: 'var(--graphite)', background: '#F5F5F1', border: '1px solid var(--rule)', borderRadius: '8px', padding: '9px 14px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', textAlign: 'left' }
 const btnSkip: React.CSSProperties = { fontSize: '12px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textDecoration: 'underline', textUnderlineOffset: '2px', display: 'block', textAlign: 'right', width: '100%', marginBottom: '8px', padding: '4px 0' }
 const TA = (minH: number): React.CSSProperties => ({ width: '100%', padding: '12px 14px', border: '1px solid var(--rule)', borderRadius: '6px', fontFamily: "'DM Sans', sans-serif", fontSize: '14px', color: 'var(--ink)', resize: 'none', lineHeight: 1.65, minHeight: minH ? `${minH}px` : undefined, transition: 'border-color 0.16s ease, box-shadow 0.16s ease' })
