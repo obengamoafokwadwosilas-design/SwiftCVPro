@@ -1609,15 +1609,30 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
   const viewport = rail?.closest('.template-ticker-outer');
   if (!rail || !viewport) return;
 
+  const baseCards = [...rail.querySelectorAll('[data-template-card]')];
+  const cycleLength = baseCards.length;
+  for (let copy = 0; copy < 2; copy += 1) {
+    baseCards.forEach(card => {
+      const continuation = card.cloneNode(true);
+      continuation.classList.remove('is-active');
+      continuation.setAttribute('aria-hidden', 'true');
+      continuation.setAttribute('aria-pressed', 'false');
+      continuation.tabIndex = -1;
+      continuation.querySelector('img').alt = '';
+      rail.append(continuation);
+    });
+  }
+
   const cards = [...rail.querySelectorAll('[data-template-card]')];
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let activeIndex = 0;
+  let activeIndex = cycleLength;
   let scrollTimer;
   let rotationTimer;
+  let normalizeTimer;
   let isVisible = false;
   let isHovering = false;
 
-  function setActive(index, moveViewport = true) {
+  function setActive(index, moveViewport = true, behavior, shouldNormalize = true) {
     activeIndex = (index + cards.length) % cards.length;
     cards.forEach((card, cardIndex) => {
       const isActive = cardIndex === activeIndex;
@@ -1628,17 +1643,38 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
     if (moveViewport) {
       const card = cards[activeIndex];
       const left = card.offsetLeft - (viewport.clientWidth - card.offsetWidth) / 2;
-      viewport.scrollTo({ left, behavior: reducedMotion ? 'auto' : 'smooth' });
+      viewport.scrollTo({ left, behavior: behavior || (reducedMotion ? 'auto' : 'smooth') });
     }
+
+    if (shouldNormalize) normalizePosition();
   }
 
-  cards.forEach((card, index) => {
+  function nearestCycleIndex(templateIndex) {
+    return cards.reduce((nearest, card, index) => {
+      if (index % cycleLength !== templateIndex) return nearest;
+      return Math.abs(index - activeIndex) < Math.abs(nearest - activeIndex) ? index : nearest;
+    }, activeIndex);
+  }
+
+  function normalizePosition() {
+    window.clearTimeout(normalizeTimer);
+    if (activeIndex >= cycleLength && activeIndex < cycleLength * 2) return;
+
+    const matchingIndex = activeIndex < cycleLength ? activeIndex + cycleLength : activeIndex - cycleLength;
+    normalizeTimer = window.setTimeout(() => {
+      if (activeIndex === (matchingIndex - cycleLength) || activeIndex === (matchingIndex + cycleLength)) {
+        setActive(matchingIndex, true, 'auto', false);
+      }
+    }, 720);
+  }
+
+  baseCards.forEach((card, index) => {
     card.addEventListener('click', () => {
-      setActive(index);
+      setActive(nearestCycleIndex(index));
       startRotation();
     });
     card.addEventListener('focus', () => {
-      setActive(index);
+      setActive(nearestCycleIndex(index));
       stopRotation();
     });
   });
@@ -1684,6 +1720,8 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
     startRotation();
   }, { threshold:0.25 });
   galleryObserver.observe(viewport);
+
+  window.requestAnimationFrame(() => setActive(cycleLength, true, 'auto', false));
 })();
 
 // Document showcase rotation
