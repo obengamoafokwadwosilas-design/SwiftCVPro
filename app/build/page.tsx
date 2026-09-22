@@ -1468,16 +1468,16 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: PASTE PATH ══════════════════════════════════ */}
         <div style={{ display: screen === 'paste' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <h1 className="xcv-h1" style={h1Style}>Share Your CV Content</h1>
+          <h1 className="xcv-h1" style={h1Style}>Upload or paste your CV</h1>
           {/* Name the document they'll get, so there's no doubt what this input
               is being turned into. */}
-          <p style={subStyle}>Upload your CV, or type it in below — we&apos;ll create your {meta.label}.</p>
+          <p style={subStyle}>Start with what you have — you&apos;ll review it before we build your {meta.label}.</p>
 
           {/* Upload and typing both land in the same box below, so there's no
               either/or tab to pick — just an upload option up front (its own
               "Ready" chip replaces the dropzone once a file's in) and a review/
               type box that's always there. */}
-          <UploadZone label="Upload CV / Résumé" hint="PDF, Word, text, or a photo — or drag and drop" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} readyNote="We pulled the text out below — review it before continuing." />
+          <UploadZone label="Upload CV / Résumé" hint="PDF, Word, text, or a photo — or drag and drop" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} readyNote="Your details are ready below — review and edit before you build." />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }} aria-hidden="true">
             <div style={{ flex: 1, height: '1px', background: 'var(--rule)' }} />
@@ -1503,9 +1503,9 @@ export default function BuildPage() {
                 <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>Any format works — Word, PDF, rough notes.</p>
                 {showCvExample && (
                   <div style={{ background: '#f7fcf8', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '10px', padding: '12px 14px', marginBottom: '12px', fontSize: '12.5px', color: 'var(--graphite)', lineHeight: 1.7 }}>
-                    Rough notes are fine — we&apos;ll structure and polish it. For example:
+                    Rough notes are enough — we&apos;ll turn them into a polished CV. For example:
                     <div style={{ marginTop: '6px', fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '15px', lineHeight: 1.6, color: 'var(--ink)' }}>
-                      &quot;Kwame Mensah. Worked as Accounts Officer at GCB Bank for 3 years — handled reconciliations, client onboarding, daily cash reports. Before that, customer service at MTN for 2 years. BSc Accounting, University of Ghana, 2019. Good with Excel, SAP, and Sage.&quot;
+                      &quot;Wendy Brown. Phone: 0266688845. Email: wendy.brown@email.com. Education: BSc Business Administration, University of Ghana, 2020–2024. Experience: Sales Intern, Example Company — helped with customer records, weekly reports, and client follow-ups. Skills: Microsoft Office, communication, customer service.&quot;
                     </div>
                   </div>
                 )}
@@ -1515,7 +1515,7 @@ export default function BuildPage() {
                 textarea (TA()) — this is the one field on the whole screen
                 someone actually writes or reviews a document in, so it should
                 read like a page, not a form input. */}
-            <textarea ref={refs.paste} style={{ ...TA(180), fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', lineHeight: 1.75 }} rows={8} placeholder="Paste your CV content here — any format is fine..." />
+            <textarea ref={refs.paste} style={{ ...TA(180), fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', lineHeight: 1.75 }} rows={8} placeholder="Start with your name, contact details, education and experience — rough notes are welcome." />
           </div>
 
           <TailorSection
@@ -1534,7 +1534,7 @@ export default function BuildPage() {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
             <button onClick={handleGenerate} disabled={isGenerating || !!uploadReadError} style={{ ...btnPrimary, opacity: (isGenerating || uploadReadError) ? 0.6 : 1 }}>
-              {isGenerating ? 'Generating…' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
+              {isGenerating ? 'Building…' : `Build my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
           </div>
         </div>
