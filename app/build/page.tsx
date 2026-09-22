@@ -1474,7 +1474,7 @@ export default function BuildPage() {
               either/or tab to pick — just an upload option up front (its own
               "Ready" chip replaces the dropzone once a file's in) and a review/
               type box that's always there. */}
-          <UploadZone label="Upload CV / Résumé" hint="PDF or Word (.pdf, .docx) · Max 10 MB" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} readyNote="Ready — review the text below." />
+          <UploadZone label="Upload CV / Résumé" hint="PDF or Word (.pdf, .docx) · Max 10 MB" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} readyNote="Ready" />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }} aria-hidden="true">
             <div style={{ flex: 1, height: '1px', background: 'var(--rule)' }} />
@@ -1486,7 +1486,7 @@ export default function BuildPage() {
             {uploadedCV ? (
               <>
                 <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: '6px' }}>Review your CV</div>
-                <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>We pulled this out of your file — check it&apos;s correct and fix anything wrong or missing.</p>
+                <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>Fix anything wrong or missing below.</p>
               </>
             ) : (
               <>
