@@ -349,11 +349,10 @@ section { padding:var(--section-y) 0; }
 .tmpl-chip {
   appearance:none; border:0; padding:0; background:none; color:inherit; font:inherit;
   display:flex; flex-direction:column; align-items:flex-start; flex:0 0 174px;
-  cursor:pointer; text-align:left; opacity:0.46; filter:saturate(0.55);
-  transform:scale(0.9); transform-origin:center bottom;
-  transition:opacity 0.36s var(--ease), filter 0.36s var(--ease), transform 0.5s var(--ease);
+  cursor:pointer; text-align:left; opacity:0.9; filter:saturate(0.88);
+  transition:opacity 0.3s var(--ease), filter 0.3s var(--ease);
 }
-.tmpl-chip:hover, .tmpl-chip:focus-visible, .tmpl-chip.is-active { opacity:1; filter:none; transform:translateY(-12px) scale(1.08); z-index:1; }
+.tmpl-chip:hover, .tmpl-chip:focus-visible, .tmpl-chip.is-active { opacity:1; filter:none; }
 .tmpl-img-wrap {
   width:100%; aspect-ratio:210/297; height:auto;
   border-radius:6px; overflow:hidden;
@@ -365,7 +364,7 @@ section { padding:var(--section-y) 0; }
 }
 .tmpl-chip.is-active .tmpl-img-wrap, .tmpl-chip:hover .tmpl-img-wrap, .tmpl-chip:focus-visible .tmpl-img-wrap {
   border-color:var(--teal);
-  box-shadow:0 28px 52px -20px rgba(10,164,71,0.3);
+  box-shadow:0 20px 42px -20px rgba(10,164,71,0.26);
 }
 .tmpl-img-wrap img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
 .tmpl-name { margin-top:13px; font-family:var(--font-display); font-size:1rem; font-weight:600; color:var(--navy); white-space:normal; }
@@ -376,7 +375,6 @@ section { padding:var(--section-y) 0; }
   .template-ticker-outer { margin-top:34px; }
   .template-ticker { gap:12px; padding:12px 0 28px; }
   .tmpl-chip { flex-basis:42vw; }
-  .tmpl-chip:hover, .tmpl-chip:focus-visible, .tmpl-chip.is-active { transform:translateY(-8px) scale(1.04); }
 }
 
 /* ── PRICING ── */
@@ -1607,8 +1605,7 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 // Template gallery continuous rail
 (function initTemplateGallery() {
   const rail = document.querySelector('[data-template-gallery]');
-  const viewport = rail?.closest('.template-ticker-outer');
-  if (!rail || !viewport) return;
+  if (!rail) return;
 
   const baseCards = [...rail.querySelectorAll('[data-template-card]')];
   const cycleLength = baseCards.length;
@@ -1625,13 +1622,7 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
   }
 
   const cards = [...rail.querySelectorAll('[data-template-card]')];
-  let activeTemplate = 0;
-  let pinUntil = 0;
-  let isVisible = false;
-  let spotlightFrame;
-
   function selectTemplate(index) {
-    activeTemplate = index;
     cards.forEach((card, cardIndex) => {
       const isSelected = cardIndex % cycleLength === index;
       card.classList.toggle('is-active', isSelected);
@@ -1644,43 +1635,12 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
     rail.style.setProperty('--template-cycle-width', `${firstContinuation.offsetLeft - cards[0].offsetLeft}px`);
   }
 
-  function followSpotlight() {
-    if (!isVisible) return;
-
-    if (performance.now() > pinUntil) {
-      const viewportCenter = viewport.getBoundingClientRect().left + viewport.clientWidth / 2;
-      const closest = cards.reduce((nearest, card, index) => {
-        const rect = card.getBoundingClientRect();
-        const distance = Math.abs(rect.left + rect.width / 2 - viewportCenter);
-        return distance < nearest.distance ? { index, distance } : nearest;
-      }, { index:0, distance:Infinity });
-
-      const nearestTemplate = closest.index % cycleLength;
-      if (nearestTemplate !== activeTemplate) selectTemplate(nearestTemplate);
-    }
-
-    spotlightFrame = window.requestAnimationFrame(followSpotlight);
-  }
-
   baseCards.forEach((card, index) => {
-    card.addEventListener('click', () => {
-      pinUntil = performance.now() + 2400;
-      selectTemplate(index);
-    });
-    card.addEventListener('focus', () => {
-      pinUntil = performance.now() + 2400;
-      selectTemplate(index);
-    });
+    card.addEventListener('click', () => selectTemplate(index));
+    card.addEventListener('focus', () => selectTemplate(index));
   });
 
   window.addEventListener('resize', setCycleWidth, { passive:true });
-  const spotlightObserver = new IntersectionObserver(([entry]) => {
-    isVisible = entry.isIntersecting;
-    window.cancelAnimationFrame(spotlightFrame);
-    if (isVisible) spotlightFrame = window.requestAnimationFrame(followSpotlight);
-  }, { threshold:0.1 });
-  spotlightObserver.observe(viewport);
-
   window.requestAnimationFrame(() => {
     setCycleWidth();
     selectTemplate(0);
