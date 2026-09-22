@@ -42,10 +42,15 @@ closed rather than crash.
    any reintroduced, that's a regression, not a feature.
 
 3. **Payment packages are the single source of truth in `src/lib/packages.ts`**
-   — Silver 39 / Gold 69 / Cover Letter Pro 20 / Platinum 119 (GH₵, in
-   pesewas for Paystack amounts). The public landing page
-   (`public/landing.html`) must mirror these exactly — it has drifted out
-   of sync before and caused a real pricing mismatch bug.
+   — GH₵ amounts in pesewas for Paystack. Currently active (shown in the
+   pricing modal and on the landing page): Professional CV 39 (id `silver`),
+   Standout Cover Letter 20 (id `coverletter`), Job Ready Pack 49 — 1 CV + 1
+   cover letter, recommended (id `combo`). Gold 69 and Platinum 119 (the old
+   multi-CV bundles) are still defined with `hidden: true` — fully valid for
+   the webhook to credit, just not offered for new purchases right now. The
+   public landing page (`public/landing.html`) must mirror the *active* set
+   exactly — it has drifted out of sync before and caused a real pricing
+   mismatch bug.
 
 4. **Cover letters use a fixed traditional Ghanaian formal layout**
    (sender block right, recipient block, "Dear Sir/Madam,", bold subject,

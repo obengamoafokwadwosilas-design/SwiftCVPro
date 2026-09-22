@@ -402,6 +402,8 @@ section { padding:var(--section-y) 0; }
 .price-features { list-style:none; display:flex; flex-direction:column; gap:12px; margin-bottom:28px; }
 .price-features li { display:flex; align-items:flex-start; gap:9px; font-size:0.84rem; color:var(--ink-80); line-height:1.45; }
 .price-features li svg { color:var(--teal-dark); flex-shrink:0; margin-top:2px; }
+.price-feat-value { color:var(--ink-38); font-weight:500; }
+.price-card.featured .price-feat-value { color:rgba(255,255,255,0.45); }
 .price-card.featured .price-name, .price-card.featured .price-figure { color:var(--white); }
 .price-card.featured .price-figure .cur, .price-card.featured .price-desc, .price-card.featured .price-features li { color:rgba(255,255,255,0.7); }
 .price-card.featured .price-bonus { color:#73ef91; }
@@ -506,15 +508,27 @@ section { padding:var(--section-y) 0; }
 .how-step-outcome { font-family:var(--font-mono); font-size:0.68rem; color:var(--teal-dark); letter-spacing:0.03em; margin-top:2px; }
 .how-step-arrow { color:var(--rule-strong); padding-top:9px; flex-shrink:0; }
 @media(max-width:760px){
-  .how-flow { flex-direction: column; align-items:center; gap:26px; }
-  .how-step-arrow { transform:rotate(90deg); padding:0; }
+  .how-flow { flex-direction: column; align-items:stretch; gap:0; }
+  .how-step {
+    display:grid; grid-template-columns:32px 1fr; column-gap:14px; row-gap:3px;
+    text-align:left; align-items:start;
+    padding:16px 0; min-width:0;
+  }
+  .how-step:first-child { padding-top:0; }
+  .how-step:last-child { padding-bottom:0; }
+  .how-step-num { grid-column:1; grid-row:1 / span 3; width:32px; height:32px; font-size:0.72rem; }
+  .how-step-label { grid-column:2; grid-row:1; font-size:1.02rem; }
+  .how-step-sub { grid-column:2; grid-row:2; font-size:0.8rem; }
+  .how-step-outcome { grid-column:2; grid-row:3; margin-top:0; }
+  .how-step-arrow { display:none; }
+  .how-step:not(:first-child) { border-top:1px solid var(--rule-strong); }
 }
 
 /* ── DOCUMENT SHOWCASE ── */
 .cv-types-section { background:var(--white); overflow:hidden; }
 .cv-types-grid { display:flex; align-items:stretch; gap:18px; max-width:1080px; margin:0 auto; }
 .cv-type-card {
-  min-width:0; min-height:480px;
+  min-width:0;
   border:1px solid var(--rule-strong); border-radius:8px;
   background:var(--paper); overflow:hidden;
   display:flex; flex-direction:column;
@@ -532,14 +546,8 @@ section { padding:var(--section-y) 0; }
 .cv-type-visual {
   height:238px; flex-shrink:0; position:relative; overflow:hidden;
   display:flex; align-items:flex-end; justify-content:center;
-  background:var(--navy);
-  border-bottom:1px solid var(--rule-strong);
-  transition:height 0.8s var(--ease), background-color 0.8s var(--ease);
-}
-.cv-type-visual::before {
-  content:""; position:absolute; inset:0;
-  background-image:linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px);
-  background-size:30px 30px;
+  background:var(--paper);
+  transition:height 0.8s var(--ease);
 }
 .cv-type-preview {
   position:relative; width:154px; height:218px; object-fit:contain; object-position:bottom;
@@ -549,10 +557,8 @@ section { padding:var(--section-y) 0; }
 }
 .cv-type-card.is-active .cv-type-visual { height:278px; }
 .cv-type-card.is-active .cv-type-preview { width:190px; height:266px; transform:translateY(18px); }
-.cv-type-visual.academic { background:#26302d; }
 .cv-type-visual.academic .cv-type-preview { transform:translateY(14px) rotate(1deg); }
 .cv-type-card.is-active .cv-type-visual.academic .cv-type-preview { transform:translateY(18px) rotate(0); }
-.cv-type-visual.letter { background:#132843; }
 .cv-type-body { padding:24px 24px 22px; display:flex; flex-direction:column; flex:1; }
 .cv-type-heading { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .cv-type-icon { color:var(--teal-dark); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -563,7 +569,7 @@ section { padding:var(--section-y) 0; }
 .cv-type-features li { display:flex; align-items:center; gap:7px; font-size:0.8rem; color:var(--ink-80); font-weight:600; }
 .cv-type-features li svg { color:var(--teal-dark); flex-shrink:0; }
 .cv-type-link {
-  margin-top:auto; padding-top:15px; border-top:1px solid var(--rule-strong);
+  margin-top:18px; padding-top:15px; border-top:1px solid var(--rule-strong);
   font-size:0.84rem; font-weight:700; color:var(--teal-dark);
   display:flex; align-items:center; justify-content:space-between;
 }
@@ -597,7 +603,7 @@ section { padding:var(--section-y) 0; }
     scrollbar-width:none;
   }
   .cv-types-grid::-webkit-scrollbar { display:none; }
-  .cv-type-card { flex:0 0 auto; width:82vw; max-width:620px; min-height:500px; scroll-snap-align:center; }
+  .cv-type-card { flex:0 0 auto; width:82vw; max-width:620px; scroll-snap-align:center; }
   .cv-type-card.is-active { transform:scale(1); }
   .cv-type-visual, .cv-type-card.is-active .cv-type-visual { height:245px; }
   .cv-type-card.is-active .cv-type-preview { width:174px; height:238px; transform:translateY(16px); }
@@ -1054,13 +1060,13 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
   <div class="container">
     <div class="section-head reveal">
       <span class="section-eyebrow label">Choose what you need</span>
-      <h2 class="section-title">One platform. Every application document you need.</h2>
+      <h2 class="section-title">One platform. Every CV type you need.</h2>
     </div>
     <div class="cv-types-grid" data-document-showcase>
       <div class="cv-type-card reveal rd1 is-active" data-showcase-card>
         <div class="cv-type-visual"><img src="document-professional-wendy.webp" alt="Modern professional CV for Wendy Brown" class="cv-type-preview"></div>
         <div class="cv-type-body">
-          <div class="cv-type-heading"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg></div><div class="cv-type-name">Job-Winning CV</div></div>
+          <div class="cv-type-heading"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg></div><div class="cv-type-name">Professional CV</div></div>
           <p class="cv-type-desc">A polished, ATS-ready CV — tailored to a specific role when you add the job advert.</p>
           <ul class="cv-type-features">
             <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>ATS-ready</li>
@@ -1095,7 +1101,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
     </div>
     <div class="cv-types-controls" aria-label="Document showcase controls">
       <div class="cv-types-dots">
-        <button class="cv-types-dot" type="button" aria-label="Show Job-Winning CV" aria-current="true" data-showcase-dot></button>
+        <button class="cv-types-dot" type="button" aria-label="Show Professional CV" aria-current="true" data-showcase-dot></button>
         <button class="cv-types-dot" type="button" aria-label="Show Academic CV" aria-current="false" data-showcase-dot></button>
         <button class="cv-types-dot" type="button" aria-label="Show Cover Letter" aria-current="false" data-showcase-dot></button>
       </div>
@@ -1180,9 +1186,9 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 
     <div class="pricing-grid reveal">
       <div class="price-card">
-        <div class="price-name">Silver CV</div>
+        <div class="price-name">Professional CV</div>
         <div class="price-figure"><span class="cur">GH₵</span><span class="num">39</span></div>
-        <p class="price-desc">One professional, ATS-optimised CV.</p>
+        <p class="price-desc">Professional, ATS-optimised CV.</p>
         <div class="price-bonus" aria-hidden="true">&nbsp;</div>
         <div class="price-divider"></div>
         <ul class="price-features">
@@ -1193,35 +1199,34 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         <a href="/build?pkg=silver" class="price-btn">Build my CV</a>
       </div>
 
-      <div class="price-card featured">
-        <div class="price-badge">★ Recommended</div>
-        <div class="price-name">Gold Application Pack</div>
-        <div class="price-figure"><span class="cur">GH₵</span><span class="num">69</span></div>
-        <p class="price-desc">Two CVs + one cover letter — best value for active job seekers.</p>
-        <div class="price-bonus">Cover letter worth GH₵20 included</div>
+      <div class="price-card">
+        <div class="price-name">Standout Cover Letter</div>
+        <div class="price-figure"><span class="cur">GH₵</span><span class="num">20</span></div>
+        <p class="price-desc">A compelling cover letter, tailored to the role.</p>
+        <div class="price-bonus" aria-hidden="true">&nbsp;</div>
         <div class="price-divider"></div>
         <ul class="price-features">
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>2 CV credits</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 cover letter credit</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
         </ul>
-        <a href="/build?pkg=gold" class="price-btn">Get Gold →</a>
+        <a href="/build?pkg=coverletter" class="price-btn">Build my Cover Letter</a>
       </div>
 
-      <div class="price-card platinum">
-        <div class="price-name">Platinum Career Pack</div>
-        <div class="price-figure"><span class="cur">GH₵</span><span class="num">119</span></div>
-        <p class="price-desc">For those applying to 4+ roles — best price per document.</p>
-        <div class="price-bonus" aria-hidden="true">&nbsp;</div>
+      <div class="price-card featured">
+        <div class="price-badge">★ Recommended</div>
+        <div class="price-name">Job Ready Pack</div>
+        <div class="price-figure"><span class="cur">GH₵</span><span class="num">49</span></div>
+        <p class="price-desc">CV + cover letter — everything you need for one application.</p>
+        <div class="price-bonus">Save GH₵10</div>
         <div class="price-divider"></div>
         <ul class="price-features">
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>4 CV credits</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>2 cover letter credits</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 CV credit</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 cover letter credit</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
         </ul>
-        <a href="/build?pkg=platinum" class="price-btn">Get Platinum</a>
+        <a href="/build?pkg=combo" class="price-btn">Get the Job Ready Pack →</a>
       </div>
     </div>
 

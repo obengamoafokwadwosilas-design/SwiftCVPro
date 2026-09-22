@@ -2,7 +2,7 @@
 // Paystack amount) and the webhook (crediting). `amount` is in PESEWAS — the
 // Paystack subunit for GHS, where GH₵1 = 100 pesewas. cv / cl are how many CV
 // and cover-letter credits the package grants.
-export type PackageId = 'silver' | 'gold' | 'coverletter' | 'platinum'
+export type PackageId = 'silver' | 'gold' | 'coverletter' | 'platinum' | 'combo'
 
 export interface Package {
   id: PackageId
@@ -14,20 +14,27 @@ export interface Package {
   cl: number      // cover-letter credits granted
   blurb: string
   recommended?: boolean
+  // Kept in PACKAGES (and fully supported by the webhook/crediting logic)
+  // but not offered in the pricing modal or on the landing page for now —
+  // multi-CV bundles are parked, not deleted. Un-hide by removing this flag.
+  hidden?: boolean
 }
 
 export const PACKAGES: Package[] = [
-  { id: 'silver',      name: 'Silver CV',             emoji: '🥈', price: 39, amount: 3900, cv: 1, cl: 0, blurb: '1 Professional CV' },
-  { id: 'gold',        name: 'Gold Application Pack', emoji: '⭐', price: 69, amount: 6900, cv: 2, cl: 1, blurb: '2 CVs + 1 Cover Letter', recommended: true },
-  { id: 'coverletter', name: 'Cover Letter Pro',      emoji: '✉️', price: 20, amount: 2000, cv: 0, cl: 1, blurb: 'Cover Letter only' },
-  { id: 'platinum',    name: 'Platinum Career Pack',  emoji: '👑', price: 119, amount: 11900, cv: 4, cl: 2, blurb: '4 CVs + 2 Cover Letters' },
+  { id: 'silver',      name: 'Professional CV',       emoji: '🥈', price: 39, amount: 3900, cv: 1, cl: 0, blurb: '1 Professional CV' },
+  { id: 'coverletter', name: 'Standout Cover Letter',  emoji: '✉️', price: 20, amount: 2000, cv: 0, cl: 1, blurb: 'Cover Letter only' },
+  { id: 'combo',       name: 'Job Ready Pack',         emoji: '🎯', price: 49, amount: 4900, cv: 1, cl: 1, blurb: '1 CV + 1 Cover Letter', recommended: true },
+  { id: 'gold',        name: 'Gold Application Pack',  emoji: '⭐', price: 69, amount: 6900, cv: 2, cl: 1, blurb: '2 CVs + 1 Cover Letter', hidden: true },
+  { id: 'platinum',    name: 'Platinum Career Pack',   emoji: '👑', price: 119, amount: 11900, cv: 4, cl: 2, blurb: '4 CVs + 2 Cover Letters', hidden: true },
 ]
 
 // Packages relevant to the document being built: a CV needs CV credits, a
-// cover letter needs cover-letter credits — so we never offer, say, "Silver CV"
-// to someone who's making a cover letter.
+// cover letter needs cover-letter credits — so we never offer, say, "Professional CV"
+// to someone who's making a cover letter. Hidden packages (old multi-CV
+// bundles) are parked out of the modal but still valid for the webhook to
+// credit if an old link or receipt ever replays one.
 export function packagesForDoc(isCoverLetter: boolean): Package[] {
-  return PACKAGES.filter(p => (isCoverLetter ? p.cl > 0 : p.cv > 0))
+  return PACKAGES.filter(p => !p.hidden && (isCoverLetter ? p.cl > 0 : p.cv > 0))
 }
 
 // The webhook resolves the package from the amount Paystack actually charged —

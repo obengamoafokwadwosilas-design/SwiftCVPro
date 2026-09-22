@@ -11,7 +11,8 @@ import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed, saveLastInput,
 // ─────────────────────────────────────────────────────────────
 // PRICING MODAL ICONS — each tier gets its own icon colour (a real "these
 // are different products" signal), while the card-level highlight (border,
-// tinted background, BEST VALUE badge) stays reserved for Gold alone. The
+// tinted background, BEST VALUE badge) stays reserved for whichever package
+// has `recommended: true` in packages.ts (currently the Job Ready Pack). The
 // two are separate signals: hue says which tier this is, the highlight says
 // which one to buy.
 // ─────────────────────────────────────────────────────────────
@@ -20,11 +21,13 @@ const PKG_ICON: Record<string, JSX.Element> = {
   gold: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.5l2.9 6.5 7.1.6-5.4 4.6 1.7 7-6.3-4-6.3 4 1.7-7-5.4-4.6 7.1-.6z"/></svg>,
   coverletter: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>,
   platinum: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
+  combo: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
 }
 const TIER_ICON_COLOR: Record<string, { bg: string; fg: string }> = {
   silver: { bg: 'rgba(100,116,139,0.14)', fg: '#64748b' },   // steel grey
   gold: { bg: 'rgba(180,131,15,0.14)', fg: '#b4830f' },      // warm gold
   platinum: { bg: 'rgba(76,29,149,0.10)', fg: '#4c1d95' },   // deep indigo
+  combo: { bg: 'rgba(10,164,71,0.14)', fg: '#0aa447' },      // teal — the recommended pick
   default: { bg: 'rgba(15,23,42,0.05)', fg: 'var(--graphite)' },
 }
 
@@ -1282,7 +1285,7 @@ export default function BuildPage() {
                 Your first two previews are free. You pay only when you download.
               </p>
             )}
-            {/* Someone arriving from a landing-page pricing button (?pkg=gold
+            {/* Someone arriving from a landing-page pricing button (?pkg=combo
                 etc.) had picked a package and then landed here with no way to
                 pay for it — the id was read but only used to highlight a row
                 inside a modal that never opened on its own. This turns that
