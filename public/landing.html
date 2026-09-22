@@ -380,8 +380,19 @@ section { padding:var(--section-y) 0; }
 /* ── PRICING ── */
 .pricing-section { background:var(--paper); overflow:hidden; }
 .pricing-note { text-align:center; color:var(--ink-38); margin-bottom:8px; }
-.pricing-grid { display:grid; grid-template-columns:1fr; gap:18px; max-width:1100px; margin:0 auto; }
-@media(min-width:940px){ .pricing-grid{ grid-template-columns:repeat(3,1fr); align-items:stretch; } }
+.pricing-grid { display:grid; grid-template-columns:1fr; gap:18px; max-width:740px; margin:0 auto; }
+@media(min-width:680px){ .pricing-grid{ grid-template-columns:repeat(2,1fr); align-items:stretch; } }
+.pricing-more { display:none; margin-top:18px; }
+.pricing-more.is-open { display:block; }
+.pricing-viewmore {
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  margin:26px auto 0; padding:10px 4px; background:none; border:0; cursor:pointer;
+  font-family:var(--font-body); font-size:0.86rem; font-weight:600; color:var(--teal-dark);
+}
+.pricing-viewmore svg { transition:transform 0.3s var(--ease); flex-shrink:0; }
+.pricing-viewmore[aria-expanded="true"] svg { transform:rotate(180deg); }
+.pricing-viewmore:hover { color:var(--navy); }
+.pricing-viewmore:focus-visible { outline:2px solid var(--teal); outline-offset:4px; border-radius:4px; }
 .price-card {
   position:relative; isolation:isolate; overflow:hidden; background:var(--white);
   border:1px solid var(--rule-strong); border-radius:8px;
@@ -398,7 +409,7 @@ section { padding:var(--section-y) 0; }
 }
 .price-card.featured::before { height:6px; background:var(--teal); }
 .price-card.platinum::before { background:var(--navy); }
-@media(min-width:940px){ .price-card.featured{ transform:translateY(-14px); } .price-card.featured:hover{ transform:translateY(-20px); } }
+@media(min-width:680px){ .price-card.featured{ transform:translateY(-14px); } .price-card.featured:hover{ transform:translateY(-20px); } }
 .price-badge {
   color:#73ef91; margin-bottom:28px;
   font-family:var(--font-mono); font-size:0.68rem; font-weight:700; letter-spacing:0;
@@ -432,7 +443,7 @@ section { padding:var(--section-y) 0; }
 .pricing-foot { text-align:center; margin-top:38px; }
 .pricing-foot .label { display:block; color:var(--ink-38); }
 .pricing-foot .label + .label { margin-top:4px; }
-@media(max-width:939px){
+@media(max-width:679px){
   .pricing-grid {
     display:flex; gap:14px; max-width:none;
     margin:0 -32px; padding:12px 32px 24px;
@@ -1218,7 +1229,15 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </ul>
         <a href="/build?pkg=coverletter" class="price-btn">Build my Cover Letter</a>
       </div>
+    </div>
 
+    <button type="button" class="pricing-viewmore" onclick="togglePricingMore(this)" aria-expanded="false" aria-controls="pricingMore">
+      <span>Applying to more than one role? View bundle options</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+
+    <div class="pricing-more" id="pricingMore">
+    <div class="pricing-grid">
       <div class="price-card featured">
         <div class="price-badge">★ Recommended</div>
         <div class="price-name">Job Ready Pack</div>
@@ -1234,6 +1253,22 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </ul>
         <a href="/build?pkg=combo" class="price-btn">Get the Job Ready Pack →</a>
       </div>
+
+      <div class="price-card">
+        <div class="price-name">Career Pack</div>
+        <div class="price-figure"><span class="cur">GH₵</span><span class="num">99</span></div>
+        <p class="price-desc">For applying to several roles — 3 CVs + 2 cover letters.</p>
+        <div class="price-bonus">Save GH₵58</div>
+        <div class="price-divider"></div>
+        <ul class="price-features">
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>3 CV credits</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>2 cover letter credits</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
+        </ul>
+        <a href="/build?pkg=career" class="price-btn">Get the Career Pack →</a>
+      </div>
+    </div>
     </div>
 
     <div class="pricing-foot">
@@ -1588,6 +1623,15 @@ function closeMob() {
   ham.classList.remove('open');
   mob.classList.remove('open');
   document.body.style.overflow = '';
+}
+
+function togglePricingMore(btn) {
+  const panel = document.getElementById('pricingMore');
+  const isOpen = panel.classList.toggle('is-open');
+  btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  btn.querySelector('span').textContent = isOpen
+    ? 'Show fewer options'
+    : 'Applying to more than one role? View bundle options';
 }
 
 function toggleFaq(btn) {
