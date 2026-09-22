@@ -339,32 +339,44 @@ section { padding:var(--section-y) 0; }
 
 /* ── TEMPLATES TICKER ── */
 .templates-section { background:var(--white); overflow:hidden; padding-top:2.75rem; }
-.template-ticker-outer { overflow:hidden; position:relative; margin-top:52px; }
+.template-ticker-outer { overflow-x:auto; position:relative; margin-top:48px; scroll-snap-type:x mandatory; scrollbar-width:none; }
+.template-ticker-outer::-webkit-scrollbar { display:none; }
 .template-ticker-outer::before, .template-ticker-outer::after { content:''; position:absolute; top:0; bottom:0; width:120px; z-index:2; pointer-events:none; }
 .template-ticker-outer::before { left:0; background:linear-gradient(90deg,var(--white),transparent); }
 .template-ticker-outer::after { right:0; background:linear-gradient(-90deg,var(--white),transparent); }
-.template-ticker { display:flex; gap:22px; white-space:nowrap; animation:tmplRoll 34s linear infinite; padding:4px 0 24px; }
-.template-ticker:hover { animation-play-state:paused; }
-@keyframes tmplRoll { 0%{transform:translateX(-50%);} 100%{transform:translateX(0);} }
-
-.tmpl-chip { display:inline-flex; flex-direction:column; align-items:flex-start; flex-shrink:0; cursor:pointer; }
+.template-ticker { display:flex; align-items:flex-end; gap:16px; width:max-content; padding:14px max(32px,calc((100vw - 230px) / 2)) 34px; }
+.tmpl-chip {
+  appearance:none; border:0; padding:0; background:none; color:inherit; font:inherit;
+  display:flex; flex-direction:column; align-items:flex-start; flex:0 0 150px;
+  cursor:pointer; text-align:left; opacity:0.52; filter:saturate(0.58);
+  transform:scale(0.92); transform-origin:center bottom; scroll-snap-align:center;
+  transition:flex-basis 0.55s var(--ease), transform 0.55s var(--ease), opacity 0.55s var(--ease), filter 0.55s var(--ease);
+}
+.tmpl-chip.is-active { flex-basis:230px; opacity:1; filter:none; transform:translateY(-12px) scale(1); }
 .tmpl-img-wrap {
-  width:192px; aspect-ratio:210/297; height:auto;
-  border-radius:12px; overflow:hidden;
+  width:100%; aspect-ratio:210/297; height:auto;
+  border-radius:6px; overflow:hidden;
   border:1px solid var(--rule-strong);
   background:var(--white);
   box-shadow:0 12px 30px -14px rgba(23,19,16,0.18);
   transition:transform 0.45s var(--ease), box-shadow 0.45s var(--ease), border-color 0.45s var(--ease);
   position:relative;
 }
-.tmpl-chip:hover .tmpl-img-wrap {
+.tmpl-chip.is-active .tmpl-img-wrap, .tmpl-chip:hover .tmpl-img-wrap {
   border-color:var(--teal);
-  transform:translateY(-6px);
-  box-shadow:0 24px 46px -16px rgba(10,164,71,0.26);
+  box-shadow:0 28px 52px -20px rgba(10,164,71,0.3);
 }
 .tmpl-img-wrap img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
-.tmpl-name { margin-top:14px; font-family:var(--font-display); font-size:1.02rem; font-weight:600; color:var(--navy); white-space:normal; }
-.tmpl-tag { font-family:var(--font-mono); font-size:0.68rem; letter-spacing:0.04em; color:var(--ink-38); margin-top:3px; white-space:normal; }
+.tmpl-name { margin-top:13px; font-family:var(--font-display); font-size:1rem; font-weight:600; color:var(--navy); white-space:normal; }
+.tmpl-tag { font-family:var(--font-mono); font-size:0.68rem; letter-spacing:0; color:var(--ink-38); margin-top:3px; white-space:normal; }
+.tmpl-chip.is-active .tmpl-name { color:var(--teal-dark); }
+.tmpl-chip:focus-visible { outline:2px solid var(--teal); outline-offset:6px; border-radius:6px; }
+@media(max-width:700px){
+  .template-ticker-outer { margin-top:34px; }
+  .template-ticker { gap:12px; padding:12px 32px 28px; }
+  .tmpl-chip { flex-basis:42vw; }
+  .tmpl-chip.is-active { flex-basis:62vw; transform:translateY(-8px) scale(1); }
+}
 
 /* ── PRICING ── */
 .pricing-section { background:var(--paper); overflow:hidden; }
@@ -1036,21 +1048,13 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
     </div>
   </div>
   <div class="template-ticker-outer">
-    <div class="template-ticker">
-      <!-- set 1: real images -->
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-2.webp" alt="Meridian template"></div><div class="tmpl-name">Meridian</div><div class="tmpl-tag">Clean · Recruiter-Safe</div></div>
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-3.webp" alt="Noir template"></div><div class="tmpl-name">Noir</div><div class="tmpl-tag">Refined · Dark</div></div>
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-4.webp" alt="London template"></div><div class="tmpl-name">London</div><div class="tmpl-tag">Editorial · Warm Serif</div></div>
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-5.webp" alt="Nordic template"></div><div class="tmpl-name">Nordic</div><div class="tmpl-tag">Clean · Modern</div></div>
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-6.webp" alt="New York template"></div><div class="tmpl-name">New York</div><div class="tmpl-tag">Bold Serif · Crimson</div></div>
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-7.webp" alt="Graduate template"></div><div class="tmpl-name">Graduate</div><div class="tmpl-tag">Optimistic · Fresh</div></div>
-      <!-- set 2: duplicate for seamless loop -->
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-2.webp" alt="Meridian template"></div><div class="tmpl-name">Meridian</div><div class="tmpl-tag">Clean · Recruiter-Safe</div></div>
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-3.webp" alt="Noir template"></div><div class="tmpl-name">Noir</div><div class="tmpl-tag">Refined · Dark</div></div>
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-4.webp" alt="London template"></div><div class="tmpl-name">London</div><div class="tmpl-tag">Editorial · Warm Serif</div></div>
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-5.webp" alt="Nordic template"></div><div class="tmpl-name">Nordic</div><div class="tmpl-tag">Clean · Modern</div></div>
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-6.webp" alt="New York template"></div><div class="tmpl-name">New York</div><div class="tmpl-tag">Bold Serif · Crimson</div></div>
-      <div class="tmpl-chip"><div class="tmpl-img-wrap"><img src="real-cv-7.webp" alt="Graduate template"></div><div class="tmpl-name">Graduate</div><div class="tmpl-tag">Optimistic · Fresh</div></div>
+    <div class="template-ticker" data-template-gallery>
+      <button class="tmpl-chip is-active" type="button" data-template-card aria-pressed="true"><span class="tmpl-img-wrap"><img src="real-cv-2.webp" alt="Meridian template"></span><span class="tmpl-name">Meridian</span><span class="tmpl-tag">Clean · Recruiter-Safe</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-3.webp" alt="Noir template"></span><span class="tmpl-name">Noir</span><span class="tmpl-tag">Refined · Dark</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-4.webp" alt="London template"></span><span class="tmpl-name">London</span><span class="tmpl-tag">Editorial · Warm Serif</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-5.webp" alt="Nordic template"></span><span class="tmpl-name">Nordic</span><span class="tmpl-tag">Clean · Modern</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-6.webp" alt="New York template"></span><span class="tmpl-name">New York</span><span class="tmpl-tag">Bold Serif · Crimson</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-7.webp" alt="Graduate template"></span><span class="tmpl-name">Graduate</span><span class="tmpl-tag">Optimistic · Fresh</span></button>
     </div>
   </div>
 </section>
@@ -1596,6 +1600,50 @@ const obs = new IntersectionObserver(entries => {
 }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
 
+// Template gallery focus rail
+(function initTemplateGallery() {
+  const rail = document.querySelector('[data-template-gallery]');
+  const viewport = rail?.closest('.template-ticker-outer');
+  if (!rail || !viewport) return;
+
+  const cards = [...rail.querySelectorAll('[data-template-card]')];
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let activeIndex = 0;
+  let scrollTimer;
+
+  function setActive(index, moveViewport = true) {
+    activeIndex = (index + cards.length) % cards.length;
+    cards.forEach((card, cardIndex) => {
+      const isActive = cardIndex === activeIndex;
+      card.classList.toggle('is-active', isActive);
+      card.setAttribute('aria-pressed', String(isActive));
+    });
+
+    if (moveViewport) {
+      const card = cards[activeIndex];
+      const left = card.offsetLeft - (viewport.clientWidth - card.offsetWidth) / 2;
+      viewport.scrollTo({ left, behavior: reducedMotion ? 'auto' : 'smooth' });
+    }
+  }
+
+  cards.forEach((card, index) => {
+    card.addEventListener('click', () => setActive(index));
+    card.addEventListener('focus', () => setActive(index));
+  });
+
+  viewport.addEventListener('scroll', () => {
+    window.clearTimeout(scrollTimer);
+    scrollTimer = window.setTimeout(() => {
+      const viewportCenter = viewport.scrollLeft + viewport.clientWidth / 2;
+      const nearest = cards.reduce((best, card, index) => {
+        const distance = Math.abs(card.offsetLeft + card.offsetWidth / 2 - viewportCenter);
+        return distance < best.distance ? { index, distance } : best;
+      }, { index:activeIndex, distance:Infinity });
+      setActive(nearest.index, false);
+    }, 120);
+  }, { passive:true });
+})();
+
 // Document showcase rotation
 (function initDocumentShowcase() {
   const rail = document.querySelector('[data-document-showcase]');
@@ -1630,7 +1678,7 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
   function startRotation() {
     stopRotation();
     if (isPaused || !isVisible) return;
-    timer = window.setInterval(() => setActive(activeIndex + 1), 4800);
+    timer = window.setInterval(() => setActive(activeIndex + 1), 4200);
   }
 
   dots.forEach((dot, index) => dot.addEventListener('click', () => {
