@@ -144,6 +144,11 @@ export default function BuildPage() {
   const [creditBalance, setCreditBalance] = useState<{ cv: number; cl: number } | null>(null)
   const [cvType, setCvType] = useState<CVType>('professional')
   const [inputMethod, setInputMethod] = useState<'paste' | 'form'>('paste')
+  // Which of the two non-review views shows on the paste screen — only
+  // relevant before a successful upload; once uploadedCV is set, the screen
+  // always shows the review view regardless of this (see the view logic
+  // where it's read).
+  const [pasteInputMode, setPasteInputMode] = useState<'upload' | 'paste'>('upload')
   const [uploadedCV, setUploadedCV] = useState<File | null>(null)
   // Text pulled out of the uploaded CV file as soon as it's added. A File
   // object can't be stored in localStorage, so this is the only form an
@@ -432,7 +437,7 @@ export default function BuildPage() {
   // Every screen change is also a save point — it's the one moment we know
   // the user has finished with the fields on the screen they're leaving
   // (uncontrolled ref inputs give us nothing to watch otherwise). This is what
-  // captures "Anything to add or clarify?" and the guided-form answers, which
+  // captures "Any special instructions?" and the guided-form answers, which
   // are typed after a file is uploaded and so aren't covered by the save on
   // upload itself.
   const go = (s: Screen) => { rememberCurrentInput(); setScreen(s); window.scrollTo({ top: 0, behavior: 'smooth' }) }
@@ -586,7 +591,12 @@ export default function BuildPage() {
     setInputMethod(seed.inputMethod)
     if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
     if (seed.email) setEmail(seed.email)
-    restoreUploadedFile(seed)
+    const hadUpload = restoreUploadedFile(seed)
+    // A restored upload shows the review view automatically (uploadedCV is
+    // set). A restored manual paste needs the view switched explicitly, or
+    // the screen would still default to showing the upload zone with the
+    // paste text hidden behind it.
+    if (seed.pasteContent && !hadUpload) setPasteInputMode('paste')
     // All screens are always mounted (hidden via display:none — see the data-
     // loss fix elsewhere in this file), so refs already exist; still defer one
     // frame so the state updates above have applied before we touch inputs.
@@ -594,9 +604,8 @@ export default function BuildPage() {
       const setVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
         if (v !== undefined && ref.current) ref.current.value = v
       }
-      // The paste-screen textarea is always mounted now (upload and typing
-      // share it), so this needs no extra frame or mode flip — unlike the
-      // old two-view toggle, it's already there to write into.
+      // The textarea stays mounted (hidden, not removed) regardless of which
+      // view is showing, so this needs no extra frame or mode flip to reach it.
       setVal(refs.paste, seed.pasteContent)
       if (seed.form) {
         const f = seed.form
@@ -633,13 +642,13 @@ export default function BuildPage() {
     setInputMethod(seed.inputMethod)
     if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
     if (seed.email) setEmail(seed.email)
-    restoreUploadedFile(seed)
+    const hadUpload = restoreUploadedFile(seed)
+    if (seed.pasteContent && !hadUpload) setPasteInputMode('paste')
     requestAnimationFrame(() => {
       const setVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
         if (v !== undefined && ref.current) ref.current.value = v
       }
-      // The paste-screen textarea is always mounted now, so this needs no
-      // extra frame or mode flip — see the comment in applyBuildSeed above.
+      // The textarea stays mounted regardless of view — see applyBuildSeed above.
       setVal(refs.paste, seed.pasteContent)
       // whyRole ("anything to emphasize") is deliberately NOT restored here —
       // see the comment in rememberCurrentInput. Same reasoning as
@@ -666,6 +675,7 @@ export default function BuildPage() {
     setEmail('')
     setUploadedCV(null)
     setExtractedCVText(null)
+    setPasteInputMode('upload')
     const clearVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>) => { if (ref.current) ref.current.value = '' }
     clearVal(refs.paste)
     clearVal(refs.fullName); clearVal(refs.phone); clearVal(refs.email); clearVal(refs.location)
@@ -1470,61 +1480,80 @@ export default function BuildPage() {
         <div style={{ display: screen === 'paste' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
           <h1 className="xcv-h1" style={{ ...h1Style, fontSize: 'clamp(1.25rem, 3.2vw, 1.7rem)', marginBottom: '22px' }}>Upload or paste your CV</h1>
 
-          {/* Upload and typing both land in the same box below, so there's no
-              either/or tab to pick — just an upload option up front (its own
-              "Ready" chip replaces the dropzone once a file's in) and a review/
-              type box that's always there. */}
-          <UploadZone label="Upload CV / Résumé" hint="PDF or Word (.pdf, .docx) · Max 10 MB" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} readyNote="Ready" />
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }} aria-hidden="true">
-            <div style={{ flex: 1, height: '1px', background: 'var(--rule)' }} />
-            <span style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 500 }}>{uploadedCV ? 'Upload successful — extracted below' : 'or type it below'}</span>
-            <div style={{ flex: 1, height: '1px', background: 'var(--rule)' }} />
-          </div>
-
-          <div style={cardStyle}>
-            {uploadedCV ? (
+          {/* Visible toggle, not a plain link — the "Upload" tab relabels
+              itself once a file's read, so it stays selected and shows the
+              review box automatically (no extra click needed to see what got
+              extracted — that would recreate the exact silent-extraction
+              problem this screen was redesigned to fix). The textarea stays
+              mounted (hidden, not removed) whenever its tab isn't active, so
+              switching tabs never loses what was typed. */}
+          {(() => {
+            const isReview = !!uploadedCV && !uploadReadError
+            const toggleOptions = [
+              { id: 'upload', label: isReview ? 'CV uploaded ✓' : 'Upload a file', icon: UPLOAD_PASTE_OPTIONS[0].icon },
+              UPLOAD_PASTE_OPTIONS[1],
+            ]
+            const showUploadZone = pasteInputMode === 'upload' && !isReview
+            return (
               <>
-                <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: '6px' }}>Review your CV</div>
-                <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>Fix anything wrong or missing below.</p>
-              </>
-            ) : (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: '8px', marginBottom: '10px' }}>
-                  <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 0 }}>Paste your CV here</div>
-                  <button type="button" onClick={() => setShowCvExample(v => !v)}
-                    style={{ fontSize: '11px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
-                    {showCvExample ? '− Hide example' : '→ See example'}
-                  </button>
+                <div style={{ marginBottom: '16px' }}>
+                  <ModeToggle value={pasteInputMode} onChange={setPasteInputMode} options={toggleOptions} />
                 </div>
-                {showCvExample && (
-                  <div style={{ background: '#f7fcf8', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '10px', padding: '12px 14px', marginBottom: '12px', fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '15px', lineHeight: 1.6, color: 'var(--ink)' }}>
-                    &quot;Wendy Brown. Phone: 0266688845. Email: wendy.brown@email.com. Education: BSc Business Administration, University of Ghana, 2020–2024. Experience: Sales Intern, Example Company — helped with customer records, weekly reports, and client follow-ups. Skills: Microsoft Office, communication, customer service.&quot;
-                  </div>
-                )}
-              </>
-            )}
-            {/* Serif, larger, roomier line-height than the standard form
-                textarea (TA()) — this is the one field on the whole screen
-                someone actually writes or reviews a document in, so it should
-                read like a page, not a form input. */}
-            <textarea ref={refs.paste} style={{ ...TA(180), fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', lineHeight: 1.75 }} rows={8} placeholder="Start with your name, contact details, education and experience — rough notes are welcome." />
-          </div>
 
-          {/* Ahead of Tailor your CV — this is about the CV itself (fix or add
-              something), the section below is about the target it's aimed at.
-              Collapsed by default so it doesn't compete for space. */}
+                <div style={{ display: showUploadZone ? 'block' : 'none' }}>
+                  <UploadZone label="Upload CV / Résumé" hint="PDF or Word (.pdf, .docx) · Max 10 MB" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} />
+                </div>
+
+                <div style={{ ...cardStyle, display: showUploadZone ? 'none' : 'block' }}>
+                  {pasteInputMode === 'upload' && isReview ? (
+                    <>
+                      <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: '6px' }}>Review your CV</div>
+                      <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>
+                        Fix anything wrong or missing below. <button type="button" onClick={() => handleCVFileUpload(null)} style={{ fontSize: '12px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>Not this file?</button>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: '8px', marginBottom: '10px' }}>
+                        <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 0 }}>Paste your CV here</div>
+                        <button type="button" onClick={() => setShowCvExample(v => !v)}
+                          style={{ fontSize: '11px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
+                          {showCvExample ? '− Hide example' : '→ See example'}
+                        </button>
+                      </div>
+                      {showCvExample && (
+                        <div style={{ background: '#f7fcf8', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '10px', padding: '12px 14px', marginBottom: '12px', fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '15px', lineHeight: 1.6, color: 'var(--ink)' }}>
+                          &quot;Wendy Brown. Phone: 0266688845. Email: wendy.brown@email.com. Education: BSc Business Administration, University of Ghana, 2020–2024. Experience: Sales Intern, Example Company — helped with customer records, weekly reports, and client follow-ups. Skills: Microsoft Office, communication, customer service.&quot;
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {/* Serif, larger, roomier line-height than the standard form
+                      textarea (TA()) — this is the one field on the whole screen
+                      someone actually writes or reviews a document in, so it should
+                      read like a page, not a form input. */}
+                  <textarea ref={refs.paste} style={{ ...TA(180), fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', lineHeight: 1.75 }} rows={8} placeholder="Start with your name, contact details, education and experience — rough notes are welcome." />
+                </div>
+              </>
+            )
+          })()}
+
+          {/* Corrections and additions now happen by editing the CV box
+              directly above — this is only for instructions the box itself
+              can't express: tone, priorities, what to emphasize. Ahead of
+              Tailor your CV since it's about the CV itself, not the target
+              it's aimed at. Collapsed by default so it doesn't compete for space. */}
           <Collapsible
-            title={tailorMode !== 'none' ? `Anything to emphasize for this ${isAcademic ? 'application' : 'role'}?` : 'Anything to add or clarify?'}
+            title={tailorMode !== 'none' ? `Anything to emphasize for this ${isAcademic ? 'application' : 'role'}?` : 'Any special instructions?'}
             hint={cvType === 'cover_letter'
-              ? 'Add achievements, strengths, or details you want highlighted.'
-              : 'Corrections, additions, or emphasis — e.g. "I was promoted in 2023".'}
+              ? 'Achievements, strengths, or a tone you want the letter to have.'
+              : '"Keep it concise" or "Emphasize leadership over technical skills".'}
             badge="Optional"
           >
             <textarea ref={refs.tailorEmphasisPaste} style={TA(70)} rows={3}
               placeholder={tailorMode !== 'none'
                 ? (cvType === 'cover_letter' ? 'e.g. My leadership experience and passion for this industry' : 'e.g. My project management experience for this specific role')
-                : 'e.g. I was promoted in 2023 — add this'} />
+                : 'e.g. Keep it concise and results-focused'} />
           </Collapsible>
 
           <TailorSection
@@ -1793,12 +1822,12 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             // here denied a use case the generator already supported.
             <>
               <Collapsible
-                title={tailorMode !== 'none' ? 'Anything to emphasize for this role?' : 'Anything to add or clarify?'}
-                hint="Add achievements, strengths, or details you want highlighted."
+                title={tailorMode !== 'none' ? 'Anything to emphasize for this role?' : 'Any special instructions?'}
+                hint="Achievements, strengths, or a tone you want the letter to have."
                 badge="Optional"
               >
                 <textarea ref={refs.tailorEmphasisForm} style={TA(70)} rows={3}
-                  placeholder={tailorMode !== 'none' ? 'e.g. My leadership experience and passion for this industry' : 'e.g. I was promoted in 2023 — add this'} />
+                  placeholder={tailorMode !== 'none' ? 'e.g. My leadership experience and passion for this industry' : 'e.g. Keep it warm but professional'} />
               </Collapsible>
 
               <TailorSection
@@ -1838,12 +1867,12 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             // (upload/paste vs. guided form) someone used to get here.
             <>
               <Collapsible
-                title={tailorMode !== 'none' ? `Anything to emphasize for this ${isAcademic ? 'application' : 'role'}?` : 'Anything to add or clarify?'}
-                hint='Corrections, additions, or emphasis — e.g. "I was promoted in 2023".'
+                title={tailorMode !== 'none' ? `Anything to emphasize for this ${isAcademic ? 'application' : 'role'}?` : 'Any special instructions?'}
+                hint='"Keep it concise" or "Emphasize leadership over technical skills".'
                 badge="Optional"
               >
                 <textarea ref={refs.tailorEmphasisForm} style={TA(70)} rows={3}
-                  placeholder={tailorMode !== 'none' ? 'e.g. My project management experience for this specific role' : 'e.g. I was promoted in 2023 — add this'} />
+                  placeholder={tailorMode !== 'none' ? 'e.g. My project management experience for this specific role' : 'e.g. Keep it concise and results-focused'} />
               </Collapsible>
 
               <TailorSection
@@ -2425,20 +2454,22 @@ function UploadZone({ label, hint, onFile, file, readError, readyNote }: { label
 
   return (
     <>
-    {/* A solid, confident CTA reads as "click this" — the dashed empty-state
-        box this replaced read as a placeholder waiting to be filled, which is
-        the wrong first impression for the very first thing on the screen.
-        Still a real drop target (onDragOver/onDrop below); the highlight only
-        shows up while a file is actually being dragged over it. */}
+    {/* A solid, confident CTA reads as "click this" — the empty dashed box
+        this replaced read as a placeholder waiting to be filled. But the
+        permanent light-green tint + dashed border stays on (not just while
+        actively dragging) so the whole area still visibly reads as a drop
+        zone, not just a button — people shouldn't have to discover drag-
+        and-drop by accident. Dragging over it deepens the tint as feedback
+        that the drop will land. */}
     <div
       onClick={() => ref.current?.click()}
       onDragOver={e => { e.preventDefault(); if (!dragging) setDragging(true) }}
       onDragLeave={e => { e.preventDefault(); setDragging(false) }}
       onDrop={e => { e.preventDefault(); setDragging(false); pick(e.dataTransfer.files?.[0]) }}
       style={{
-        border: `1.5px solid ${dragging ? 'var(--teal)' : fileErr ? '#fca5a5' : 'transparent'}`, borderRadius: '14px',
-        padding: '10px', textAlign: 'center', cursor: 'pointer',
-        background: dragging ? 'var(--teal-tint)' : 'transparent', transition: 'border-color 0.15s, background 0.15s',
+        border: `1.5px dashed ${dragging ? 'var(--teal)' : fileErr ? '#fca5a5' : 'rgba(10,138,63,0.3)'}`, borderRadius: '14px',
+        padding: '22px 10px', textAlign: 'center', cursor: 'pointer',
+        background: dragging ? '#dcf3e6' : 'var(--teal-tint)', transition: 'border-color 0.15s, background 0.15s',
       }}
     >
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', padding: '14px 30px', background: 'var(--teal)', color: 'white', borderRadius: '50px', fontSize: '14.5px', fontWeight: 700, boxShadow: '0 6px 18px rgba(10,138,63,0.22)', fontFamily: "'DM Sans', sans-serif" }}>
