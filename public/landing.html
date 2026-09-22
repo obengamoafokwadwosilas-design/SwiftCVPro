@@ -1722,7 +1722,7 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
   function startRotation() {
     stopRotation();
     if (isPaused || !isVisible) return;
-    timer = window.setInterval(() => setActive(activeIndex + 1), 3500);
+    timer = window.setInterval(() => setActive(activeIndex + 1), 2000);
   }
 
   dots.forEach((dot, index) => dot.addEventListener('click', () => {
