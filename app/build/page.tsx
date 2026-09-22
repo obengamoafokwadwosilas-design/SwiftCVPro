@@ -1507,9 +1507,22 @@ export default function BuildPage() {
                 <div style={{ ...cardStyle, display: showUploadZone ? 'none' : 'block' }}>
                   {pasteInputMode === 'upload' && isReview ? (
                     <>
-                      <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: '6px' }}>Review your CV</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
+                        <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 0 }}>Review your CV</div>
+                        {/* Quiet on purpose, and away from the main sentence —
+                            a rare "start over" escape hatch, not something that
+                            should compete with the actual instruction below. */}
+                        <button type="button" onClick={() => handleCVFileUpload(null)}
+                          style={{ fontSize: '11px', fontWeight: 500, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+                          Not this file?
+                        </button>
+                      </div>
+                      {/* Explicit permission to skip, not just the ability to —
+                          "fix anything wrong" alone reads as an instruction to
+                          scrutinize everything, even for someone who already
+                          knows the extraction is accurate. */}
                       <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>
-                        Fix anything wrong or missing below. <button type="button" onClick={() => handleCVFileUpload(null)} style={{ fontSize: '12px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>Not this file?</button>
+                        Skip to Tailor &amp; Build if nothing needs fixing.
                       </p>
                     </>
                   ) : (
@@ -1545,15 +1558,13 @@ export default function BuildPage() {
               it's aimed at. Collapsed by default so it doesn't compete for space. */}
           <Collapsible
             title={tailorMode !== 'none' ? `Anything to emphasize for this ${isAcademic ? 'application' : 'role'}?` : 'Any special instructions?'}
-            hint={cvType === 'cover_letter'
-              ? 'Achievements, strengths, or a tone you want the letter to have.'
-              : '"Keep it concise" or "Emphasize leadership over technical skills".'}
+            hint={cvType === 'cover_letter' ? 'Achievements, strengths, or a tone you want the letter to have.' : undefined}
             badge="Optional"
           >
             <textarea ref={refs.tailorEmphasisPaste} style={TA(70)} rows={3}
               placeholder={tailorMode !== 'none'
                 ? (cvType === 'cover_letter' ? 'e.g. My leadership experience and passion for this industry' : 'e.g. My project management experience for this specific role')
-                : 'e.g. Keep it concise and results-focused'} />
+                : '"Keep it concise" or "Emphasize leadership over technical skills"'} />
           </Collapsible>
 
           <TailorSection
@@ -1868,11 +1879,10 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             <>
               <Collapsible
                 title={tailorMode !== 'none' ? `Anything to emphasize for this ${isAcademic ? 'application' : 'role'}?` : 'Any special instructions?'}
-                hint='"Keep it concise" or "Emphasize leadership over technical skills".'
                 badge="Optional"
               >
                 <textarea ref={refs.tailorEmphasisForm} style={TA(70)} rows={3}
-                  placeholder={tailorMode !== 'none' ? 'e.g. My project management experience for this specific role' : 'e.g. Keep it concise and results-focused'} />
+                  placeholder={tailorMode !== 'none' ? 'e.g. My project management experience for this specific role' : '"Keep it concise" or "Emphasize leadership over technical skills"'} />
               </Collapsible>
 
               <TailorSection
