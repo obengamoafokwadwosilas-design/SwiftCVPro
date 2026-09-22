@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { cvType, rawContent, jobDescription, phoneNumber, email } = body
+    const { cvType, rawContent, jobDescription, whyRole, phoneNumber, email } = body
     const formData = body.formData
 
     if (!phoneNumber) {
@@ -289,7 +289,8 @@ export async function POST(req: NextRequest) {
         company: body.company || undefined,
         targetProgramme: body.targetProgramme || undefined,
         rawContent,
-        jobDescription
+        jobDescription,
+        whyRole: whyRole || undefined,
       }
       prompt = buildGenerationPrompt(cvFormData)
     }

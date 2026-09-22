@@ -121,6 +121,13 @@ function buildUserInfoBlock(formData: CVFormData): string {
   // Raw content (paste/upload path)
   if (formData.rawContent)    lines.push(`\nRAW CONTENT (old CV / notes / extracted file text):\n${formData.rawContent}`)
 
+  // What the candidate wants emphasized for this specific application. Cover
+  // letters get their own richer version of this inside getTypeInstructions
+  // (framed as motivation, next to the advert) — this generic one is for
+  // every other document type, which has no equivalent place to read it.
+  if (formData.whyRole && formData.cvType !== 'cover_letter')
+    lines.push(`\nWHAT TO EMPHASIZE FOR THIS APPLICATION (prioritise and frame relevant experience accordingly — never invent anything to match it):\n${formData.whyRole}`)
+
   // Form path structured fields
   if (formData.education) {
     lines.push(`\nEDUCATION:\n${formData.education}`)

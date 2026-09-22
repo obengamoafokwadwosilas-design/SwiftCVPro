@@ -80,11 +80,6 @@ const CV_TYPE_META: Record<CVType, { label: string; shortLabel: string; hasJobSt
 // fell through to doGenerate's catch-all and told people their internet had
 // dropped when the real problem was a blurry photo.
 class AdvertReadError extends Error {}
-// Same idea for the CV file itself. Without this, a second failed read (the
-// upload handler already tried once and shown why) fell through to the
-// generic network-error branch below — telling someone to check their wifi
-// when the real problem was sitting in their camera roll the whole time.
-class CVReadError extends Error {}
 
 // ─────────────────────────────────────────────────────────────
 // THE CHOOSER
@@ -149,21 +144,21 @@ export default function BuildPage() {
   const [creditBalance, setCreditBalance] = useState<{ cv: number; cl: number } | null>(null)
   const [cvType, setCvType] = useState<CVType>('professional')
   const [inputMethod, setInputMethod] = useState<'paste' | 'form'>('paste')
-  // Default to upload: this screen is reached from "I have an existing CV",
-  // so a file is the expected input. Pasting is one tap away.
-  const [pasteInputMode, setPasteInputMode] = useState<'paste' | 'upload'>('upload')
   const [uploadedCV, setUploadedCV] = useState<File | null>(null)
-  // Text pulled out of the uploaded CV file as soon as it's added. Serves two
-  // purposes: a File object can't be stored in localStorage, so this is the
-  // only form an upload can be remembered in — and generation reuses it
-  // instead of extracting the same file a second time (that second pass costs
-  // a real Claude vision call for images and scanned PDFs).
+  // Text pulled out of the uploaded CV file as soon as it's added. A File
+  // object can't be stored in localStorage, so this is the only form an
+  // upload can be remembered in for a restored session (see
+  // restoreUploadedFile) — the live generate path just reads refs.paste,
+  // which this same text was written into the moment extraction finished.
   const [extractedCVText, setExtractedCVText] = useState<{ file: File; text: string } | null>(null)
   // Surfaced on the upload card itself when background extraction (below)
   // fails, instead of silently showing "Ready" for a file that was never
   // actually read — someone shouldn't discover their CV was unreadable only
   // after clicking Generate.
   const [uploadReadError, setUploadReadError] = useState('')
+  // "Not sure what to write? See example" on the paste screen — shows a
+  // sample of rough notes turning into a CV, not filled into the real box.
+  const [showCvExample, setShowCvExample] = useState(false)
   // Pricing modal: shown when the user has no credits and must buy a package.
   const [showPricing, setShowPricing] = useState(false)
   const [payPhone, setPayPhone] = useState('')
@@ -244,7 +239,6 @@ export default function BuildPage() {
   // ── Refs ──────────────────────────────────────
   const refs = {
     paste: useRef<HTMLTextAreaElement>(null),
-    clarify: useRef<HTMLTextAreaElement>(null),
     jdPaste: useRef<HTMLTextAreaElement>(null),
     fullName: useRef<HTMLInputElement>(null),
     phone: useRef<HTMLInputElement>(null),
@@ -287,6 +281,14 @@ export default function BuildPage() {
     tailorProgrammePaste: useRef<HTMLInputElement>(null),
     tailorSchoolForm: useRef<HTMLInputElement>(null),
     tailorProgrammeForm: useRef<HTMLInputElement>(null),
+    // "Anything you want emphasized for this role?" — lives inside
+    // TailorSection itself (only shown once a target is chosen), so it needs
+    // the same per-screen ref split as the fields above. form-5's cover-letter
+    // and CV/academic branches share one ref: only one of those two branches
+    // is ever rendered at a time (picked by cvType), unlike paste vs form-5
+    // which are both mounted simultaneously.
+    tailorEmphasisPaste: useRef<HTMLTextAreaElement>(null),
+    tailorEmphasisForm: useRef<HTMLTextAreaElement>(null),
   }
 
   // ── URL param pre-select ──────────────────────
@@ -528,16 +530,11 @@ export default function BuildPage() {
       inputMethod,
       phoneNumber,
       email,
-      // In upload mode there's no paste box to read, so the file's already-
-      // extracted text stands in for the content — that plus the filename
-      // below is everything needed to put the upload card back.
-      pasteContent: inputMethod === 'paste'
-        ? (pasteInputMode === 'paste'
-            ? (refs.paste.current?.value || undefined)
-            : (extractedCVText?.text || undefined))
-        : undefined,
-      uploadedFileName: inputMethod === 'paste' && pasteInputMode === 'upload' ? (uploadedCV?.name || undefined) : undefined,
-      clarifyNotes: inputMethod === 'paste' ? (refs.clarify.current?.value || undefined) : undefined,
+      // An upload now fills this same box with its extracted text the moment
+      // it's read (see handleCVFileUpload), so the textarea is always the
+      // single source of truth regardless of how the content got there.
+      pasteContent: inputMethod === 'paste' ? (refs.paste.current?.value || undefined) : undefined,
+      uploadedFileName: inputMethod === 'paste' ? (uploadedCV?.name || undefined) : undefined,
       form: inputMethod === 'form' ? {
         fullName: refs.fullName.current?.value || undefined,
         phone: refs.phone.current?.value || undefined,
@@ -563,19 +560,22 @@ export default function BuildPage() {
       } : undefined,
       // Both entry points share one JD component now, so both read jdPaste.
       jobDescription: refs.jdPaste.current?.value || undefined,
+      // A cover letter answers this on form-5 before it even knows paste vs
+      // form; other document types only see it on whichever screen they used.
+      // Reading both refs and taking whichever has something covers all of it.
+      whyRole: refs.tailorEmphasisPaste.current?.value || refs.tailorEmphasisForm.current?.value || undefined,
       landingScreen,
     }
   }
 
-  // Puts a remembered upload back on screen as the same green "Ready" card the
-  // user left behind. A File can't be stored, so one is rebuilt from the text
-  // already extracted from it — and registered as the extraction cache in the
-  // same breath, so generation reads that text and never tries to parse this
-  // stand-in. Returns false when there's nothing to restore.
+  // Puts a remembered upload's extracted text back into the review box, and
+  // re-registers it as the extraction cache so generation reads that text
+  // straight off instead of trying to re-parse this stand-in File. A File
+  // itself can't be stored, so one is rebuilt from the text alone. Returns
+  // false when there's nothing to restore.
   function restoreUploadedFile(seed: BuildSeed): boolean {
     if (!seed.uploadedFileName || !seed.pasteContent) return false
     const file = new File([seed.pasteContent], seed.uploadedFileName, { type: 'text/plain' })
-    setPasteInputMode('upload')
     setUploadedCV(file)
     setExtractedCVText({ file, text: seed.pasteContent })
     return true
@@ -586,7 +586,7 @@ export default function BuildPage() {
     setInputMethod(seed.inputMethod)
     if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
     if (seed.email) setEmail(seed.email)
-    const hadUpload = restoreUploadedFile(seed)
+    restoreUploadedFile(seed)
     // All screens are always mounted (hidden via display:none — see the data-
     // loss fix elsewhere in this file), so refs already exist; still defer one
     // frame so the state updates above have applied before we touch inputs.
@@ -594,15 +594,10 @@ export default function BuildPage() {
       const setVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
         if (v !== undefined && ref.current) ref.current.value = v
       }
-      if (seed.pasteContent && !hadUpload) {
-        // The paste textarea only mounts once pasteInputMode is 'paste' (it
-        // defaults to 'upload') — setPasteInputMode is an async state update,
-        // so refs.paste.current is still null right after calling it. Defer
-        // one more frame so the textarea has actually mounted before we touch it.
-        setPasteInputMode('paste')
-        requestAnimationFrame(() => setVal(refs.paste, seed.pasteContent))
-      }
-      setVal(refs.clarify, seed.clarifyNotes)
+      // The paste-screen textarea is always mounted now (upload and typing
+      // share it), so this needs no extra frame or mode flip — unlike the
+      // old two-view toggle, it's already there to write into.
+      setVal(refs.paste, seed.pasteContent)
       if (seed.form) {
         const f = seed.form
         setVal(refs.fullName, f.fullName); setVal(refs.phone, f.phone); setVal(refs.email, f.email); setVal(refs.location, f.location)
@@ -613,6 +608,7 @@ export default function BuildPage() {
         setVal(refs.jobTitle, f.jobTitle); setVal(refs.company, f.company)
       }
       if (seed.jobDescription) { setJdInputMode('paste'); setVal(refs.jdPaste, seed.jobDescription); setVal(refs.jobDesc, seed.jobDescription) }
+      setVal(refs.tailorEmphasisPaste, seed.whyRole); setVal(refs.tailorEmphasisForm, seed.whyRole)
     })
     go(seed.landingScreen)
   }
@@ -637,20 +633,18 @@ export default function BuildPage() {
     setInputMethod(seed.inputMethod)
     if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
     if (seed.email) setEmail(seed.email)
-    const hadUpload = restoreUploadedFile(seed)
+    restoreUploadedFile(seed)
     requestAnimationFrame(() => {
       const setVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
         if (v !== undefined && ref.current) ref.current.value = v
       }
-      if (seed.pasteContent && !hadUpload) {
-        // Same async-mount issue as applyBuildSeed above: the textarea only
-        // exists once pasteInputMode flips to 'paste', one frame after this.
-        setPasteInputMode('paste')
-        requestAnimationFrame(() => setVal(refs.paste, seed.pasteContent))
-      }
-      // Clarify notes are deliberately NOT restored here — see the comment
-      // in rememberCurrentInput. Same reasoning as jobDescription
-      // below: correct for one specific attempt, wrong to resurface later.
+      // The paste-screen textarea is always mounted now, so this needs no
+      // extra frame or mode flip — see the comment in applyBuildSeed above.
+      setVal(refs.paste, seed.pasteContent)
+      // whyRole ("anything to emphasize") is deliberately NOT restored here —
+      // see the comment in rememberCurrentInput. Same reasoning as
+      // jobDescription below: correct for one specific attempt, wrong to
+      // resurface later.
       if (seed.form) {
         const f = seed.form
         setVal(refs.fullName, f.fullName); setVal(refs.phone, f.phone); setVal(refs.email, f.email); setVal(refs.location, f.location)
@@ -673,7 +667,7 @@ export default function BuildPage() {
     setUploadedCV(null)
     setExtractedCVText(null)
     const clearVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>) => { if (ref.current) ref.current.value = '' }
-    clearVal(refs.paste); clearVal(refs.clarify)
+    clearVal(refs.paste)
     clearVal(refs.fullName); clearVal(refs.phone); clearVal(refs.email); clearVal(refs.location)
     clearVal(refs.dob); clearVal(refs.nationality); clearVal(refs.linkedin)
     clearVal(refs.education); clearVal(refs.gpa); clearVal(refs.thesis); clearVal(refs.research)
@@ -732,15 +726,14 @@ export default function BuildPage() {
   function rememberCurrentInput(cachedUploadText?: string, cachedUploadName?: string) {
     if (!rememberMe) return
     const seed = captureBuildSeed('type')
-    // Clarify notes are corrections/emphasis for THIS specific CV attempt —
-    // same category as jobDescription below, not identity — so they
-    // never belong in the permanent "remember me" carry-forward. Stripped
-    // here rather than in captureBuildSeed, which is also used for the
-    // one-shot session seed (payment/rewrite round trips) where keeping them
-    // is correct.
-    delete seed.clarifyNotes
-    // Upload mode has no text of its own to give — captureBuildSeed only reads
-    // the paste box — so fall back to the text extracted from the file.
+    // whyRole and jobDescription are per-attempt, not identity — captured
+    // here (this object doubles as the one-shot payment/rewrite seed, where
+    // keeping them is correct) but never read back by applyLastInput, so
+    // they don't resurface on a later "remember me" visit.
+    // An upload auto-fills the paste box with its extracted text (see
+    // handleCVFileUpload), but only after the textarea mounts a frame later —
+    // called synchronously in that same handler, captureBuildSeed's read of
+    // refs.paste can still be empty. Fall back to the text just extracted.
     const uploadText = cachedUploadText ?? extractedCVText?.text
     if (!seed.pasteContent && uploadText) seed.pasteContent = uploadText
     if (!seed.uploadedFileName && cachedUploadName) seed.uploadedFileName = cachedUploadName
@@ -772,6 +765,10 @@ export default function BuildPage() {
     setUploadReadError('')
     if (!file) {
       setExtractedCVText(null)
+      // Clears whatever the removed file had auto-filled, so "Remove" doesn't
+      // leave orphaned text sitting in the review box with nothing to show
+      // where it came from.
+      if (refs.paste.current) refs.paste.current.value = ''
       // "Remove" has to actually forget it, or the carry-over in
       // rememberCurrentInput would helpfully put it back on the next visit.
       const prev = loadLastInput()
@@ -781,6 +778,11 @@ export default function BuildPage() {
     try {
       const text = await extractFile(file)
       setExtractedCVText({ file, text })
+      // Drop the extracted text straight into the same box a manual paste
+      // uses, so there's one place to review and fix it — not a silent
+      // extraction the user never sees. Deferred a frame because this branch
+      // (uploadedCV just got set above) is what makes the textarea mount.
+      requestAnimationFrame(() => { if (refs.paste.current) refs.paste.current.value = text })
       if (text.replace(/\s+/g, ' ').trim().length >= 80) rememberCurrentInput(text, file.name)
     } catch (err: any) {
       setExtractedCVText(null)
@@ -793,10 +795,9 @@ export default function BuildPage() {
     if (!phoneNumber.trim()) return 'phone'
     if (!email.trim()) return 'email'
     if (inputMethod === 'paste') {
-      // Switching tabs is a display choice, not a delete — a remembered
-      // upload stays valid whichever tab happens to be open. Only complain
-      // when neither source actually has anything.
-      if (!refs.paste.current?.value.trim() && !uploadedCV) return pasteInputMode === 'upload' ? 'file' : 'content'
+      // Upload and typing both land in this one box, so there's only one
+      // thing to check regardless of how the content got there.
+      if (!refs.paste.current?.value.trim()) return 'content'
     }
     if (inputMethod === 'form') {
       if (!refs.fullName.current?.value.trim()) return 'name'
@@ -811,8 +812,7 @@ export default function BuildPage() {
     if (validErr) {
       const msgs: Record<string, {title:string;msg:string;type:any}> = {
         phone:    { title: 'Phone number required', msg: 'Please enter your phone number so we can link your credit to the right account.', type: 'input' },
-        content:  { title: 'No CV content', msg: 'Please paste your CV or notes before generating.', type: 'input' },
-        file:     { title: 'No file uploaded', msg: 'Please upload your CV file before generating.', type: 'input' },
+        content:  { title: 'No CV content', msg: 'Please upload your CV or type it in before generating.', type: 'input' },
         name:     { title: 'Name required', msg: 'Please enter your full name.', type: 'input' },
         email:    { title: 'Email required', msg: 'Please enter your email address.', type: 'input' },
         location: { title: 'Location required', msg: 'Please enter your location (e.g. Accra, Ghana).', type: 'input' },
@@ -864,22 +864,12 @@ export default function BuildPage() {
       let jobDescription = ''
 
       if (inputMethod === 'paste') {
-        const pastedByHand = !!refs.paste.current?.value.trim()
-        const fromUpload = !!uploadedCV && !pastedByHand
-        // Reuse the text already pulled out when the file was added — for an
-        // image or scanned PDF a second extraction means a second Claude
-        // vision call, i.e. paying twice to read the same document.
-        rawContent = fromUpload
-          ? (extractedCVText?.file === uploadedCV
-              ? extractedCVText.text
-              : await (async () => {
-                  try {
-                    return await extractFile(uploadedCV as File)
-                  } catch (err: any) {
-                    throw new CVReadError(err?.message || '')
-                  }
-                })())
-          : refs.paste.current?.value || ''
+        // An upload auto-fills this same box the moment it's read (see
+        // handleCVFileUpload) and stays editable from there, so whatever's in
+        // it now — typed by hand, extracted, or extracted-then-corrected — is
+        // the one true content. No second extraction needed at generate time.
+        rawContent = refs.paste.current?.value || ''
+        const fromUpload = !!uploadedCV
 
         // A CV that yields almost no text is either an unreadable scan, a
         // wrong/blank file, or a few stray words pasted in. Generating from
@@ -893,11 +883,10 @@ export default function BuildPage() {
         }
 
         // Belt and braces: the upload handler and every screen change already
-        // save, but this is the last moment before the input is consumed.
-        if (fromUpload) rememberCurrentInput(rawContent, uploadedCV?.name)
+        // save, but this is the last moment before the input is consumed —
+        // and by now all state has settled, so a plain call reads it correctly.
+        if (fromUpload) rememberCurrentInput()
 
-        const clarify = refs.clarify.current?.value?.trim()
-        if (clarify) rawContent += '\n\nADDITIONAL NOTES:\n' + clarify
         // Only read the advert if that's the option they actually chose, so a
         // switch to "aim" or "just upgrade" can't leave stale advert text in.
         // Academic has no separate advert option — its optional call sits
@@ -951,6 +940,7 @@ export default function BuildPage() {
           targetIndustry: r.tailorIndustryForm.current?.value || undefined,
           targetProgramme: isAcademic ? (r.tailorProgrammeForm.current?.value || undefined) : undefined,
           jobDescription: wantsAdvertJD ? (jobDescription || undefined) : undefined,
+          whyRole: tailorMode !== 'none' ? (r.tailorEmphasisForm.current?.value || undefined) : undefined,
           // Cover-letter recipient (formal Ghanaian address block)
           addressee: cvType === 'cover_letter' ? (r.addressee.current?.value || undefined) : undefined,
           companyAddress: cvType === 'cover_letter' ? (r.companyAddress.current?.value || undefined) : undefined,
@@ -1000,6 +990,7 @@ export default function BuildPage() {
           // Academic only — the institution and course being applied to.
           company: tailorMode === 'aim' ? (refs.tailorSchoolPaste.current?.value || undefined) : undefined,
           targetProgramme: tailorMode === 'aim' ? (refs.tailorProgrammePaste.current?.value || undefined) : undefined,
+          whyRole: tailorMode !== 'none' ? (refs.tailorEmphasisPaste.current?.value || undefined) : undefined,
           phoneNumber: normalizedPhone,
           email,
         })
@@ -1031,14 +1022,6 @@ export default function BuildPage() {
       // An unreadable advert file is the user's photo, not their connection —
       // saying "lost connection" here sent people to check their internet
       // when what they needed was a clearer picture.
-      if (err instanceof CVReadError) {
-        setError({
-          title: 'We couldn’t read your CV file',
-          msg: err.message || 'It may be a blurry photo, a scan, or password-protected. Try a clearer picture or a PDF/Word file — or paste the text in instead.',
-          type: 'input',
-        })
-        return
-      }
       if (err instanceof AdvertReadError) {
         setError({
           title: 'We couldn’t read that file',
@@ -1488,36 +1471,52 @@ export default function BuildPage() {
           <h1 className="xcv-h1" style={h1Style}>Share Your CV Content</h1>
           {/* Name the document they'll get, so there's no doubt what this input
               is being turned into. */}
-          <p style={subStyle}>Upload your CV or paste it in as text — we&apos;ll create your {meta.label}.</p>
+          <p style={subStyle}>Upload your CV, or type it in below — we&apos;ll create your {meta.label}.</p>
 
-          <div style={{ marginBottom: '16px' }}>
-            <ModeToggle value={pasteInputMode} onChange={v => setPasteInputMode(v as any)} options={UPLOAD_PASTE_OPTIONS} />
+          {/* Upload and typing both land in the same box below, so there's no
+              either/or tab to pick — just an upload option up front (its own
+              "Ready" chip replaces the dropzone once a file's in) and a review/
+              type box that's always there. */}
+          <UploadZone label="Upload CV / Résumé" hint="PDF, Word, text, or a photo — or drag and drop" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} readyNote="We pulled the text out below — review it before continuing." />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '16px 0' }} aria-hidden="true">
+            <div style={{ flex: 1, height: '1px', background: 'var(--rule)' }} />
+            <span style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 500 }}>{uploadedCV ? 'or edit it below' : 'or type it below'}</span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--rule)' }} />
           </div>
 
-          {pasteInputMode === 'paste' ? (
-            <div style={cardStyle}>
-              <div style={cardTitleStyle}>Paste your CV here</div>
-              <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>Any format works — Word, PDF, rough notes.</p>
-              <textarea ref={refs.paste} style={TA(180)} rows={8} placeholder="Paste your CV content here — any format is fine..." />
-            </div>
-          ) : (
-            <UploadZone label="Drop your CV here, or click to browse" hint="PDF · Word (.docx) · Text (.txt) · or a photo of your CV" onFile={handleCVFileUpload} file={uploadedCV} readError={uploadReadError} />
-          )}
-
-          {/* The prompt for extra detail is worded for the document being made —
-              a letter wants strengths and motivation, an academic CV wants
-              research and teaching, a CV wants corrections and emphasis. */}
-          <Collapsible
-            title="Anything to add or clarify?"
-            hint={isCoverLetter
-              ? 'Add achievements, strengths, or details you want highlighted — e.g. “I led the team that cut waiting times by half”.'
-              : cvType === 'academic'
-                ? 'Research or publications to emphasise — e.g. “Add my undergraduate project on the effects of radiation”.'
-                : 'Corrections or emphasis — e.g. “I was promoted in 2023”.'}
-            badge="Optional"
-          >
-            <textarea ref={refs.clarify} style={TA(70)} rows={3} placeholder={isCoverLetter ? 'What should the letter emphasise? — or leave blank...' : 'Type any special requests — or leave blank...'} />
-          </Collapsible>
+          <div style={cardStyle}>
+            {uploadedCV ? (
+              <>
+                <div style={cardTitleStyle}>Review your CV</div>
+                <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>We pulled this out of your file — check it&apos;s correct and fix anything wrong or missing.</p>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' as const, gap: '8px', marginBottom: '4px' }}>
+                  <div style={cardTitleStyle}>Paste your CV here</div>
+                  <button type="button" onClick={() => setShowCvExample(v => !v)}
+                    style={{ fontSize: '12px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
+                    {showCvExample ? '− Hide example' : '→ Not sure what to write? See example'}
+                  </button>
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>Any format works — Word, PDF, rough notes.</p>
+                {showCvExample && (
+                  <div style={{ background: '#f7fcf8', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '10px', padding: '12px 14px', marginBottom: '12px', fontSize: '12.5px', color: 'var(--graphite)', lineHeight: 1.7 }}>
+                    Rough notes are fine — we&apos;ll structure and polish it. For example:
+                    <div style={{ marginTop: '6px', fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '15px', lineHeight: 1.6, color: 'var(--ink)' }}>
+                      &quot;Kwame Mensah. Worked as Accounts Officer at GCB Bank for 3 years — handled reconciliations, client onboarding, daily cash reports. Before that, customer service at MTN for 2 years. BSc Accounting, University of Ghana, 2019. Good with Excel, SAP, and Sage.&quot;
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            {/* Serif, larger, roomier line-height than the standard form
+                textarea (TA()) — this is the one field on the whole screen
+                someone actually writes or reviews a document in, so it should
+                read like a page, not a form input. */}
+            <textarea ref={refs.paste} style={{ ...TA(180), fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', lineHeight: 1.75 }} rows={8} placeholder="Paste your CV content here — any format is fine..." />
+          </div>
 
           <TailorSection
             mode={tailorMode} setMode={setTailorMode}
@@ -1528,12 +1527,13 @@ export default function BuildPage() {
             jdFile={uploadedJD} setJdFile={setUploadedJD}
             jobRef={refs.tailorJobPaste} industryRef={refs.tailorIndustryPaste}
             schoolRef={refs.tailorSchoolPaste} programmeRef={refs.tailorProgrammePaste}
+            emphasisRef={refs.tailorEmphasisPaste}
           />
 
           <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={handleGenerate} disabled={isGenerating || (pasteInputMode === 'upload' && !!uploadReadError)} style={{ ...btnPrimary, opacity: (isGenerating || (pasteInputMode === 'upload' && !!uploadReadError)) ? 0.6 : 1 }}>
+            <button onClick={handleGenerate} disabled={isGenerating || !!uploadReadError} style={{ ...btnPrimary, opacity: (isGenerating || uploadReadError) ? 0.6 : 1 }}>
               {isGenerating ? 'Generating…' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
           </div>
@@ -1791,6 +1791,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                 jdPasteRef={refs.jdPaste}
                 jdFile={uploadedJD} setJdFile={setUploadedJD}
                 jobRef={refs.jobTitle} industryRef={refs.company}
+                emphasisRef={refs.tailorEmphasisForm}
               />
 
               {/* Who the letter is aimed at. Hidden for a general letter, which
@@ -1828,6 +1829,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
               jdFile={uploadedJD} setJdFile={setUploadedJD}
               jobRef={refs.jobTitle} industryRef={refs.tailorIndustryForm}
               schoolRef={refs.tailorSchoolForm} programmeRef={refs.tailorProgrammeForm}
+              emphasisRef={refs.tailorEmphasisForm}
             />
           )}
 
@@ -1894,7 +1896,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
           )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={handleGenerate} disabled={isGenerating || !!paymentPending || (pasteInputMode === 'upload' && !!uploadReadError)} style={{ ...btnPrimary, opacity: (isGenerating || paymentPending || (pasteInputMode === 'upload' && !!uploadReadError)) ? 0.6 : 1 }}>
+            <button onClick={handleGenerate} disabled={isGenerating || !!paymentPending || !!uploadReadError} style={{ ...btnPrimary, opacity: (isGenerating || paymentPending || uploadReadError) ? 0.6 : 1 }}>
               {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
             </button>
           </div>
@@ -2129,7 +2131,7 @@ function ModeToggle({ value, onChange, options }: { value: string; onChange: (v:
 // One exclusive choice for how to aim the document, replacing the two separate
 // optional boxes that could both be filled. Fields appear only under the
 // selected option — greyed-out-but-visible inputs are just noise on a phone.
-function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode, jdPasteRef, jdFile, setJdFile, jobRef, industryRef, schoolRef, programmeRef }: {
+function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode, jdPasteRef, jdFile, setJdFile, jobRef, industryRef, schoolRef, programmeRef, emphasisRef }: {
   mode: 'advert' | 'aim' | 'none'; setMode: (m: 'advert' | 'aim' | 'none') => void
   isLetter: boolean
   isAcademic?: boolean
@@ -2138,6 +2140,7 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
   jdFile: File | null; setJdFile: (f: File | null) => void
   jobRef: React.RefObject<HTMLInputElement>; industryRef: React.RefObject<HTMLInputElement>
   schoolRef?: React.RefObject<HTMLInputElement>; programmeRef?: React.RefObject<HTMLInputElement>
+  emphasisRef: React.RefObject<HTMLTextAreaElement>
 }) {
   const doc = isLetter ? 'letter' : 'CV'
   // An academic application is aimed at a programme, fellowship or faculty
@@ -2193,7 +2196,7 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
                   </div>
                   {jdMode === 'paste'
                     ? <textarea ref={jdPasteRef} style={TA(110)} rows={5} placeholder="Paste the job advert here..." />
-                    : <UploadZone label="Drop the job advert here, or click to browse" hint="PDF · Word · Image (screenshot)" onFile={setJdFile} file={jdFile} />}
+                    : <UploadZone label="Upload the job advert" hint="PDF · Word · Image (screenshot) — or drag and drop" onFile={setJdFile} file={jdFile} />}
                 </div>
               )}
 
@@ -2238,32 +2241,18 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, jdMode, setJdMode,
           )
         })}
       </div>
-    </div>
-  )
-}
 
-function Collapsible({ title, hint, badge, defaultOpen = false, children }: { title: string; hint?: string; badge?: string; defaultOpen?: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen)
-  // defaultOpen can turn true after mount — restoring saved notes on a return
-  // visit only happens once the seed has been read — so follow it rather than
-  // reading it a single time at mount.
-  useEffect(() => { if (defaultOpen) setOpen(true) }, [defaultOpen])
-  return (
-    <div style={{ border: '1px solid var(--rule)', borderRadius: '14px', background: 'white', marginBottom: '14px', overflow: 'hidden' }}>
-      <button onClick={() => setOpen(v => !v)}
-        style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '15px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' as const, fontFamily: "'DM Sans', sans-serif" }}>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>{title}</span>
-          {hint && <span style={{ display: 'block', fontSize: '12px', color: 'var(--muted)', marginTop: '2px', fontWeight: 300, lineHeight: 1.5 }}>{hint}</span>}
-        </span>
-        {badge && <span style={{ fontSize: '10.5px', fontWeight: 600, color: 'var(--muted)', flexShrink: 0 }}>{badge}</span>}
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      {/* Hidden rather than unmounted: an uncontrolled textarea loses whatever
-          was typed the instant it unmounts (the same data-loss trap the build
-          screens already avoid), and a ref pointing at an unmounted node can't
-          be pre-filled when restoring a previous visit. */}
-      <div style={{ padding: '0 18px 18px', display: open ? 'block' : 'none' }}>{children}</div>
+      {/* Only makes sense once there's an actual target — "just upgrade my
+          CV" / "a general letter" name no role to emphasize anything for. */}
+      {mode !== 'none' && (
+        <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--rule)' }}>
+          <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            Anything to emphasize for this {isAcademic ? 'application' : 'role'}? <span style={optBadge}>Optional</span>
+          </label>
+          <textarea ref={emphasisRef} style={{ ...TA(60), marginTop: '5px' }} rows={2}
+            placeholder={isLetter ? 'e.g. My leadership experience and passion for this industry' : 'e.g. My project management experience for this specific role'} />
+        </div>
+      )}
     </div>
   )
 }
@@ -2325,7 +2314,7 @@ const SIGNATURES: Record<string, { label: string; check: (b: Uint8Array) => bool
             at(b, [0xEF, 0xBB, 0xBF]) || at(b, [0xFF, 0xFE]) || at(b, [0xFE, 0xFF]) || !b.includes(0) },
 }
 
-function UploadZone({ label, hint, onFile, file, readError }: { label: string; hint: string; onFile: (f: File | null) => void; file: File | null; readError?: string }) {
+function UploadZone({ label, hint, onFile, file, readError, readyNote }: { label: string; hint: string; onFile: (f: File | null) => void; file: File | null; readError?: string; readyNote?: string }) {
   const ref = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
   const [fileErr, setFileErr] = useState('')
@@ -2350,7 +2339,7 @@ function UploadZone({ label, hint, onFile, file, readError }: { label: string; h
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{file.name}</div>
-        <div style={{ fontSize: '12px', color: 'var(--graphite)', fontWeight: 300 }}>Ready — we’ll read this when you generate</div>
+        <div style={{ fontSize: '12px', color: 'var(--graphite)', fontWeight: 300 }}>{readyNote || 'Ready — we’ll read this when you generate'}</div>
       </div>
       <button onClick={() => onFile(null)} style={{ fontSize: '12px', color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Remove</button>
     </div>
@@ -2393,23 +2382,27 @@ function UploadZone({ label, hint, onFile, file, readError }: { label: string; h
 
   return (
     <>
+    {/* A solid, confident CTA reads as "click this" — the dashed empty-state
+        box this replaced read as a placeholder waiting to be filled, which is
+        the wrong first impression for the very first thing on the screen.
+        Still a real drop target (onDragOver/onDrop below); the highlight only
+        shows up while a file is actually being dragged over it. */}
     <div
       onClick={() => ref.current?.click()}
       onDragOver={e => { e.preventDefault(); if (!dragging) setDragging(true) }}
       onDragLeave={e => { e.preventDefault(); setDragging(false) }}
       onDrop={e => { e.preventDefault(); setDragging(false); pick(e.dataTransfer.files?.[0]) }}
       style={{
-        border: `2px dashed ${dragging ? 'var(--teal)' : fileErr ? '#fca5a5' : '#dbe2ea'}`, borderRadius: '16px',
-        padding: '38px 24px', textAlign: 'center', cursor: 'pointer',
-        background: dragging ? 'var(--teal-tint)' : '#fcfdfe', transition: 'border-color 0.15s, background 0.15s',
+        border: `1.5px solid ${dragging ? 'var(--teal)' : fileErr ? '#fca5a5' : 'transparent'}`, borderRadius: '14px',
+        padding: '10px', textAlign: 'center', cursor: 'pointer',
+        background: dragging ? 'var(--teal-tint)' : 'transparent', transition: 'border-color 0.15s, background 0.15s',
       }}
     >
-      <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: dragging ? 'var(--teal)' : '#eef4f8', color: dragging ? '#fff' : 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', transition: 'background 0.15s, color 0.15s' }}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round"/></svg>
-      </div>
-      <div style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '5px' }}>{label}</div>
-      <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 300, marginBottom: '16px' }}>{hint}</div>
-      <span style={{ display: 'inline-block', padding: '10px 26px', background: 'var(--teal)', color: 'white', borderRadius: '50px', fontSize: '13px', fontWeight: 600 }}>Browse files</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', padding: '14px 30px', background: 'var(--teal)', color: 'white', borderRadius: '50px', fontSize: '14.5px', fontWeight: 700, boxShadow: '0 6px 18px rgba(10,138,63,0.22)', fontFamily: "'DM Sans', sans-serif" }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+        {label}
+      </span>
+      <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 300, marginTop: '10px' }}>{hint}</div>
       <input ref={ref} type="file" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }}
         onChange={e => { const el = e.target; pick(el.files?.[0]).finally(() => { el.value = '' }) }} />
     </div>
