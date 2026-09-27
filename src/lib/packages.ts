@@ -22,9 +22,9 @@ export interface Package {
 
 export const PACKAGES: Package[] = [
   { id: 'silver',      name: 'Professional CV',       emoji: '🥈', price: 39, amount: 3900, cv: 1, cl: 0, blurb: '1 Professional CV' },
-  { id: 'coverletter', name: 'Standout Cover Letter',  emoji: '✉️', price: 20, amount: 2000, cv: 0, cl: 1, blurb: 'Cover Letter only' },
-  { id: 'combo',       name: 'Job Ready Pack',         emoji: '🎯', price: 49, amount: 4900, cv: 1, cl: 1, blurb: '1 CV + 1 Cover Letter', recommended: true },
-  { id: 'career',      name: 'Career Pack',            emoji: '🚀', price: 99, amount: 9900, cv: 3, cl: 2, blurb: '3 CVs + 2 Cover Letters' },
+  { id: 'coverletter', name: 'Standout Cover Letter',  emoji: '✉️', price: 19, amount: 1900, cv: 0, cl: 1, blurb: 'Cover Letter only' },
+  { id: 'combo',       name: 'Job Ready Pack',         emoji: '🎯', price: 45, amount: 4500, cv: 1, cl: 1, blurb: '1 CV + 1 Cover Letter', recommended: true },
+  { id: 'career',      name: 'Career Pack',            emoji: '🚀', price: 129, amount: 12900, cv: 3, cl: 2, blurb: '3 CVs + 2 Cover Letters' },
   { id: 'gold',        name: 'Gold Application Pack',  emoji: '⭐', price: 69, amount: 6900, cv: 2, cl: 1, blurb: '2 CVs + 1 Cover Letter', hidden: true },
   { id: 'platinum',    name: 'Platinum Career Pack',   emoji: '👑', price: 119, amount: 11900, cv: 4, cl: 2, blurb: '4 CVs + 2 Cover Letters', hidden: true },
 ]
