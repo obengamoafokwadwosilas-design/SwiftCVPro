@@ -1,18 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 const font = "'DM Sans', sans-serif"
 const serif = "'Cormorant Garamond', serif"
 
-// Standalone way to answer "how many credits do I have left" without having
-// to start building something first — previously the only place a balance
-// ever showed up was mid-way through the builder, once a phone number had
-// already been entered there. No PIN gate here (unlike CVHistoryModal): a
-// credit count isn't the sensitive thing a saved CV's personal details are,
-// so keeping this to one field keeps it genuinely quick to check.
 export default function BalanceModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [phone, setPhone] = useState('')
+  const router = useRouter()
+  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<{ credits: number; coverLetterCredits: number } | null>(null)
@@ -20,20 +16,21 @@ export default function BalanceModal({ open, onClose }: { open: boolean; onClose
   if (!open) return null
 
   function reset() {
-    setPhone(''); setError(''); setResult(null)
+    setEmail(''); setError(''); setResult(null)
   }
 
   async function checkBalance() {
-    if (!phone.trim()) { setError('Enter your phone number.'); return }
+    if (!email.trim()) { setError('Enter your email address.'); return }
     setLoading(true); setError('')
     try {
       const res = await fetch('/api/check-credits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone }),
+        body: JSON.stringify({ email }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Could not check your balance.'); return }
+      if (data.verificationRequired) { setError('Verify your email in My CVs to view your balance.'); return }
       setResult({ credits: data.credits || 0, coverLetterCredits: data.coverLetterCredits || 0 })
     } catch {
       setError('Could not connect. Please check your internet and try again.')
@@ -58,17 +55,19 @@ export default function BalanceModal({ open, onClose }: { open: boolean; onClose
 
         {!result ? (
           <>
-            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px', lineHeight: 1.6 }}>Enter the phone number you used to buy credits.</p>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px', lineHeight: 1.6 }}>Enter the email you used to buy credits.</p>
             <input
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') checkBalance() }}
-              placeholder="e.g. 0551234567"
+              placeholder="you@example.com"
               style={{ width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontFamily: font, fontSize: '13.5px', color: '#0a0f1a', boxSizing: 'border-box' as const }}
             />
             <button onClick={checkBalance} disabled={loading} style={{ padding: '12px 20px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: font, width: '100%', marginTop: '14px', opacity: loading ? 0.6 : 1 }}>
               {loading ? 'Checking…' : 'Check Balance'}
             </button>
+            {error.includes('Verify your email') && <button onClick={() => { onClose(); reset(); router.push('/my-cvs') }} style={{ background: 'none', border: 'none', color: '#0a8a3f', cursor: 'pointer', marginTop: '12px' }}>Open My CVs to verify email</button>}
           </>
         ) : (
           <>
@@ -93,12 +92,12 @@ export default function BalanceModal({ open, onClose }: { open: boolean; onClose
               </div>
             ) : (
               <div style={{ textAlign: 'center' as const, padding: '10px 0 18px' }}>
-                <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px' }}>No credits on this number yet</div>
+                <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px' }}>No credits on this email yet</div>
                 <div style={{ fontSize: '12.5px', color: '#64748b', lineHeight: 1.6 }}>You can still generate a preview for free — payment is only needed when you download.</div>
               </div>
             )}
             <button onClick={reset} style={{ background: 'none', border: '1px solid #e2e8f0', color: '#64748b', borderRadius: '50px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', fontFamily: font, width: '100%', padding: '11px 20px' }}>
-              Check another number
+              Check another email
             </button>
           </>
         )}

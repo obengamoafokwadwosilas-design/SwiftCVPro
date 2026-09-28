@@ -289,7 +289,6 @@ export default function BuildPage() {
   }
 
   // ── URL param pre-select ──────────────────────
-  // Shared with applyLastInput, which must not overwrite an explicit ?type=.
   const urlCvType = (): CVType | null => {
     if (typeof window === 'undefined') return null
     const t = new URLSearchParams(window.location.search).get('type') as CVType
@@ -582,9 +581,7 @@ export default function BuildPage() {
     go(seed.landingScreen)
   }
 
-  // "Not you?" — wipes the remembered info from this device and clears every
-  // field it pre-filled, so a shared device doesn't stay stuck with someone
-  // else's phone number and CV text.
+  // Clear local draft fields when someone changes identity on a shared device.
   function clearSavedInfo() {
     clearLastInput()
     setEmail('')
@@ -1093,8 +1090,8 @@ export default function BuildPage() {
                     Purchase CV credits
                   </button>
                   {screen !== 'type' && (
-                    <button type="button" onClick={switchNumber} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
-                      Not you? <span style={{ color: 'var(--teal)', fontWeight: 500 }}>Switch number</span>
+                    <button type="button" onClick={() => { clearSavedInfo(); go('type') }} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
+                      Not you? <span style={{ color: 'var(--teal)', fontWeight: 500 }}>Switch email</span>
                     </button>
                   )}
                 </div>

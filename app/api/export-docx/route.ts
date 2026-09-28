@@ -92,8 +92,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'ACCESS_REQUIRED', message: 'Verify your email to download your saved CVs.' }, { status: 401 })
     }
     const ownerId = access.id
+    const isCoverLetterDoc = !!cv.coverLetterBody
 
-    const alreadyPaid = historyId ? await isDownloadPaid(ownerId, historyId, !!cv.coverLetterBody) : false
+    const alreadyPaid = historyId ? await isDownloadPaid(ownerId, historyId, isCoverLetterDoc) : false
     if (!alreadyPaid) {
       const paid = isCoverLetterDoc ? await hasCoverLetterCredit(ownerId) : await hasCredits(ownerId)
       if (!paid) {

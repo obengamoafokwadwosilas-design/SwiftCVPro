@@ -1,8 +1,12 @@
 # SwiftCVPro — Agent Notes
 
 Next.js 14 App Router, TypeScript. AI-generated CV/cover-letter builder for
-the Ghanaian market — phone-number identity (no accounts), Paystack
+the Ghanaian market — email-link identity (no passwords), Paystack
 payments, Supabase for storage.
+
+Run `supabase_email_identity.sql` in the Supabase SQL Editor before deploying
+the email identity flow. The old phone-based tables remain for legacy data;
+new customers, credits, history, sessions and payments use the new tables.
 
 ## Commands
 - `npm run dev` — dev server
@@ -20,7 +24,8 @@ which throws rather than silently degrading if the Supabase key is missing).
 - `ANTHROPIC_API_KEY` — CV/letter generation
 - `PAYSTACK_SECRET_KEY` / `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY`
 - `API2PDF_API_KEY` — PDF rendering (a paid, metered account — do not hammer it with test downloads)
-- `RESEND_API_KEY` — PIN-recovery emails
+- `RESEND_API_KEY` / `RECOVERY_EMAIL_FROM` — access links and receipts
+- `NEXT_PUBLIC_BASE_URL` — canonical URL used in emailed access links
 - `ADMIN_SECRET` — gates `/admin` and `/api/admin/*`
 
 If you don't have real values, most UI/logic work can proceed without them —

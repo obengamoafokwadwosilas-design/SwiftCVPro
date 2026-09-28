@@ -104,6 +104,8 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
     sessionStorage.setItem('swiftcv_template', item.template_id)
     sessionStorage.setItem('swiftcv_accent', item.accent_color || '')
     clearPreviousCoverLetter()
+    if (window.location.pathname === '/preview') { window.location.reload(); return }
+    onClose()
     router.push('/preview')
   }
   if (!open) return null
