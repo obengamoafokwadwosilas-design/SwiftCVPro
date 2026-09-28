@@ -156,7 +156,6 @@ export default function PreviewPage() {
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   const [cv, setCV] = useState<GeneratedCV | null>(null)
-  const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   // Set just before a deliberate navigation away (the in-app-browser payment
   // redirect below), so the "you'll lose your CV" beforeunload warning doesn't
@@ -203,18 +202,13 @@ export default function PreviewPage() {
 
   useEffect(() => {
     const stored = sessionStorage.getItem('swiftcv_cv')
-    const ph = sessionStorage.getItem('swiftcv_phone')
     const em = sessionStorage.getItem('swiftcv_email')
     if (!stored) { router.push('/build'); return }
     try {
       const parsed = normalizeCV(JSON.parse(stored))
       setCV(parsed)
       setBaseCv(parsed)
-      setPhone(ph || '')
-      // Fall back to the CV's own email: opening a saved CV from history
-      // (CVHistoryModal.handleOpen) sets phone but never swiftcv_email, so
-      // without this "+ Cover Letter" would 400 on the now-required email.
-      setEmail(em || parsed.email || '')
+      setEmail(em || '')
       // Restore a cover letter generated earlier this session (if any)
       const storedCover = sessionStorage.getItem('swiftcv_coverletter')
       if (storedCover) { try { setCoverLetter(normalizeCV(JSON.parse(storedCover))) } catch {} }
@@ -223,7 +217,7 @@ export default function PreviewPage() {
       if (storedCvType === 'cover_letter' || parsed.coverLetterBody) setIsCoverLetter(true)
       if (storedCvType === 'academic') { setIsAcademicCV(true); setTemplate('academic') }
       else if (storedCvType === 'cover_letter') setTemplate('classic')
-      else setTemplate(pickLandingTemplate())
+      else setTemplate((sessionStorage.getItem('swiftcv_template') as TemplateId) || pickLandingTemplate())
     } catch { router.push('/build') }
     const warn = (e: BeforeUnloadEvent) => {
       if (leavingOnPurposeRef.current) return
@@ -235,7 +229,8 @@ export default function PreviewPage() {
 
   // Reset accent color when switching templates
   useEffect(() => {
-    setAccentColor(null)
+    setAccentColor(sessionStorage.getItem('swiftcv_accent') || null)
+    sessionStorage.removeItem('swiftcv_accent')
     setShowColorPicker(false)
   }, [template])
 
@@ -244,13 +239,13 @@ export default function PreviewPage() {
   // the UI, and only applies to CVs (cover letters aren't saved to history).
   useEffect(() => {
     const historyId = sessionStorage.getItem('swiftcv_history_id')
-    if (!historyId || !phone || isCoverLetter) return
+    if (!historyId || !email || isCoverLetter) return
     fetch('/api/cv-history/update-template', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber: phone, historyId: Number(historyId), templateId: template, accentColor }),
+      body: JSON.stringify({ email, historyId: Number(historyId), templateId: template, accentColor }),
     }).catch(() => { /* best-effort — never surface this to the user */ })
-  }, [template, accentColor, phone, isCoverLetter])
+  }, [template, accentColor, email, isCoverLetter])
 
   // Ready toast: pause the countdown while hovered (dismissal is driven by the
   // progress bar's animationEnd below, so there is a single clock).
@@ -295,25 +290,7 @@ export default function PreviewPage() {
     return () => clearInterval(id)
   }, [coverGenerating])
 
-  // ── "Protect your CVs with a PIN" nudge ──────────────────────────
-  // There are no accounts: anyone who knows a phone number can open that
-  // number's CV history. The PIN closes that, but almost nobody sets one from
-  // the history modal because they meet it before they own anything. So we ask
-  // once, right after a download — the point of maximum ownership.
-  const [pinSet, setPinSet] = useState<boolean | null>(null)   // null = unknown
-  const [showPinNudge, setShowPinNudge] = useState(false)
-  const [pinNudgeDone, setPinNudgeDone] = useState(false)      // asked once per session
-  const [showPinModal, setShowPinModal] = useState(false)
-  const [pinValue, setPinValue] = useState('')
-  const [pinEmail, setPinEmail] = useState('')
-  const [pinSaving, setPinSaving] = useState(false)
-  const [pinErr, setPinErr] = useState('')
-  const [pinSaved, setPinSaved] = useState(false)
-
-  // PIN entry for download — shown when the server returns PIN_REQUIRED
   const [showDownloadPinModal, setShowDownloadPinModal] = useState(false)
-  const [downloadPin, setDownloadPin] = useState('')
-  const [downloadPinErr, setDownloadPinErr] = useState('')
   const [pendingDownloadKind, setPendingDownloadKind] = useState<'pdf' | 'docx' | null>(null)
   // Cover-letter credit balance for this phone, so the offer tells the truth:
   // "Included" when a pack already paid for one, or the GH₵20 price when not.
@@ -336,58 +313,15 @@ export default function PreviewPage() {
   // Fetch the cover-letter balance once we know the phone, to label the offer
   // honestly (Included vs GH₵20). Best-effort; on failure we just omit the tag.
   useEffect(() => {
-    if (!phone || isCoverLetter) return
+    if (!email || isCoverLetter) return
     fetch('/api/check-credits', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber: phone }),
+      body: JSON.stringify({ email }),
     })
       .then(r => r.json())
       .then(d => setClCredits(typeof d.coverLetterCredits === 'number' ? d.coverLetterCredits : 0))
       .catch(() => {})
-  }, [phone, isCoverLetter, coverLetter])
-
-  // Does this number already have a PIN? Decides whether the nudge is relevant.
-  useEffect(() => {
-    if (!phone) return
-    fetch('/api/cv-pin/status', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber: phone }),
-    })
-      .then(r => r.json())
-      .then(d => setPinSet(!!d.pin_set))
-      .catch(() => { /* unknown — we simply never nudge */ })
-  }, [phone])
-
-  // Ask after a download: they've just received the thing they paid for, so
-  // "keep it safe" lands. Skipped while the cover-letter offer is on screen so
-  // the two never stack — the next download gets another chance.
-  useEffect(() => {
-    if (!hasDownloaded || pinNudgeDone || pinSet !== false || !phone) return
-    const t = setTimeout(() => {
-      if (showUpsell || showCoverModal) return
-      setShowPinNudge(true); setPinNudgeDone(true)
-    }, 2600)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasDownloaded, pinSet, phone, pinNudgeDone])
-
-  async function savePin() {
-    setPinErr('')
-    if (!/^\d{4}$/.test(pinValue)) { setPinErr('Your PIN must be exactly 4 digits.'); return }
-    if (!pinEmail.trim().includes('@')) { setPinErr('Enter a valid email so your PIN can be recovered.'); return }
-    setPinSaving(true)
-    try {
-      const res = await fetch('/api/cv-pin/set', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone, pin: pinValue, email: pinEmail.trim() }),
-      })
-      const d = await res.json()
-      if (!res.ok) { setPinErr(d.error || 'Could not save your PIN.'); return }
-      setPinSet(true); setPinSaved(true)
-      setTimeout(() => { setShowPinModal(false); setPinSaved(false); setPinValue(''); setPinEmail('') }, 1400)
-    } catch { setPinErr('Connection error. Please try again.') }
-    finally { setPinSaving(false) }
-  }
+  }, [email, isCoverLetter, coverLetter])
 
   function updateCV(patch: Partial<GeneratedCV>) {
     if (!cv) return
@@ -434,7 +368,7 @@ export default function PreviewPage() {
         headers: { 'Content-Type': 'application/json' },
         // Only send the advert when they actually chose the targeted option,
         // so switching back to "general" can't silently reuse stale text.
-        body: JSON.stringify({ cv: source, jobDescription: coverMode === 'targeted' ? (coverJd || undefined) : undefined, phoneNumber: phone, email })
+        body: JSON.stringify({ cv: source, jobDescription: coverMode === 'targeted' ? (coverJd || undefined) : undefined, email })
       })
       const data = await res.json()
       if (!res.ok) {
@@ -470,12 +404,11 @@ export default function PreviewPage() {
         headers: { 'Content-Type': 'application/json' },
         // historyId lets the server charge once per DOCUMENT rather than per
         // download, so PDF + Word (and any re-download) cost a single credit.
-        body: JSON.stringify({ cv, templateId: template, accentColor, phoneNumber: phone, historyId: paidDocumentId(), pin: downloadPin || undefined })
+        body: JSON.stringify({ cv, templateId: template, accentColor, email, historyId: paidDocumentId() })
       })
       if (res.status === 401) {
         const data = await res.json().catch(() => ({}))
-        if (data.error === 'PIN_REQUIRED') {
-          setDownloadPinErr(data.message || 'Enter your PIN to download.')
+        if (data.error === 'ACCESS_REQUIRED') {
           setPendingDownloadKind('docx')
           setShowDownloadPinModal(true)
           return
@@ -540,13 +473,12 @@ export default function PreviewPage() {
       const res = await fetch('/api/export-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html, fullName: cv.fullName, phoneNumber: phone, isCoverLetter, historyId: paidDocumentId(), pin: downloadPin || undefined }),
+        body: JSON.stringify({ html, fullName: cv.fullName, email, isCoverLetter, historyId: paidDocumentId() }),
       })
 
       if (res.status === 401) {
         const data = await res.json().catch(() => ({}))
-        if (data.error === 'PIN_REQUIRED') {
-          setDownloadPinErr(data.message || 'Enter your PIN to download.')
+        if (data.error === 'ACCESS_REQUIRED') {
           setPendingDownloadKind('pdf')
           setShowDownloadPinModal(true)
           return
@@ -599,16 +531,6 @@ export default function PreviewPage() {
     else if (kind === 'docx') await handleDownloadDocx()
   }
 
-  async function confirmDownloadPin() {
-    if (!/^\d{4}$/.test(downloadPin)) { setDownloadPinErr('Enter your 4-digit PIN.'); return }
-    const kind = pendingDownloadKind
-    setShowDownloadPinModal(false)
-    setDownloadPinErr('')
-    setPendingDownloadKind(null)
-    if (kind === 'pdf') await handleDownloadPdf()
-    else if (kind === 'docx') await handleDownloadDocx()
-  }
-
   async function confirmPreviewPayment(reference: string): Promise<boolean> {
     try {
       const res = await fetch('/api/verify-payment', {
@@ -619,6 +541,10 @@ export default function PreviewPage() {
       const data = await res.json()
       if (!data.success) {
         setPurchaseError(data.error || 'We could not confirm your payment. If you completed it, wait a moment and try again.')
+        return false
+      }
+      if (data.verificationRequired) {
+        setPurchaseError('Payment received. Open the secure link in your receipt email to access your CVs and credits.')
         return false
       }
       return true
@@ -642,7 +568,7 @@ export default function PreviewPage() {
       const res = await fetch('/api/initiate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: phone, packageId: pkg.id }),
+        body: JSON.stringify({ email, packageId: pkg.id }),
       })
       const data = await res.json()
       if (!data.success) {
@@ -853,7 +779,7 @@ export default function PreviewPage() {
     if (confirm('Start a new CV? Your current CV will be cleared.')) {
       sessionStorage.removeItem('swiftcv_cv')
       sessionStorage.removeItem('swiftcv_type')
-      sessionStorage.removeItem('swiftcv_phone')
+      sessionStorage.removeItem('swiftcv_email')
       sessionStorage.removeItem('swiftcv_history_id')
       router.push('/build')
     }
@@ -894,7 +820,7 @@ export default function PreviewPage() {
       script.onload = () => {
         const handler = (window as any).PaystackPop.setup({
           key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-          email: `${phone.replace('+','')}@remarkablecv.com`,
+          email,
           amount: 500, // GH₵5 — Paystack amounts are in pesewas (GH₵1 = 100)
           currency: 'GHS',
           ref: `rev_${Date.now()}`,
@@ -922,7 +848,7 @@ export default function PreviewPage() {
           rawContent: JSON.stringify(cv),
           specialRequests: revisionText,
           isRevision: true,
-          phoneNumber: phone,
+          email,
           lockedName: cv.fullName,
         })
       })
@@ -1376,89 +1302,7 @@ export default function PreviewPage() {
         </div>
       )}
 
-      {/* PIN NUDGE — shown once, just after a download */}
-      {showPinNudge && !showPinModal && (
-        <div className="scv-sheet no-print" style={{ position:'fixed', bottom:'24px', right:'24px', zIndex:150, background:'white', borderRadius:'16px', padding:'18px 20px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)', border:'1px solid #e2e8f0', maxWidth:'300px' }}>
-          <button onClick={() => setShowPinNudge(false)} style={{ position:'absolute', top:'10px', right:'12px', background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
-          <div style={{ display:'flex', alignItems:'center', gap:'9px', marginBottom:'6px' }}>
-            <span style={{ fontSize:'16px' }}>🔒</span>
-            <div style={{ fontSize:'1.12rem', fontWeight:600, color:'#0a0f1a', fontFamily:"'Cormorant Garamond', serif" }}>Protect your CVs</div>
-          </div>
-          <div style={{ fontSize:'12px', color:'#64748b', lineHeight:1.6, marginBottom:'14px' }}>Right now anyone who knows your number could open your CV history. Add a 4-digit PIN — it takes a moment.</div>
-          <div style={{ display:'flex', alignItems:'center', gap:'14px' }}>
-            <button onClick={() => { setPinErr(''); setShowPinModal(true) }} style={{ padding:'9px 18px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'12px', fontWeight:600, cursor:'pointer' }}>Set a PIN</button>
-            <button onClick={() => setShowPinNudge(false)} style={{ background:'none', border:'none', padding:0, fontSize:'12px', fontWeight:500, color:'#64748b', cursor:'pointer' }}>Not now</button>
-          </div>
-        </div>
-      )}
-
-      {/* PIN SETTER */}
-      {showPinModal && (
-        <div onClick={() => !pinSaving && setShowPinModal(false)} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:220, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
-          <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'400px', padding:'24px', boxShadow:'0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif" }}>
-            {pinSaved ? (
-              <div style={{ textAlign:'center', padding:'14px 0' }}>
-                <div style={{ width:'46px', height:'46px', borderRadius:'50%', background:'#0d9488', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 14px' }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </div>
-                <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.3rem', fontWeight:600, color:'#0a0f1a' }}>Your CVs are protected</div>
-              </div>
-            ) : (
-              <>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'4px' }}>
-                  <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>🔒 Set your PIN</div>
-                  <button onClick={() => !pinSaving && setShowPinModal(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
-                </div>
-                <p style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.55, margin:'0 0 16px' }}>You&apos;ll enter this whenever you open <strong style={{ color:'#0a0f1a', fontWeight:600 }}>My CVs</strong> on {phone || 'your number'}.</p>
-
-                <label style={{ display:'block', fontSize:'11px', fontWeight:600, color:'#94a3b8', letterSpacing:'0.6px', textTransform:'uppercase', marginBottom:'6px' }}>4-digit PIN</label>
-                <input value={pinValue} onChange={e => setPinValue(e.target.value.replace(/\D/g,'').slice(0,4))} inputMode="numeric" placeholder="••••" autoFocus
-                  style={{ width:'100%', padding:'12px 15px', border:'1px solid #e2e8f0', borderRadius:'12px', fontSize:'18px', letterSpacing:'8px', fontFamily:"'DM Sans', sans-serif", textAlign:'center', outline:'none', boxSizing:'border-box' }} />
-
-                <label style={{ display:'block', fontSize:'11px', fontWeight:600, color:'#94a3b8', letterSpacing:'0.6px', textTransform:'uppercase', margin:'14px 0 6px' }}>Email for recovery</label>
-                <input value={pinEmail} onChange={e => setPinEmail(e.target.value)} type="email" placeholder="you@example.com"
-                  style={{ width:'100%', padding:'12px 15px', border:'1px solid #e2e8f0', borderRadius:'12px', fontSize:'13.5px', fontFamily:"'DM Sans', sans-serif", outline:'none', boxSizing:'border-box' }} />
-                <div style={{ fontSize:'11.5px', color:'#94a3b8', marginTop:'6px', lineHeight:1.5 }}>Used only to send you a code if you forget the PIN.</div>
-
-                {pinErr && <div style={{ marginTop:'12px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'10px 12px' }}>{pinErr}</div>}
-
-                <button onClick={savePin} disabled={pinSaving} style={{ width:'100%', marginTop:'16px', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor: pinSaving ? 'default' : 'pointer', opacity: pinSaving ? 0.7 : 1 }}>
-                  {pinSaving ? 'Saving…' : 'Save PIN'}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* DOWNLOAD PIN MODAL — shown when server requires PIN verification */}
-      {showDownloadPinModal && (
-        <div onClick={() => { setShowDownloadPinModal(false); setDownloadPin(''); setDownloadPinErr('') }} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.55)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:230, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
-          <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'360px', padding:'28px 24px', boxShadow:'0 24px 60px -12px rgba(10,15,26,0.38)', fontFamily:"'DM Sans', sans-serif" }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'6px' }}>
-              <div style={{ width:'36px', height:'36px', borderRadius:'50%', background:'#f0fdf9', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:'16px' }}>
-                🔒
-              </div>
-              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.35rem', fontWeight:600, color:'#0a0f1a' }}>Enter your PIN</div>
-              <button onClick={() => { setShowDownloadPinModal(false); setDownloadPin(''); setDownloadPinErr('') }} style={{ marginLeft:'auto', background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
-            </div>
-            <p style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.55, margin:'0 0 18px' }}>This number is protected by a PIN. Enter it below to continue your download.</p>
-            <input
-              value={downloadPin}
-              onChange={e => { setDownloadPin(e.target.value.replace(/\D/g,'').slice(0,4)); setDownloadPinErr('') }}
-              onKeyDown={e => e.key === 'Enter' && confirmDownloadPin()}
-              inputMode="numeric"
-              placeholder="••••"
-              autoFocus
-              style={{ width:'100%', padding:'13px 15px', border:`1px solid ${downloadPinErr ? '#fca5a5' : '#e2e8f0'}`, borderRadius:'12px', fontSize:'20px', letterSpacing:'10px', textAlign:'center', outline:'none', boxSizing:'border-box', fontFamily:"'DM Sans', sans-serif" }}
-            />
-            {downloadPinErr && <div style={{ marginTop:'10px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'9px 12px' }}>{downloadPinErr}</div>}
-            <button onClick={confirmDownloadPin} style={{ width:'100%', marginTop:'16px', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>
-              Continue download
-            </button>
-          </div>
-        </div>
-      )}
+      <CVHistoryModal open={showDownloadPinModal} initialEmail={email} onClose={() => setShowDownloadPinModal(false)} />
 
       {pdfOnlyModal && (
         <div onClick={() => setPdfOnlyModal(false)} style={{ position:'fixed', inset:0, background:'rgba(10,15,26,0.7)', zIndex:100, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', backdropFilter:'blur(4px)' }}>
@@ -1525,7 +1369,7 @@ export default function PreviewPage() {
         </div>
       )}
 
-      <CVHistoryModal open={showHistoryModal} onClose={() => setShowHistoryModal(false)} />
+      <CVHistoryModal open={showHistoryModal} initialEmail={email} onClose={() => setShowHistoryModal(false)} />
       <BalanceModal open={showBalanceModal} onClose={() => setShowBalanceModal(false)} />
     </div>
   )

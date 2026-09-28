@@ -1,159 +1,53 @@
 import { supabaseAdmin } from './supabase'
+export { normalizePhone } from './phone'
 import type { Package } from './packages'
 
-// normalizePhone now lives in phone.ts (a zero-dependency module client
-// components can import directly) — re-exported here so every existing
-// `import { normalizePhone } from '@/lib/credits'` keeps working unchanged.
-export { normalizePhone } from './phone'
-import { normalizePhone } from './phone'
-
-export async function getCredits(phoneNumber: string): Promise<number> {
-  const { data, error } = await supabaseAdmin
-    .from('cv_credits')
-    .select('credits')
-    .eq('phone_number', normalizePhone(phoneNumber))
-    .single()
-  if (error || !data) return 0
-  return data.credits
+export async function getCredits(ownerId: string): Promise<number> {
+  const { data, error } = await supabaseAdmin.from('customer_credits').select('credits').eq('owner_id', ownerId).maybeSingle()
+  if (error) throw error
+  return data?.credits || 0
 }
-
-// Atomic (single SQL statement via add_cv_credits RPC — see
-// supabase_history_and_payments.sql) — safe against two concurrent
-// purchases for the same phone number, unlike a read-then-write update.
-export async function addCredits(phoneNumber: string, amount: number = 1): Promise<boolean> {
-  const phone = normalizePhone(phoneNumber)
-  const { error } = await supabaseAdmin.rpc('add_cv_credits', { p_phone: phone, p_amount: amount })
-  return !error
+export async function getCoverLetterCredits(ownerId: string): Promise<number> {
+  const { data, error } = await supabaseAdmin.from('customer_credits').select('cover_letter_credits').eq('owner_id', ownerId).maybeSingle()
+  if (error) throw error
+  return data?.cover_letter_credits || 0
 }
-
-// Atomic (single SQL statement via deduct_cv_credit RPC) — safe against two
-// simultaneous requests both trying to spend the same last credit.
-export async function deductCredit(phoneNumber: string): Promise<boolean> {
-  const phone = normalizePhone(phoneNumber)
-  const { data, error } = await supabaseAdmin.rpc('deduct_cv_credit', { p_phone: phone })
-  if (error) return false
-  return (data as number) >= 0
+async function adjust(ownerId: string, cv: number, cl: number): Promise<boolean> {
+  const { data, error } = await supabaseAdmin.rpc('adjust_customer_credit', { p_owner: ownerId, p_cv: cv, p_cl: cl })
+  return !error && data === true
 }
+export const addCredits = (ownerId: string, amount = 1) => adjust(ownerId, amount, 0)
+export const grantCoverLetterCredit = (ownerId: string, amount = 1) => adjust(ownerId, 0, amount)
+export const deductCredit = (ownerId: string) => adjust(ownerId, -1, 0)
+export const deductCoverLetterCredit = (ownerId: string) => adjust(ownerId, 0, -1)
+export const hasCredits = async (ownerId: string) => (await getCredits(ownerId)) > 0
+export const hasCoverLetterCredit = async (ownerId: string) => (await getCoverLetterCredits(ownerId)) > 0
 
-export async function hasCredits(phoneNumber: string): Promise<boolean> {
-  return (await getCredits(phoneNumber)) > 0
-}
-
-// Admin-only: overwrite a phone's balances to exact values (not a delta).
-// Used by the /admin panel's "set" action. Direct upsert is fine here — the
-// admin panel is single-operator and low-concurrency, unlike the customer
-// payment paths that must stay race-safe via the RPCs above.
-export async function adminSetCredits(
-  phoneNumber: string,
-  fields: { credits?: number; coverLetterCredits?: number }
-): Promise<boolean> {
-  const phone = normalizePhone(phoneNumber)
-  const row: Record<string, unknown> = { phone_number: phone, updated_at: new Date().toISOString() }
+export async function adminSetCredits(ownerId: string, fields: { credits?: number; coverLetterCredits?: number }): Promise<boolean> {
+  const row: Record<string, unknown> = { owner_id: ownerId, updated_at: new Date().toISOString() }
   if (fields.credits !== undefined) row.credits = Math.max(0, Math.floor(fields.credits))
   if (fields.coverLetterCredits !== undefined) row.cover_letter_credits = Math.max(0, Math.floor(fields.coverLetterCredits))
-  const { error } = await supabaseAdmin.from('cv_credits').upsert(row, { onConflict: 'phone_number' })
+  const { error } = await supabaseAdmin.from('customer_credits').upsert(row, { onConflict: 'owner_id' })
   return !error
 }
-
-// ── Cover-letter entitlement ─────────────────────────────────────
-// A separate counter from the main CV credits. Granted (1) whenever a
-// paid CV is generated; redeemed by the "+ Cover Letter" flow so the
-// first matching cover letter per paid CV is free.
-
-export async function getCoverLetterCredits(phoneNumber: string): Promise<number> {
-  const { data, error } = await supabaseAdmin
-    .from('cv_credits')
-    .select('cover_letter_credits')
-    .eq('phone_number', normalizePhone(phoneNumber))
-    .single()
-  if (error || !data) return 0
-  return data.cover_letter_credits || 0
-}
-
-export async function hasCoverLetterCredit(phoneNumber: string): Promise<boolean> {
-  return (await getCoverLetterCredits(phoneNumber)) > 0
-}
-
-// Grant one cover-letter entitlement. Atomic (single SQL statement via
-// grant_cover_letter_credit) — creates the row if the phone has none yet.
-export async function grantCoverLetterCredit(phoneNumber: string, amount: number = 1): Promise<boolean> {
-  const phone = normalizePhone(phoneNumber)
-  const { error } = await supabaseAdmin.rpc('grant_cover_letter_credit', { p_phone: phone, p_amount: amount })
-  return !error
-}
-
-// Deduct one cover-letter entitlement. Atomic (single SQL statement via
-// deduct_cover_letter_credit) — safe against two simultaneous requests
-// both trying to spend the same last credit. Returns false if none left.
-export async function deductCoverLetterCredit(phoneNumber: string): Promise<boolean> {
-  const phone = normalizePhone(phoneNumber)
-  const { data, error } = await supabaseAdmin.rpc('deduct_cover_letter_credit', { p_phone: phone })
-  if (error) return false
-  return (data as number) >= 0
-}
-
-// ── Idempotent package crediting ──────────────────────────────────
-// Shared by the Paystack webhook AND the client-facing verify-payment
-// route, so both confirmation paths use IDENTICAL logic — whichever one
-// reaches Paystack/Supabase first wins, the other becomes a harmless
-// no-op. Never call addCredits/grantCoverLetterCredit directly for a
-// payment; always go through this so every path is guarded the same way.
-export async function creditPackageIfNew(
-  phone: string,
-  reference: string,
-  pkg: Package,
-  amount: number
-): Promise<{ credited: boolean; duplicate: boolean; error?: string }> {
-  // Insert the reference into `payments` FIRST. Its UNIQUE constraint means
-  // a second caller for the same reference (a webhook retry, or the webhook
-  // and a client verify racing each other) fails here and skips crediting.
-  const { error: insertErr } = await supabaseAdmin.from('payments').insert({
-    phone_number: phone,
-    paystack_reference: reference,
-    package_id: pkg.id,
-    amount,
-    cv_credits: pkg.cv,
-    cl_credits: pkg.cl,
+export async function creditPackageIfNew(ownerId: string, reference: string, pkg: Package, amount: number): Promise<{ credited: boolean; duplicate: boolean; error?: string }> {
+  const { data, error } = await supabaseAdmin.rpc('credit_customer_payment', {
+    p_owner: ownerId, p_reference: reference, p_package: pkg.id, p_amount: amount, p_cv: pkg.cv, p_cl: pkg.cl,
   })
-  if (insertErr) {
-    if (insertErr.code === '23505') return { credited: false, duplicate: true }
-    return { credited: false, duplicate: false, error: insertErr.message }
-  }
-
-  const okCv = await addCredits(phone, pkg.cv)
-  const okCl = pkg.cl > 0 ? await grantCoverLetterCredit(phone, pkg.cl) : true
-  if (!okCv || !okCl) return { credited: false, duplicate: false, error: 'Failed to add credits' }
-  return { credited: true, duplicate: false }
+  if (error) return { credited: false, duplicate: false, error: error.message }
+  return { credited: data === true, duplicate: data === false }
 }
-
-// ── One credit = one DOCUMENT, not one download ───────────────────────
-// Credits are spent at download time (see app/api/export-pdf and
-// app/api/export-docx). Charging per download would mean someone who bought
-// "1 Professional CV" could take the PDF *or* the Word file but not both,
-// and could never re-download after losing the file — so the first download
-// marks the saved history row paid, and every later download of that same
-// document (any format) is free.
-//
-// Both queries are scoped to the phone as well as the id, so knowing someone
-// else's history id can never unlock a free download on their tab.
-export async function isDownloadPaid(phoneNumber: string, historyId: number): Promise<boolean> {
-  const { data, error } = await supabaseAdmin
-    .from('cv_history')
-    .select('download_paid')
-    .eq('id', historyId)
-    .eq('phone_number', normalizePhone(phoneNumber))
-    .maybeSingle()
-  // Fail closed (treat as unpaid → charge normally): never hand out a free
-  // download because a lookup failed.
-  if (error || !data) return false
+export async function isDownloadPaid(ownerId: string, historyId: number, cover?: boolean): Promise<boolean> {
+  const { data, error } = await supabaseAdmin.from('customer_history').select('download_paid, cv_type').eq('id', historyId).eq('owner_id', ownerId).maybeSingle()
+  if (error) throw error
+  if (!data || (cover !== undefined && (data.cv_type === 'cover_letter') !== cover)) throw new Error('Saved document not found.')
   return !!data.download_paid
 }
-
-export async function markDownloadPaid(phoneNumber: string, historyId: number): Promise<void> {
-  const { error } = await supabaseAdmin
-    .from('cv_history')
-    .update({ download_paid: true })
-    .eq('id', historyId)
-    .eq('phone_number', normalizePhone(phoneNumber))
-  if (error) console.error('markDownloadPaid failed (user may be charged twice):', error)
+export async function markDownloadPaid(ownerId: string, historyId: number): Promise<void> {
+  const { error } = await supabaseAdmin.from('customer_history').update({ download_paid: true }).eq('id', historyId).eq('owner_id', ownerId)
+  if (error) throw error
+}
+export async function payDocument(ownerId: string, historyId: number, cover: boolean): Promise<boolean> {
+  const { data, error } = await supabaseAdmin.rpc('pay_customer_document', { p_owner: ownerId, p_id: historyId, p_cover: cover })
+  return !error && data === true
 }

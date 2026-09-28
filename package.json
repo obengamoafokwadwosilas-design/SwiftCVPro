@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test:identity": "node --test tests/email-identity.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
@@ -22,6 +23,7 @@
     "resend": "^3.5.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@types/node": "^20",
     "@types/pdf-parse": "^1.1.4",
     "@types/react": "^18",

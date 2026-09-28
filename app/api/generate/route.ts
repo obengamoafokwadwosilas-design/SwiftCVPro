@@ -1,8 +1,10 @@
-﻿export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { normalizePhone } from '@/lib/credits'
+import { customerForEmail, requireOwner } from '@/lib/customerAuth'
+import { normalizeEmail, isValidEmail } from '@/lib/email'
+import { clientIp } from '@/lib/rateLimit'
 import { buildGenerationPrompt, buildBulletTrimPrompt, CV_SYSTEM_PROMPT } from '@/lib/prompts'
 import { CVFormData, GeneratedCV } from '@/types'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -111,7 +113,8 @@ async function runPaginationRiskPass(cv: GeneratedCV): Promise<void> {
 // raw_input is saved in the same shape the builder itself understands
 // (BuildSeed), so "Rewrite for another job" can feed it straight back in.
 async function saveToHistory(
-  phone: string,
+  ownerId: string,
+  accessEmail: string,
   cvType: string,
   formData: CVFormData | undefined,
   rawContent: string | undefined,
@@ -123,7 +126,7 @@ async function saveToHistory(
       ? {
           cvType: (formData.cvType || cvType || 'professional') as BuildSeed['cvType'],
           inputMethod: 'form',
-          phoneNumber: phone,
+          email: accessEmail,
           form: {
             fullName: formData.fullName, phone: formData.phone, email: formData.email, location: formData.location,
             dob: formData.dob, nationality: formData.nationality, linkedin: formData.linkedin,
@@ -139,14 +142,14 @@ async function saveToHistory(
       : {
           cvType: (cvType || 'professional') as BuildSeed['cvType'],
           inputMethod: 'paste',
-          phoneNumber: phone,
+          email: accessEmail,
           pasteContent: rawContent,
           jobDescription,
           landingScreen: 'type',
         }
 
     const { insertCvHistory } = await import('@/lib/cvHistory')
-    return await insertCvHistory({ phone, generatedCv: generatedCV, rawInput })
+    return await insertCvHistory({ ownerId, generatedCv: generatedCV, rawInput })
   } catch (err) {
     console.error('saveToHistory failed (non-fatal):', err)
     return null
@@ -183,14 +186,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { cvType, rawContent, jobDescription, whyRole, phoneNumber, email } = body
+    const { cvType, rawContent, jobDescription, whyRole, email } = body
     const formData = body.formData
 
-    if (!phoneNumber) {
-      return NextResponse.json({ error: 'Please enter your phone number.' }, { status: 400 })
-    }
-
-    if (!email) {
+    if (!isValidEmail(normalizeEmail(email))) {
       return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
     }
 
@@ -198,10 +197,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Please provide your CV details before generating.' }, { status: 400 })
     }
 
-    const phone = normalizePhone(phoneNumber)
+    const customer = await customerForEmail(email)
+    const ownerId = customer.id
+    const verified = !!await requireOwner(ownerId)
+    const ip = clientIp(req)
 
     // ── Rate limit ────────────────────────────────
-    const rateCheck = checkRateLimit(phone)
+    const rateCheck = checkRateLimit(ip)
     if (!rateCheck.allowed) {
       const mins = Math.ceil(rateCheck.resetIn / 60000)
       return NextResponse.json({
@@ -213,13 +215,7 @@ export async function POST(req: NextRequest) {
     // Type-aware: a cover letter draws from the cover-letter pool, a CV from
     // the CV pool — separate currencies (see packages.ts), same as before.
     //
-    // A paying customer (real credits > 0) is exempt from the free cap
-    // entirely and forever, so buying credits then re-tailoring for many
-    // jobs is never blocked by it. Everyone else gets a small number of free
-    // generations (src/lib/freeGenerations.ts), enforced against BOTH phone
-    // and email so cycling a cheap SIM alone doesn't reset it. Download,
-    // not generation, is what actually costs a credit — see
-    // app/api/export-pdf/route.ts and app/api/export-docx/route.ts.
+    // Only verified customers can spend credits or bypass the free-preview cap.
     const isCoverLetterDoc = cvType === 'cover_letter'
     // Tracks whether a free or paid use was reserved for this request so any
     // failure path can hand it back — nobody should lose a credit to our error.
@@ -227,21 +223,21 @@ export async function POST(req: NextRequest) {
     let consumedPaidCredit = false
     try {
       const { hasCredits, hasCoverLetterCredit, deductCredit, deductCoverLetterCredit } = await import('@/lib/credits')
-      const paid = isCoverLetterDoc ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
+      const paid = isCoverLetterDoc ? (verified && await hasCoverLetterCredit(ownerId)) : (verified && await hasCredits(ownerId))
       if (paid) {
         // Deduct the credit BEFORE the AI call. This directly ties one API
         // call to one credit — a paid user cannot run the AI 500 times on a
         // single credit by never downloading. The export routes will see
         // download_paid=true (set below after history is saved) and serve the
         // file without a second charge.
-        const ok = isCoverLetterDoc ? await deductCoverLetterCredit(phone) : await deductCredit(phone)
+        const ok = isCoverLetterDoc ? await deductCoverLetterCredit(ownerId) : await deductCredit(ownerId)
         if (!ok) {
           return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a credit to generate. Please buy a package first.' }, { status: 402 })
         }
         consumedPaidCredit = true
       } else {
         const { consumeFreeGeneration } = await import('@/lib/freeGenerations')
-        const { allowed } = await consumeFreeGeneration(phone, email, isCoverLetterDoc)
+        const { allowed } = await consumeFreeGeneration(ip, email, isCoverLetterDoc)
         if (!allowed) {
           return NextResponse.json({
             error: 'FREE_CAP_REACHED',
@@ -261,15 +257,15 @@ export async function POST(req: NextRequest) {
       if (!consumedFreeUse) return
       consumedFreeUse = false
       const { refundFreeGeneration } = await import('@/lib/freeGenerations')
-      await refundFreeGeneration(phone, email, isCoverLetterDoc)
+      await refundFreeGeneration(ip, email, isCoverLetterDoc)
     }
     const refundPaid = async () => {
       if (!consumedPaidCredit) return
       consumedPaidCredit = false
       const { addCredits, grantCoverLetterCredit } = await import('@/lib/credits')
-      if (isCoverLetterDoc) await grantCoverLetterCredit(phone, 1)
-      else await addCredits(phone, 1)
-      console.log(`[Generate] Refunded 1 credit to ${phone} after failure`)
+      if (isCoverLetterDoc) await grantCoverLetterCredit(ownerId, 1)
+      else await addCredits(ownerId, 1)
+      console.log(`[Generate] Refunded 1 credit to ${ownerId} after failure`)
     }
     refundOnFailure = async () => { await refundFree(); await refundPaid() }
 
@@ -296,7 +292,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Call Claude ───────────────────────────────
-    console.log(`[Generate] phone=${phone} cvType=${cvType}`)
+    console.log(`[Generate] phone=${ownerId} cvType=${cvType}`)
 
     let message
     try {
@@ -361,18 +357,23 @@ export async function POST(req: NextRequest) {
     // ── Save to history, then mark download paid for paid generations ──
     // Paid users spend their credit at generate time (above). The export routes
     // check download_paid=true and serve the file without a second charge.
-    const historyId = await saveToHistory(phone, cvType, formData, rawContent, jobDescription, generatedCV)
+    const historyId = await saveToHistory(ownerId, customer.email, cvType, formData, rawContent, jobDescription, generatedCV)
 
+    if (!historyId) {
+      await refundOnFailure()
+      return NextResponse.json({ error: 'Could not save your document. Your credit or preview has been returned. Please try again.' }, { status: 503 })
+    }
     if (consumedPaidCredit && historyId) {
       try {
         const { markDownloadPaid } = await import('@/lib/credits')
-        await markDownloadPaid(phone, historyId)
+        await markDownloadPaid(ownerId, historyId)
       } catch (err) {
-        console.error('[Generate] markDownloadPaid failed (non-fatal):', err)
+        await refundPaid()
+        return NextResponse.json({ error: 'Could not confirm your document credit. It has been refunded.' }, { status: 503 })
       }
     }
 
-    console.log(`[Generate] ✅ Success for ${phone}`)
+    console.log(`[Generate] ✅ Success for ${ownerId}`)
     return NextResponse.json({ success: true, cv: generatedCV, historyId })
 
   } catch (error: any) {

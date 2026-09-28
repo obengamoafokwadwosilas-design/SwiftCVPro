@@ -14,7 +14,7 @@ const MAX_HTML_BYTES = 600_000  // a real CV/letter is well under this
 type Body = {
   html?: string
   fullName?: string
-  phoneNumber?: string
+  email?: string
   isCoverLetter?: boolean
   historyId?: number
   pin?: string
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Too many downloads in a short time. Please wait a moment and try again.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
     }
 
-    const { html, fullName, phoneNumber, isCoverLetter, historyId, pin }: Body = await req.json()
+    const { html, fullName, email, isCoverLetter, historyId, pin }: Body = await req.json()
 
     if (!html) {
       return NextResponse.json({ error: 'No CV HTML received.' }, { status: 400 })
@@ -53,8 +53,8 @@ export async function POST(req: Request) {
     if (html.length > MAX_HTML_BYTES || !html.includes('cv-print-area')) {
       return NextResponse.json({ error: 'Invalid document.' }, { status: 400 })
     }
-    if (!phoneNumber) {
-      return NextResponse.json({ error: 'Please enter your phone number.' }, { status: 400 })
+    if (!email || !Number.isSafeInteger(historyId) || !historyId) {
+      return NextResponse.json({ error: 'Please enter your access email.' }, { status: 400 })
     }
 
     // ── The real paywall lives here, not at generation ──────────────
@@ -66,22 +66,18 @@ export async function POST(req: Request) {
     //
     // A document already paid for downloads free in every format, forever
     // (isDownloadPaid) — the credit buys the CV, not the button press.
-    const { normalizePhone } = await import('@/lib/phone')
-    const { hasCredits, hasCoverLetterCredit, deductCredit, deductCoverLetterCredit, isDownloadPaid, markDownloadPaid } = await import('@/lib/credits')
-    const phone = normalizePhone(phoneNumber)
-
-    // PIN gate — enforced only when the user has set one (phones without a PIN
-    // pass through instantly). Guards against anyone who knows a phone number
-    // draining that account's credits by calling this route directly.
-    const { checkHistoryAccess } = await import('@/lib/pinAuth')
-    const pinCheck = await checkHistoryAccess(phone, pin)
-    if (!pinCheck.ok) {
-      return NextResponse.json({ error: 'PIN_REQUIRED', message: pinCheck.error }, { status: pinCheck.status })
+    const { currentAccess } = await import('@/lib/customerAuth')
+    const { normalizeEmail } = await import('@/lib/email')
+    const { hasCredits, hasCoverLetterCredit, isDownloadPaid, payDocument } = await import('@/lib/credits')
+    const access = await currentAccess()
+    if (!access || access.email !== normalizeEmail(email)) {
+      return NextResponse.json({ error: 'ACCESS_REQUIRED', message: 'Verify your email to download your saved CVs.' }, { status: 401 })
     }
+    const ownerId = access.id
 
-    const alreadyPaid = historyId ? await isDownloadPaid(phone, historyId) : false
+    const alreadyPaid = historyId ? await isDownloadPaid(ownerId, historyId, !!isCoverLetter) : false
     if (!alreadyPaid) {
-      const paid = isCoverLetter ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
+      const paid = isCoverLetter ? await hasCoverLetterCredit(ownerId) : await hasCredits(ownerId)
       if (!paid) {
         return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a credit to download this. Please buy a package first.' }, { status: 402 })
       }
@@ -167,10 +163,8 @@ export async function POST(req: Request) {
     // Api2Pdf accepted the render job (it can still fail after that, or the
     // final download-from-Api2Pdf leg above can fail). A user must never be
     // charged for a PDF they didn't actually receive.
-    if (!alreadyPaid) {
-      if (isCoverLetter) await deductCoverLetterCredit(phone)
-      else await deductCredit(phone)
-      if (historyId) await markDownloadPaid(phone, historyId)
+    if (!await payDocument(ownerId, historyId!, !!isCoverLetter)) {
+      return NextResponse.json({ error: 'NO_CREDITS', message: 'Could not reserve a credit for this document. Please try again.' }, { status: 402 })
     }
 
     return new NextResponse(pdfBuffer, {

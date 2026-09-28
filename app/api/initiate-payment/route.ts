@@ -1,7 +1,8 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { normalizePhone } from '@/lib/credits'
+import { customerForEmail } from '@/lib/customerAuth'
+import { clientIp, rateLimit } from '@/lib/rateLimit'
 import { PACKAGES } from '@/lib/packages'
 
 // Creates a Paystack transaction server-side and returns the hosted
@@ -15,13 +16,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payment is not configured. Please contact support.' }, { status: 500 })
     }
 
-    const { phoneNumber, packageId } = await req.json()
-    if (!phoneNumber) return NextResponse.json({ error: 'Phone number is required.' }, { status: 400 })
+    const { email, packageId } = await req.json()
+    if (!email) return NextResponse.json({ error: 'Email is required.' }, { status: 400 })
 
     const pkg = PACKAGES.find(p => p.id === packageId)
     if (!pkg) return NextResponse.json({ error: 'Unknown package.' }, { status: 400 })
 
-    const phone = normalizePhone(phoneNumber)
+    if (!rateLimit('payment:' + clientIp(req), 10, 60000).allowed) return NextResponse.json({ error: 'Please wait before starting another payment.' }, { status: 429 })
+    const customer = await customerForEmail(email)
     const reference = `scv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     const origin = req.nextUrl.origin
 
@@ -32,12 +34,12 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: `${phone.replace('+', '')}@remarkablecv.com`,
+        email: customer.email,
         amount: pkg.amount,
         currency: 'GHS',
         reference,
         callback_url: `${origin}/payment-return`,
-        metadata: { phone_number: phone, package_id: pkg.id },
+        metadata: { owner_id: customer.id, package_id: pkg.id },
       }),
     })
 

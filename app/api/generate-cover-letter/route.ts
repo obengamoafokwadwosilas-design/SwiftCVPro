@@ -1,8 +1,10 @@
-﻿export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { normalizePhone } from '@/lib/credits'
+import { customerForEmail, requireOwner } from '@/lib/customerAuth'
+import { normalizeEmail, isValidEmail } from '@/lib/email'
+import { clientIp } from '@/lib/rateLimit'
 import { buildGenerationPrompt, CV_SYSTEM_PROMPT } from '@/lib/prompts'
 import { CVFormData, GeneratedCV } from '@/types'
 
@@ -66,21 +68,20 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { cv, jobDescription, company, phoneNumber, email } = body as {
-      cv: GeneratedCV; jobDescription?: string; company?: string; phoneNumber: string; email: string
+    const { cv, jobDescription, company, email } = body as {
+      cv: GeneratedCV; jobDescription?: string; company?: string; email: string
     }
 
-    if (!phoneNumber) return NextResponse.json({ error: 'Please enter your phone number.' }, { status: 400 })
     if (!cv || !cv.fullName) return NextResponse.json({ error: 'No CV found to build a cover letter from.' }, { status: 400 })
-    // The CV's own email is a valid fallback identity for the free-generation
-    // cap — a CV reopened from history carries one even when the caller has
-    // no separately-collected email to send (see the preview page's loader).
-    const identityEmail = email || cv.email
-    if (!identityEmail) return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
+    const identityEmail = normalizeEmail(email)
+    if (!isValidEmail(identityEmail)) return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
 
-    const phone = normalizePhone(phoneNumber)
+    const customer = await customerForEmail(email)
+    const ownerId = customer.id
+    const verified = !!await requireOwner(ownerId)
+    const ip = clientIp(req)
 
-    const rateCheck = checkRateLimit(phone)
+    const rateCheck = checkRateLimit(ip)
     if (!rateCheck.allowed) {
       const mins = Math.ceil(rateCheck.resetIn / 60000)
       return NextResponse.json({ error: `Too many attempts. Please wait ${mins} minutes and try again.` }, { status: 429 })
@@ -94,16 +95,16 @@ export async function POST(req: NextRequest) {
     let consumedPaidCredit = false
     try {
       const { hasCoverLetterCredit, deductCoverLetterCredit } = await import('@/lib/credits')
-      const paid = await hasCoverLetterCredit(phone)
+      const paid = (verified && await hasCoverLetterCredit(ownerId))
       if (paid) {
-        const ok = await deductCoverLetterCredit(phone)
+        const ok = await deductCoverLetterCredit(ownerId)
         if (!ok) {
           return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a cover-letter credit to generate. Please buy a package first.' }, { status: 402 })
         }
         consumedPaidCredit = true
       } else {
         const { consumeFreeGeneration } = await import('@/lib/freeGenerations')
-        const { allowed } = await consumeFreeGeneration(phone, identityEmail, true)
+        const { allowed } = await consumeFreeGeneration(ip, identityEmail, true)
         if (!allowed) {
           return NextResponse.json({
             error: 'FREE_CAP_REACHED',
@@ -121,14 +122,14 @@ export async function POST(req: NextRequest) {
       if (!consumedFreeUse) return
       consumedFreeUse = false
       const { refundFreeGeneration } = await import('@/lib/freeGenerations')
-      await refundFreeGeneration(phone, identityEmail, true)
+      await refundFreeGeneration(ip, identityEmail, true)
     }
     const refundPaid = async () => {
       if (!consumedPaidCredit) return
       consumedPaidCredit = false
       const { grantCoverLetterCredit } = await import('@/lib/credits')
-      await grantCoverLetterCredit(phone, 1)
-      console.log(`[CoverLetter] Refunded 1 cover-letter credit to ${phone} after failure`)
+      await grantCoverLetterCredit(ownerId, 1)
+      console.log(`[CoverLetter] Refunded 1 cover-letter credit to ${ownerId} after failure`)
     }
     refundOnFailure = async () => { await refundFree(); await refundPaid() }
 
@@ -208,24 +209,29 @@ export async function POST(req: NextRequest) {
     // deliberately left out rather than re-aimed at the role they're leaving.
     const { insertCvHistory } = await import('@/lib/cvHistory')
     const historyId = await insertCvHistory({
-      phone,
+      ownerId,
       generatedCv: coverLetter,
       templateId: 'classic',
       rawInput: {
         cvType: 'cover_letter',
         inputMethod: 'paste',
-        phoneNumber: phone,
+        email: customer.email,
         pasteContent: serializeCV(cv),
         landingScreen: 'type',
       },
     })
 
+    if (!historyId) {
+      await refundOnFailure()
+      return NextResponse.json({ error: 'Could not save your document. Your credit or preview has been returned. Please try again.' }, { status: 503 })
+    }
     if (consumedPaidCredit && historyId) {
       try {
         const { markDownloadPaid } = await import('@/lib/credits')
-        await markDownloadPaid(phone, historyId)
+        await markDownloadPaid(ownerId, historyId)
       } catch (err) {
-        console.error('[CoverLetter] markDownloadPaid failed (non-fatal):', err)
+        await refundPaid()
+        return NextResponse.json({ error: 'Could not confirm your document credit. It has been refunded.' }, { status: 503 })
       }
     }
 

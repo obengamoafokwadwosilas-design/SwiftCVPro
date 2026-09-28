@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation'
 // to /build, whose mount effect restores that seed automatically.
 export default function PaymentReturnPage() {
   const router = useRouter()
-  const [status, setStatus] = useState<'checking' | 'failed'>('checking')
+  const [status, setStatus] = useState<'checking' | 'failed' | 'verify-email'>('checking')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
@@ -30,6 +30,11 @@ export default function PaymentReturnPage() {
       .then(res => res.json())
       .then(data => {
         if (data.success) {
+          if (data.verificationRequired) {
+            setStatus('verify-email')
+            setMessage('Payment received. Open the secure link in your receipt email to access your CVs and credits.')
+            return
+          }
           // Payment can be started from two places. The builder restores its
           // own saved seed; the preview page just needs its CV, which is
           // still in sessionStorage — so send each back where it came from
@@ -60,8 +65,8 @@ export default function PaymentReturnPage() {
           </>
         ) : (
           <>
-            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.2rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '6px' }}>We couldn&apos;t confirm that payment</div>
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px', lineHeight: 1.6 }}>{message} If you completed payment, your details are still saved — just go back and try again.</div>
+            <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.2rem', fontWeight: 600, color: '#0a0f1a', marginBottom: '6px' }}>{status === 'verify-email' ? 'Payment received' : 'We couldn’t confirm that payment'}</div>
+            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px', lineHeight: 1.6 }}>{message} {status === 'failed' && 'If you completed payment, your details are still saved — just go back and try again.'}</div>
             <button onClick={() => router.replace('/build')} style={{ padding: '12px 26px', background: '#0aa447', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Back to CV builder</button>
           </>
         )}

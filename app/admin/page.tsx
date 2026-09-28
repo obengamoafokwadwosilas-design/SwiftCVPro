@@ -8,10 +8,10 @@ import { useCallback, useEffect, useState } from 'react'
 // resets, plus give/reset credit controls. Every request goes through
 // /api/admin/* which fails closed.
 
-interface Customer { phone_number: string; email: string | null; credits: number; cover_letter_credits: number; total_purchased: number; created_at: string }
-interface Payment { phone_number: string; amount: number; package_id: string; paystack_reference: string; created_at: string }
-interface Generation { phone_number: string; cv_type: string; template_id: string; label: string | null; created_at: string }
-interface PinReset { phone_number: string; used: boolean; expires_at: string; created_at: string }
+interface Customer { email: string; credits: number; cover_letter_credits: number; total_purchased: number; created_at: string }
+interface Payment { email: string; amount: number; package_id: string; paystack_reference: string; created_at: string }
+interface Generation { email: string; cv_type: string; template_id: string; label: string | null; created_at: string }
+interface PinReset { email: string; used: boolean; expires_at: string; created_at: string }
 interface Dashboard {
   stats: { revenue: number; payments: number; customers: number; cvsGenerated: number }
   recentPayments: Payment[]
@@ -119,7 +119,7 @@ function Dashboard({ adminKey, onLock }: { adminKey: string; onLock: () => void 
     { id: 'payments', label: 'Payments' },
     { id: 'customers', label: 'Customers' },
     { id: 'generations', label: 'Generations' },
-    { id: 'pinResets', label: 'PIN Resets' },
+    { id: 'pinResets', label: 'Access Links' },
   ]
 
   return (
@@ -191,11 +191,11 @@ function PaymentsTable({ payments, title }: { payments: Payment[]; title: string
       {payments.length === 0 ? <Empty text="No payments yet." /> : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '640px' }}>
-            <thead><tr><th style={th}>Phone</th><th style={th}>Amount</th><th style={th}>Plan</th><th style={th}>Reference</th><th style={th}>Date</th></tr></thead>
+            <thead><tr><th style={th}>Email</th><th style={th}>Amount</th><th style={th}>Plan</th><th style={th}>Reference</th><th style={th}>Date</th></tr></thead>
             <tbody>
               {payments.map((p, i) => (
                 <tr key={i}>
-                  <td style={td}>{p.phone_number}</td>
+                  <td style={td}>{p.email}</td>
                   <td style={{ ...td, fontWeight: 600 }}>GH₵{(p.amount / 100).toFixed(2)}</td>
                   <td style={td}>{p.package_id}</td>
                   <td style={{ ...td, fontFamily: 'monospace', fontSize: '11.5px', color: '#94a3b8' }}>{p.paystack_reference}</td>
@@ -212,13 +212,13 @@ function PaymentsTable({ payments, title }: { payments: Payment[]; title: string
 
 function CustomersPanel({ customers, adjust }: { customers: Customer[]; adjust: (p: Record<string, unknown>) => Promise<boolean> }) {
   const [search, setSearch] = useState('')
-  const [gPhone, setGPhone] = useState('')
+  const [gEmail, setGEmail] = useState('')
   const [gCredits, setGCredits] = useState('')
   const [gReason, setGReason] = useState('')
   const [resetType, setResetType] = useState('credits')
   const [resetConfirm, setResetConfirm] = useState('')
 
-  const filtered = customers.filter(c => c.phone_number.includes(search.trim()) || (c.email || '').toLowerCase().includes(search.trim().toLowerCase()))
+  const filtered = customers.filter(c => c.email.includes(search.trim()) || (c.email || '').toLowerCase().includes(search.trim().toLowerCase()))
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -226,13 +226,13 @@ function CustomersPanel({ customers, adjust }: { customers: Customer[]; adjust: 
       <div style={card}>
         <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.25rem', fontWeight: 600, marginBottom: '16px' }}>Give credits · Reset</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '12px' }}>
-          <div><label style={label}>Phone</label><input value={gPhone} onChange={e => setGPhone(e.target.value)} placeholder="e.g. 0559519783" style={input} /></div>
+          <div><label style={label}>Email</label><input value={gEmail} onChange={e => setGEmail(e.target.value)} placeholder="e.g. kwame@email.com" style={input} /></div>
           <div><label style={label}>CV credits</label><input value={gCredits} onChange={e => setGCredits(e.target.value)} placeholder="e.g. 3" style={input} inputMode="numeric" /></div>
           <div><label style={label}>Reason (optional)</label><input value={gReason} onChange={e => setGReason(e.target.value)} placeholder="manual top-up" style={input} /></div>
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '18px' }}>
-          <button style={btn} disabled={!gPhone || !gCredits}
-            onClick={async () => { if (await adjust({ phoneNumber: gPhone, mode: 'add', addCv: Number(gCredits), reason: gReason })) { setGPhone(''); setGCredits(''); setGReason('') } }}>
+          <button style={btn} disabled={!gEmail || !gCredits}
+            onClick={async () => { if (await adjust({ email: gEmail, mode: 'add', addCv: Number(gCredits), reason: gReason })) { setGEmail(''); setGCredits(''); setGReason('') } }}>
             ＋ Give credits
           </button>
         </div>
@@ -243,11 +243,11 @@ function CustomersPanel({ customers, adjust }: { customers: Customer[]; adjust: 
             <option value="both">Reset both</option>
           </select>
           <input value={resetConfirm} onChange={e => setResetConfirm(e.target.value)} placeholder="Type RESET" style={{ ...input, width: '140px' }} />
-          <button style={{ ...btnDanger, opacity: (!gPhone || resetConfirm !== 'RESET') ? 0.5 : 1 }} disabled={!gPhone || resetConfirm !== 'RESET'}
-            onClick={async () => { if (await adjust({ phoneNumber: gPhone, mode: 'reset', resetType, confirm: 'RESET' })) setResetConfirm('') }}>
+          <button style={{ ...btnDanger, opacity: (!gEmail || resetConfirm !== 'RESET') ? 0.5 : 1 }} disabled={!gEmail || resetConfirm !== 'RESET'}
+            onClick={async () => { if (await adjust({ email: gEmail, mode: 'reset', resetType, confirm: 'RESET' })) setResetConfirm('') }}>
             ⟳ Reset
           </button>
-          <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>Reset applies to the Phone entered above.</span>
+          <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>Reset applies to the Email entered above.</span>
         </div>
       </div>
 
@@ -255,24 +255,23 @@ function CustomersPanel({ customers, adjust }: { customers: Customer[]; adjust: 
       <div style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.25rem', fontWeight: 600 }}>Customers ({customers.length})</div>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Search phone or email…" style={{ ...input, maxWidth: '260px' }} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Search email…" style={{ ...input, maxWidth: '260px' }} />
         </div>
         {filtered.length === 0 ? <Empty text="No customers match." /> : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '720px' }}>
-              <thead><tr><th style={th}>Phone</th><th style={th}>Email</th><th style={th}>CV credits</th><th style={th}>Cover-letter</th><th style={th}>Purchased</th><th style={th}>Joined</th><th style={th}>Quick action</th></tr></thead>
+              <thead><tr><th style={th}>Email</th><th style={th}>CV credits</th><th style={th}>Cover-letter</th><th style={th}>Purchased</th><th style={th}>Joined</th><th style={th}>Quick action</th></tr></thead>
               <tbody>
                 {filtered.map((c, i) => (
                   <tr key={i}>
-                    <td style={{ ...td, fontWeight: 600 }}>{c.phone_number}</td>
-                    <td style={{ ...td, color: '#64748b' }}>{c.email || '—'}</td>
+                    <td style={{ ...td, fontWeight: 600 }}>{c.email}</td>
                     <td style={td}><Pill n={c.credits} /></td>
                     <td style={td}><Pill n={c.cover_letter_credits} /></td>
                     <td style={{ ...td, color: '#64748b' }}>{c.total_purchased}</td>
                     <td style={{ ...td, color: '#64748b' }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}</td>
                     <td style={td}>
                       <button style={{ ...btnGhost, padding: '6px 12px', fontSize: '12px' }}
-                        onClick={() => adjust({ phoneNumber: c.phone_number, mode: 'add', addCv: 1, reason: 'quick +1' })}>+1 credit</button>
+                        onClick={() => adjust({ email: c.email, mode: 'add', addCv: 1, reason: 'quick +1' })}>+1 credit</button>
                     </td>
                   </tr>
                 ))}
@@ -292,11 +291,11 @@ function GenerationsTable({ rows }: { rows: Generation[] }) {
       {rows.length === 0 ? <Empty text="No CVs generated yet." /> : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '640px' }}>
-            <thead><tr><th style={th}>Phone</th><th style={th}>Type</th><th style={th}>Template</th><th style={th}>Label</th><th style={th}>Date</th></tr></thead>
+            <thead><tr><th style={th}>Email</th><th style={th}>Type</th><th style={th}>Template</th><th style={th}>Label</th><th style={th}>Date</th></tr></thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={i}>
-                  <td style={{ ...td, fontWeight: 600 }}>{r.phone_number}</td>
+                  <td style={{ ...td, fontWeight: 600 }}>{r.email}</td>
                   <td style={td}>{r.cv_type}</td>
                   <td style={td}>{r.template_id}</td>
                   <td style={{ ...td, color: '#64748b' }}>{r.label || '—'}</td>
@@ -314,15 +313,15 @@ function GenerationsTable({ rows }: { rows: Generation[] }) {
 function PinResetsTable({ rows }: { rows: PinReset[] }) {
   return (
     <div style={card}>
-      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.25rem', fontWeight: 600, marginBottom: '14px' }}>PIN reset requests</div>
-      {rows.length === 0 ? <Empty text="No PIN resets requested." /> : (
+      <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.25rem', fontWeight: 600, marginBottom: '14px' }}>Email access links</div>
+      {rows.length === 0 ? <Empty text="No access links requested." /> : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '560px' }}>
-            <thead><tr><th style={th}>Phone</th><th style={th}>Status</th><th style={th}>Requested</th><th style={th}>Expires</th></tr></thead>
+            <thead><tr><th style={th}>Email</th><th style={th}>Status</th><th style={th}>Requested</th><th style={th}>Expires</th></tr></thead>
             <tbody>
               {rows.map((r, i) => (
                 <tr key={i}>
-                  <td style={{ ...td, fontWeight: 600 }}>{r.phone_number}</td>
+                  <td style={{ ...td, fontWeight: 600 }}>{r.email}</td>
                   <td style={td}>{r.used ? <span style={{ color: '#16a34a' }}>Used</span> : new Date(r.expires_at) < new Date() ? <span style={{ color: '#94a3b8' }}>Expired</span> : <span style={{ color: ACCENT }}>Pending</span>}</td>
                   <td style={{ ...td, color: '#64748b' }}>{new Date(r.created_at).toLocaleString()}</td>
                   <td style={{ ...td, color: '#64748b' }}>{new Date(r.expires_at).toLocaleString()}</td>

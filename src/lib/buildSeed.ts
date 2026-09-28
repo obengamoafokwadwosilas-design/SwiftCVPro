@@ -15,12 +15,6 @@ import { CVType } from '@/types'
 export interface BuildSeed {
   cvType: CVType
   inputMethod: 'paste' | 'form'
-  phoneNumber?: string
-  // Identity email for the free-preview cap (src/lib/freeGenerations.ts) —
-  // added alongside phoneNumber for the same "remember me" treatment. Unlike
-  // jobDescription/whyRole, this is identity, not per-attempt data, so it
-  // belongs in BOTH the one-shot seed and the permanent "remember me"
-  // carry-forward, same as phoneNumber.
   email?: string
   // paste path
   pasteContent?: string

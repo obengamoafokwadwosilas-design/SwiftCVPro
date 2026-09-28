@@ -11,7 +11,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 // deliberately returns nothing but a status — no counts, no rows, no schema.
 export async function GET() {
   try {
-    const { error } = await supabaseAdmin.from('cv_credits').select('phone_number').limit(1)
+    const { error } = await supabaseAdmin.from('customers').select('id').limit(1)
     if (error) return NextResponse.json({ ok: false }, { status: 503 })
     return NextResponse.json({ ok: true })
   } catch {

@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import { CVType } from '@/types'
 import { PACKAGES, packagesForDoc, PackageId } from '@/lib/packages'
-import { normalizePhone } from '@/lib/phone'
-import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed, saveLastInput, loadLastInput, clearLastInput, clearPreviousCoverLetter } from '@/lib/buildSeed'
+import { normalizeEmail } from '@/lib/email'
+import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed, clearLastInput, clearPreviousCoverLetter } from '@/lib/buildSeed'
 
 // ─────────────────────────────────────────────────────────────
 // PRICING MODAL ICONS — each tier gets its own icon colour (a real "these
@@ -137,7 +137,7 @@ export default function BuildPage() {
   // Professional CV is the common case, so it's selected by default — the user
   // can switch, but never has to make a choice just to move forward.
   const [typeChosen, setTypeChosen] = useState(true)
-  // Phone + credit balance are collected up front (on the type screen) now.
+  // Email + credit balance are collected up front (on the type screen) now.
   // creditBalance is null until we've checked; once known, the info screens
   // show a "what you have left" badge when there's anything to show.
   const [typeErr, setTypeErr] = useState('')
@@ -172,7 +172,7 @@ export default function BuildPage() {
   const [showCvExample, setShowCvExample] = useState(false)
   // Pricing modal: shown when the user has no credits and must buy a package.
   const [showPricing, setShowPricing] = useState(false)
-  const [payPhone, setPayPhone] = useState('')
+  const [payEmail, setPayEmail] = useState('')
   // Which package (if any) the user already decided on before landing here —
   // e.g. clicked "Get Gold" on the pricing page. Highlighted in the modal so
   // that choice isn't thrown away and re-asked from scratch.
@@ -198,22 +198,8 @@ export default function BuildPage() {
   // complete without input, so nobody is left staring at a required-looking
   // empty box they can't fill.
   const [tailorMode, setTailorMode] = useState<'advert' | 'aim' | 'none'>('none')
-  const [phoneNumber, setPhoneNumber] = useState('')
-  // Required alongside phone — generation is free but capped per identity, and
-  // checked against both phone and email so cycling one signal alone can't
-  // dodge the cap (see FREE_CAP_REACHED handling in doGenerate). Distinct from
-  // refs.email below, which is CV *content* (appears on the document).
   const [email, setEmail] = useState('')
-  // True when the phone/CV fields below were pre-filled from a previous visit
-  // on this device (see lib/buildSeed.ts saveLastInput/loadLastInput) — shows
-  // a small "Not you?" control so a shared device isn't stuck with someone
-  // else's info.
-  const [restoredFromLastInput, setRestoredFromLastInput] = useState(false)
-  // Visible opt-in/out for the above — checked by default (still zero extra
-  // clicks for the common case), but now a real control instead of invisible
-  // magic. Unticking it before Generate both skips saving and wipes anything
-  // already remembered, so it actually means "stop remembering me."
-  const [rememberMe, setRememberMe] = useState(true)
+  const [employmentUpdates, setEmploymentUpdates] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<{ title: string; msg: string; type: 'payment' | 'input' | 'server' | 'network' } | null>(null)
 
@@ -349,40 +335,9 @@ export default function BuildPage() {
       clearBuildSeed()
       return
     }
-    // Nothing more specific pending — a normal fresh visit. Fall back to
-    // whatever this device remembers from last time, if anything.
-    const last = loadLastInput()
-    if (last) {
-      applyLastInput(last)
-      setRestoredFromLastInput(true)
-      // Know the balance as early as possible for a returning user, so the
-      // credits pill can show up top from the very first screen — same
-      // read-only check goAfterType makes, just fired sooner for display.
-      if (last.phoneNumber) {
-        fetch('/api/check-credits', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: last.phoneNumber, cvType: last.cvType }),
-        })
-          .then(res => res.json())
-          .then(d => setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 }))
-          .catch(() => {})
-      }
-    }
+    clearLastInput()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  // Last line of defence: a refresh, a closed tab or a tap on the back button
-  // can land between save points, and anything typed since the last one would
-  // go with it. pagehide fires in all of those cases (unlike beforeunload on
-  // mobile Safari), and a localStorage write is synchronous, so it completes
-  // even as the page goes away. No dependency array on purpose — the listener
-  // must always close over the current values, not the ones from first mount.
-  useEffect(() => {
-    const save = () => rememberCurrentInput()
-    window.addEventListener('pagehide', save)
-    return () => window.removeEventListener('pagehide', save)
-  })
 
   // ── Loading animation ─────────────────────────
   // There's no real progress to report — it's one blocking AI call, not a
@@ -446,7 +401,7 @@ export default function BuildPage() {
   // captures "Any special instructions?" and the guided-form answers, which
   // are typed after a file is uploaded and so aren't covered by the save on
   // upload itself.
-  const go = (s: Screen) => { rememberCurrentInput(); setScreen(s); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  const go = (s: Screen) => { setScreen(s); window.scrollTo({ top: 0, behavior: 'smooth' }) }
 
   // Header progress. Phase 3 covers every form screen, so it advances with
   // them — the bar and the screen's own "Step N of M" now tell one story.
@@ -501,12 +456,9 @@ export default function BuildPage() {
   const backTo = backTargets[screen]
 
   // The document type is step 1, so choosing it leads into how to share info.
-  function goAfterType() {
+  async function goAfterType() {
     setTypeErr('')
     if (!typeChosen) { setTypeErr('Please choose what to create.'); return }
-    const digits = phoneNumber.replace(/\D/g, '')
-    if (!phoneNumber.trim()) { setTypeErr('Please enter your phone number.'); return }
-    if (digits.length < 9) { setTypeErr('Please enter a valid phone number.'); return }
     if (!email.trim()) { setTypeErr('Please enter your email address.'); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setTypeErr('Please enter a valid email address.'); return }
     // Advance instantly — no waiting, no "checking" state. The balance is
@@ -515,11 +467,15 @@ export default function BuildPage() {
     // authoritatively anyway).
     // A cover letter asks which role first; everything else goes straight to
     // the method choice.
+    try {
+      const result = await fetch('/api/customer-consent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, updates: employmentUpdates }) })
+      if (!result.ok) { setTypeErr('Could not save your email preference. Please try again.'); return }
+    } catch { setTypeErr('Could not connect. Please try again.'); return }
     go(isCoverLetter ? 'form-5' : 'method')
     fetch('/api/check-credits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber, cvType }),
+      body: JSON.stringify({ email, cvType }),
     })
       .then(res => res.json())
       .then(d => setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 }))
@@ -539,7 +495,6 @@ export default function BuildPage() {
     return {
       cvType,
       inputMethod,
-      phoneNumber,
       email,
       // An upload now fills this same box with its extracted text the moment
       // it's read (see handleCVFileUpload), so the textarea is always the
@@ -595,7 +550,6 @@ export default function BuildPage() {
   function applyBuildSeed(seed: BuildSeed) {
     setCvType(seed.cvType)
     setInputMethod(seed.inputMethod)
-    if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
     if (seed.email) setEmail(seed.email)
     const hadUpload = restoreUploadedFile(seed)
     // A restored upload shows the review view automatically (uploadedCV is
@@ -628,56 +582,11 @@ export default function BuildPage() {
     go(seed.landingScreen)
   }
 
-  // ── Pre-fill from a remembered previous visit (see mount effect above) ──
-  // Deliberately narrower than applyBuildSeed: only the person's own
-  // identity/CV content is restored, never job-targeting fields (a job
-  // description or "why this role" answer from last time would be actively
-  // wrong for a new application) — and it never navigates screens, since
-  // this is a passive pre-fill on an ordinary fresh visit, not a resume-where-
-  // I-left-off flow.
-  function applyLastInput(seed: BuildSeed) {
-    // A ?type= in the URL is an explicit choice the user just made by clicking
-    // a specific link ("Build my letter →", the Academic CV card, the footer
-    // links). It MUST beat whatever this device happens to remember.
-    //
-    // This effect runs after the URL-param effect, so an unconditional
-    // setCvType here silently overwrote it: a returning user — which is almost
-    // everyone, since "Remember my number on this device" defaults on — asked
-    // for a Cover Letter and landed on whatever they built last time.
-    if (!urlCvType()) setCvType(seed.cvType)
-    setInputMethod(seed.inputMethod)
-    if (seed.phoneNumber) setPhoneNumber(seed.phoneNumber)
-    if (seed.email) setEmail(seed.email)
-    const hadUpload = restoreUploadedFile(seed)
-    if (seed.pasteContent && !hadUpload) setPasteInputMode('paste')
-    requestAnimationFrame(() => {
-      const setVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
-        if (v !== undefined && ref.current) ref.current.value = v
-      }
-      // The textarea stays mounted regardless of view — see applyBuildSeed above.
-      setVal(refs.paste, seed.pasteContent)
-      // whyRole ("anything to emphasize") is deliberately NOT restored here —
-      // see the comment in rememberCurrentInput. Same reasoning as
-      // jobDescription below: correct for one specific attempt, wrong to
-      // resurface later.
-      if (seed.form) {
-        const f = seed.form
-        setVal(refs.fullName, f.fullName); setVal(refs.phone, f.phone); setVal(refs.email, f.email); setVal(refs.location, f.location)
-        setVal(refs.dob, f.dob); setVal(refs.nationality, f.nationality); setVal(refs.linkedin, f.linkedin)
-        setVal(refs.education, f.education); setVal(refs.gpa, f.gpa); setVal(refs.thesis, f.thesis); setVal(refs.research, f.research)
-        setVal(refs.experience, f.experience); setVal(refs.publications, f.publications); setVal(refs.teaching, f.teaching); setVal(refs.conferences, f.conferences)
-        setVal(refs.extras, f.extras); setVal(refs.grants, f.grants); setVal(refs.supervision, f.supervision); setVal(refs.orcid, f.orcid)
-        setVal(refs.jobTitle, f.jobTitle); setVal(refs.company, f.company)
-      }
-    })
-  }
-
   // "Not you?" — wipes the remembered info from this device and clears every
   // field it pre-filled, so a shared device doesn't stay stuck with someone
   // else's phone number and CV text.
   function clearSavedInfo() {
     clearLastInput()
-    setPhoneNumber('')
     setEmail('')
     setUploadedCV(null)
     setExtractedCVText(null)
@@ -690,27 +599,20 @@ export default function BuildPage() {
     clearVal(refs.experience); clearVal(refs.publications); clearVal(refs.teaching); clearVal(refs.conferences)
     clearVal(refs.extras); clearVal(refs.grants); clearVal(refs.supervision); clearVal(refs.orcid)
     clearVal(refs.jobTitle); clearVal(refs.company)
-    setRestoredFromLastInput(false)
   }
 
-  // Buying credits up front, before generating anything. Credits attach to a
-  // phone number — that IS the account — so we can't open a payment we'd have
-  // nowhere to credit. Hence the guard rather than a silent no-op.
   function startBuyCredits() {
-    const digits = phoneNumber.replace(/\D/g, '')
-    if (!phoneNumber.trim() || digits.length < 9) {
-      setTypeErr('Enter your phone number first — your credits are saved to it.')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setTypeErr('Enter your email first — your credits are saved to it.')
       return
     }
     setTypeErr('')
-    setPayPhone(normalizePhone(phoneNumber))
+    setPayEmail(normalizeEmail(email))
     setBuyingStandalone(true)
     setShowPricing(true)
   }
 
-  // "Switch number" — same wipe as clearSavedInfo, plus a jump back to the
-  // type screen since that's the only place phone/email are editable.
-  function switchNumber() {
+  function switchEmail() {
     clearSavedInfo()
     setScreen('type')
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -724,50 +626,6 @@ export default function BuildPage() {
     const data = await res.json()
     if (!data.success) throw new Error(data.error || 'Could not read file')
     return data.text
-  }
-
-  // Snapshot whatever the user has entered so far onto this device. Called at
-  // every point where something new could have been typed or added, NOT only
-  // at Generate — the credit check can send them to the pricing modal, or they
-  // can simply leave, and none of that should cost them their input.
-  //
-  // Strictly additive: a field the current screen can't supply is carried over
-  // from what was already remembered, so a pass through an empty form can
-  // never wipe good data. "Not you? Clear saved info" is the one thing that
-  // deletes (see clearSavedInfo).
-  // The file/text arguments exist because this is called from the upload
-  // handler, whose closure still sees the pre-upload state — React hasn't
-  // applied setUploadedCV/setExtractedCVText yet at that point, so reading
-  // them off state there would silently save nothing.
-  function rememberCurrentInput(cachedUploadText?: string, cachedUploadName?: string) {
-    if (!rememberMe) return
-    const seed = captureBuildSeed('type')
-    // whyRole and jobDescription are per-attempt, not identity — captured
-    // here (this object doubles as the one-shot payment/rewrite seed, where
-    // keeping them is correct) but never read back by applyLastInput, so
-    // they don't resurface on a later "remember me" visit.
-    // An upload auto-fills the paste box with its extracted text (see
-    // handleCVFileUpload), but only after the textarea mounts a frame later —
-    // called synchronously in that same handler, captureBuildSeed's read of
-    // refs.paste can still be empty. Fall back to the text just extracted.
-    const uploadText = cachedUploadText ?? extractedCVText?.text
-    if (!seed.pasteContent && uploadText) seed.pasteContent = uploadText
-    if (!seed.uploadedFileName && cachedUploadName) seed.uploadedFileName = cachedUploadName
-    const prev = loadLastInput()
-    if (prev) {
-      if (!seed.phoneNumber) seed.phoneNumber = prev.phoneNumber
-      if (!seed.email) seed.email = prev.email
-      if (!seed.form) seed.form = prev.form
-      // Content and filename travel together — carrying one over without the
-      // other would show an upload card for a file whose text is gone, or
-      // text with no card. Only fall back when this pass has no content at all.
-      if (!seed.pasteContent) {
-        seed.pasteContent = prev.pasteContent
-        seed.uploadedFileName = prev.uploadedFileName
-      }
-    }
-    if (!seed.phoneNumber && !seed.pasteContent && !seed.form) return
-    saveLastInput(seed)
   }
 
   // Fired the moment a CV file is dropped/selected — deliberately NOT tied to
@@ -787,9 +645,6 @@ export default function BuildPage() {
       // where it came from.
       if (refs.paste.current) refs.paste.current.value = ''
       // "Remove" has to actually forget it, or the carry-over in
-      // rememberCurrentInput would helpfully put it back on the next visit.
-      const prev = loadLastInput()
-      if (prev) { delete prev.pasteContent; delete prev.uploadedFileName; saveLastInput(prev) }
       return
     }
     setIsExtracting(true)
@@ -801,7 +656,6 @@ export default function BuildPage() {
       // extraction the user never sees. Deferred a frame because this branch
       // (uploadedCV just got set above) is what makes the textarea mount.
       requestAnimationFrame(() => { if (refs.paste.current) refs.paste.current.value = text })
-      if (text.replace(/\s+/g, ' ').trim().length >= 80) rememberCurrentInput(text, file.name)
     } catch (err: any) {
       setExtractedCVText(null)
       setUploadReadError(err?.message || 'Could not read this file. Try a different one, or paste your CV text instead.')
@@ -812,7 +666,6 @@ export default function BuildPage() {
 
   // ── Validate ──────────────────────────────────
   function validate(): string | null {
-    if (!phoneNumber.trim()) return 'phone'
     if (!email.trim()) return 'email'
     if (inputMethod === 'paste') {
       // Upload and typing both land in this one box, so there's only one
@@ -831,7 +684,6 @@ export default function BuildPage() {
     const validErr = validate()
     if (validErr) {
       const msgs: Record<string, {title:string;msg:string;type:any}> = {
-        phone:    { title: 'Phone number required', msg: 'Please enter your phone number so we can link your credit to the right account.', type: 'input' },
         content:  { title: 'No CV content', msg: 'Please upload your CV or type it in before generating.', type: 'input' },
         name:     { title: 'Name required', msg: 'Please enter your full name.', type: 'input' },
         email:    { title: 'Email required', msg: 'Please enter your email address.', type: 'input' },
@@ -841,25 +693,20 @@ export default function BuildPage() {
       setError(msgs[validErr] || { title: 'Something missing', msg: 'Please check your details and try again.', type: 'input' })
       return
     }
-    // Remember this device's phone/CV info for next visit (see lib/buildSeed.ts)
-    // — unless they've unticked "remember me", in which case also wipe
-    // whatever was already saved, so unticking actually means something.
-    if (rememberMe) rememberCurrentInput()
-    else clearLastInput()
     // Generation itself is free (capped) — the real paywall is at download,
-    // so there's no credit pre-flight here anymore. Just normalize the phone
+    // so there's no credit pre-flight here anymore. Just normalize the email
     // client-side and go straight to generating.
     try {
-      const { normalizePhone } = await import('@/lib/phone')
+      const { normalizeEmail } = await import('@/lib/email')
       setIsGenerating(true)
-      await doGenerate(normalizePhone(phoneNumber))
+      await doGenerate(normalizeEmail(email))
     } catch {
       setIsGenerating(false)
       setError({ title: 'Connection error', msg: 'Could not connect to the server. Please check your internet and try again.', type: 'network' })
     }
   }
 
-  async function doGenerate(normalizedPhone: string) {
+  async function doGenerate(accessEmail: string) {
     // Reads whichever advert input is in play. An uploaded file has to be
     // extracted (a second Claude vision call for a photo), and that can fail
     // on an unreadable scan — tagged as AdvertReadError so the catch below
@@ -905,7 +752,6 @@ export default function BuildPage() {
         // Belt and braces: the upload handler and every screen change already
         // save, but this is the last moment before the input is consumed —
         // and by now all state has settled, so a plain call reads it correctly.
-        if (fromUpload) rememberCurrentInput()
 
         // Only read the advert if that's the option they actually chose, so a
         // switch to "aim" or "just upgrade" can't leave stale advert text in.
@@ -934,7 +780,7 @@ export default function BuildPage() {
           fullName: r.fullName.current?.value || '',
           jobTitle: r.jobTitle.current?.value || '',
           email: r.email.current?.value || '',
-          phone: r.phone.current?.value || phoneNumber,
+          phone: r.phone.current?.value || '',
           location: r.location.current?.value || '',
           nationality: r.nationality.current?.value || undefined,
           dob: r.dob.current?.value || undefined,
@@ -969,15 +815,15 @@ export default function BuildPage() {
         const res = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cvType, formData, phoneNumber: normalizedPhone, email })
+          body: JSON.stringify({ cvType, formData, email: accessEmail })
         })
         const data = await res.json()
         if (!data.success) {
           setIsGenerating(false)
           if (data.error === 'FREE_CAP_REACHED') {
-            // Free generations used up on this phone/email → let them choose
+            // Free generations used up on this email → let them choose
             // a package before paying, same modal the export routes' 402s use.
-            setPayPhone(normalizedPhone)
+            setPayEmail(accessEmail)
             setBuyingStandalone(false)
             setShowPricing(true)
           } else if (res.status === 503) {
@@ -989,7 +835,6 @@ export default function BuildPage() {
         }
         sessionStorage.setItem('swiftcv_cv', JSON.stringify(data.cv))
         sessionStorage.setItem('swiftcv_type', cvType)
-        sessionStorage.setItem('swiftcv_phone', normalizedPhone)
         sessionStorage.setItem('swiftcv_email', email)
         if (data.historyId) sessionStorage.setItem('swiftcv_history_id', String(data.historyId))
         else sessionStorage.removeItem('swiftcv_history_id')
@@ -1011,15 +856,14 @@ export default function BuildPage() {
           company: tailorMode === 'aim' ? (refs.tailorSchoolPaste.current?.value || undefined) : undefined,
           targetProgramme: tailorMode === 'aim' ? (refs.tailorProgrammePaste.current?.value || undefined) : undefined,
           whyRole: refs.tailorEmphasisPaste.current?.value || undefined,
-          phoneNumber: normalizedPhone,
-          email,
+          email: accessEmail,
         })
       })
       const data = await res.json()
       if (!data.success) {
         setIsGenerating(false)
         if (data.error === 'FREE_CAP_REACHED') {
-          setPayPhone(normalizedPhone)
+          setPayEmail(accessEmail)
           setBuyingStandalone(false)
           setShowPricing(true)
         } else if (res.status === 503) {
@@ -1031,7 +875,6 @@ export default function BuildPage() {
       }
       sessionStorage.setItem('swiftcv_cv', JSON.stringify(data.cv))
       sessionStorage.setItem('swiftcv_type', cvType)
-      sessionStorage.setItem('swiftcv_phone', normalizedPhone)
       sessionStorage.setItem('swiftcv_email', email)
       if (data.historyId) sessionStorage.setItem('swiftcv_history_id', String(data.historyId))
       else sessionStorage.removeItem('swiftcv_history_id')
@@ -1067,11 +910,11 @@ export default function BuildPage() {
   // this package" banner on the type screen, would otherwise keep showing
   // stale info (worst case: inviting someone to buy a package they just
   // bought). Re-checks the same way goAfterType does on first load.
-  function refreshCreditBalance(phoneForBalance: string) {
+  function refreshCreditBalance(emailForBalance: string) {
     fetch('/api/check-credits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber: phoneForBalance, cvType }),
+      body: JSON.stringify({ email: emailForBalance, cvType }),
     })
       .then(res => res.json())
       .then(d => setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 }))
@@ -1088,6 +931,11 @@ export default function BuildPage() {
       const data = await res.json()
       if (!data.success) {
         setError({ title: 'Payment not confirmed', msg: data.error || 'We could not confirm your payment. If you completed it, wait a moment and try "Verify Payment" again.', type: 'payment' })
+        return false
+      }
+      if (data.verificationRequired) {
+        saveBuildSeed(captureBuildSeed('summary'))
+        setError({ title: 'Payment received', msg: 'Your receipt includes a secure link. Open it to access your CVs and credits, then continue here.', type: 'payment' })
         return false
       }
       return true
@@ -1113,13 +961,13 @@ export default function BuildPage() {
     setPaymentPending({ reference, standalone: buyingStandalone, pkg })
   }
 
-  async function triggerPaystack(normalizedPhone: string, pkg: typeof PACKAGES[number]) {
+  async function triggerPaystack(accessEmail: string, pkg: typeof PACKAGES[number]) {
     setError(null)
     try {
       const res = await fetch('/api/initiate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneNumber: normalizedPhone, packageId: pkg.id }),
+        body: JSON.stringify({ email: accessEmail, packageId: pkg.id }),
       })
       const data = await res.json()
       if (!data.success) {
@@ -1142,12 +990,12 @@ export default function BuildPage() {
             onSuccess: async () => {
               if (buyingStandalone) {
                 const ok = await confirmPayment(data.reference)
-                if (ok) { setPurchasedPkg(pkg); refreshCreditBalance(normalizedPhone) }
+                if (ok) { setPurchasedPkg(pkg); refreshCreditBalance(accessEmail) }
                 return
               }
               setIsGenerating(true)
               const ok = await confirmPayment(data.reference)
-              if (ok) await doGenerate(normalizedPhone)
+              if (ok) await doGenerate(accessEmail)
               else setIsGenerating(false)
             },
             onCancel: () => setError({ title: 'Payment cancelled', msg: 'Payment was not completed. Your CV has not been generated. Try again whenever you are ready.', type: 'payment' }),
@@ -1182,11 +1030,11 @@ export default function BuildPage() {
     setPaymentPending(null)
     if (standalone) {
       setPurchasedPkg(pkg)
-      refreshCreditBalance(payPhone)
+      refreshCreditBalance(payEmail)
       return
     }
     setIsGenerating(true)
-    await doGenerate(phoneNumber)
+    await doGenerate(email)
   }
 
   // ─────────────────────────────────────────────
@@ -1216,7 +1064,7 @@ export default function BuildPage() {
         // `hasCredits || screen !== 'type'`, which hid the buy button from
         // exactly the person most likely to use it: someone who just clicked a
         // pricing button on the landing page and has no credits yet.
-        const showPill = !!phoneNumber
+        const showPill = !!email
         if (!backTo && screen !== 'type' && !showPill) return null
         const n = cvType === 'cover_letter' ? (creditBalance?.cl ?? 0) : (creditBalance?.cv ?? 0)
         // The type screen already states the free-preview offer inline below,
@@ -1238,7 +1086,7 @@ export default function BuildPage() {
               <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '6px' }}>
                 <div className="xcv-mono" style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '9.5px', color: 'var(--teal)', background: 'var(--teal-tint)', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '4px', padding: '7px 12px', whiteSpace: 'nowrap' as const }}>
                   {pillLabel}
-                  <span style={{ color: 'var(--muted)', ...(pillLabel ? { borderLeft: '1px solid rgba(10,138,63,0.18)', paddingLeft: '9px' } : {}) }}>{phoneNumber}</span>
+                  <span style={{ color: 'var(--muted)', ...(pillLabel ? { borderLeft: '1px solid rgba(10,138,63,0.18)', paddingLeft: '9px' } : {}) }}>{email}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button type="button" onClick={startBuyCredits} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--teal)', fontWeight: 500 }}>
@@ -1351,70 +1199,19 @@ export default function BuildPage() {
             })}
           </div>
 
-          {/* Contact — collected up front (credits are linked to phone; email
-              guards the free-preview cap) but kept compact and low-key so it
-              never competes with the choice above: one small label, both
-              fields side by side, one shared caption. */}
           <div className="xcv-rise" style={{ animationDelay: '280ms', marginBottom: '34px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
-              {/* var(--muted) here measures ~2.95:1 against var(--paper) —
-                  well under the 4.5:1 minimum for text this size, so the
-                  label really was getting lost, not just reading quiet on
-                  purpose. --graphite clears ~5.6:1. Size bumped 10px -> 12px
-                  to match; xcv-mono's shared 10px default is untouched since
-                  its other two usages already override size/color per call
-                  site and aren't part of this complaint. */}
-              <label className="xcv-mono" style={{ fontSize: '12px', color: 'var(--graphite)' }}>Phone &amp; email</label>
-              {restoredFromLastInput && (
-                <button type="button" onClick={clearSavedInfo} className="xcv-link" style={{ fontSize: '12.5px', whiteSpace: 'nowrap' as const }}>
-                  Not you? Clear saved info
-                </button>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
-              <input
-                value={phoneNumber}
-                onChange={e => { setPhoneNumber(e.target.value); if (typeErr) setTypeErr('') }}
-                onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
-                placeholder="Phone — e.g. 0551234567"
-                aria-label="Phone number"
-                className={'xcv-field' + (typeErr ? ' err' : '')}
-                style={{ flex: '1 1 190px', width: 'auto' }}
-              />
-              <input
-                type="email"
-                value={email}
-                onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
-                onKeyDown={e => { if (e.key === 'Enter') goAfterType() }}
-                placeholder="Email — e.g. kwame@email.com"
-                aria-label="Email address"
-                className={'xcv-field' + (typeErr ? ' err' : '')}
-                style={{ flex: '1 1 190px', width: 'auto' }}
-              />
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '10px', fontWeight: 300, lineHeight: 1.65 }}>
-              <span style={{ color: 'var(--teal)', fontWeight: 500 }}>No account needed.</span> Phone and email are used to save your CVs for future access.
-            </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '9px', marginTop: '11px', cursor: 'pointer', userSelect: 'none' }}>
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={e => {
-                  setRememberMe(e.target.checked)
-                  // Take effect at once rather than waiting for Generate —
-                  // unticking should visibly mean "forget me", not "forget me
-                  // later".
-                  if (!e.target.checked) { clearLastInput(); setRestoredFromLastInput(false) }
-                }}
-                style={{ width: '15px', height: '15px', accentColor: 'var(--teal)', cursor: 'pointer' }}
-              />
-              <span style={{ fontSize: '12.5px', color: 'var(--graphite)', fontWeight: 300 }}>Remember my number on this device</span>
+            <label htmlFor="access-email" className="xcv-mono" style={{ display: 'block', fontSize: '12px', color: 'var(--graphite)', marginBottom: '10px' }}>Email address</label>
+            <input id="access-email" type="email" value={email}
+              onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
+              onKeyDown={e => { if (e.key === 'Enter') void goAfterType() }}
+              placeholder="e.g. kwame@email.com" autoComplete="email"
+              className={'xcv-field' + (typeErr ? ' err' : '')} />
+            <p style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '10px', lineHeight: 1.65 }}>For your receipt and future access to your CVs.</p>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', marginTop: '11px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={employmentUpdates} onChange={e => setEmploymentUpdates(e.target.checked)}
+                style={{ width: '15px', height: '15px', accentColor: 'var(--teal)', marginTop: '2px', flexShrink: 0 }} />
+              <span style={{ fontSize: '12.5px', color: 'var(--graphite)' }}>Send me job alerts, relevant employment updates, and CV tips.</span>
             </label>
-            {phoneNumber.trim() && (
-              <button type="button" onClick={() => router.push(`/my-cvs?phone=${encodeURIComponent(normalizePhone(phoneNumber))}&setpin=1`)} className="xcv-link" style={{ display: 'block', marginTop: '8px', fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
-                Optional — <span style={{ color: 'var(--teal)', fontWeight: 500 }}>🔒 protect this number with a PIN</span>
-              </button>
-            )}
           </div>
 
           {/* The commit. Bound by a rule and carrying what is being committed
@@ -1634,7 +1431,7 @@ export default function BuildPage() {
             <Field label="Full name *" placeholder="e.g. Kwame Mensah" fieldRef={refs.fullName} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', margin: '12px 0' }}>
               <Field label="Phone *" placeholder="e.g. 0551234567" fieldRef={refs.phone} />
-              <Field label="Email *" placeholder="kwame@email.com" fieldRef={refs.email} />
+              <Field label="Email *" placeholder={email || "kwame@email.com"} fieldRef={refs.email} defaultValue={email} />
             </div>
             <Field label="Location *" placeholder="e.g. Accra, Ghana" fieldRef={refs.location} />
 
@@ -2030,7 +1827,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                 const isHighlighted = pkg.recommended
                 const tierColor = TIER_ICON_COLOR[pkg.id] || TIER_ICON_COLOR.default
                 return (
-                <button key={pkg.id} onClick={() => { setShowPricing(false); triggerPaystack(payPhone, pkg) }}
+                <button key={pkg.id} onClick={() => { setShowPricing(false); triggerPaystack(payEmail, pkg) }}
                   style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
                     background: isHighlighted ? 'var(--teal-tint)' : 'white', border: isHighlighted ? '2px solid var(--teal)' : '1px solid var(--rule)',
                     borderRadius: '16px', padding: isHighlighted ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
@@ -2046,17 +1843,12 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
               })}
             </div>
 
+            <button type="button" onClick={() => { saveBuildSeed(captureBuildSeed('summary')); router.push('/my-cvs') }} className="xcv-link" style={{ display: 'block', margin: '16px auto 0' }}>Already purchased? Access your credits</button>
             <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '16px', textAlign: 'center' as const, lineHeight: 1.5 }}>Secure payment via Paystack · MTN MoMo, Vodafone Cash & card</p>
           </div>
         </div>
       )}
 
-      {/* ══ PURCHASE CONFIRMATION ══════════════════════════════════
-          Shown only after a standalone "Buy credits" purchase (not the
-          pay-to-generate path, which goes straight into generating). There
-          are no accounts here — this phone number is the only key to a
-          paid balance, so this is the one moment to say that plainly and
-          point at the PIN that locks it, while the purchase is freshest. */}
       {purchasedPkg && (
         <div onClick={() => setPurchasedPkg(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(8,13,24,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '22px', width: '100%', maxWidth: '400px', padding: '30px 26px', boxShadow: '0 25px 80px rgba(0,0,0,0.4)', fontFamily: "'DM Sans', sans-serif", textAlign: 'center' as const }}>
@@ -2064,8 +1856,8 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
             </div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>Payment successful</div>
-            <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '18px', lineHeight: 1.6 }}>{purchasedPkg.blurb} added to <strong style={{ color: 'var(--ink)' }}>{payPhone}</strong>. Credits never expire — use them whenever you're ready.</p>
-            <div style={{ fontSize: '12px', color: 'var(--graphite)', marginBottom: '18px' }}>🔒 Protect your info & credits with a 4-digit PIN.</div>
+            <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '18px', lineHeight: 1.6 }}>{purchasedPkg.blurb} added to <strong style={{ color: 'var(--ink)' }}>{payEmail}</strong>. Credits never expire — use them whenever you're ready.</p>
+            <div style={{ fontSize: '12px', color: 'var(--graphite)', marginBottom: '18px' }}>Check your email for your receipt and secure access link.</div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' as const }}>
               {/* This modal only ever shows for a standalone purchase — buying
                   at the download paywall goes straight back to generating — so
@@ -2073,7 +1865,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                   "Continue" just closed the box and left them with no next
                   step; the primary action now names it. */}
               <button onClick={() => setPurchasedPkg(null)} style={{ padding: '11px 20px', background: 'var(--teal)', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Build my CV now</button>
-              <button onClick={() => router.push(`/my-cvs?phone=${encodeURIComponent(payPhone)}&setpin=1`)} style={{ padding: '11px 20px', background: 'transparent', color: 'var(--graphite)', border: '1px solid var(--rule)', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set a PIN</button>
+              <button onClick={() => router.push(`/my-cvs`)} style={{ padding: '11px 20px', background: 'transparent', color: 'var(--graphite)', border: '1px solid var(--rule)', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set a PIN</button>
             </div>
           </div>
         </div>
@@ -2191,7 +1983,7 @@ function ExBox({ text }: { text: string }) {
   )
 }
 
-function Field({ label, placeholder, fieldRef }: { label: string; placeholder: string; fieldRef: React.RefObject<HTMLInputElement> }) {
+function Field({ label, placeholder, fieldRef, defaultValue }: { label: string; placeholder: string; fieldRef: React.RefObject<HTMLInputElement>; defaultValue?: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
       <label style={{ fontSize: '12px', fontWeight: 500, color: 'var(--graphite)' }}>{label}</label>
@@ -2200,7 +1992,7 @@ function Field({ label, placeholder, fieldRef }: { label: string; placeholder: s
           div — invisible when a Field sits alone, but on a phone-width
           two-column grid (Phone/Email) it let Email push past the card and
           off the edge of the screen, clipping half the placeholder text. */}
-      <input ref={fieldRef} placeholder={placeholder} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--rule)', borderRadius: '10px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: 'var(--ink)', transition: 'border-color 0.2s' }} />
+      <input ref={fieldRef} defaultValue={defaultValue} placeholder={placeholder} style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--rule)', borderRadius: '10px', fontFamily: "'DM Sans', sans-serif", fontSize: '13.5px', color: 'var(--ink)', transition: 'border-color 0.2s' }} />
     </div>
   )
 }

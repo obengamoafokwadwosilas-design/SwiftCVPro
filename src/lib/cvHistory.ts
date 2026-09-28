@@ -1,4 +1,7 @@
 import { supabaseAdmin } from './supabase'
+import crypto from 'crypto'
+import { cookies } from 'next/headers'
+import { digest } from './customerAuth'
 import type { BuildSeed } from './buildSeed'
 import type { GeneratedCV } from '@/types'
 
@@ -17,16 +20,22 @@ import type { GeneratedCV } from '@/types'
 // accent_color/template_id aren't known yet (the template is chosen later, on
 // the preview page) — /api/cv-history/update-template fills them in.
 export async function insertCvHistory(opts: {
-  phone: string
+  ownerId: string
   generatedCv: GeneratedCV
   rawInput: BuildSeed
   templateId?: string
 }): Promise<number | null> {
   try {
+    let token = cookies().get('scv_draft')?.value
+    if (!token) {
+      token = crypto.randomBytes(32).toString('hex')
+      cookies().set('scv_draft', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' })
+    }
     const { data, error } = await supabaseAdmin
-      .from('cv_history')
+      .from('customer_history')
       .insert({
-        phone_number: opts.phone,
+        owner_id: opts.ownerId,
+        draft_hash: digest(token),
         cv_type: opts.rawInput.cvType,
         template_id: opts.templateId || 'meridian',
         accent_color: null,

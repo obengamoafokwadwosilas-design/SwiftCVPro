@@ -2,12 +2,13 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdmin } from '@/lib/adminAuth'
+import { customerForEmail } from '@/lib/customerAuth'
 import {
-  normalizePhone, getCredits, getCoverLetterCredits,
+  getCredits, getCoverLetterCredits,
   addCredits, grantCoverLetterCredit, adminSetCredits,
 } from '@/lib/credits'
 
-// Admin: change a phone's balances.
+// Admin: change a ownerId's balances.
 //   mode: 'add' → addCv / addCl are ADDED to current balances (can be negative
 //                 for a correction; result floored at 0 by the set path below).
 //   mode: 'set' → setCv / setCl OVERWRITE to the exact value given.
@@ -18,12 +19,13 @@ export async function POST(req: NextRequest) {
   }
   try {
     const body = await req.json()
-    const { phoneNumber, mode } = body
-    if (!phoneNumber) return NextResponse.json({ error: 'Phone number required' }, { status: 400 })
+    const { email, mode } = body
+    if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 })
     if (mode !== 'add' && mode !== 'set' && mode !== 'reset') {
       return NextResponse.json({ error: 'mode must be "add", "set" or "reset"' }, { status: 400 })
     }
-    const phone = normalizePhone(phoneNumber)
+    const customer = await customerForEmail(email)
+    const ownerId = customer.id
 
     if (mode === 'reset') {
       // Destructive — require an explicit typed confirmation, same guard the UI
@@ -35,7 +37,7 @@ export async function POST(req: NextRequest) {
       const fields: { credits?: number; coverLetterCredits?: number } = {}
       if (rt === 'credits' || rt === 'both') fields.credits = 0
       if (rt === 'coverLetters' || rt === 'both') fields.coverLetterCredits = 0
-      const ok = await adminSetCredits(phone, fields)
+      const ok = await adminSetCredits(ownerId, fields)
       if (!ok) return NextResponse.json({ error: 'Reset failed' }, { status: 500 })
     } else if (mode === 'set') {
       const setCv = num(body.setCv)
@@ -43,7 +45,7 @@ export async function POST(req: NextRequest) {
       if (setCv === undefined && setCl === undefined) {
         return NextResponse.json({ error: 'Nothing to set' }, { status: 400 })
       }
-      const ok = await adminSetCredits(phone, { credits: setCv, coverLetterCredits: setCl })
+      const ok = await adminSetCredits(ownerId, { credits: setCv, coverLetterCredits: setCl })
       if (!ok) return NextResponse.json({ error: 'Update failed' }, { status: 500 })
     } else {
       const addCv = num(body.addCv)
@@ -54,20 +56,20 @@ export async function POST(req: NextRequest) {
       // A positive delta uses the race-safe RPC. A negative delta (correction)
       // can't go through the increment RPC cleanly, so clamp via a set.
       if (addCv) {
-        if (addCv > 0) { if (!(await addCredits(phone, addCv))) return NextResponse.json({ error: 'Update failed' }, { status: 500 }) }
-        else { const cur = await getCredits(phone); await adminSetCredits(phone, { credits: cur + addCv }) }
+        if (addCv > 0) { if (!(await addCredits(ownerId, addCv))) return NextResponse.json({ error: 'Update failed' }, { status: 500 }) }
+        else { const cur = await getCredits(ownerId); await adminSetCredits(ownerId, { credits: cur + addCv }) }
       }
       if (addCl) {
-        if (addCl > 0) { if (!(await grantCoverLetterCredit(phone, addCl))) return NextResponse.json({ error: 'Update failed' }, { status: 500 }) }
-        else { const cur = await getCoverLetterCredits(phone); await adminSetCredits(phone, { coverLetterCredits: cur + addCl }) }
+        if (addCl > 0) { if (!(await grantCoverLetterCredit(ownerId, addCl))) return NextResponse.json({ error: 'Update failed' }, { status: 500 }) }
+        else { const cur = await getCoverLetterCredits(ownerId); await adminSetCredits(ownerId, { coverLetterCredits: cur + addCl }) }
       }
     }
 
     const [credits, coverLetterCredits] = await Promise.all([
-      getCredits(phone),
-      getCoverLetterCredits(phone),
+      getCredits(ownerId),
+      getCoverLetterCredits(ownerId),
     ])
-    return NextResponse.json({ phoneNumber: phone, credits, coverLetterCredits })
+    return NextResponse.json({ email: customer.email, credits, coverLetterCredits })
   } catch (error) {
     console.error('Admin adjust error:', error)
     return NextResponse.json({ error: 'Adjust failed' }, { status: 500 })

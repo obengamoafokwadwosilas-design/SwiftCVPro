@@ -1,36 +1,18 @@
-export const dynamic = 'force-dynamic'
-
-import { NextRequest, NextResponse } from 'next/server'
-import { normalizePhone } from '@/lib/credits'
+import { NextResponse } from 'next/server'
+import { currentAccess, digest } from '@/lib/customerAuth'
+import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase'
-
-// Keeps a saved history row's template/colour in sync with whatever the user
-// is currently viewing on the preview page. Called automatically whenever
-// they switch templates or colours — not gated by PIN (it's a same-session
-// bookkeeping update immediately after generation, not a history browse),
-// but still scoped to the exact (id, phone_number) pair so a request can
-// only ever touch its own row.
-export async function POST(req: NextRequest) {
-  try {
-    const { phoneNumber, historyId, templateId, accentColor } = await req.json()
-    if (!phoneNumber || !historyId || !templateId) {
-      return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 })
-    }
-    const phone = normalizePhone(phoneNumber)
-
-    const { error } = await supabaseAdmin
-      .from('cv_history')
-      .update({ template_id: templateId, accent_color: accentColor || null })
-      .eq('id', historyId)
-      .eq('phone_number', phone)
-
-    if (error) {
-      console.error('cv-history/update-template error:', error)
-      return NextResponse.json({ error: 'Could not sync template.' }, { status: 500 })
-    }
-    return NextResponse.json({ ok: true })
-  } catch (error) {
-    console.error('cv-history/update-template error:', error)
-    return NextResponse.json({ error: 'Could not sync template.' }, { status: 500 })
-  }
+export const dynamic = 'force-dynamic'
+export async function POST(req: Request) {
+  const { historyId, templateId, accentColor } = await req.json()
+  if (!Number.isSafeInteger(historyId) || !templateId) return NextResponse.json({ error: 'Invalid CV.' }, { status: 400 })
+  const access = await currentAccess()
+  const draftToken = cookies().get('scv_draft')?.value
+  const query = supabaseAdmin.from('customer_history').update({ template_id: templateId, accent_color: accentColor || null }).eq('id', historyId)
+  if (access) query.eq('owner_id', access.id)
+  else if (draftToken) query.eq('draft_hash', digest(draftToken))
+  else return NextResponse.json({ error: 'Verify your email first.' }, { status: 401 })
+  const { data, error } = await query.select('id').maybeSingle()
+  if (error || !data) return NextResponse.json({ error: 'Could not sync your template.' }, { status: 404 })
+  return NextResponse.json({ ok: true })
 }

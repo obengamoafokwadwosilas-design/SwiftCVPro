@@ -1,8 +1,11 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { creditPackageIfNew, normalizePhone } from '@/lib/credits'
+import { creditPackageIfNew } from '@/lib/credits'
 import { packageByAmount } from '@/lib/packages'
+import { supabaseAdmin } from '@/lib/supabase'
+import { sendCustomerLink } from '@/lib/customerMail'
+import { requireOwner } from '@/lib/customerAuth'
 
 // Client-facing confirmation path — used (a) as the manual "Verify payment"
 // fallback when the Paystack popup was blocked and the user paid in a new
@@ -31,13 +34,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, status: tx.status || 'unknown' })
     }
 
-    const phoneNumber = tx.metadata?.phone_number
-    if (!phoneNumber) {
-      console.error(`verify-payment: no phone in metadata for reference ${reference}`)
-      return NextResponse.json({ error: 'Payment succeeded but has no phone on file. Contact support.' }, { status: 500 })
+    const ownerId = tx.metadata?.owner_id
+    if (!ownerId) {
+      console.error(`verify-payment: no ownerId in metadata for reference ${reference}`)
+      return NextResponse.json({ error: 'Payment succeeded but has no customer on file. Contact support.' }, { status: 500 })
     }
-    const phone = normalizePhone(phoneNumber)
 
+    if (tx.currency !== 'GHS') return NextResponse.json({ error: 'Invalid payment currency.' }, { status: 400 })
     const amount = Number(tx.amount)
     const pkg = packageByAmount(amount)
     if (!pkg) {
@@ -45,14 +48,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payment succeeded but the amount was not recognised. Contact support.' }, { status: 500 })
     }
 
-    const result = await creditPackageIfNew(phone, reference, pkg, amount)
+    const { data: customer } = await supabaseAdmin.from('customers').select('id, email').eq('id', ownerId).single()
+    if (!customer) return NextResponse.json({ error: 'Payment customer could not be found.' }, { status: 400 })
+    const result = await creditPackageIfNew(ownerId, reference, pkg, amount)
     if (!result.credited && !result.duplicate) {
       return NextResponse.json({ error: result.error || 'Failed to add credits.' }, { status: 500 })
     }
 
+    try { await sendCustomerLink(customer, { reference, amount, packageName: pkg.name }) } catch (error) { console.error('Payment receipt needs retry:', error) }
     return NextResponse.json({
+      verificationRequired: !await requireOwner(ownerId),
       success: true,
-      phoneNumber: phone,
       package: pkg.id,
       cv_credits: pkg.cv,
       cl_credits: pkg.cl,

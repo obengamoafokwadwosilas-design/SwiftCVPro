@@ -72,9 +72,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Too many downloads in a short time. Please wait a moment and try again.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
     }
 
-    const { cv, templateId, accentColor, phoneNumber, historyId, pin } = await req.json() as { cv: GeneratedCV; templateId: TemplateId; accentColor?: string | null; phoneNumber?: string; historyId?: number; pin?: string }
+    const { cv, templateId, accentColor, email, historyId, pin } = await req.json() as { cv: GeneratedCV; templateId: TemplateId; accentColor?: string | null; email?: string; historyId?: number; pin?: string }
     if (!cv) return NextResponse.json({ error: 'No CV data' }, { status: 400 })
-    if (!phoneNumber) return NextResponse.json({ error: 'Please enter your phone number.' }, { status: 400 })
+    if (!email || !Number.isSafeInteger(historyId) || !historyId) return NextResponse.json({ error: 'Please enter your access email.' }, { status: 400 })
 
     // ── The real paywall lives here, not at generation ──────────────
     // Generation is free (app/api/generate); downloading the actual usable
@@ -84,21 +84,18 @@ export async function POST(req: NextRequest) {
     //
     // A document already paid for downloads free in every format, forever
     // (isDownloadPaid) — the credit buys the CV, not the button press.
-    const { normalizePhone } = await import('@/lib/phone')
-    const { hasCredits, hasCoverLetterCredit, deductCredit, deductCoverLetterCredit, isDownloadPaid, markDownloadPaid } = await import('@/lib/credits')
-    const phone = normalizePhone(phoneNumber)
-
-    // PIN gate — same guard as export-pdf. Phones without a PIN pass instantly.
-    const { checkHistoryAccess } = await import('@/lib/pinAuth')
-    const pinCheck = await checkHistoryAccess(phone, pin)
-    if (!pinCheck.ok) {
-      return NextResponse.json({ error: 'PIN_REQUIRED', message: pinCheck.error }, { status: pinCheck.status })
+    const { currentAccess } = await import('@/lib/customerAuth')
+    const { normalizeEmail } = await import('@/lib/email')
+    const { hasCredits, hasCoverLetterCredit, isDownloadPaid, payDocument } = await import('@/lib/credits')
+    const access = await currentAccess()
+    if (!access || access.email !== normalizeEmail(email)) {
+      return NextResponse.json({ error: 'ACCESS_REQUIRED', message: 'Verify your email to download your saved CVs.' }, { status: 401 })
     }
+    const ownerId = access.id
 
-    const isCoverLetterDoc = !!cv.coverLetterBody
-    const alreadyPaid = historyId ? await isDownloadPaid(phone, historyId) : false
+    const alreadyPaid = historyId ? await isDownloadPaid(ownerId, historyId, !!cv.coverLetterBody) : false
     if (!alreadyPaid) {
-      const paid = isCoverLetterDoc ? await hasCoverLetterCredit(phone) : await hasCredits(phone)
+      const paid = isCoverLetterDoc ? await hasCoverLetterCredit(ownerId) : await hasCredits(ownerId)
       if (!paid) {
         return NextResponse.json({ error: 'NO_CREDITS', message: 'You need a credit to download this. Please buy a package first.' }, { status: 402 })
       }
@@ -109,10 +106,8 @@ export async function POST(req: NextRequest) {
 
     // Only deduct once the file is actually built — a failed render must
     // never cost a credit.
-    if (!alreadyPaid) {
-      if (isCoverLetterDoc) await deductCoverLetterCredit(phone)
-      else await deductCredit(phone)
-      if (historyId) await markDownloadPaid(phone, historyId)
+    if (!await payDocument(ownerId, historyId!, isCoverLetterDoc)) {
+      return NextResponse.json({ error: 'NO_CREDITS', message: 'Could not reserve a credit for this document. Please try again.' }, { status: 402 })
     }
 
     return new NextResponse(new Uint8Array(buffer), {

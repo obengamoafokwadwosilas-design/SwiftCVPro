@@ -1,34 +1,14 @@
+import { NextResponse } from 'next/server'
+import { currentAccess } from '@/lib/customerAuth'
+import { normalizeEmail } from '@/lib/email'
+import { getCredits, getCoverLetterCredits } from '@/lib/credits'
 export const dynamic = 'force-dynamic'
-
-import { NextRequest, NextResponse } from 'next/server'
-import { normalizePhone, getCredits, getCoverLetterCredits } from '@/lib/credits'
-
-export async function POST(req: NextRequest) {
-  // Normalise the phone up front so we can echo it back even on the error path,
-  // and so a failure below fails CLOSED (no credits) instead of open.
-  let phone = ''
+export async function POST(req: Request) {
   try {
-    const { phoneNumber, cvType } = await req.json()
-    if (!phoneNumber) {
-      return NextResponse.json({ error: 'Phone number required' }, { status: 400 })
-    }
-    phone = normalizePhone(phoneNumber)
-
-    const [credits, coverLetterCredits] = await Promise.all([
-      getCredits(phone),
-      getCoverLetterCredits(phone),
-    ])
-    // hasCredits means "has the credit THIS document needs": a cover letter
-    // spends a cover-letter credit, everything else spends a CV credit.
-    const isCoverLetter = cvType === 'cover_letter'
-    const hasCredits = isCoverLetter ? coverLetterCredits > 0 : credits > 0
-    return NextResponse.json({ hasCredits, credits, coverLetterCredits, phoneNumber: phone })
-
-  } catch (error) {
-    console.error('Check credits error:', error)
-    // Fail CLOSED: if we can't confirm credits, report none so the build page
-    // shows the payment modal rather than silently letting a free generation
-    // through. /api/generate is the authoritative gate and also blocks here.
-    return NextResponse.json({ hasCredits: false, credits: 0, coverLetterCredits: 0, phoneNumber: phone })
-  }
+    const { email, cvType } = await req.json()
+    const access = await currentAccess()
+    if (!access || access.email !== normalizeEmail(email)) return NextResponse.json({ hasCredits: false, credits: 0, coverLetterCredits: 0, verificationRequired: true }, { headers: { 'Cache-Control': 'no-store' } })
+    const [credits, coverLetterCredits] = await Promise.all([getCredits(access.id), getCoverLetterCredits(access.id)])
+    return NextResponse.json({ hasCredits: cvType === 'cover_letter' ? coverLetterCredits > 0 : credits > 0, credits, coverLetterCredits }, { headers: { 'Cache-Control': 'no-store' } })
+  } catch { return NextResponse.json({ error: 'Could not check your credits.' }, { status: 503 }) }
 }
