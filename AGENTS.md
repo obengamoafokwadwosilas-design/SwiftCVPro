@@ -47,15 +47,23 @@ closed rather than crash.
    any reintroduced, that's a regression, not a feature.
 
 3. **Payment packages are the single source of truth in `src/lib/packages.ts`**
-   — GH₵ amounts in pesewas for Paystack. Currently active: Professional CV
-   39 (id `silver`), Standout Cover Letter 20 (id `coverletter`), Job Ready
-   Pack 49 — 1 CV + 1 cover letter, recommended (id `combo`), Career Pack 99
-   — 3 CVs + 2 cover letters (id `career`). On the landing page only the
-   first two show by default; Job Ready Pack and Career Pack sit behind a
-   "View bundle options" toggle (`togglePricingMore()` in `landing.html`).
-   Gold 69 and Platinum 119 (the old multi-CV bundles) are still defined
-   with `hidden: true` — fully valid for the webhook to credit, just not
-   offered for new purchases right now. The public landing page
+   — GH₵ amounts in pesewas for Paystack. Currently active: Career Ready 39
+   — 1 CV (id `single`), Standout Cover Letter 19 — 1 cover letter (id
+   `coverletter`), Job Hunter Pack 99 — 3 CVs + 1 cover letter (id
+   `hunter`), Job Hunter Max 179 — 6 CVs + 2 cover letters (id
+   `huntermax`). No package is flagged `recommended` — a steered "best
+   value" pick decides for the customer instead of letting them choose, so
+   each paid tier gets its own accent colour instead (teal/indigo/gold —
+   see `TIER_ICON_COLOR` in the build and preview pages, and the
+   `accent-*` classes in `landing.html`); `single` stays neutral grey
+   everywhere. All four show at once on the landing page in a single
+   `.pricing-grid` (4 columns on desktop, 2 on tablet, a swipeable
+   horizontal strip on mobile) — there is no "view more" toggle hiding any
+   of them. The bundle pricing is intentionally close to the per-unit price (e.g.
+   Job Hunter Pack's 3 CVs cost only ~GH₵12 less per CV than buying Career
+   Ready three times) — this is deliberate, not a missed discount: a deeper
+   cut makes it cheap for a group of friends to split one purchase instead
+   of each paying individually. The public landing page
    (`public/landing.html`) must mirror the *active* set exactly — it has
    drifted out of sync before and caused a real pricing mismatch bug.
 

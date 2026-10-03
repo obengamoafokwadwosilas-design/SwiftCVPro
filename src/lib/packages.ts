@@ -2,7 +2,7 @@
 // Paystack amount) and the webhook (crediting). `amount` is in PESEWAS — the
 // Paystack subunit for GHS, where GH₵1 = 100 pesewas. cv / cl are how many CV
 // and cover-letter credits the package grants.
-export type PackageId = 'silver' | 'gold' | 'coverletter' | 'platinum' | 'combo' | 'career'
+export type PackageId = 'single' | 'coverletter' | 'hunter' | 'huntermax'
 
 export interface Package {
   id: PackageId
@@ -13,20 +13,22 @@ export interface Package {
   cv: number      // CV credits granted
   cl: number      // cover-letter credits granted
   blurb: string
-  recommended?: boolean
   // Kept in PACKAGES (and fully supported by the webhook/crediting logic)
   // but not offered in the pricing modal or on the landing page for now —
   // multi-CV bundles are parked, not deleted. Un-hide by removing this flag.
   hidden?: boolean
 }
 
+// No package is flagged "recommended" on purpose — a steered pick decides
+// for the customer instead of letting them pick on their own. Each paid
+// tier gets its own accent colour instead (see TIER_ICON_COLOR in the build
+// and preview pages, and the accent-* classes in landing.html) so they're
+// equally eye-catching without ranking one above the others.
 export const PACKAGES: Package[] = [
-  { id: 'silver',      name: 'Professional CV',       emoji: '🥈', price: 39, amount: 3900, cv: 1, cl: 0, blurb: '1 Professional CV' },
-  { id: 'coverletter', name: 'Standout Cover Letter',  emoji: '✉️', price: 19, amount: 1900, cv: 0, cl: 1, blurb: 'Cover Letter only' },
-  { id: 'combo',       name: 'Job Ready Pack',         emoji: '🎯', price: 45, amount: 4500, cv: 1, cl: 1, blurb: '1 CV + 1 Cover Letter', recommended: true },
-  { id: 'career',      name: 'Career Pack',            emoji: '🚀', price: 129, amount: 12900, cv: 3, cl: 2, blurb: '3 CVs + 2 Cover Letters' },
-  { id: 'gold',        name: 'Gold Application Pack',  emoji: '⭐', price: 69, amount: 6900, cv: 2, cl: 1, blurb: '2 CVs + 1 Cover Letter', hidden: true },
-  { id: 'platinum',    name: 'Platinum Career Pack',   emoji: '👑', price: 119, amount: 11900, cv: 4, cl: 2, blurb: '4 CVs + 2 Cover Letters', hidden: true },
+  { id: 'single',      name: 'Career Ready',          emoji: '🥈', price: 39,  amount: 3900,  cv: 1, cl: 0, blurb: '1 Professional CV' },
+  { id: 'coverletter', name: 'Standout Cover Letter',  emoji: '✉️', price: 19,  amount: 1900,  cv: 0, cl: 1, blurb: '1 Professional Cover Letter' },
+  { id: 'hunter',      name: 'Job Hunter Pack',        emoji: '🎯', price: 99,  amount: 9900,  cv: 3, cl: 1, blurb: '3 Professional CVs + 1 Cover Letter' },
+  { id: 'huntermax',   name: 'Job Hunter Max',         emoji: '🚀', price: 179, amount: 17900, cv: 6, cl: 2, blurb: '6 Professional CVs + 2 Cover Letters' },
 ]
 
 // Packages relevant to the document being built: a CV needs CV credits, a

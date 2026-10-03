@@ -9,24 +9,21 @@ import BalanceModal from '@/components/BalanceModal'
 import HeaderMenu from '@/components/HeaderMenu'
 import { PACKAGES, packagesForDoc } from '@/lib/packages'
 
-// Pricing modal icons — each tier gets its own icon colour; the card-level
-// highlight (border, tint, BEST VALUE badge) stays reserved for whichever
-// package has `recommended: true` in packages.ts (currently the Job Ready
-// Pack). Matches the same treatment on the build page's copy of this modal.
+// Pricing modal icons — no package is marked "recommended" on purpose (a
+// steered pick decides for the customer instead of letting them choose).
+// Each paid tier gets its own accent colour; `single` (the base 1-CV
+// option) stays neutral grey. Matches the build page's copy of this modal.
 const PKG_ICON: Record<string, JSX.Element> = {
-  silver: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>,
-  gold: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.5l2.9 6.5 7.1.6-5.4 4.6 1.7 7-6.3-4-6.3 4 1.7-7-5.4-4.6 7.1-.6z"/></svg>,
+  single: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>,
   coverletter: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>,
-  platinum: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
-  combo: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
-  career: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>,
+  hunter: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
+  huntermax: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
 }
 const TIER_ICON_COLOR: Record<string, { bg: string; fg: string }> = {
-  silver: { bg: 'rgba(100,116,139,0.14)', fg: '#64748b' },
-  gold: { bg: 'rgba(180,131,15,0.14)', fg: '#b4830f' },
-  platinum: { bg: 'rgba(76,29,149,0.10)', fg: '#4c1d95' },
-  combo: { bg: 'rgba(10,164,71,0.14)', fg: '#0aa447' },
-  career: { bg: 'rgba(37,99,235,0.12)', fg: '#2563eb' },
+  single: { bg: 'rgba(100,116,139,0.14)', fg: '#64748b' },     // steel grey — stays plain
+  hunter: { bg: 'rgba(10,164,71,0.14)', fg: '#0aa447' },       // teal
+  huntermax: { bg: 'rgba(76,29,149,0.10)', fg: '#4c1d95' },    // deep indigo
+  coverletter: { bg: 'rgba(180,131,15,0.14)', fg: '#b4830f' }, // warm gold
   default: { bg: 'rgba(15,23,42,0.05)', fg: '#64748b' },
 }
 
@@ -1345,19 +1342,22 @@ export default function PreviewPage() {
             ) : (
               <div style={{ display: 'grid', gap: '11px' }}>
                 {packagesForDoc(isCoverLetter).map(pkg => {
+                  // Every card gets the same neutral background/border — no
+                  // single package is singled out as "the" pick. The colour
+                  // comes only from each tier's icon badge and price figure.
                   const tierColor = TIER_ICON_COLOR[pkg.id] || TIER_ICON_COLOR.default
+                  const isAccented = pkg.id !== 'single'
                   return (
                   <button key={pkg.id} onClick={() => triggerPreviewPaystack(pkg)}
                     style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
-                      background: pkg.recommended ? '#f6fdfb' : 'white', border: pkg.recommended ? '2px solid #0d9488' : '1px solid #e7ebf0',
-                      borderRadius: '16px', padding: pkg.recommended ? '15px 17px' : '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
-                    {pkg.recommended && <span style={{ position: 'absolute', top: '-9px', left: '16px', background: '#0d9488', color: 'white', fontSize: '9.5px', fontWeight: 700, letterSpacing: '0.5px', padding: '3px 9px', borderRadius: '20px' }}>BEST VALUE</span>}
+                      background: 'white', border: '1px solid #e7ebf0',
+                      borderRadius: '16px', padding: '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
                     <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: tierColor.bg, color: tierColor.fg }}>{PKG_ICON[pkg.id]}</span>
                     <span style={{ flex: 1 }}>
                       <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: '#0a0f1a' }}>{pkg.name}</span>
                       <span style={{ display: 'block', fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>{pkg.blurb}</span>
                     </span>
-                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 700, color: pkg.recommended ? '#0d9488' : '#0a0f1a', whiteSpace: 'nowrap' as const }}>GH₵{pkg.price}</span>
+                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 700, color: isAccented ? tierColor.fg : '#0a0f1a', whiteSpace: 'nowrap' as const }}>GH₵{pkg.price}</span>
                   </button>
                   )
                 })}
