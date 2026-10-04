@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TemplateId, GeneratedCV } from '@/types'
 import { saveBuildSeed, BuildSeed, clearPreviousCoverLetter } from '@/lib/buildSeed'
+import GoogleSignInButton from './GoogleSignInButton'
 
 interface HistoryItem {
   id: number; cv_type: string; template_id: TemplateId; accent_color: string | null
@@ -118,6 +119,12 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
         </div>
         {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
         {message && <p role="status" style={{ color: '#0a5d55', lineHeight: 1.6 }}>{message}</p>}
+        {step === 'email' && (
+          <>
+            <GoogleSignInButton />
+            <p style={{ color: '#94a3b8', fontSize: '12px', textAlign: 'center', margin: '14px 0' }}>or</p>
+          </>
+        )}
         {(step === 'email' || step === 'pin') && (
           <>
             <p style={{ color: '#64748b', fontSize: '14px' }}>Enter the email you used to save your CVs.</p>
