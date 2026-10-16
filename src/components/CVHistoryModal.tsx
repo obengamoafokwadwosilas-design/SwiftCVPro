@@ -15,8 +15,8 @@ const inputStyle = { width: '100%', padding: '12px 14px', border: '1px solid #d1
 const primary = { padding: '12px 18px', background: '#0a8a3f', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px' }
 const link = { background: 'none', border: 'none', color: '#0a8a3f', cursor: 'pointer', padding: '8px 0', fontSize: '13px' }
 
-export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin }: {
-  open: boolean; onClose: () => void; initialEmail?: string; autoSetPin?: boolean
+export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin, notice }: {
+  open: boolean; onClose: () => void; initialEmail?: string; autoSetPin?: boolean; notice?: string
 }) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('email')
@@ -29,6 +29,7 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const initialized = useRef(false)
+  useEffect(() => { if (notice) setError(notice) }, [notice])
 
   async function request(path: string, body: unknown) {
     const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -114,7 +115,7 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(8,13,24,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 500 }}>
       <div role="dialog" aria-modal="true" aria-labelledby="history-title" style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '540px', padding: '28px', maxHeight: '88vh', overflowY: 'auto', fontFamily: "'DM Sans', sans-serif" }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 id="history-title" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', margin: '0 0 12px' }}>My CVs</h2>
+          <h2 id="history-title" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', margin: '0 0 12px' }}>{step === 'email' ? 'Sign in' : 'My CVs'}</h2>
           <button onClick={onClose} aria-label="Close My CVs" style={link}>Close</button>
         </div>
         {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}

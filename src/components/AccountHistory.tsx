@@ -57,7 +57,15 @@ export default function AccountHistory({ email }: { email: string }) {
 
   if (loading) return <p style={{ color: '#64748b' }}>Loading your CVs…</p>
   if (error) return <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>
-  if (items.length === 0) return <p>No saved CVs yet.</p>
+  if (items.length === 0) {
+    return (
+      <div style={{ background: 'white', border: '1px dashed #d6cfc0', borderRadius: '14px', padding: '28px 20px', marginTop: '14px', textAlign: 'center' }}>
+        <p style={{ margin: '0 0 4px', fontWeight: 600, color: '#07182C' }}>Nothing saved yet</p>
+        <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: '14px' }}>Build your first CV in under a minute. The preview is free.</p>
+        <a href="/build" style={{ ...primary, display: 'inline-block', textDecoration: 'none' }}>Create your first CV</a>
+      </div>
+    )
+  }
 
   return (
     <div>
