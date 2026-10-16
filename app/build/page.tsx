@@ -195,6 +195,9 @@ export default function BuildPage() {
   // empty box they can't fill.
   const [tailorMode, setTailorMode] = useState<'advert' | 'aim' | 'none'>('none')
   const [email, setEmail] = useState('')
+  // Set when the visitor already has a verified session (Google or email
+  // link); their email is then known and is never asked for again.
+  const [signedInEmail, setSignedInEmail] = useState<string | null>(null)
   const [employmentUpdates, setEmploymentUpdates] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<{ title: string; msg: string; type: 'payment' | 'input' | 'server' | 'network' } | null>(null)
@@ -290,6 +293,22 @@ export default function BuildPage() {
     const t = new URLSearchParams(window.location.search).get('type') as CVType
     return t && ['professional', 'targeted', 'academic', 'cover_letter'].includes(t) ? t : null
   }
+
+  // The functional setEmail keeps an email a restored build seed already carries.
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/customer-access/session', { cache: 'no-store' })
+      .then(res => res.json())
+      .then(d => {
+        if (cancelled || !d?.email) return
+        setSignedInEmail(d.email)
+        setEmail(prev => prev || d.email)
+        refreshCreditBalance(d.email)
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     const t = urlCvType()
@@ -575,6 +594,15 @@ export default function BuildPage() {
       setVal(refs.tailorEmphasisPaste, seed.whyRole); setVal(refs.tailorEmphasisForm, seed.whyRole)
     })
     go(seed.landingScreen)
+  }
+
+  // Ends the signed-in session as well as clearing the draft, so a different
+  // email typed next can't be mixed with the previous person's session.
+  async function switchAccount() {
+    try { await fetch('/api/customer-access/session', { method: 'DELETE' }) } catch {}
+    setSignedInEmail(null)
+    setCreditBalance(null)
+    clearSavedInfo()
   }
 
   // Clear local draft fields when someone changes identity on a shared device.
@@ -1086,7 +1114,7 @@ export default function BuildPage() {
                     Purchase CV credits
                   </button>
                   {screen !== 'type' && (
-                    <button type="button" onClick={() => { clearSavedInfo(); go('type') }} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
+                    <button type="button" onClick={() => { if (signedInEmail) void switchAccount(); else clearSavedInfo(); go('type') }} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
                       Not you? <span style={{ color: 'var(--teal)', fontWeight: 500 }}>Switch email</span>
                     </button>
                   )}
@@ -1193,13 +1221,28 @@ export default function BuildPage() {
           </div>
 
           <div className="xcv-rise" style={{ animationDelay: '280ms', marginBottom: '34px' }}>
-            <label htmlFor="access-email" className="xcv-mono" style={{ display: 'block', fontSize: '12px', color: 'var(--graphite)', marginBottom: '10px' }}>Email address</label>
-            <input id="access-email" type="email" value={email}
-              onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
-              onKeyDown={e => { if (e.key === 'Enter') void goAfterType() }}
-              placeholder="e.g. kwame@email.com" autoComplete="email"
-              className={'xcv-field' + (typeErr ? ' err' : '')} />
-            <p style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '10px', lineHeight: 1.65 }}>For your receipt and future access to your CVs.</p>
+            {signedInEmail && email === signedInEmail ? (
+              <>
+                <span className="xcv-mono" style={{ display: 'block', fontSize: '12px', color: 'var(--graphite)', marginBottom: '10px' }}>Signed in as</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', padding: '13px 16px', border: '1px solid rgba(10,138,63,0.25)', background: 'var(--teal-tint)', borderRadius: '10px' }}>
+                  <span style={{ overflowWrap: 'anywhere', fontSize: '15px' }}>{email}</span>
+                  <button type="button" onClick={() => void switchAccount()} className="xcv-link" style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                    Not you? <span style={{ color: 'var(--teal)', fontWeight: 500 }}>Sign out</span>
+                  </button>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '10px', lineHeight: 1.65 }}>Your receipt and saved CVs go to this email.</p>
+              </>
+            ) : (
+              <>
+                <label htmlFor="access-email" className="xcv-mono" style={{ display: 'block', fontSize: '12px', color: 'var(--graphite)', marginBottom: '10px' }}>Email address</label>
+                <input id="access-email" type="email" value={email}
+                  onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
+                  onKeyDown={e => { if (e.key === 'Enter') void goAfterType() }}
+                  placeholder="e.g. kwame@email.com" autoComplete="email"
+                  className={'xcv-field' + (typeErr ? ' err' : '')} />
+                <p style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '10px', lineHeight: 1.65 }}>For your receipt and future access to your CVs.</p>
+              </>
+            )}
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', marginTop: '11px', cursor: 'pointer' }}>
               <input type="checkbox" checked={employmentUpdates} onChange={e => setEmploymentUpdates(e.target.checked)}
                 style={{ width: '15px', height: '15px', accentColor: 'var(--teal)', marginTop: '2px', flexShrink: 0 }} />

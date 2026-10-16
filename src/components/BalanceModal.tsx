@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 const font = "'DM Sans', sans-serif"
@@ -13,20 +13,33 @@ export default function BalanceModal({ open, onClose }: { open: boolean; onClose
   const [error, setError] = useState('')
   const [result, setResult] = useState<{ credits: number; coverLetterCredits: number } | null>(null)
 
+  // A signed-in customer's balance needs no email typed in.
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    fetch('/api/customer-access/session', { cache: 'no-store' })
+      .then(res => res.json())
+      .then(d => { if (!cancelled && d?.email) { setEmail(d.email); void checkBalance(d.email) } })
+      .catch(() => {})
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
   if (!open) return null
 
   function reset() {
     setEmail(''); setError(''); setResult(null)
   }
 
-  async function checkBalance() {
-    if (!email.trim()) { setError('Enter your email address.'); return }
+  async function checkBalance(emailArg?: string) {
+    const target = (emailArg ?? email).trim()
+    if (!target) { setError('Enter your email address.'); return }
     setLoading(true); setError('')
     try {
       const res = await fetch('/api/check-credits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: target }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error || 'Could not check your balance.'); return }
@@ -64,7 +77,7 @@ export default function BalanceModal({ open, onClose }: { open: boolean; onClose
               placeholder="you@example.com"
               style={{ width: '100%', padding: '12px 14px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontFamily: font, fontSize: '13.5px', color: '#0a0f1a', boxSizing: 'border-box' as const }}
             />
-            <button onClick={checkBalance} disabled={loading} style={{ padding: '12px 20px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: font, width: '100%', marginTop: '14px', opacity: loading ? 0.6 : 1 }}>
+            <button onClick={() => void checkBalance()} disabled={loading} style={{ padding: '12px 20px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: font, width: '100%', marginTop: '14px', opacity: loading ? 0.6 : 1 }}>
               {loading ? 'Checking…' : 'Check Balance'}
             </button>
             {error.includes('Verify your email') && <button onClick={() => { onClose(); reset(); router.push('/my-cvs') }} style={{ background: 'none', border: 'none', color: '#0a8a3f', cursor: 'pointer', marginTop: '12px' }}>Open My CVs to verify email</button>}
