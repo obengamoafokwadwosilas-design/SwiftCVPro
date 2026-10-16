@@ -34,3 +34,6 @@ yarn-error.log*
 next-env.d.ts
 
 # lockfile is kept in the repo intentionally (do not ignore package-lock.json)
+
+.vercel
+.env*
