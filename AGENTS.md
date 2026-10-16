@@ -82,14 +82,20 @@ closed rather than crash.
    stacks metric-compatible (see `BODY_SERIF`/`BODY_SANS` in
    `src/components/CVPreview.tsx` for the reasoning) if you touch fonts.
 
-6. **Google sign-in (`/account`, `app/api/auth/google/callback`) uses Supabase
-   Auth (GoTrue) only as a disposable OAuth broker** — it does the Google
-   handshake and hands back a verified email, then its session is discarded
-   immediately. The real app session is still the existing `scv_access`
-   cookie from `customerAuth.ts`; Google sign-in resolves to the same
-   `customers` row by email that the email-link flow already uses. Don't
-   wire RLS to `auth.uid()` or read `auth.users` — that would require
-   migrating every table off `customers.id` and isn't needed.
+6. **Google sign-in talks to Google directly — Supabase Auth is not involved**
+   (`app/api/auth/google/start` and `/callback`, helpers in
+   `src/lib/googleAuth.ts`). It used to go through Supabase Auth as an OAuth
+   broker, but then Google's consent screen showed `<project>.supabase.co`
+   instead of this site; going direct makes it show our own domain. It needs
+   `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in Vercel, and the redirect
+   URI `https://www.remarkablecv.com/api/auth/google/callback` registered on
+   the OAuth client in Google Cloud. The app session is the existing
+   `scv_access` cookie from `customerAuth.ts`; Google sign-in resolves to the
+   same `customers` row by email that the email-link flow uses. Don't wire RLS
+   to `auth.uid()` or read `auth.users` — every table is keyed on
+   `customers.id`. Google refuses OAuth inside embedded in-app browsers
+   (WhatsApp/Facebook/Instagram webviews), so the email link must stay as the
+   fallback sign-in.
 
 ## Conventions already in place
 - No comments explaining *what* code does — only *why*, when non-obvious.
