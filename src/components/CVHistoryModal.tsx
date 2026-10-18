@@ -63,11 +63,18 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
         await loadHistory(!!autoSetPin)
       })
     } else {
-      void run(async () => {
-        const res = await fetch('/api/customer-access/session', { cache: 'no-store' })
-        const session = await res.json()
-        if (session.persistent) { setRemember(true); await loadHistory(!!autoSetPin) }
-      })
+      // Runs in the background without run(): on a slow mobile line this check
+      // can take seconds, and it used to disable the main button ("Please
+      // wait…") and show "Could not connect" if it failed — before the visitor
+      // had typed anything. Someone not signed in can start typing at once.
+      void fetch('/api/customer-access/session', { cache: 'no-store' })
+        .then(res => res.json())
+        .then(session => {
+          if (!session.persistent) return
+          setRemember(true)
+          return run(() => loadHistory(!!autoSetPin))
+        })
+        .catch(() => {})
     }
     // The link is redeemed once, rather than on every state update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
