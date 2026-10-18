@@ -932,7 +932,21 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 <!-- Trustpilot TrustBox loader. async so it can never block first paint, and
      the page is fully functional without it — if it fails to load, the widget
      container simply stays empty. -->
-<script async src="//widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js"></script>
+<script>
+/* The TrustBox below still has the placeholder Business Unit ID, so it renders
+   nothing — yet loading its script cost every visitor a DNS lookup and TLS
+   handshake to a third party. It is fetched only once a real ID is filled in,
+   so the widget switches itself on with no other change. */
+document.addEventListener('DOMContentLoaded', () => {
+  const box = document.querySelector('.trustpilot-widget');
+  const id = box && box.getAttribute('data-businessunit-id');
+  if (!id || id.startsWith('REPLACE_')) return;
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js';
+  document.head.appendChild(s);
+});
+</script>
 </head>
 <body>
 
@@ -1024,11 +1038,11 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
           <div class="doc-col">
             <div class="cv-frame after-frame">
               <img class="after-img active" src="real-cv-2.webp" alt="Professional CV" fetchpriority="high">
-              <img class="after-img" src="real-cv-3.webp" alt="Professional CV" fetchpriority="low">
-              <img class="after-img" src="real-cv-4.webp" alt="Professional CV" fetchpriority="low">
-              <img class="after-img" src="real-cv-5.webp" alt="Professional CV" fetchpriority="low">
-              <img class="after-img" src="real-cv-6.webp" alt="Professional CV" fetchpriority="low">
-              <img class="after-img" src="real-cv-7.webp" alt="Professional CV" fetchpriority="low">
+              <img class="after-img" data-src="real-cv-3.webp" alt="Professional CV">
+              <img class="after-img" data-src="real-cv-4.webp" alt="Professional CV">
+              <img class="after-img" data-src="real-cv-5.webp" alt="Professional CV">
+              <img class="after-img" data-src="real-cv-6.webp" alt="Professional CV">
+              <img class="after-img" data-src="real-cv-7.webp" alt="Professional CV">
             </div>
             <div class="doc-caption good">After — Remarkable CV</div>
           </div>
@@ -1104,15 +1118,15 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
   </div>
   <div class="template-ticker-outer">
     <div class="template-ticker" data-template-gallery>
-      <button class="tmpl-chip is-active" type="button" data-template-card aria-pressed="true"><span class="tmpl-img-wrap"><img src="real-cv-2.webp" alt="Meridian template"></span><span class="tmpl-name">Meridian</span><span class="tmpl-tag">Clean · Recruiter-Safe</span></button>
-      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-3.webp" alt="Noir template"></span><span class="tmpl-name">Noir</span><span class="tmpl-tag">Refined · Dark</span></button>
-      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-4.webp" alt="London template"></span><span class="tmpl-name">London</span><span class="tmpl-tag">Editorial · Warm Serif</span></button>
-      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-5.webp" alt="Nordic template"></span><span class="tmpl-name">Nordic</span><span class="tmpl-tag">Clean · Modern</span></button>
-      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-6.webp" alt="New York template"></span><span class="tmpl-name">New York</span><span class="tmpl-tag">Bold Serif · Crimson</span></button>
-      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-7.webp" alt="Graduate template"></span><span class="tmpl-name">Graduate</span><span class="tmpl-tag">Optimistic · Fresh</span></button>
-      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-academic-classic-wendy.jpg" alt="Classic academic CV template"></span><span class="tmpl-name">Academia</span><span class="tmpl-tag">Traditional · Research</span></button>
-      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-academic-scholarly-wendy.jpg" alt="Scholarly academic CV template"></span><span class="tmpl-name">Scholar</span><span class="tmpl-tag">Structured · PhD</span></button>
-      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-executive-forest-wendy.jpg" alt="Green executive CV template"></span><span class="tmpl-name">Canopy</span><span class="tmpl-tag">Executive · Green</span></button>
+      <button class="tmpl-chip is-active" type="button" data-template-card aria-pressed="true"><span class="tmpl-img-wrap"><img data-src="real-cv-2.webp" alt="Meridian template"></span><span class="tmpl-name">Meridian</span><span class="tmpl-tag">Clean · Recruiter-Safe</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img data-src="real-cv-3.webp" alt="Noir template"></span><span class="tmpl-name">Noir</span><span class="tmpl-tag">Refined · Dark</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img data-src="real-cv-4.webp" alt="London template"></span><span class="tmpl-name">London</span><span class="tmpl-tag">Editorial · Warm Serif</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img data-src="real-cv-5.webp" alt="Nordic template"></span><span class="tmpl-name">Nordic</span><span class="tmpl-tag">Clean · Modern</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img data-src="real-cv-6.webp" alt="New York template"></span><span class="tmpl-name">New York</span><span class="tmpl-tag">Bold Serif · Crimson</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img data-src="real-cv-7.webp" alt="Graduate template"></span><span class="tmpl-name">Graduate</span><span class="tmpl-tag">Optimistic · Fresh</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img data-src="template-academic-classic-wendy.jpg" alt="Classic academic CV template"></span><span class="tmpl-name">Academia</span><span class="tmpl-tag">Traditional · Research</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img data-src="template-academic-scholarly-wendy.jpg" alt="Scholarly academic CV template"></span><span class="tmpl-name">Scholar</span><span class="tmpl-tag">Structured · PhD</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img data-src="template-executive-forest-wendy.jpg" alt="Green executive CV template"></span><span class="tmpl-name">Canopy</span><span class="tmpl-tag">Executive · Green</span></button>
     </div>
   </div>
 </section>
@@ -1126,7 +1140,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
     </div>
     <div class="cv-types-grid" data-document-showcase>
       <div class="cv-type-card reveal rd1 is-active" data-showcase-card>
-        <div class="cv-type-visual"><img src="document-professional-wendy.webp" alt="Modern professional CV for Wendy Brown" class="cv-type-preview"></div>
+        <div class="cv-type-visual"><img data-src="document-professional-wendy.webp" alt="Modern professional CV for Wendy Brown" class="cv-type-preview"></div>
         <div class="cv-type-body">
           <div class="cv-type-heading"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg></div><div class="cv-type-name">Professional CV</div></div>
           <p class="cv-type-desc">A polished, ATS-ready CV — tailored to a specific role when you add the job advert.</p>
@@ -1138,7 +1152,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </div>
       </div>
       <div class="cv-type-card reveal rd2" data-showcase-card>
-        <div class="cv-type-visual academic"><img src="document-academic-wendy.webp" alt="Traditional academic CV for Wendy Brown" class="cv-type-preview"></div>
+        <div class="cv-type-visual academic"><img data-src="document-academic-wendy.webp" alt="Traditional academic CV for Wendy Brown" class="cv-type-preview"></div>
         <div class="cv-type-body">
           <div class="cv-type-heading"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div><div class="cv-type-name">Academic CV</div></div>
           <p class="cv-type-desc">For researchers, lecturers and postgraduate applicants — tailored to the programme or post you’re applying to.</p>
@@ -1150,7 +1164,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </div>
       </div>
       <div class="cv-type-card reveal rd3" data-showcase-card>
-        <div class="cv-type-visual letter"><img src="document-cover-letter-wendy.webp" alt="Formal cover letter for Wendy Brown" class="cv-type-preview"></div>
+        <div class="cv-type-visual letter"><img data-src="document-cover-letter-wendy.webp" alt="Formal cover letter for Wendy Brown" class="cv-type-preview"></div>
         <div class="cv-type-body">
           <div class="cv-type-heading"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="cv-type-name">Cover Letter</div></div>
           <p class="cv-type-desc">A compelling letter tailored to the role.</p>
@@ -1804,13 +1818,37 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
   document.addEventListener('visibilitychange', () => document.hidden ? stopRotation() : startRotation());
 })();
 
-// Cycle after-CVs
+/* Images below the first screen carry data-src and are only requested once
+   the first screen has finished loading, or as soon as the visitor scrolls,
+   whichever comes first. On a slow mobile line this gives the hero the whole
+   connection instead of sharing it with ~700KB of carousel and preview images
+   nobody can see yet. Native loading="lazy" can't be used: these images sit in
+   sideways-animated, overflow:hidden strips where Chrome never counts them as
+   visible, so they would never load (that is what blanked the testimonials).
+   Runs after initTemplateGallery, so its cloned cards are included. */
+function loadDeferredImages() {
+  document.querySelectorAll('img[data-src]').forEach(img => {
+    img.src = img.dataset.src;
+    img.removeAttribute('data-src');
+  });
+}
+if (document.readyState === 'complete') loadDeferredImages();
+else window.addEventListener('load', loadDeferredImages, { once: true });
+window.addEventListener('scroll', loadDeferredImages, { once: true, passive: true });
+
+// Cycle after-CVs. Never fades to a slide whose image hasn't arrived yet —
+// on a slow line it would show an empty frame — so a slide that isn't ready
+// is requested and the current one stays up until the next tick.
 const imgs = document.querySelectorAll('.after-img');
 let cur = 0;
 if (imgs.length > 1) {
   setInterval(() => {
+    const next = (cur + 1) % imgs.length;
+    const img = imgs[next];
+    if (img.dataset.src) { img.src = img.dataset.src; img.removeAttribute('data-src'); }
+    if (!(img.complete && img.naturalWidth)) return;
     imgs[cur].classList.remove('active');
-    cur = (cur + 1) % imgs.length;
+    cur = next;
     imgs[cur].classList.add('active');
   }, 3000);
 }
