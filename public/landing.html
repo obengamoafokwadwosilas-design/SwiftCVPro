@@ -1110,9 +1110,9 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
       <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-5.webp" alt="Nordic template"></span><span class="tmpl-name">Nordic</span><span class="tmpl-tag">Clean · Modern</span></button>
       <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-6.webp" alt="New York template"></span><span class="tmpl-name">New York</span><span class="tmpl-tag">Bold Serif · Crimson</span></button>
       <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="real-cv-7.webp" alt="Graduate template"></span><span class="tmpl-name">Graduate</span><span class="tmpl-tag">Optimistic · Fresh</span></button>
-      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-academic-classic-wendy.png" alt="Classic academic CV template"></span><span class="tmpl-name">Academia</span><span class="tmpl-tag">Traditional · Research</span></button>
-      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-academic-scholarly-wendy.png" alt="Scholarly academic CV template"></span><span class="tmpl-name">Scholar</span><span class="tmpl-tag">Structured · PhD</span></button>
-      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-executive-forest-wendy.png" alt="Green executive CV template"></span><span class="tmpl-name">Canopy</span><span class="tmpl-tag">Executive · Green</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-academic-classic-wendy.jpg" alt="Classic academic CV template"></span><span class="tmpl-name">Academia</span><span class="tmpl-tag">Traditional · Research</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-academic-scholarly-wendy.jpg" alt="Scholarly academic CV template"></span><span class="tmpl-name">Scholar</span><span class="tmpl-tag">Structured · PhD</span></button>
+      <button class="tmpl-chip" type="button" data-template-card aria-pressed="false"><span class="tmpl-img-wrap"><img src="template-executive-forest-wendy.jpg" alt="Green executive CV template"></span><span class="tmpl-name">Canopy</span><span class="tmpl-tag">Executive · Green</span></button>
     </div>
   </div>
 </section>
@@ -1126,7 +1126,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
     </div>
     <div class="cv-types-grid" data-document-showcase>
       <div class="cv-type-card reveal rd1 is-active" data-showcase-card>
-        <div class="cv-type-visual"><img src="document-professional-wendy.webp" alt="Modern professional CV for Wendy Brown" class="cv-type-preview"></div>
+        <div class="cv-type-visual"><img src="document-professional-wendy.webp" alt="Modern professional CV for Wendy Brown" class="cv-type-preview" loading="lazy" decoding="async"></div>
         <div class="cv-type-body">
           <div class="cv-type-heading"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><path d="M2 12h20"/></svg></div><div class="cv-type-name">Professional CV</div></div>
           <p class="cv-type-desc">A polished, ATS-ready CV — tailored to a specific role when you add the job advert.</p>
@@ -1138,7 +1138,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </div>
       </div>
       <div class="cv-type-card reveal rd2" data-showcase-card>
-        <div class="cv-type-visual academic"><img src="document-academic-wendy.webp" alt="Traditional academic CV for Wendy Brown" class="cv-type-preview"></div>
+        <div class="cv-type-visual academic"><img src="document-academic-wendy.webp" alt="Traditional academic CV for Wendy Brown" class="cv-type-preview" loading="lazy" decoding="async"></div>
         <div class="cv-type-body">
           <div class="cv-type-heading"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div><div class="cv-type-name">Academic CV</div></div>
           <p class="cv-type-desc">For researchers, lecturers and postgraduate applicants — tailored to the programme or post you’re applying to.</p>
@@ -1150,7 +1150,7 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
         </div>
       </div>
       <div class="cv-type-card reveal rd3" data-showcase-card>
-        <div class="cv-type-visual letter"><img src="document-cover-letter-wendy.webp" alt="Formal cover letter for Wendy Brown" class="cv-type-preview"></div>
+        <div class="cv-type-visual letter"><img src="document-cover-letter-wendy.webp" alt="Formal cover letter for Wendy Brown" class="cv-type-preview" loading="lazy" decoding="async"></div>
         <div class="cv-type-body">
           <div class="cv-type-heading"><div class="cv-type-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div class="cv-type-name">Cover Letter</div></div>
           <p class="cv-type-desc">A compelling letter tailored to the role.</p>
@@ -1840,7 +1840,6 @@ if (imgs.length > 1) {
     const clone = document.createElement('img');
     clone.src = p.img.src;
     clone.alt = '';
-    clone.loading = 'lazy';
     slot.appendChild(clone);
   });
   slot.classList.add('is-ready');
