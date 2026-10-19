@@ -29,7 +29,7 @@ export default async function AccountPage() {
       <header style={{ background: '#07182C', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
         <div style={{ maxWidth: '860px', margin: '0 auto', padding: '0 20px', height: '66px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-            <img src="/remarkable-cv-mark.png" alt="" aria-hidden="true" style={{ height: '38px', width: '34px', objectFit: 'contain' }} />
+            <img src="/remarkable-cv-mark-128.png" alt="" aria-hidden="true" style={{ height: '38px', width: '34px', objectFit: 'contain' }} />
             <span style={{ fontSize: '1.2rem', fontWeight: 700, color: '#F6F6F3' }}>
               Remarkable<span style={{ color: '#42e45f' }}>CV</span>
             </span>

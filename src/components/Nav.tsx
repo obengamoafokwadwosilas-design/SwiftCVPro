@@ -50,7 +50,7 @@ export default function Nav({ step, subProgress = 1, rightSlot }: NavProps) {
       borderBottom: '1px solid rgba(255,255,255,0.07)'
     }}>
       <a href="/" title="Back to home" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-        <img src="/remarkable-cv-mark.png" alt="" aria-hidden="true" style={{ height: '40px', width: '36px', objectFit: 'contain', flexShrink: 0 }} />
+        <img src="/remarkable-cv-mark-128.png" alt="" aria-hidden="true" style={{ height: '40px', width: '36px', objectFit: 'contain', flexShrink: 0 }} />
         <div>
           <div style={{
             fontFamily: "'DM Sans', sans-serif",

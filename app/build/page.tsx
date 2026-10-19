@@ -1928,7 +1928,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                   Without this the icon sat flush at the column's left edge
                   while the wordmark centered normally, reading as two
                   unrelated things instead of one lockup. */}
-              <img src="/remarkable-cv-mark.png" alt="" aria-hidden="true" style={{ display: 'block', height: '54px', width: '50px', objectFit: 'contain', margin: '0 auto 12px' }} />
+              <img src="/remarkable-cv-mark-128.png" alt="" aria-hidden="true" style={{ display: 'block', height: '54px', width: '50px', objectFit: 'contain', margin: '0 auto 12px' }} />
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: '1.35rem', fontWeight: 700, color: 'white' }}>
                 Remarkable<span style={{ color: 'var(--teal-on-dark)' }}>CV</span>
               </div>
