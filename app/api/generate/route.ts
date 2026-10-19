@@ -119,6 +119,7 @@ async function saveToHistory(
   formData: CVFormData | undefined,
   rawContent: string | undefined,
   jobDescription: string | undefined,
+  changes: string | undefined,
   generatedCV: GeneratedCV
 ): Promise<number | null> {
   try {
@@ -144,6 +145,7 @@ async function saveToHistory(
           inputMethod: 'paste',
           email: accessEmail,
           pasteContent: rawContent,
+          changes,
           jobDescription,
           landingScreen: 'type',
         }
@@ -186,7 +188,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { cvType, rawContent, jobDescription, whyRole, email } = body
+    const { cvType, rawContent, jobDescription, whyRole, changes, email } = body
     const formData = body.formData
 
     if (!isValidEmail(normalizeEmail(email))) {
@@ -287,6 +289,7 @@ export async function POST(req: NextRequest) {
         rawContent,
         jobDescription,
         whyRole: whyRole || undefined,
+        changes: changes || undefined,
       }
       prompt = buildGenerationPrompt(cvFormData)
     }
@@ -357,7 +360,7 @@ export async function POST(req: NextRequest) {
     // ── Save to history, then mark download paid for paid generations ──
     // Paid users spend their credit at generate time (above). The export routes
     // check download_paid=true and serve the file without a second charge.
-    const historyId = await saveToHistory(ownerId, customer.email, cvType, formData, rawContent, jobDescription, generatedCV)
+    const historyId = await saveToHistory(ownerId, customer.email, cvType, formData, rawContent, jobDescription, changes, generatedCV)
 
     if (!historyId) {
       await refundOnFailure()

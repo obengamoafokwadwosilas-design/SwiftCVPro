@@ -46,6 +46,7 @@ export interface CVFormData {
   linkedin?: string
   languages?: string
   rawContent?: string
+  changes?: string          // upload path: what to add, remove, correct or restyle
   education?: string
   experience?: string
   extras?: string

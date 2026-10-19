@@ -121,6 +121,17 @@ function buildUserInfoBlock(formData: CVFormData): string {
   // Raw content (paste/upload path)
   if (formData.rawContent)    lines.push(`\nRAW CONTENT (old CV / notes / extracted file text):\n${formData.rawContent}`)
 
+  // The upload page's "Anything to add or change?" box. Kept apart from the
+  // emphasis note below on purpose: that one forbids adding anything, and
+  // people use this box to add a new job or certificate to an old CV.
+  if (formData.changes)
+    lines.push(`\nCHANGES THE CANDIDATE ASKED FOR (apply every one — these are facts and wishes they wrote themselves, and they win wherever they disagree with the raw content above):
+- Add anything new they describe — a job, certificate, course, skill, award, publication — in its proper place, written to the same standard as the rest of the document.
+- Leave out anything they ask to remove, and correct anything they say is wrong or out of date (a new phone number, a changed title).
+- Follow their wishes on length, tone or emphasis.
+- Use only the details they actually give. Never invent dates, employers, grades or results; if a detail is missing, leave it out rather than guess.
+${formData.changes}`)
+
   // What the candidate wants emphasized for this specific application. Cover
   // letters get their own richer version of this inside getTypeInstructions
   // (framed as motivation, next to the advert) — this generic one is for

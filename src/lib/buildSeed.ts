@@ -18,6 +18,9 @@ export interface BuildSeed {
   email?: string
   // paste path
   pasteContent?: string
+  // "Anything to add or change?" on the upload page — kept so "Tailor for
+  // another job" doesn't drop a new job or certificate the person added there.
+  changes?: string
   // Name of the CV file the user uploaded. A File object itself can't be
   // serialised, so an upload is remembered as this name plus the text already
   // extracted from it (kept in pasteContent) — enough to put the review box
@@ -36,10 +39,11 @@ export interface BuildSeed {
   // shared job-targeting fields
   jobDescription?: string
   whyRole?: string
-  // where to land once restored: 'summary' resumes an in-flight payment
-  // (the user was already on the review screen when they hit Generate);
-  // 'type' starts a deliberate fresh pass (duplication from history).
-  landingScreen: 'summary' | 'type'
+  // where to land once restored: 'summary' (guided form) or 'tailor' (upload
+  // path) resumes an in-flight payment — the screen holding the Build button
+  // the user had just pressed; 'type' starts a deliberate fresh pass
+  // (duplication from history).
+  landingScreen: 'summary' | 'tailor' | 'type'
 }
 
 const KEY = 'swiftcv_build_seed'

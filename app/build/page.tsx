@@ -59,7 +59,7 @@ const DID_YOU_KNOWS = [
 // ─────────────────────────────────────────────────────────────
 // TYPES
 // ─────────────────────────────────────────────────────────────
-type Screen = 'type' | 'method' | 'paste' | 'form-1' | 'form-2' | 'form-3' | 'form-4' | 'form-5' | 'summary'
+type Screen = 'type' | 'method' | 'paste' | 'tailor' | 'form-1' | 'form-2' | 'form-3' | 'form-4' | 'form-5' | 'summary'
 
 const CV_TYPE_META: Record<CVType, { label: string; shortLabel: string; hasJobStep: boolean; totalFormSteps: number }> = {
   professional: { label: 'Professional CV', shortLabel: 'Professional CV', hasJobStep: true,  totalFormSteps: 5 },
@@ -283,7 +283,7 @@ export default function BuildPage() {
     // and CV/academic branches share one ref: only one of those two branches
     // is ever rendered at a time (picked by cvType), unlike paste vs form-5
     // which are both mounted simultaneously.
-    tailorEmphasisPaste: useRef<HTMLTextAreaElement>(null),
+    cvChanges: useRef<HTMLTextAreaElement>(null),
     tailorEmphasisForm: useRef<HTMLTextAreaElement>(null),
   }
 
@@ -434,6 +434,7 @@ export default function BuildPage() {
     if (screen === 'method') return 1
     if (screen === 'summary') return 1
     if (screen === 'paste') return 0.5
+    if (screen === 'tailor') return 0.9
     const m = /^form-(\d)$/.exec(screen)
     if (m) return Math.min(1, Number(m[1]) / (meta.totalFormSteps + 1))
     return 1
@@ -445,6 +446,17 @@ export default function BuildPage() {
     // The guided path starts at whatever the document's own order puts first —
     // form-1 for CVs, the role screen for cover letters (COVER_LETTER_PATH).
     else go(isCoverLetter ? COVER_LETTER_PATH[0] : 'form-1')
+  }
+
+  // The CV page only needs the CV itself; checking here means nobody reaches
+  // the tailor page with nothing to build from.
+  function goToTailor() {
+    setError(null)
+    if (!refs.paste.current?.value.trim()) {
+      setError({ title: 'No CV content', msg: 'Please upload your CV or type it in first.', type: 'input' })
+      return
+    }
+    go('tailor')
   }
 
   function goFromForm4() {
@@ -460,6 +472,7 @@ export default function BuildPage() {
     // Back has to walk that order rather than the numeric one.
     method: isCoverLetter ? 'form-5' : 'type',
     paste: 'method',
+    tailor: 'paste',
     'form-1': 'method',
     'form-2': 'form-1',
     'form-3': isCoverLetter ? 'form-1' : 'form-2',
@@ -515,6 +528,7 @@ export default function BuildPage() {
       // single source of truth regardless of how the content got there.
       pasteContent: inputMethod === 'paste' ? (refs.paste.current?.value || undefined) : undefined,
       uploadedFileName: inputMethod === 'paste' ? (uploadedCV?.name || undefined) : undefined,
+      changes: inputMethod === 'paste' ? (refs.cvChanges.current?.value || undefined) : undefined,
       form: inputMethod === 'form' ? {
         fullName: refs.fullName.current?.value || undefined,
         phone: refs.phone.current?.value || undefined,
@@ -540,11 +554,12 @@ export default function BuildPage() {
       } : undefined,
       // Both entry points share one JD component now, so both read jdPaste.
       jobDescription: refs.jdPaste.current?.value || undefined,
-      // A cover letter answers this on form-5 before it even knows paste vs
-      // form; other document types only see it on whichever screen they used.
-      // Reading both refs and taking whichever has something covers all of it.
-      whyRole: refs.tailorEmphasisPaste.current?.value || refs.tailorEmphasisForm.current?.value || undefined,
-      landingScreen,
+      // Asked on form-5: a cover letter answers it there before it even knows
+      // paste vs form, and the guided CV path asks it there too. The upload
+      // page's box is `changes`, a different thing, so it no longer lands here.
+      whyRole: refs.tailorEmphasisForm.current?.value || undefined,
+      // The upload path's Build button now lives on its own tailor page.
+      landingScreen: landingScreen === 'summary' && inputMethod === 'paste' ? 'tailor' : landingScreen,
     }
   }
 
@@ -591,7 +606,7 @@ export default function BuildPage() {
         setVal(refs.jobTitle, f.jobTitle); setVal(refs.company, f.company)
       }
       if (seed.jobDescription) { setJdInputMode('paste'); setVal(refs.jdPaste, seed.jobDescription); setVal(refs.jobDesc, seed.jobDescription) }
-      setVal(refs.tailorEmphasisPaste, seed.whyRole); setVal(refs.tailorEmphasisForm, seed.whyRole)
+      setVal(refs.cvChanges, seed.changes); setVal(refs.tailorEmphasisForm, seed.whyRole)
     })
     go(seed.landingScreen)
   }
@@ -613,7 +628,7 @@ export default function BuildPage() {
     setExtractedCVText(null)
     setPasteInputMode('upload')
     const clearVal = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>) => { if (ref.current) ref.current.value = '' }
-    clearVal(refs.paste)
+    clearVal(refs.paste); clearVal(refs.cvChanges)
     clearVal(refs.fullName); clearVal(refs.phone); clearVal(refs.email); clearVal(refs.location)
     clearVal(refs.dob); clearVal(refs.nationality); clearVal(refs.linkedin)
     clearVal(refs.education); clearVal(refs.gpa); clearVal(refs.thesis); clearVal(refs.research)
@@ -876,7 +891,10 @@ export default function BuildPage() {
           // Academic only — the institution and course being applied to.
           company: tailorMode === 'aim' ? (refs.tailorSchoolPaste.current?.value || undefined) : undefined,
           targetProgramme: tailorMode === 'aim' ? (refs.tailorProgrammePaste.current?.value || undefined) : undefined,
-          whyRole: refs.tailorEmphasisPaste.current?.value || undefined,
+          changes: refs.cvChanges.current?.value || undefined,
+          // A cover letter's "why this role" is answered on form-5; it used to be
+          // dropped on this path because only the upload page's box was sent.
+          whyRole: isCoverLetter ? (refs.tailorEmphasisForm.current?.value || undefined) : undefined,
           email: accessEmail,
         })
       })
@@ -1375,12 +1393,11 @@ export default function BuildPage() {
                           Not this file?
                         </button>
                       </div>
-                      {/* Explicit permission to skip, not just the ability to —
-                          "fix anything wrong" alone reads as an instruction to
-                          scrutinize everything, even for someone who already
-                          knows the extraction is accurate. */}
+                      {/* This box is for fixing a misread; new information goes in
+                          "Anything to add or change?" below. Still says they can just
+                          carry on, so nobody feels they must check every line. */}
                       <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>
-                        Skip to Tailor &amp; Build if nothing needs fixing.
+                        Fix anything we read wrong. Anything new goes in the box below — or just carry on.
                       </p>
                     </>
                   ) : (
@@ -1413,25 +1430,47 @@ export default function BuildPage() {
             )
           })()}
 
-          {/* Corrections and additions now happen by editing the CV box
-              directly above — this is only for instructions the box itself
-              can't express: tone, priorities, what to emphasize. Ahead of
-              Tailor your CV since it's about the CV itself, not the target
-              it's aimed at. Collapsed by default so it doesn't compete for space. */}
-          <Collapsible
-            title={tailorMode !== 'none' ? `Anything to emphasize for this ${isAcademic ? 'application' : 'role'}?` : 'Any special instructions?'}
-            hint={cvType === 'cover_letter' ? 'Achievements, strengths, or a tone you want the letter to have.' : undefined}
-            badge="Optional"
-          >
-            <textarea ref={refs.tailorEmphasisPaste} style={TA(70)} rows={3}
-              placeholder={tailorMode !== 'none'
-                ? (cvType === 'cover_letter' ? 'e.g. My leadership experience and passion for this industry' : 'e.g. My project management experience for this specific role')
-                : (cvType === 'academic'
-                    ? '"Emphasize my research over teaching" or "Keep the tone formal and precise"'
-                    : cvType === 'cover_letter'
-                      ? '"Keep it warm and enthusiastic" or "Mention my passion for the industry"'
-                      : '"Keep it concise" or "Emphasize leadership over technical skills"')} />
-          </Collapsible>
+          {/* Answers "how do I update my CV if I upload it?" — editing the
+              extracted text above was the only way, and nobody found it. One
+              free-text box, no fields to fill: the faint example shows what
+              can go in. Sent as `changes`, which the prompt tells the AI to
+              apply (CHANGES in prompts.ts) — unlike the old emphasis box,
+              which forbade adding anything. Visible, not collapsed: it is the
+              answer to that question, so it can't be hidden. */}
+          <div style={{ marginTop: '22px' }}>
+            <label htmlFor="cv-changes" style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
+              Anything to add or change?
+              <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--muted)' }}>Optional</span>
+            </label>
+            <textarea id="cv-changes" ref={refs.cvChanges} style={TA(96)} rows={4}
+              placeholder={cvType === 'academic'
+                ? 'e.g. Add my new paper in the Journal of Physics (2025). Add my lecturing at KNUST since 2024. Put my research before teaching.'
+                : cvType === 'cover_letter'
+                  ? 'e.g. Mention my new PMP certificate. Leave out my first job. Keep it warm and confident.'
+                  : 'e.g. Add my new job at MTN as Sales Lead (2025–now). Add my PMP certificate. Remove my secondary school. Keep it to one page.'} />
+          </div>
+
+          <ErrorDisplay error={error} onRetry={goToTailor} onDismiss={() => setError(null)} />
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
+            <button onClick={goToTailor} disabled={isExtracting || !!uploadReadError} style={{ ...btnPrimary, opacity: (isExtracting || uploadReadError) ? 0.6 : 1 }}>
+              Next →
+            </button>
+          </div>
+        </div>
+
+      {/* ══ SCREEN: TAILOR (upload path) ══════════════════════════════ */}
+        {/* Its own page: the upload page was one long scroll on a phone, with
+            the CV, the changes box and tailoring all competing. Always mounted
+            (display toggle) like every other screen, so a pasted advert
+            survives going Back. */}
+        <div style={{ display: screen === 'tailor' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
+          <h1 className="xcv-h1" style={{ ...h1Style, fontSize: 'clamp(1.25rem, 3.2vw, 1.7rem)', marginBottom: '8px' }}>
+            Where is this {cvType === 'cover_letter' ? 'letter' : 'CV'} going?
+          </h1>
+          <p style={{ fontSize: '14px', color: 'var(--graphite)', fontWeight: 300, marginBottom: '6px' }}>
+            Aiming it at a specific job makes it much stronger.
+          </p>
 
           <TailorSection
             mode={tailorMode} setMode={setTailorMode}
