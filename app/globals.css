@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+/* UI fonts are not @import-ed here: an @import of a third-party stylesheet
+   blocks the first paint behind a chain (this file, then Google), which held
+   app pages blank for seconds on slow lines. They are preloaded in
+   app/layout.tsx and applied by components/FontStylesheet.tsx. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
