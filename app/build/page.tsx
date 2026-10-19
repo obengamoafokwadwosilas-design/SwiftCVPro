@@ -199,6 +199,14 @@ export default function BuildPage() {
   // link); their email is then known and is never asked for again.
   const [signedInEmail, setSignedInEmail] = useState<string | null>(null)
   const [employmentUpdates, setEmploymentUpdates] = useState(false)
+  // Last page: an inline email problem; why the package list opened; which of the
+  // two buttons was pressed (so a retry repeats the same one).
+  const [finishErr, setFinishErr] = useState('')
+  const [pricingReason, setPricingReason] = useState<'free' | 'build' | null>(null)
+  const lastIntent = useRef<'build' | 'preview'>('build')
+  // Always the newest handleGenerate. A timer set when the page loads would
+  // otherwise call the first render's copy, which still sees an empty email.
+  const generateRef = useRef<(intent?: 'build' | 'preview') => Promise<void>>(async () => {})
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<{ title: string; msg: string; type: 'payment' | 'input' | 'server' | 'network' } | null>(null)
 
@@ -300,10 +308,10 @@ export default function BuildPage() {
     fetch('/api/customer-access/session', { cache: 'no-store' })
       .then(res => res.json())
       .then(d => {
-        if (cancelled || !d?.email) return
-        setSignedInEmail(d.email)
-        setEmail(prev => prev || d.email)
-        refreshCreditBalance(d.email)
+        if (cancelled) return
+        if (d?.email) { setSignedInEmail(d.email); setEmail(prev => prev || d.email) }
+        else if (d?.contactEmail) setEmail(prev => prev || d.contactEmail)
+        refreshCreditBalance()
       })
       .catch(() => {})
     return () => { cancelled = true }
@@ -347,6 +355,14 @@ export default function BuildPage() {
     if (seed) {
       applyBuildSeed(seed)
       clearBuildSeed()
+      // Back from a hosted-checkout redirect (WhatsApp/Instagram browsers, or a
+      // blocked pop-up): they have just paid, so carry on and build instead of
+      // asking them to press the button again — the same thing the pop-up path
+      // does the moment its payment confirms. Deferred so the restored fields are in.
+      if (sessionStorage.getItem('swiftcv_autobuild') === '1') {
+        sessionStorage.removeItem('swiftcv_autobuild')
+        window.setTimeout(() => { void generateRef.current('build') }, 600)
+      }
       return
     }
     clearLastInput()
@@ -415,7 +431,18 @@ export default function BuildPage() {
   // captures "Any special instructions?" and the guided-form answers, which
   // are typed after a file is uploaded and so aren't covered by the save on
   // upload itself.
-  const go = (s: Screen) => { setScreen(s); window.scrollTo({ top: 0, behavior: 'smooth' }) }
+  const go = (s: Screen) => {
+    // The last pages ask for an email. Nearly everyone has already written one
+    // into their CV (or the personal-details form), so offer that instead of an
+    // empty box — they can change it, and a signed-in or remembered address wins.
+    if ((s === 'tailor' || s === 'summary') && !email.trim()) {
+      const found = (refs.paste.current?.value + ' ' + (refs.email.current?.value || ''))
+        .match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:.[A-Za-z0-9-]+)*.[A-Za-z]{2,}/)
+      if (found) setEmail(found[0].toLowerCase())
+    }
+    setScreen(s)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   // Header progress. Phase 3 covers every form screen, so it advances with
   // them — the bar and the screen's own "Step N of M" now tell one story.
@@ -482,31 +509,12 @@ export default function BuildPage() {
   }
   const backTo = backTargets[screen]
 
-  // The document type is step 1, so choosing it leads into how to share info.
+  // The document type is step 1. No email is asked here, or anywhere before the
+  // last page — the visitor just carries on.
   async function goAfterType() {
     setTypeErr('')
     if (!typeChosen) { setTypeErr('Please choose what to create.'); return }
-    if (!email.trim()) { setTypeErr('Please enter your email address.'); return }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setTypeErr('Please enter a valid email address.'); return }
-    // Advance instantly — no waiting, no "checking" state. The balance is
-    // fetched in the background purely so the info screens can show what's
-    // left; if it's slow or fails, the user never notices (Generate re-checks
-    // authoritatively anyway).
-    // A cover letter asks which role first; everything else goes straight to
-    // the method choice.
-    try {
-      const result = await fetch('/api/customer-consent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, updates: employmentUpdates }) })
-      if (!result.ok) { setTypeErr('Could not save your email preference. Please try again.'); return }
-    } catch { setTypeErr('Could not connect. Please try again.'); return }
     go(isCoverLetter ? 'form-5' : 'method')
-    fetch('/api/check-credits', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, cvType }),
-    })
-      .then(res => res.json())
-      .then(d => setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 }))
-      .catch(() => setCreditBalance(null))
   }
 
   // ── Build seed: capture / restore ──────────────────────────────
@@ -637,23 +645,6 @@ export default function BuildPage() {
     clearVal(refs.jobTitle); clearVal(refs.company)
   }
 
-  function startBuyCredits() {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setTypeErr('Enter your email first — your credits are saved to it.')
-      return
-    }
-    setTypeErr('')
-    setPayEmail(normalizeEmail(email))
-    setBuyingStandalone(true)
-    setShowPricing(true)
-  }
-
-  function switchEmail() {
-    clearSavedInfo()
-    setScreen('type')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   // ── File extract ──────────────────────────────
   async function extractFile(file: File): Promise<string> {
     const fd = new FormData()
@@ -715,34 +706,89 @@ export default function BuildPage() {
   }
 
   // ── Generate ──────────────────────────────────
-  async function handleGenerate() {
+  // Two ways in from the last page. 'build' is the main button: pay first (unless
+  // a credit is already here), then build and download straight away. 'preview'
+  // is the quiet link: build for free, look at it, pay afterwards to unlock it.
+  async function handleGenerate(intent: 'build' | 'preview' = lastIntent.current) {
+    lastIntent.current = intent
     setError(null)
+    setFinishErr('')
     const validErr = validate()
+    if (validErr === 'email') { setFinishErr('Please enter your email address.'); return }
     if (validErr) {
       const msgs: Record<string, {title:string;msg:string;type:any}> = {
         content:  { title: 'No CV content', msg: 'Please upload your CV or type it in before generating.', type: 'input' },
         name:     { title: 'Name required', msg: 'Please enter your full name.', type: 'input' },
-        email:    { title: 'Email required', msg: 'Please enter your email address.', type: 'input' },
         location: { title: 'Location required', msg: 'Please enter your location (e.g. Accra, Ghana).', type: 'input' },
         jd:       { title: 'Job description required', msg: 'This CV type needs a job description. Please paste or upload one.', type: 'input' },
       }
       setError(msgs[validErr] || { title: 'Something missing', msg: 'Please check your details and try again.', type: 'input' })
       return
     }
-    // Generation itself is free (capped) — the real paywall is at download,
-    // so there's no credit pre-flight here anymore. Just normalize the email
-    // client-side and go straight to generating.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setFinishErr('Please enter a valid email address.'); return }
     try {
       const { normalizeEmail } = await import('@/lib/email')
-      setIsGenerating(true)
-      await doGenerate(normalizeEmail(email))
+      const cleanEmail = normalizeEmail(email)
+      if (!await saveContact(cleanEmail)) return
+      if (intent === 'preview') {
+        setIsGenerating(true)
+        await doGenerate(cleanEmail, 'preview')
+        return
+      }
+      const hasCredit = await hasCreditNow()
+      if (hasCredit === null) {
+        setError({ title: 'Connection error', msg: 'Could not check your balance. Please check your internet and try again.', type: 'network' })
+        return
+      }
+      if (hasCredit) {
+        setIsGenerating(true)
+        await doGenerate(cleanEmail, 'build')
+        return
+      }
+      startPayment(cleanEmail)
     } catch {
       setIsGenerating(false)
       setError({ title: 'Connection error', msg: 'Could not connect to the server. Please check your internet and try again.', type: 'network' })
     }
   }
 
-  async function doGenerate(accessEmail: string) {
+  // Where the receipt goes, and whether to send job alerts. Also what gives this
+  // browser its identity on the server, so it must succeed before anything else.
+  async function saveContact(cleanEmail: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/customer-consent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: cleanEmail, updates: employmentUpdates }) })
+      if (res.ok) return true
+      const d = await res.json().catch(() => ({}))
+      setFinishErr(d.error || 'Could not save your email. Please try again.')
+    } catch {
+      setError({ title: 'Connection error', msg: 'Could not connect to the server. Please check your internet and try again.', type: 'network' })
+    }
+    return false
+  }
+
+  // true / false, or null when the balance could not be read — never guess "no
+  // credit" there, or someone who already has one would be asked to pay again.
+  async function hasCreditNow(): Promise<boolean | null> {
+    try {
+      const d = await fetch('/api/check-credits', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cvType }) }).then(r => r.json())
+      if (d.error) return null
+      setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 })
+      return (cvType === 'cover_letter' ? d.coverLetterCredits : d.credits) > 0
+    } catch { return null }
+  }
+
+  // A package picked on the landing page goes straight to payment; otherwise the
+  // visitor chooses one.
+  function startPayment(cleanEmail: string) {
+    setPayEmail(cleanEmail)
+    setBuyingStandalone(false)
+    const chosen = pkgFromUrl ? packagesForDoc(isCoverLetter).find(p => p.id === pkgFromUrl) : undefined
+    if (chosen) { void triggerPaystack(cleanEmail, chosen); return }
+    setPricingReason('build')
+    setShowPricing(true)
+  }
+
+  async function doGenerate(accessEmail: string, intent: 'build' | 'preview' = 'build') {
     // Reads whichever advert input is in play. An uploaded file has to be
     // extracted (a second Claude vision call for a photo), and that can fail
     // on an unreadable scan — tagged as AdvertReadError so the catch below
@@ -851,14 +897,15 @@ export default function BuildPage() {
         const res = await fetch('/api/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cvType, formData, email: accessEmail })
+          body: JSON.stringify({ cvType, formData, email: accessEmail, intent })
         })
         const data = await res.json()
         if (!data.success) {
           setIsGenerating(false)
-          if (data.error === 'FREE_CAP_REACHED') {
-            // Free generations used up on this email → let them choose
-            // a package before paying, same modal the export routes' 402s use.
+          if (data.error === 'FREE_CAP_REACHED' || data.error === 'PAYMENT_REQUIRED') {
+            // Free previews used up, or a paid build with nothing to spend: let
+            // them choose a package, same modal the export routes' 402s use.
+            setPricingReason(data.error === 'FREE_CAP_REACHED' ? 'free' : 'build')
             setPayEmail(accessEmail)
             setBuyingStandalone(false)
             setShowPricing(true)
@@ -883,7 +930,7 @@ export default function BuildPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          cvType, rawContent,
+          cvType, rawContent, intent,
           jobDescription: jobDescription || undefined,
           // Aim fields only when that's the chosen option — never alongside an advert
           jobTitle: tailorMode === 'aim' ? (refs.tailorJobPaste.current?.value || undefined) : undefined,
@@ -901,7 +948,8 @@ export default function BuildPage() {
       const data = await res.json()
       if (!data.success) {
         setIsGenerating(false)
-        if (data.error === 'FREE_CAP_REACHED') {
+        if (data.error === 'FREE_CAP_REACHED' || data.error === 'PAYMENT_REQUIRED') {
+          setPricingReason(data.error === 'FREE_CAP_REACHED' ? 'free' : 'build')
           setPayEmail(accessEmail)
           setBuyingStandalone(false)
           setShowPricing(true)
@@ -949,11 +997,11 @@ export default function BuildPage() {
   // this package" banner on the type screen, would otherwise keep showing
   // stale info (worst case: inviting someone to buy a package they just
   // bought). Re-checks the same way goAfterType does on first load.
-  function refreshCreditBalance(emailForBalance: string) {
+  function refreshCreditBalance(_unused?: string) {
     fetch('/api/check-credits', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: emailForBalance, cvType }),
+      body: JSON.stringify({ cvType }),
     })
       .then(res => res.json())
       .then(d => setCreditBalance({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 }))
@@ -994,6 +1042,7 @@ export default function BuildPage() {
       // navigate the current tab away, so persist state first, same as the
       // in-app-browser path.
       saveBuildSeed(captureBuildSeed('summary'))
+      sessionStorage.setItem('swiftcv_autobuild', '1')
       window.location.assign(authorizationUrl)
       return
     }
@@ -1016,6 +1065,7 @@ export default function BuildPage() {
 
       if (isInAppBrowser()) {
         saveBuildSeed(captureBuildSeed('summary'))
+        sessionStorage.setItem('swiftcv_autobuild', '1')
         window.location.assign(data.authorization_url)
         return
       }
@@ -1034,7 +1084,7 @@ export default function BuildPage() {
               }
               setIsGenerating(true)
               const ok = await confirmPayment(data.reference)
-              if (ok) await doGenerate(accessEmail)
+              if (ok) await doGenerate(accessEmail, 'build')
               else setIsGenerating(false)
             },
             onCancel: () => setError({ title: 'Payment cancelled', msg: 'Payment was not completed. Your CV has not been generated. Try again whenever you are ready.', type: 'payment' }),
@@ -1073,7 +1123,90 @@ export default function BuildPage() {
       return
     }
     setIsGenerating(true)
-    await doGenerate(email)
+    await doGenerate(email, 'build')
+  }
+
+  generateRef.current = handleGenerate
+
+  // The last page of every path: the email (once), the notifications tick, and the
+  // two buttons. Shown on the upload path's tailor page and on the guided path's
+  // summary page.
+  function renderFinish(page: 'tailor' | 'summary') {
+    const docWord = isCoverLetter ? 'cover letter' : 'CV'
+    const signedIn = !!signedInEmail && email === signedInEmail
+    const credits = creditBalance ? (isCoverLetter ? creditBalance.cl : creditBalance.cv) : 0
+    const picked = pkgFromUrl ? PACKAGES.find(p => p.id === pkgFromUrl) : null
+    const fromPrice = Math.min(...packagesForDoc(isCoverLetter).map(p => p.price))
+    const busy = isGenerating || !!paymentPending || !!uploadReadError
+    return (
+      <div style={{ marginTop: '28px' }}>
+        <div style={{ height: '1px', background: 'var(--rule)', marginBottom: '24px' }} />
+        {signedIn ? (
+          <>
+            <span className="xcv-mono" style={{ display: 'block', fontSize: '12px', color: 'var(--graphite)', marginBottom: '10px' }}>Signed in as</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', padding: '13px 16px', border: '1px solid rgba(10,138,63,0.25)', background: 'var(--teal-tint)', borderRadius: '10px' }}>
+              <span style={{ overflowWrap: 'anywhere', fontSize: '15px' }}>{email}</span>
+              <button type="button" onClick={() => void switchAccount()} className="xcv-link" style={{ fontSize: '12px', color: 'var(--muted)' }}>
+                Not you? <span style={{ color: 'var(--teal)', fontWeight: 500 }}>Sign out</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <label htmlFor={`access-email-${page}`} className="xcv-mono" style={{ display: 'block', fontSize: '12px', color: 'var(--graphite)', marginBottom: '10px' }}>Email address</label>
+            <input id={`access-email-${page}`} type="email" value={email}
+              onChange={e => { setEmail(e.target.value); if (finishErr) setFinishErr('') }}
+              placeholder="e.g. kwame@email.com" autoComplete="email"
+              className={'xcv-field' + (finishErr ? ' err' : '')} />
+            <p style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '10px', lineHeight: 1.65 }}>
+              For your receipt and to open this on another device.{' '}
+              <button type="button" className="xcv-link" style={{ fontSize: '12px', color: 'var(--teal)', fontWeight: 500 }}
+                onClick={() => { saveBuildSeed(captureBuildSeed('summary')); router.push('/my-cvs') }}>
+                Bought credits before? Sign in
+              </button>
+            </p>
+          </>
+        )}
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', marginTop: '11px', cursor: 'pointer' }}>
+          <input type="checkbox" checked={employmentUpdates} onChange={e => setEmploymentUpdates(e.target.checked)}
+            style={{ width: '15px', height: '15px', accentColor: 'var(--teal)', marginTop: '2px', flexShrink: 0 }} />
+          <span style={{ fontSize: '12.5px', color: 'var(--graphite)' }}>Send me job alerts, relevant employment updates, and CV tips.</span>
+        </label>
+        {finishErr && <div role="alert" style={{ marginTop: '12px', fontSize: '13px', color: '#b91c1c' }}>{finishErr}</div>}
+
+          {paymentPending && (
+            <div style={{ background: '#fffbf5', border: '1.5px solid #f59e0b', borderRadius: '14px', padding: '16px 18px', marginBottom: '14px' }}>
+              <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>Complete payment in the window that opened</div>
+              <div style={{ fontSize: '12.5px', color: 'var(--graphite)', marginBottom: '12px', lineHeight: 1.6 }}>Once you&apos;ve paid, click below to confirm{paymentPending.standalone ? '.' : ' — your CV will generate right after.'}</div>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
+                <button onClick={handleManualVerify} disabled={verifyingPayment} style={{ ...btnPrimary, opacity: verifyingPayment ? 0.6 : 1 }}>
+                  {verifyingPayment ? 'Checking…' : 'Verify Payment'}
+                </button>
+                <button onClick={() => setPaymentPending(null)} style={btnBackTop}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+        <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
+          <button onClick={() => void handleGenerate('build')} disabled={busy} style={{ ...btnPrimary, justifyContent: 'center', width: '100%', opacity: busy ? 0.6 : 1 }}>
+            {isGenerating ? 'Building…' : `Build my ${docWord} →`}
+          </button>
+          {credits > 0 ? (
+            <p style={{ margin: 0, textAlign: 'center', fontSize: '12px', color: 'var(--graphite)' }}>
+              You have {credits} {docWord} credit{credits === 1 ? '' : 's'} — building uses one.
+            </p>
+          ) : (
+            <p style={{ margin: 0, textAlign: 'center', fontSize: '12px', color: 'var(--graphite)' }}>
+              {picked ? `${picked.name} · GH₵${picked.price}` : `From GH₵${fromPrice}`} · secure payment via Paystack · MTN MoMo, Vodafone Cash &amp; card
+            </p>
+          )}
+          <button type="button" onClick={() => void handleGenerate('preview')} disabled={busy} className="xcv-link"
+            style={{ alignSelf: 'center', fontSize: '13px', color: 'var(--graphite)', textDecoration: 'underline', textUnderlineOffset: '3px', opacity: busy ? 0.6 : 1 }}>
+            See a free preview first
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // ─────────────────────────────────────────────
@@ -1086,62 +1219,17 @@ export default function BuildPage() {
           through it the user is rather than sitting full the whole time. */}
       <Nav step={navPhase} subProgress={navSub} />
 
-      {/* Back + status pill share one row. The credits pill is permanent —
-          it shows the moment a balance is known, on any screen including the
-          very first one for a returning user, exactly like SwiftEssayPro's
-          top-of-page balance. The "first previews free" fallback only shows
-          once past the type screen, since that message already lives inline
-          there (see the CHOOSE DOCUMENT screen below). */}
-      {/* Back + identity readout share one row. On the type screen the
-          identity block below is the single place to change who this saves
-          to, so the pill here stays a pure readout — the second "Not you?"
-          that used to sit here is gone. */}
-      {(() => {
-        const hasCredits = !!creditBalance && (cvType === 'cover_letter' ? creditBalance.cl > 0 : creditBalance.cv > 0)
-        // Show the pill — and with it the "Buy credits" button — as soon as we
-        // know which number to credit. This used to also require
-        // `hasCredits || screen !== 'type'`, which hid the buy button from
-        // exactly the person most likely to use it: someone who just clicked a
-        // pricing button on the landing page and has no credits yet.
-        const showPill = !!email
-        if (!backTo && screen !== 'type' && !showPill) return null
-        const n = cvType === 'cover_letter' ? (creditBalance?.cl ?? 0) : (creditBalance?.cv ?? 0)
-        // The type screen already states the free-preview offer inline below,
-        // so the pill drops that label there and shows only the number.
-        const pillLabel = hasCredits
-          ? n + ' ' + (cvType === 'cover_letter' ? 'cover letter' : 'CV') + ' credit' + (n === 1 ? '' : 's') + ' left'
-          : (screen === 'type' ? '' : 'First 2 previews free')
-        return (
-          <div style={{ maxWidth: '680px', margin: '0 auto', padding: '26px 24px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' as const }}>
-            <div>
-              {(backTo || screen === 'type') && (
-                <button onClick={() => backTo ? go(backTo) : router.push('/')} className="xcv-link" style={btnBackTop}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  Back
-                </button>
-              )}
-            </div>
-            {showPill && (
-              <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: '6px' }}>
-                <div className="xcv-mono" style={{ display: 'flex', alignItems: 'center', gap: '9px', fontSize: '9.5px', color: 'var(--teal)', background: 'var(--teal-tint)', border: '1px solid rgba(10,138,63,0.15)', borderRadius: '4px', padding: '7px 12px', whiteSpace: 'nowrap' as const }}>
-                  {pillLabel}
-                  <span style={{ color: 'var(--muted)', ...(pillLabel ? { borderLeft: '1px solid rgba(10,138,63,0.18)', paddingLeft: '9px' } : {}) }}>{email}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button type="button" onClick={startBuyCredits} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--teal)', fontWeight: 500 }}>
-                    Purchase CV credits
-                  </button>
-                  {screen !== 'type' && (
-                    <button type="button" onClick={() => { if (signedInEmail) void switchAccount(); else clearSavedInfo(); go('type') }} className="xcv-link" style={{ fontSize: '11.5px', color: 'var(--muted)', fontWeight: 300 }}>
-                      Not you? <span style={{ color: 'var(--teal)', fontWeight: 500 }}>Switch email</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      })()}
+      {/* Back, on its own. The status pill (email, "first 2 previews free", "Purchase
+          CV credits") is gone: the email is asked once, on the last page, and a limit
+          nobody has hit yet is not worth announcing. */}
+      {(backTo || screen === 'type') && (
+        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '26px 24px 0' }}>
+          <button onClick={() => backTo ? go(backTo) : router.push('/')} className="xcv-link" style={btnBackTop}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Back
+          </button>
+        </div>
+      )}
 
       {/* ══ SCREEN: CHOOSE DOCUMENT ══════════════════════════════════ */}
       {screen === 'type' && (() => {
@@ -1168,15 +1256,6 @@ export default function BuildPage() {
             <p style={{ fontSize: '15px', color: 'var(--graphite)', fontWeight: 300, lineHeight: 1.65, maxWidth: '46ch' }}>
               Select the option that matches your application, then click continue.
             </p>
-            {/* Shown only when the account is empty. A returning user with
-                credits sees the balance in the pill instead — one statement
-                about money on screen, never two that disagree. */}
-            {!hasCredits && (
-              <p style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: 'var(--teal)', marginTop: '15px', fontWeight: 400 }}>
-                <span aria-hidden="true" style={{ width: '15px', height: '1px', background: 'var(--teal)', flexShrink: 0 }} />
-                Your first two previews are free. You pay only when you download.
-              </p>
-            )}
             {/* Someone arriving from a landing-page pricing button (?pkg=hunter
                 etc.) had picked a package and then landed here with no way to
                 pay for it — the id was read but only used to highlight a row
@@ -1193,9 +1272,6 @@ export default function BuildPage() {
                     <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)' }}>{picked.name} · GH₵{picked.price}</div>
                     <div style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '2px', lineHeight: 1.5 }}>{picked.blurb} — credits never expire.</div>
                   </div>
-                  <button type="button" onClick={startBuyCredits} style={{ flexShrink: 0, padding: '10px 18px', background: 'var(--teal)', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-                    Continue to payment
-                  </button>
                 </div>
               )
             })()}
@@ -1238,35 +1314,7 @@ export default function BuildPage() {
             })}
           </div>
 
-          <div className="xcv-rise" style={{ animationDelay: '280ms', marginBottom: '34px' }}>
-            {signedInEmail && email === signedInEmail ? (
-              <>
-                <span className="xcv-mono" style={{ display: 'block', fontSize: '12px', color: 'var(--graphite)', marginBottom: '10px' }}>Signed in as</span>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', padding: '13px 16px', border: '1px solid rgba(10,138,63,0.25)', background: 'var(--teal-tint)', borderRadius: '10px' }}>
-                  <span style={{ overflowWrap: 'anywhere', fontSize: '15px' }}>{email}</span>
-                  <button type="button" onClick={() => void switchAccount()} className="xcv-link" style={{ fontSize: '12px', color: 'var(--muted)' }}>
-                    Not you? <span style={{ color: 'var(--teal)', fontWeight: 500 }}>Sign out</span>
-                  </button>
-                </div>
-                <p style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '10px', lineHeight: 1.65 }}>Your receipt and saved CVs go to this email.</p>
-              </>
-            ) : (
-              <>
-                <label htmlFor="access-email" className="xcv-mono" style={{ display: 'block', fontSize: '12px', color: 'var(--graphite)', marginBottom: '10px' }}>Email address</label>
-                <input id="access-email" type="email" value={email}
-                  onChange={e => { setEmail(e.target.value); if (typeErr) setTypeErr('') }}
-                  onKeyDown={e => { if (e.key === 'Enter') void goAfterType() }}
-                  placeholder="e.g. kwame@email.com" autoComplete="email"
-                  className={'xcv-field' + (typeErr ? ' err' : '')} />
-                <p style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '10px', lineHeight: 1.65 }}>For your receipt and future access to your CVs.</p>
-              </>
-            )}
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', marginTop: '11px', cursor: 'pointer' }}>
-              <input type="checkbox" checked={employmentUpdates} onChange={e => setEmploymentUpdates(e.target.checked)}
-                style={{ width: '15px', height: '15px', accentColor: 'var(--teal)', marginTop: '2px', flexShrink: 0 }} />
-              <span style={{ fontSize: '12.5px', color: 'var(--graphite)' }}>Send me job alerts, relevant employment updates, and CV tips.</span>
-            </label>
-          </div>
+          <div style={{ marginBottom: '34px' }} />
 
           {/* The commit. Bound by a rule and carrying what is being committed
               to, so the primary action is anchored to the page rather than
@@ -1484,13 +1532,9 @@ export default function BuildPage() {
             schoolRef={refs.tailorSchoolPaste} programmeRef={refs.tailorProgrammePaste}
           />
 
-          <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
+          <ErrorDisplay error={error} onRetry={() => handleGenerate()} onDismiss={() => setError(null)} />
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={handleGenerate} disabled={isGenerating || !!uploadReadError} style={{ ...btnPrimary, opacity: (isGenerating || uploadReadError) ? 0.6 : 1 }}>
-              {isGenerating ? 'Building…' : `Build my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
-            </button>
-          </div>
+          {renderFinish('tailor')}
         </div>
 
       {/* ══ SCREEN: FORM STEP 1 — PERSONAL ══════════════════════ */}
@@ -1857,26 +1901,9 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             </div>
           ))}
 
-          <ErrorDisplay error={error} onRetry={handleGenerate} onDismiss={() => setError(null)} />
+          <ErrorDisplay error={error} onRetry={() => handleGenerate()} onDismiss={() => setError(null)} />
 
-          {paymentPending && (
-            <div style={{ background: '#fffbf5', border: '1.5px solid #f59e0b', borderRadius: '14px', padding: '16px 18px', marginBottom: '14px' }}>
-              <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>Complete payment in the window that opened</div>
-              <div style={{ fontSize: '12.5px', color: 'var(--graphite)', marginBottom: '12px', lineHeight: 1.6 }}>Once you&apos;ve paid, click below to confirm{paymentPending.standalone ? '.' : ' — your CV will generate right after.'}</div>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
-                <button onClick={handleManualVerify} disabled={verifyingPayment} style={{ ...btnPrimary, opacity: verifyingPayment ? 0.6 : 1 }}>
-                  {verifyingPayment ? 'Checking…' : 'Verify Payment'}
-                </button>
-                <button onClick={() => setPaymentPending(null)} style={btnBackTop}>Cancel</button>
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '8px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={handleGenerate} disabled={isGenerating || !!paymentPending || !!uploadReadError} style={{ ...btnPrimary, opacity: (isGenerating || paymentPending || uploadReadError) ? 0.6 : 1 }}>
-              {isGenerating ? 'Generating...' : `Generate my ${cvType === 'cover_letter' ? 'cover letter' : 'CV'} →`}
-            </button>
-          </div>
+          {renderFinish('summary')}
         </div>
       )}
 
@@ -1888,6 +1915,9 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
               <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.15 }}>Choose your package</div>
               <button onClick={() => setShowPricing(false)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: '6px', display: 'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
+            {pricingReason === 'free' && (
+              <p style={{ fontSize: '13px', color: 'var(--ink)', marginBottom: '8px', lineHeight: 1.6 }}>You&apos;ve used your free previews. Choose a package and your {cvType === 'cover_letter' ? 'cover letter' : 'CV'} is built as soon as you&apos;ve paid.</p>
+            )}
             <p style={{ fontSize: '12.5px', color: 'var(--graphite)', marginBottom: '18px', lineHeight: 1.6 }}>One-time payment · no subscription. Credits never expire.</p>
 
             <div style={{ display: 'grid', gap: '11px' }}>

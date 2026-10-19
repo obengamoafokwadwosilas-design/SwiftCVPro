@@ -70,9 +70,23 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
       void fetch('/api/customer-access/session', { cache: 'no-store' })
         .then(res => res.json())
         .then(session => {
-          if (!session.persistent) return
-          setRemember(true)
-          return run(() => loadHistory(!!autoSetPin))
+          if (session.persistent) {
+            setRemember(true)
+            return run(() => loadHistory(!!autoSetPin))
+          }
+          // Someone who built or paid in this browser without signing in (a guest
+          // that left a receipt address) owns those CVs by browser: show them
+          // rather than a sign-in form. A visitor with nothing yet still sees the form.
+          if (session.contactEmail) {
+            return fetch('/api/cv-history/list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+              .then(r => r.json())
+              .then(data => {
+                if (!data.success || !(data.history || []).length) return
+                setEmail(session.contactEmail)
+                setItems(data.history)
+                setStep('list')
+              })
+          }
         })
         .catch(() => {})
     }
