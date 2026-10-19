@@ -184,6 +184,10 @@ export default function PreviewPage() {
   const [showUpsell, setShowUpsell] = useState(false)
   const [upsellShown, setUpsellShown] = useState(false)
   const [hasDownloaded, setHasDownloaded] = useState(false)
+  // Whether the document on screen has been paid for. null until the server has
+  // answered; anything other than true shows the protected preview, so a slow
+  // answer never shows the finished CV by mistake.
+  const [docPaid, setDocPaid] = useState<boolean | null>(null)
   const [showReadyBanner, setShowReadyBanner] = useState(true)
   const [showChooser, setShowChooser] = useState(false)
   const [showDownloadMenu, setShowDownloadMenu] = useState(false)
@@ -263,6 +267,41 @@ export default function PreviewPage() {
     const id = sessionStorage.getItem(key)
     return id ? Number(id) : undefined
   }
+  // Ask the server whether this document is paid. A document with no saved id
+  // cannot be (the paywall charges per saved document), so it stays protected.
+  useEffect(() => {
+    const id = paidDocumentId()
+    if (!id) { setDocPaid(false); return }
+    let cancelled = false
+    fetch('/api/cv-history/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ historyId: id }) })
+      .then(r => r.json())
+      .then(d => { if (!cancelled) setDocPaid(!!d.paid) })
+      .catch(() => { if (!cancelled) setDocPaid(false) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDoc, coverLetter])
+
+  // While a document is only a preview, nothing on the page can be copied or cut
+  // (form fields excepted). A deterrent, not a lock — the server is the lock: the
+  // PDF and Word files are only ever served for paid documents.
+  useEffect(() => {
+    if (docPaid === true) return
+    const block = (e: Event) => {
+      const t = e.target as HTMLElement | null
+      if (t && /^(INPUT|TEXTAREA)$/.test(t.tagName)) return
+      e.preventDefault()
+    }
+    document.addEventListener('copy', block)
+    document.addEventListener('cut', block)
+    return () => { document.removeEventListener('copy', block); document.removeEventListener('cut', block) }
+  }, [docPaid])
+
+  function unlockDocument() {
+    setPurchaseError('')
+    setPendingDownload('pdf')
+    setShowPricing(true)
+  }
+
   const [showCoverModal, setShowCoverModal] = useState(false)
   const [coverGenerating, setCoverGenerating] = useState(false)
   const [coverJd, setCoverJd] = useState('')
@@ -423,6 +462,7 @@ export default function PreviewPage() {
       a.href = url
       a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.docx`
       setHasDownloaded(true)
+      setDocPaid(true)
       setTimeout(() => { if (!upsellShown && !coverLetter && activeDoc === 'cv') { setShowUpsell(true); setUpsellShown(true) } }, 2000)
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
@@ -497,6 +537,7 @@ export default function PreviewPage() {
       a.href = url
       a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.pdf`
       setHasDownloaded(true)
+      setDocPaid(true)
       setTimeout(() => { if (!upsellShown && !coverLetter && activeDoc === 'cv') { setShowUpsell(true); setUpsellShown(true) } }, 2000)
       document.body.appendChild(a)
       a.click()
@@ -873,6 +914,10 @@ export default function PreviewPage() {
       {/* Load premium fonts for screen + print */}
       <link rel="stylesheet" href={PRINT_FONTS_HREF} />
 
+      {docPaid !== true && (
+        <style>{`@media print { #cv-print-area { display: none !important; } body::before { content: "Unlock your finished CV at remarkablecv.com to print or download it."; display: block; padding: 40px; font: 16px sans-serif; } }`}</style>
+      )}
+
       {/* CRITICAL print CSS — hides everything except the CV, sizes to A4 */}
       <style>{`
         @media screen {
@@ -986,7 +1031,7 @@ export default function PreviewPage() {
           {/* "Edit with AI" is dropped for now: Edit goes straight to manual
               editing. The chooser + AI-revision flow below are left intact but
               unreachable, so re-enabling is a one-line change (setShowChooser). */}
-          <button onClick={() => setActiveTab('edit')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12.5px', fontWeight:activeTab==='edit'?600:500, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.72)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
+          <button onClick={() => docPaid === true ? setActiveTab('edit') : unlockDocument()} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12.5px', fontWeight:activeTab==='edit'?600:500, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.72)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
         </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
           {isMobile && !isCoverLetter && (
@@ -1023,8 +1068,8 @@ export default function PreviewPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </div>
             <div style={{ flex:1, minWidth:0 }}>
-              <div className="scv-btitle" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.02rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.15, color:'#0a0f1a' }}>Your CV is ready</div>
-              <div className="scv-bsub" style={{ fontSize:'11.5px', color:'#64748b', marginTop:'1px' }}>Download it any time from the top bar.</div>
+              <div className="scv-btitle" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.02rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.15, color:'#0a0f1a' }}>{docPaid === true ? 'Your CV is ready' : 'Your preview is ready'}</div>
+              <div className="scv-bsub" style={{ fontSize:'11.5px', color:'#64748b', marginTop:'1px' }}>{docPaid === true ? 'Download it any time from the top bar.' : 'Unlock your finished CV to download it.'}</div>
             </div>
             <button className="scv-x" onClick={() => setShowReadyBanner(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'3px', display:'flex', borderRadius:'8px', alignSelf:'flex-start' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             <div className="scv-toast-timer" data-paused={bannerPaused} onAnimationEnd={() => setShowReadyBanner(false)} />
@@ -1096,6 +1141,18 @@ export default function PreviewPage() {
               </div>
             </div>
           )}
+          {docPaid !== true && activeTab === 'preview' && (
+            <div className="no-print" style={{ maxWidth:'210mm', margin:'0 auto 14px', padding:'0 ' + (isMobile ? '14px' : '0') }}>
+              <div style={{ background:'white', border:'1px solid #bff0e4', borderRadius:'14px', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'12px', flexWrap:'wrap' as const, boxShadow:'0 2px 8px rgba(10,15,26,0.05)' }}>
+                <div style={{ fontSize:'13.5px', color:'#0a0f1a', lineHeight:1.5, flex:'1 1 240px' }}>
+                  <strong>This is your preview.</strong> Unlock your finished {isCoverLetter ? 'cover letter' : 'CV'} to download it as a ready-to-submit PDF or Word file.
+                </div>
+                <button onClick={unlockDocument} style={{ padding:'11px 20px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'13.5px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif", whiteSpace:'nowrap' as const }}>
+                  Unlock your finished {isCoverLetter ? 'cover letter' : 'CV'}
+                </button>
+              </div>
+            </div>
+          )}
           {activeTab === 'preview' ? (
             <div style={isMobile ? {
               width: '100vw',
@@ -1108,8 +1165,21 @@ export default function PreviewPage() {
               width: '210mm',
               flexShrink: 0,
             } : { background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', overflow:'visible', boxShadow:'0 8px 40px rgba(0,0,0,0.1)', width:'210mm', maxWidth:'210mm', margin:'0 auto' }}>
-              <div id="cv-print-area">
-                <CVPreview cv={cv} templateId={template} accentColor={accentColor} />
+              <div
+                style={docPaid === true ? { position:'relative' } : { position:'relative', userSelect:'none', WebkitUserSelect:'none', WebkitTouchCallout:'none' }}
+                onContextMenu={docPaid === true ? undefined : (e => e.preventDefault())}
+                onDragStart={docPaid === true ? undefined : (e => e.preventDefault())}
+              >
+                <div id="cv-print-area">
+                  <CVPreview cv={cv} templateId={template} accentColor={accentColor} />
+                </div>
+                {docPaid !== true && (
+                  <div className="no-print" aria-hidden="true" style={{
+                    position:'absolute', inset:0, zIndex:5, cursor:'default',
+                    backgroundImage: "url(\"data:image/svg+xml;utf8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='340' height='210'><g transform='rotate(-28 170 105)' fill='rgba(7,24,44,0.16)' font-family='Arial,Helvetica,sans-serif' font-weight='700' text-anchor='middle'><text x='170' y='100' font-size='32' letter-spacing='5'>PREVIEW</text><text x='170' y='128' font-size='13' letter-spacing='1.5'>RemarkableCV · unlock to download</text></g></svg>") + "\")",
+                    backgroundRepeat:'repeat',
+                  }} />
+                )}
               </div>
             </div>
             </div>
@@ -1209,7 +1279,7 @@ export default function PreviewPage() {
                 a future feature, not ready to ship. Its code (showRevision,
                 handleRevision/doRevision, the revision panel below) is left
                 in place to resume from later; this is just the entry point. */}
-            <button className="scv-opt" onClick={() => { setShowChooser(false); setActiveTab('edit') }} style={{ display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'0 8px', textAlign:'left', padding:'15px', background:'white', border:'1px solid #e7ebf0', borderRadius:'14px', cursor:'pointer' }}>
+            <button className="scv-opt" onClick={() => { setShowChooser(false); if (docPaid === true) setActiveTab('edit'); else unlockDocument() }} style={{ display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'0 8px', textAlign:'left', padding:'15px', background:'white', border:'1px solid #e7ebf0', borderRadius:'14px', cursor:'pointer' }}>
               <span style={{ width:'42px', height:'42px', borderRadius:'11px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#f1f5f9' }}>
                 <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5M4 20l1.2-4.2L15.3 5.7a1.7 1.7 0 012.4 0l.6.6a1.7 1.7 0 010 2.4L8.2 18.8 4 20z" stroke="#0a0f1a" strokeWidth="1.8" strokeLinejoin="round"/></svg>
               </span>
