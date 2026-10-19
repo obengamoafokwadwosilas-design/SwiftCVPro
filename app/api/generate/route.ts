@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { customerForEmail, requireOwner } from '@/lib/customerAuth'
+import { currentAccess, resolveOwner } from '@/lib/customerAuth'
+import { setGuestContact } from '@/lib/guest'
 import { normalizeEmail, isValidEmail } from '@/lib/email'
 import { clientIp } from '@/lib/rateLimit'
 import { buildGenerationPrompt, buildBulletTrimPrompt, CV_SYSTEM_PROMPT } from '@/lib/prompts'
@@ -188,20 +189,30 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { cvType, rawContent, jobDescription, whyRole, changes, email } = body
+    const { cvType, rawContent, jobDescription, whyRole, changes, email, intent } = body
     const formData = body.formData
-
-    if (!isValidEmail(normalizeEmail(email))) {
-      return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
-    }
 
     if (!rawContent && !formData) {
       return NextResponse.json({ error: 'Please provide your CV details before generating.' }, { status: 400 })
     }
 
-    const customer = await customerForEmail(email)
-    const ownerId = customer.id
-    const verified = !!await requireOwner(ownerId)
+    // Who owns this work: the signed-in member, or else this browser's own
+    // guest. The typed email is only where the receipt goes — it never decides
+    // whose credits are spent, which is why a stranger typing someone's address
+    // gets nothing of theirs. A guest must leave one address to be reachable.
+    const typedEmail = normalizeEmail(email)
+    const existing = await currentAccess()
+    if (!existing && !isValidEmail(typedEmail)) {
+      return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
+    }
+    const owner = existing || await resolveOwner()
+    const ownerId = owner.id
+    let contactEmail = owner.email
+    if (owner.guest && isValidEmail(typedEmail) && typedEmail !== owner.email) {
+      await setGuestContact(owner.id, typedEmail)
+      contactEmail = typedEmail
+    }
+    if (!contactEmail) return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
     const ip = clientIp(req)
 
     // ── Rate limit ────────────────────────────────
@@ -217,7 +228,7 @@ export async function POST(req: NextRequest) {
     // Type-aware: a cover letter draws from the cover-letter pool, a CV from
     // the CV pool — separate currencies (see packages.ts), same as before.
     //
-    // Only verified customers can spend credits or bypass the free-preview cap.
+    // Credits belong to the owner of this browser (or the signed-in member); the free-preview cap is counted against that owner too.
     const isCoverLetterDoc = cvType === 'cover_letter'
     // Tracks whether a free or paid use was reserved for this request so any
     // failure path can hand it back — nobody should lose a credit to our error.
@@ -225,7 +236,13 @@ export async function POST(req: NextRequest) {
     let consumedPaidCredit = false
     try {
       const { hasCredits, hasCoverLetterCredit, deductCredit, deductCoverLetterCredit } = await import('@/lib/credits')
-      const paid = isCoverLetterDoc ? (verified && await hasCoverLetterCredit(ownerId)) : (verified && await hasCredits(ownerId))
+      // intent 'preview' (the "free preview first" button) never spends a credit;
+      // 'build' (pay first) must never silently fall back to a free preview —
+      // if there is nothing to spend, it says payment is needed.
+      const paid = intent !== 'preview' && (isCoverLetterDoc ? await hasCoverLetterCredit(ownerId) : await hasCredits(ownerId))
+      if (!paid && intent === 'build') {
+        return NextResponse.json({ error: 'PAYMENT_REQUIRED', message: 'Payment is needed to build this document.' }, { status: 402 })
+      }
       if (paid) {
         // Deduct the credit BEFORE the AI call. This directly ties one API
         // call to one credit — a paid user cannot run the AI 500 times on a
@@ -239,7 +256,7 @@ export async function POST(req: NextRequest) {
         consumedPaidCredit = true
       } else {
         const { consumeFreeGeneration } = await import('@/lib/freeGenerations')
-        const { allowed } = await consumeFreeGeneration(ip, email, isCoverLetterDoc)
+        const { allowed } = await consumeFreeGeneration(ip, ownerId, isCoverLetterDoc)
         if (!allowed) {
           return NextResponse.json({
             error: 'FREE_CAP_REACHED',
@@ -259,7 +276,7 @@ export async function POST(req: NextRequest) {
       if (!consumedFreeUse) return
       consumedFreeUse = false
       const { refundFreeGeneration } = await import('@/lib/freeGenerations')
-      await refundFreeGeneration(ip, email, isCoverLetterDoc)
+      await refundFreeGeneration(ip, ownerId, isCoverLetterDoc)
     }
     const refundPaid = async () => {
       if (!consumedPaidCredit) return
@@ -360,7 +377,7 @@ export async function POST(req: NextRequest) {
     // ── Save to history, then mark download paid for paid generations ──
     // Paid users spend their credit at generate time (above). The export routes
     // check download_paid=true and serve the file without a second charge.
-    const historyId = await saveToHistory(ownerId, customer.email, cvType, formData, rawContent, jobDescription, changes, generatedCV)
+    const historyId = await saveToHistory(ownerId, contactEmail, cvType, formData, rawContent, jobDescription, changes, generatedCV)
 
     if (!historyId) {
       await refundOnFailure()
@@ -377,7 +394,7 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`[Generate] ✅ Success for ${ownerId}`)
-    return NextResponse.json({ success: true, cv: generatedCV, historyId })
+    return NextResponse.json({ success: true, cv: generatedCV, historyId, paid: consumedPaidCredit })
 
   } catch (error: any) {
     console.error('Unhandled generate error:', error)

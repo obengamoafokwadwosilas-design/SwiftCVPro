@@ -53,8 +53,8 @@ export async function POST(req: Request) {
     if (html.length > MAX_HTML_BYTES || !html.includes('cv-print-area')) {
       return NextResponse.json({ error: 'Invalid document.' }, { status: 400 })
     }
-    if (!email || !Number.isSafeInteger(historyId) || !historyId) {
-      return NextResponse.json({ error: 'Please enter your access email.' }, { status: 400 })
+    if (!Number.isSafeInteger(historyId) || !historyId) {
+      return NextResponse.json({ error: 'This document could not be found. Please open it from your CVs again.' }, { status: 400 })
     }
 
     // ── The real paywall lives here, not at generation ──────────────
@@ -70,7 +70,9 @@ export async function POST(req: Request) {
     const { normalizeEmail } = await import('@/lib/email')
     const { hasCredits, hasCoverLetterCredit, isDownloadPaid, payDocument } = await import('@/lib/credits')
     const access = await currentAccess()
-    if (!access || access.email !== normalizeEmail(email)) {
+    // A browser's own guest is trusted by its signed cookie, so it needs no email.
+    // A signed-in member who also sent an address must match their account's.
+    if (!access || (!access.guest && email && access.email !== normalizeEmail(email))) {
       return NextResponse.json({ error: 'ACCESS_REQUIRED', message: 'Verify your email to download your saved CVs.' }, { status: 401 })
     }
     const ownerId = access.id

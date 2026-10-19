@@ -1,7 +1,10 @@
 export const dynamic = 'force-dynamic'
 
+import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { customerForEmail } from '@/lib/customerAuth'
+import { currentAccess, resolveOwner } from '@/lib/customerAuth'
+import { setGuestContact } from '@/lib/guest'
+import { isValidEmail, normalizeEmail } from '@/lib/email'
 import { clientIp, rateLimit } from '@/lib/rateLimit'
 import { PACKAGES } from '@/lib/packages'
 
@@ -10,6 +13,11 @@ import { PACKAGES } from '@/lib/packages'
 // inline.js popup alone) so in-app browsers — WhatsApp/Facebook/Instagram
 // webviews, where the popup iframe is known to fail — can be sent straight
 // to the hosted authorization_url instead.
+//
+// What is bought is credited to whoever owns THIS browser (or the signed-in
+// member), recorded here in the transaction metadata. The typed email is the
+// address Paystack and the receipt use; it never decides whose credits grow, so
+// paying in a stranger's name hands nobody their account.
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.PAYSTACK_SECRET_KEY) {
@@ -17,14 +25,22 @@ export async function POST(req: NextRequest) {
     }
 
     const { email, packageId } = await req.json()
-    if (!email) return NextResponse.json({ error: 'Email is required.' }, { status: 400 })
+    const typedEmail = normalizeEmail(email)
 
     const pkg = PACKAGES.find(p => p.id === packageId)
     if (!pkg) return NextResponse.json({ error: 'Unknown package.' }, { status: 400 })
 
     if (!rateLimit('payment:' + clientIp(req), 10, 60000).allowed) return NextResponse.json({ error: 'Please wait before starting another payment.' }, { status: 429 })
-    const customer = await customerForEmail(email)
-    const reference = `scv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+    const existing = await currentAccess()
+    if (!existing && !isValidEmail(typedEmail)) return NextResponse.json({ error: 'Email is required.' }, { status: 400 })
+    const owner = existing || await resolveOwner()
+    if (owner.guest && isValidEmail(typedEmail) && typedEmail !== owner.email) await setGuestContact(owner.id, typedEmail)
+    const payerEmail = isValidEmail(typedEmail) ? typedEmail : owner.email
+    if (!payerEmail) return NextResponse.json({ error: 'Email is required.' }, { status: 400 })
+
+    // 128 random bits: a reference is also a claim ticket, so it must not be guessable.
+    const reference = `scv-${crypto.randomBytes(16).toString('hex')}`
     const origin = req.nextUrl.origin
 
     const res = await fetch('https://api.paystack.co/transaction/initialize', {
@@ -34,12 +50,12 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: customer.email,
+        email: payerEmail,
         amount: pkg.amount,
         currency: 'GHS',
         reference,
         callback_url: `${origin}/payment-return`,
-        metadata: { owner_id: customer.id, package_id: pkg.id },
+        metadata: { owner_id: owner.id, package_id: pkg.id },
       }),
     })
 

@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { normalizeEmail, isValidEmail } from '@/lib/email'
 import { hashPin, verifyPinHash, isValidPinFormat } from '@/lib/pin'
 import { digest, startSession } from '@/lib/customerAuth'
+import { adoptBrowserGuest } from '@/lib/guest'
 import { clientIp, rateLimit } from '@/lib/rateLimit'
 export const dynamic = 'force-dynamic'
 // Unknown addresses take the same expensive verification path.
@@ -19,6 +20,7 @@ export async function POST(req: Request) {
     const { data: allowed, error } = await supabaseAdmin.rpc('record_customer_pin_attempt', { p_bucket: digest(email), p_correct: correct && !!row })
     if (error || !allowed || !correct || !customer) return NextResponse.json({ error: 'Email or PIN is incorrect, or temporarily locked. Use an email link to regain access.' }, { status: 401 })
     await startSession(customer.id, new Date(0).toISOString(), remember === true)
+    await adoptBrowserGuest(customer.id)
     return NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } })
   } catch { return NextResponse.json({ error: 'Could not verify your PIN.' }, { status: 500 }) }
 }

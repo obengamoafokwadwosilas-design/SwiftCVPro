@@ -30,6 +30,21 @@ export async function adminSetCredits(ownerId: string, fields: { credits?: numbe
   const { error } = await supabaseAdmin.from('customer_credits').upsert(row, { onConflict: 'owner_id' })
   return !error
 }
+// A payment is credited to the owner recorded when it was started. If that owner
+// was a guest who has since signed in and been merged into an account, the row is
+// gone — follow the merge trail so a late confirmation still lands, rather than
+// failing after the money has been taken.
+export async function liveOwnerId(ownerId: string): Promise<string | null> {
+  let id = ownerId
+  for (let hop = 0; hop < 4; hop++) {
+    const { data } = await supabaseAdmin.from('customers').select('id').eq('id', id).maybeSingle()
+    if (data) return data.id
+    const moved = await supabaseAdmin.from('customer_merges').select('to_id').eq('from_id', id).maybeSingle()
+    if (!moved.data) return null
+    id = moved.data.to_id
+  }
+  return null
+}
 export async function creditPackageIfNew(ownerId: string, reference: string, pkg: Package, amount: number): Promise<{ credited: boolean; duplicate: boolean; error?: string }> {
   const { data, error } = await supabaseAdmin.rpc('credit_customer_payment', {
     p_owner: ownerId, p_reference: reference, p_package: pkg.id, p_amount: amount, p_cv: pkg.cv, p_cl: pkg.cl,

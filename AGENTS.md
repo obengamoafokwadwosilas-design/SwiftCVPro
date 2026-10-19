@@ -4,8 +4,10 @@ Next.js 14 App Router, TypeScript. AI-generated CV/cover-letter builder for
 the Ghanaian market — email-link identity (no passwords), Paystack
 payments, Supabase for storage.
 
-Run `supabase_email_identity.sql` in the Supabase SQL Editor before deploying
-the email identity flow. The old phone-based tables remain for legacy data;
+Run `supabase_email_identity.sql`, then `supabase_guest_identity.sql`, in the
+Supabase SQL Editor before deploying (the second is required by the
+browser-identity release: guest columns, `merge_customers()` and the
+`customer_merges` trail). The old phone-based tables remain for legacy data;
 new customers, credits, history, sessions and payments use the new tables.
 
 ## Commands
@@ -96,6 +98,32 @@ closed rather than crash.
    `customers.id`. Google refuses OAuth inside embedded in-app browsers
    (WhatsApp/Facebook/Instagram webviews), so the email link must stay as the
    fallback sign-in.
+
+7. **The browser is the account until an email is proved ("use first, identify
+   later").** Nobody is asked for an email until the last page of the builder,
+   and that email is only a *receipt address* (`customers.contact_email` on a
+   guest row) plus the job-alerts tick — it is never an identity and is never
+   used to look up an account. Ownership of CVs and credits is a signed
+   `scv_guest` cookie (`src/lib/guestCookie.ts`, `guest.ts`): a `customers`
+   row with `is_guest = true` and a synthetic `g-<hash>@guest.remarkablecv.invalid`
+   address. `currentAccess()` returns the signed-in member if there is one, else
+   this browser's guest (`access.guest`); routes that act for the visitor call
+   `resolveOwner()`, which creates the guest on first use. Credits are spent and
+   documents downloaded by that owner, so someone who just paid downloads
+   immediately and a stranger typing your address gets nothing of yours.
+   Proving an email (emailed link / Google / PIN) *merges* the guest into the
+   member row via `merge_customers()` (`adoptBrowserGuest`,
+   `adoptGuestsByContact`). Do not "simplify" this back to email-as-identity,
+   do not add an endpoint that answers differently for a known address than an
+   unknown one, and do not make a guest "signed in" (PINs, the account page and
+   the session endpoint's `email` are members-only). A payment's owner is
+   recorded in the Paystack metadata and followed through `customer_merges`
+   (`liveOwnerId`) if that guest was merged before the payment confirmed.
+   The last page has two buttons: "Build my CV" (`intent: 'build'` — pay first,
+   never silently falls back to a free preview) and "See a free preview first"
+   (`intent: 'preview'`). An unpaid document shows a protected preview
+   (watermark outside `#cv-print-area`, copy/print blocked, no Edit tab); that is
+   a deterrent only — the PDF and Word files are served only for paid documents.
 
 ## Conventions already in place
 - No comments explaining *what* code does — only *why*, when non-obvious.

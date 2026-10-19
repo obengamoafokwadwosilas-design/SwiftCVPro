@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { currentAccess } from '@/lib/customerAuth'
+import { currentMember } from '@/lib/customerAuth'
 import { getCredits, getCoverLetterCredits } from '@/lib/credits'
 import AccountHistory from '@/components/AccountHistory'
 import SignOutButton from '@/components/SignOutButton'
@@ -15,7 +15,7 @@ const cardNote = { color: '#64748b', fontSize: '13px', margin: 0 } as const
 const sectionTitle = { fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '26px', fontWeight: 600, color: '#07182C', margin: '0 0 4px' } as const
 
 export default async function AccountPage() {
-  const access = await currentAccess()
+  const access = await currentMember()
   if (!access) redirect('/my-cvs')
 
   const [credits, coverLetterCredits] = await Promise.all([

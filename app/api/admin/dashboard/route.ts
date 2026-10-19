@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   if (!isAdmin(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const results = await Promise.all([
-      supabaseAdmin.from('customers').select('id, email, created_at').order('created_at', { ascending: false }).limit(2000),
+      supabaseAdmin.from('customers').select('id, email, created_at, is_guest, contact_email').order('created_at', { ascending: false }).limit(2000),
       supabaseAdmin.from('customer_credits').select('owner_id, credits, cover_letter_credits').limit(2000),
       supabaseAdmin.from('customer_payments').select('*', { count: 'exact' }).order('created_at', { ascending: false }).limit(2000),
       supabaseAdmin.from('customer_history').select('owner_id, cv_type, template_id, label, created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(25),
@@ -14,14 +14,16 @@ export async function POST(req: NextRequest) {
     ])
     if (results.some(r => r.error)) throw new Error('Could not read customer records.')
     const [people, balances, payments, history, links] = results
-    const emailById = new Map((people.data || []).map(c => [c.id, c.email]))
+    // A browser guest's own address is synthetic; show the receipt address it left instead.
+    const labelFor = (c: any) => c.is_guest ? (c.contact_email ? `${c.contact_email} (paid/built as guest)` : 'Anonymous browser') : c.email
+    const emailById = new Map((people.data || []).map(c => [c.id, labelFor(c)]))
     const balanceById = new Map((balances.data || []).map(c => [c.owner_id, c]))
     const emailRows = (rows: any[]) => rows.map(r => ({ ...r, email: emailById.get(r.owner_id) || 'Unknown customer' }))
     return NextResponse.json({
       stats: { revenue: (payments.data || []).reduce((sum, r) => sum + r.amount, 0) / 100, payments: payments.count || 0, customers: people.data?.length || 0, cvsGenerated: history.count || 0 },
       recentPayments: emailRows((payments.data || []).slice(0, 25)),
       customers: (people.data || []).map(c => ({
-        email: c.email, credits: balanceById.get(c.id)?.credits || 0, cover_letter_credits: balanceById.get(c.id)?.cover_letter_credits || 0,
+        email: labelFor(c), credits: balanceById.get(c.id)?.credits || 0, cover_letter_credits: balanceById.get(c.id)?.cover_letter_credits || 0,
         total_purchased: (payments.data || []).filter(p => p.owner_id === c.id).reduce((sum, p) => sum + p.cv_credits, 0), created_at: c.created_at,
       })),
       generations: emailRows(history.data || []),

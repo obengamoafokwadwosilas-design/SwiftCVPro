@@ -5,6 +5,7 @@ import { isAdmin } from '@/lib/adminAuth'
 import { normalizeEmail, isValidEmail } from '@/lib/email'
 import { getCredits, getCoverLetterCredits } from '@/lib/credits'
 import { supabaseAdmin } from '@/lib/supabase'
+import { adminCustomerForEmail } from '@/lib/customerAuth'
 
 // Admin: look up everything about one ownerId number — current balances, how many
 // CVs it has generated, and its recent payments. Read-only.
@@ -19,7 +20,12 @@ export async function POST(req: NextRequest) {
     }
     const cleanEmail = normalizeEmail(email)
     if (!isValidEmail(cleanEmail)) return NextResponse.json({ error: 'Enter a valid email.' }, { status: 400 })
-    const { data: customer } = await supabaseAdmin.from('customers').select('id').eq('email', cleanEmail).maybeSingle()
+    // Read-only: a member account if there is one, else the newest browser guest
+    // that left this receipt address. Never creates anything.
+    const member = await supabaseAdmin.from('customers').select('id').eq('email', cleanEmail).maybeSingle()
+    const guest = member.data ? null : await supabaseAdmin.from('customers').select('id').eq('is_guest', true).eq('contact_email', cleanEmail)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const customer = member.data || guest?.data
     if (!customer) return NextResponse.json({ error: 'Customer not found.' }, { status: 404 })
     const ownerId = customer.id
 

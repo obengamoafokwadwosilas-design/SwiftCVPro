@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import { customerForEmail, startSession } from '@/lib/customerAuth'
 import { supabaseAdmin } from '@/lib/supabase'
+import { adoptBrowserGuest, adoptGuestsByContact } from '@/lib/guest'
 import { GOOGLE_COOKIE_PATH, GOOGLE_OAUTH_COOKIE, googleRedirectUri, safeNext, siteBase } from '@/lib/googleAuth'
 
 // Google sign-in talks to Google directly (no Supabase Auth in the middle) so
@@ -57,6 +58,10 @@ export async function GET(req: NextRequest) {
     if (claims.email_verified !== true || typeof claims.email !== 'string') return failed()
 
     const customer = await customerForEmail(claims.email)
+    // Google verified this address, so CVs and credits made in this browser (and
+    // by other browsers that left it as their receipt address) become this account's.
+    await adoptGuestsByContact(customer.email, customer.id)
+    await adoptBrowserGuest(customer.id)
     await startSession(customer.id, new Date().toISOString(), true)
 
     // Someone signing in mid-build returns to where they were; otherwise a

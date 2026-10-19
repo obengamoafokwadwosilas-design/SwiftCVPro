@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { customerForEmail, requireOwner } from '@/lib/customerAuth'
+import { currentAccess, resolveOwner } from '@/lib/customerAuth'
+import { setGuestContact } from '@/lib/guest'
 import { normalizeEmail, isValidEmail } from '@/lib/email'
 import { clientIp } from '@/lib/rateLimit'
 import { buildGenerationPrompt, CV_SYSTEM_PROMPT } from '@/lib/prompts'
@@ -73,12 +74,19 @@ export async function POST(req: NextRequest) {
     }
 
     if (!cv || !cv.fullName) return NextResponse.json({ error: 'No CV found to build a cover letter from.' }, { status: 400 })
-    const identityEmail = normalizeEmail(email)
-    if (!isValidEmail(identityEmail)) return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
-
-    const customer = await customerForEmail(email)
-    const ownerId = customer.id
-    const verified = !!await requireOwner(ownerId)
+    // Same ownership rule as /api/generate: the signed-in member or this
+    // browser's guest owns the credits; the typed email is only the receipt address.
+    const typedEmail = normalizeEmail(email)
+    const existing = await currentAccess()
+    if (!existing && !isValidEmail(typedEmail)) return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
+    const owner = existing || await resolveOwner()
+    const ownerId = owner.id
+    let contactEmail = owner.email
+    if (owner.guest && isValidEmail(typedEmail) && typedEmail !== owner.email) {
+      await setGuestContact(owner.id, typedEmail)
+      contactEmail = typedEmail
+    }
+    if (!contactEmail) return NextResponse.json({ error: 'Please enter your email address.' }, { status: 400 })
     const ip = clientIp(req)
 
     const rateCheck = checkRateLimit(ip)
@@ -95,7 +103,7 @@ export async function POST(req: NextRequest) {
     let consumedPaidCredit = false
     try {
       const { hasCoverLetterCredit, deductCoverLetterCredit } = await import('@/lib/credits')
-      const paid = (verified && await hasCoverLetterCredit(ownerId))
+      const paid = await hasCoverLetterCredit(ownerId)
       if (paid) {
         const ok = await deductCoverLetterCredit(ownerId)
         if (!ok) {
@@ -104,7 +112,7 @@ export async function POST(req: NextRequest) {
         consumedPaidCredit = true
       } else {
         const { consumeFreeGeneration } = await import('@/lib/freeGenerations')
-        const { allowed } = await consumeFreeGeneration(ip, identityEmail, true)
+        const { allowed } = await consumeFreeGeneration(ip, ownerId, true)
         if (!allowed) {
           return NextResponse.json({
             error: 'FREE_CAP_REACHED',
@@ -122,7 +130,7 @@ export async function POST(req: NextRequest) {
       if (!consumedFreeUse) return
       consumedFreeUse = false
       const { refundFreeGeneration } = await import('@/lib/freeGenerations')
-      await refundFreeGeneration(ip, identityEmail, true)
+      await refundFreeGeneration(ip, ownerId, true)
     }
     const refundPaid = async () => {
       if (!consumedPaidCredit) return
@@ -215,7 +223,7 @@ export async function POST(req: NextRequest) {
       rawInput: {
         cvType: 'cover_letter',
         inputMethod: 'paste',
-        email: customer.email,
+        email: contactEmail,
         pasteContent: serializeCV(cv),
         landingScreen: 'type',
       },
@@ -235,7 +243,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true, coverLetter, historyId })
+    return NextResponse.json({ success: true, coverLetter, historyId, paid: consumedPaidCredit })
   } catch (error: any) {
     console.error('Unhandled cover-letter error:', error)
     if (refundOnFailure) await refundOnFailure()

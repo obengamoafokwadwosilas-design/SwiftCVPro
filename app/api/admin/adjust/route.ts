@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { isAdmin } from '@/lib/adminAuth'
-import { customerForEmail } from '@/lib/customerAuth'
+import { adminCustomerForEmail } from '@/lib/customerAuth'
 import {
   getCredits, getCoverLetterCredits,
   addCredits, grantCoverLetterCredit, adminSetCredits,
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (mode !== 'add' && mode !== 'set' && mode !== 'reset') {
       return NextResponse.json({ error: 'mode must be "add", "set" or "reset"' }, { status: 400 })
     }
-    const customer = await customerForEmail(email)
+    const customer = await adminCustomerForEmail(email)
     const ownerId = customer.id
 
     if (mode === 'reset') {

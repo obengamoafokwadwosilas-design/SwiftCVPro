@@ -12,8 +12,18 @@ export async function POST(req: Request) {
     const email = normalizeEmail(value)
     if (!isValidEmail(email)) return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 })
     if (!await reserveSend('access-ip:' + digest(clientIp(req)), 10)) return response()
-    const { data } = await supabaseAdmin.from('customers').select('id, email').eq('email', email).maybeSingle()
-    if (data) await sendCustomerLink(data)
+    // An account for this address, or — for someone who paid or built without ever
+    // signing in — the newest browser identity that left it as its receipt address.
+    // Either way the reply to the caller is the same; only the mailbox learns more.
+    let target: { id: string; email: string } | null = null
+    const member = await supabaseAdmin.from('customers').select('id, email').eq('email', email).maybeSingle()
+    if (member.data) target = member.data
+    else {
+      const guest = await supabaseAdmin.from('customers').select('id').eq('is_guest', true).eq('contact_email', email)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      if (guest.data) target = { id: guest.data.id, email }
+    }
+    if (target) await sendCustomerLink(target)
   } catch (error) { console.error('Access email failed:', error) }
   return response()
 }

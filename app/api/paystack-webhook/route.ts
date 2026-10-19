@@ -2,11 +2,10 @@ export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { creditPackageIfNew } from '@/lib/credits'
+import { creditPackageIfNew, liveOwnerId } from '@/lib/credits'
 import { packageByAmount } from '@/lib/packages'
-import { supabaseAdmin } from '@/lib/supabase'
 import { sendCustomerLink } from '@/lib/customerMail'
-import { requireOwner } from '@/lib/customerAuth'
+import { mailTargetFor } from '@/lib/customerAuth'
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,11 +52,13 @@ export async function POST(req: NextRequest) {
 
     // Shared with /api/verify-payment — whichever confirmation path reaches
     // this first wins; the other becomes a harmless no-op (see credits.ts).
-    const { data: customer } = await supabaseAdmin.from('customers').select('id, email').eq('id', ownerId).single()
-    if (!customer) return NextResponse.json({ error: 'Payment customer could not be found.' }, { status: 400 })
-    const result = await creditPackageIfNew(ownerId, reference, pkg, amount)
-    if (result.credited || result.duplicate) {
-      try { await sendCustomerLink(customer, { reference, amount, packageName: pkg.name }) } catch (error) {
+    const creditTo = await liveOwnerId(ownerId)
+    if (!creditTo) return NextResponse.json({ error: 'Payment customer could not be found.' }, { status: 400 })
+    const result = await creditPackageIfNew(creditTo, reference, pkg, amount)
+    // A guest that never left a receipt address has nowhere to mail; that is not a failure.
+    const mailTarget = await mailTargetFor(creditTo)
+    if (mailTarget && (result.credited || result.duplicate)) {
+      try { await sendCustomerLink(mailTarget, { reference, amount, packageName: pkg.name }) } catch (error) {
         console.error('Receipt delivery failed; webhook will retry:', error)
         return NextResponse.json({ error: 'Receipt delivery needs retry.' }, { status: 503 })
       }
