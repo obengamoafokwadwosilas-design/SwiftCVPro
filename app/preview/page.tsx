@@ -223,6 +223,7 @@ export default function PreviewPage() {
   // phone that work waits until the strip is about to come into view.
   const stripRef = useRef<HTMLDivElement>(null)
   const [stripNear, setStripNear] = useState(false)
+  const [stripAtEnd, setStripAtEnd] = useState(false)
   useEffect(() => {
     const el = stripRef.current
     if (!isMobile || stripNear || !el) return
@@ -1284,21 +1285,26 @@ export default function PreviewPage() {
                 {currentTpl?.customizable && (
                   <>
                     <div style={mobilePickLabel}>Colour</div>
-                    <div role="group" aria-label="Accent colour" style={{ display:'flex', flexWrap:'wrap', gap:'12px', padding:'6px 16px 18px' }}>
-                      <button onClick={() => pickLook(() => setAccentColor(null))} className="scv-swatch" title="Default" aria-label="Template default colour" aria-pressed={accentColor === null} style={{ width:'32px', height:'32px', flexShrink:0, borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #f1f5f9, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0' }} />
+                    <div role="group" aria-label="Accent colour" style={{ display:'flex', flexWrap:'wrap', gap:'9px', padding:'6px 16px 18px' }}>
+                      <button onClick={() => pickLook(() => setAccentColor(null))} className="scv-swatch" title="Default" aria-label="Template default colour" aria-pressed={accentColor === null} style={{ width:'26px', height:'26px', flexShrink:0, borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #f1f5f9, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0' }} />
                       {COLOR_SWATCHES.map(s => (
-                        <button key={s.value} onClick={() => pickLook(() => setAccentColor(s.value))} className="scv-swatch" title={s.name} aria-label={s.name} aria-pressed={accentColor === s.value} style={{ width:'32px', height:'32px', flexShrink:0, borderRadius:'50%', background: s.value, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === s.value ? `0 0 0 2px #f1f5f9, 0 0 0 4px ${s.value}` : '0 0 0 1px #e2e8f0' }} />
+                        <button key={s.value} onClick={() => pickLook(() => setAccentColor(s.value))} className="scv-swatch" title={s.name} aria-label={s.name} aria-pressed={accentColor === s.value} style={{ width:'26px', height:'26px', flexShrink:0, borderRadius:'50%', background: s.value, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === s.value ? `0 0 0 2px #f1f5f9, 0 0 0 4px ${s.value}` : '0 0 0 1px #e2e8f0' }} />
                       ))}
                     </div>
                   </>
                 )}
-                <div style={mobilePickLabel}>Template</div>
-                <div ref={stripRef} style={{ display:'flex', gap:'10px', overflowX:'auto', padding:'4px 16px 12px', scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', minHeight:'190px' }}>
+                <div style={mobilePickLabel}>Template · {premiumTemplates.length + atsTemplates.length} designs</div>
+                {/* The fade on the right edge says there is more to swipe; it goes once the
+                    last design is in view, so it never hides the end. */}
+                <div style={{ position:'relative' }}>
+                <div ref={stripRef} onScroll={e => { const t = e.currentTarget; setStripAtEnd(t.scrollLeft + t.clientWidth >= t.scrollWidth - 8) }} style={{ display:'flex', gap:'10px', overflowX:'auto', padding:'4px 16px 12px', scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', minHeight:'190px' }}>
                   {stripNear && [...premiumTemplates, ...atsTemplates].map(tpl => (
                     <div key={tpl.id} style={{ flex:'0 0 118px', scrollSnapAlign:'start' }}>
                       <TemplateCard tpl={tpl} large active={template === tpl.id} onClick={() => pickLook(() => setTemplate(tpl.id))} />
                     </div>
                   ))}
+                </div>
+                <div aria-hidden="true" style={{ position:'absolute', top:0, right:0, bottom:0, width:'56px', pointerEvents:'none', background:'linear-gradient(90deg, rgba(241,245,249,0), #f1f5f9 85%)', opacity: stripAtEnd ? 0 : 1, transition:'opacity .2s ease' }} />
                 </div>
               </div>
             )}
