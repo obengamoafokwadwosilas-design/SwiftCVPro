@@ -97,7 +97,10 @@ closed rather than crash.
    to `auth.uid()` or read `auth.users` — every table is keyed on
    `customers.id`. Google refuses OAuth inside embedded in-app browsers
    (WhatsApp/Facebook/Instagram webviews), so the email link must stay as the
-   fallback sign-in.
+   fallback sign-in. **The Google button is currently hidden** (owner's call:
+   with the browser as the account, sign-in is rarely needed and the email link
+   covers it) — the routes and credentials stay; to restore it, render
+   `GoogleSignInButton` again in `CVHistoryModal.tsx` (see the comment there).
 
 7. **The browser is the account until an email is proved ("use first, identify
    later").** Nobody is asked for an email until the last page of the builder,
