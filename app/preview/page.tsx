@@ -208,6 +208,7 @@ export default function PreviewPage() {
   // the space it takes up — so without this the page ended in a screen-high
   // empty gap. The wrapper is sized to the shrunk height instead.
   const cvBoxRef = useRef<HTMLDivElement>(null)
+  const cvWrapRef = useRef<HTMLDivElement>(null)
   const [cvBoxHeight, setCvBoxHeight] = useState(0)
   // Shrunk to phone width the CV text is ~6px; tapping it opens it full size.
   const [cvZoomed, setCvZoomed] = useState(false)
@@ -218,7 +219,7 @@ export default function PreviewPage() {
     ro.observe(el)
     return () => ro.disconnect()
   }, [isMobile, activeTab, cv])
-  // The "Try another look" strip draws a small live page per template; on a slow
+  // The template strip under the CV draws a small live page per template; on a slow
   // phone that work waits until the strip is about to come into view.
   const stripRef = useRef<HTMLDivElement>(null)
   const [stripNear, setStripNear] = useState(false)
@@ -874,6 +875,15 @@ export default function PreviewPage() {
   // Phone text runs a little larger than desktop: the same 12.5–13px that reads
   // fine on a laptop is hard work on a small screen held at arm's length.
   const fs = (px: number) => `${isMobile ? px + 1.5 : px}px`
+  const mobilePickLabel = { padding:'0 16px', fontSize:'12px', fontWeight:600, letterSpacing:'0.4px', color:'#64748b' }
+  // A colour or template picked under the CV brings the CV's top up to just
+  // below the header: a one-page CV then shows in full with the choices still
+  // under it, so the next one can be tried without scrolling back down.
+  function pickLook(apply: () => void) {
+    apply()
+    const el = cvWrapRef.current
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: 'smooth' })
+  }
 
   // The protected-preview layer, shared by the page and the full-size viewer.
   // It sits OUTSIDE #cv-print-area: the PDF is built from that element's HTML,
@@ -1240,7 +1250,7 @@ export default function PreviewPage() {
                 Tap your {isCoverLetter ? 'letter' : 'CV'} to read it full size
               </button>
             )}
-            <div onClick={isMobile ? () => setCvZoomed(true) : undefined} style={isMobile ? {
+            <div ref={cvWrapRef} onClick={isMobile ? () => setCvZoomed(true) : undefined} style={isMobile ? {
               width: '100vw',
               display: 'flex',
               justifyContent: 'center',
@@ -1266,18 +1276,27 @@ export default function PreviewPage() {
             </div>
             </div>
             {/* The Templates button sits at the top; by the time someone has read
-                to the end of their CV that is a long way back up. The looks are
-                offered again right where they finish reading. */}
+                to the end of their CV that is a long way back up. Colours and
+                templates are offered again right where they finish reading,
+                as the choices themselves rather than a link to them. */}
             {isMobile && !isCoverLetter && (
-              <div className="no-print" style={{ marginTop:'26px' }}>
-                <div style={{ padding:'0 16px', display:'flex', justifyContent:'space-between', alignItems:'baseline', gap:'10px', marginBottom:'10px' }}>
-                  <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.3rem', fontWeight:600, color:'#0a0f1a' }}>Try another look</div>
-                  <button onClick={() => setShowMobileSidebar(true)} style={{ background:'none', border:'none', color:'#0d9488', fontSize:fs(12.5), fontWeight:600, cursor:'pointer', padding:'4px 0', fontFamily:"'DM Sans', sans-serif", whiteSpace:'nowrap' }}>All templates &amp; colours</button>
-                </div>
-                <div ref={stripRef} style={{ display:'flex', gap:'10px', overflowX:'auto', padding:'3px 16px 12px', scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', minHeight:'190px' }}>
+              <div className="no-print" style={{ marginTop:'20px' }}>
+                {currentTpl?.customizable && (
+                  <>
+                    <div style={mobilePickLabel}>Colour</div>
+                    <div role="group" aria-label="Accent colour" style={{ display:'flex', flexWrap:'wrap', gap:'12px', padding:'6px 16px 18px' }}>
+                      <button onClick={() => pickLook(() => setAccentColor(null))} className="scv-swatch" title="Default" aria-label="Template default colour" aria-pressed={accentColor === null} style={{ width:'32px', height:'32px', flexShrink:0, borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #f1f5f9, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0' }} />
+                      {COLOR_SWATCHES.map(s => (
+                        <button key={s.value} onClick={() => pickLook(() => setAccentColor(s.value))} className="scv-swatch" title={s.name} aria-label={s.name} aria-pressed={accentColor === s.value} style={{ width:'32px', height:'32px', flexShrink:0, borderRadius:'50%', background: s.value, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === s.value ? `0 0 0 2px #f1f5f9, 0 0 0 4px ${s.value}` : '0 0 0 1px #e2e8f0' }} />
+                      ))}
+                    </div>
+                  </>
+                )}
+                <div style={mobilePickLabel}>Template</div>
+                <div ref={stripRef} style={{ display:'flex', gap:'10px', overflowX:'auto', padding:'4px 16px 12px', scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', minHeight:'190px' }}>
                   {stripNear && [...premiumTemplates, ...atsTemplates].map(tpl => (
                     <div key={tpl.id} style={{ flex:'0 0 118px', scrollSnapAlign:'start' }}>
-                      <TemplateCard tpl={tpl} large active={template === tpl.id} onClick={() => { setTemplate(tpl.id); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+                      <TemplateCard tpl={tpl} large active={template === tpl.id} onClick={() => pickLook(() => setTemplate(tpl.id))} />
                     </div>
                   ))}
                 </div>
