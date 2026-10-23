@@ -368,6 +368,13 @@ export default function PreviewPage() {
   // "Included" when a pack already paid for one, or the price when not.
   // null = not checked yet.
   const [clCredits, setClCredits] = useState<number | null>(null)
+  // Whether this browser's account already has an access code; a pack bought
+  // here asks for one only if not (see CreditPicker).
+  const [hasAccessCode, setHasAccessCode] = useState(false)
+  useEffect(() => {
+    fetch('/api/cv-pin/status', { method: 'POST', cache: 'no-store' })
+      .then(r => r.json()).then(d => setHasAccessCode(!!d?.pin_set)).catch(() => {})
+  }, [])
   const coverIncluded = (clCredits ?? 0) > 0
 
   // A few seconds after the "Your CV is ready" toast (which runs ~6s), gently
@@ -639,19 +646,20 @@ export default function PreviewPage() {
     if (ok) { setPaymentPending(null); await retryPendingDownload() }
   }
 
-  async function triggerPreviewPaystack(pkg: typeof PACKAGES[number]) {
+  async function triggerPreviewPaystack(pkg: typeof PACKAGES[number], accessCode?: string) {
     setPurchaseError('')
     try {
       const res = await fetch('/api/initiate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, packageId: pkg.id }),
+        body: JSON.stringify({ email, packageId: pkg.id, accessCode }),
       })
       const data = await res.json()
       if (!data.success) {
-        setPurchaseError(data.error || 'Could not start payment. Please try again.')
+        setPurchaseError(data.message || data.error || 'Could not start payment. Please try again.')
         return
       }
+      if (accessCode) setHasAccessCode(true)
 
       // Leaving this page is safe: the CV lives in sessionStorage, which
       // survives a same-tab navigation, and /payment-return brings them back
@@ -1588,7 +1596,7 @@ export default function PreviewPage() {
                 </div>
               </div>
             ) : (
-              <CreditPicker packages={packagesForDoc(isCoverLetter)} onContinue={pkg => triggerPreviewPaystack(pkg)} />
+              <CreditPicker packages={packagesForDoc(isCoverLetter)} hasCode={hasAccessCode} onContinue={(pkg, code) => triggerPreviewPaystack(pkg, code)} />
             )}
 
             {!paymentPending && (

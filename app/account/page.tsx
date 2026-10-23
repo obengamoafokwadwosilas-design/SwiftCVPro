@@ -16,7 +16,9 @@ const sectionTitle = { fontFamily: "'Cormorant Garamond', Georgia, serif", fontS
 
 export default async function AccountPage() {
   const access = await currentMember()
-  if (!access) redirect('/my-cvs')
+  // An account opened with an access code but no proved email isn't an email
+  // account; My CVs is where its CVs and credits are.
+  if (!access || access.guest) redirect('/my-cvs')
 
   const [credits, coverLetterCredits] = await Promise.all([
     getCredits(access.id),

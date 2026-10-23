@@ -2,8 +2,10 @@ export const dynamic = 'force-dynamic'
 
 import crypto from 'crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import { currentAccess, resolveOwner } from '@/lib/customerAuth'
-import { setGuestContact } from '@/lib/guest'
+import { currentAccess, resolveOwner, startSession } from '@/lib/customerAuth'
+import { setGuestContact, adoptBrowserGuest } from '@/lib/guest'
+import { findOwnerByCode, ownerHasCode, recordCodeAttempt, setOwnerCode } from '@/lib/accessCode'
+import { accessCodeProblem } from '@/lib/accessCodeRules'
 import { isValidEmail, normalizeEmail } from '@/lib/email'
 import { clientIp, rateLimit } from '@/lib/rateLimit'
 import { PACKAGES } from '@/lib/packages'
@@ -24,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payment is not configured. Please contact support.' }, { status: 500 })
     }
 
-    const { email, packageId } = await req.json()
+    const { email, packageId, accessCode } = await req.json()
     const typedEmail = normalizeEmail(email)
 
     // A hidden package is still credited if an old payment arrives, but a new
@@ -36,8 +38,39 @@ export async function POST(req: NextRequest) {
 
     const existing = await currentAccess()
     if (!existing && !isValidEmail(typedEmail)) return NextResponse.json({ error: 'Email is required.' }, { status: 400 })
-    const owner = existing || await resolveOwner()
-    if (owner.guest && isValidEmail(typedEmail) && typedEmail !== owner.email) await setGuestContact(owner.id, typedEmail)
+    let owner = existing || await resolveOwner()
+
+    // A pack's credits sit unused for weeks, so buying one needs an access code
+    // (a single CV is spent at once and stays friction-free). If this account
+    // already has a code it is kept — a checkout never replaces one. Otherwise
+    // the typed email + code first gets the chance to open an account that
+    // already has that code ("Already have a code? Enter it"), and the purchase
+    // joins it; if nothing matches, the code becomes this account's. The answer
+    // is the same either way, so checkout can't be used to test codes or learn
+    // whether an address is a customer — and the same lockouts as sign-in apply.
+    let joined = false
+    if (pkg.cv > 1 && !(await ownerHasCode(owner.id))) {
+      const code = typeof accessCode === 'string' ? accessCode : ''
+      if (!/^\d{4}$/.test(code)) return NextResponse.json({ error: 'CODE_REQUIRED', message: 'Choose a 4-digit code to protect your credits.' }, { status: 400 })
+      if (owner.guest && isValidEmail(typedEmail)) {
+        const match = await findOwnerByCode(typedEmail, code)
+        if (match.hasCoded) {
+          const allowed = await recordCodeAttempt(typedEmail, clientIp(req), match.kind === 'one')
+          if (allowed && match.kind === 'one' && match.ownerId !== owner.id) {
+            await startSession(match.ownerId, new Date(0).toISOString(), false)
+            await adoptBrowserGuest(match.ownerId)
+            owner = { ...owner, id: match.ownerId }
+            joined = true
+          }
+        }
+      }
+      if (!joined) {
+        const problem = accessCodeProblem(code)
+        if (problem) return NextResponse.json({ error: 'CODE_WEAK', message: problem }, { status: 400 })
+        await setOwnerCode(owner.id, code)
+      }
+    }
+    if (!joined && owner.guest && isValidEmail(typedEmail) && typedEmail !== owner.email) await setGuestContact(owner.id, typedEmail)
     const payerEmail = isValidEmail(typedEmail) ? typedEmail : owner.email
     if (!payerEmail) return NextResponse.json({ error: 'Email is required.' }, { status: 400 })
 

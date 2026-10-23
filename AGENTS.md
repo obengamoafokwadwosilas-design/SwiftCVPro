@@ -117,8 +117,9 @@ closed rather than crash.
    member row via `merge_customers()` (`adoptBrowserGuest`,
    `adoptGuestsByContact`). Do not "simplify" this back to email-as-identity,
    do not add an endpoint that answers differently for a known address than an
-   unknown one, and do not make a guest "signed in" (PINs, the account page and
-   the session endpoint's `email` are members-only). A payment's owner is
+   unknown one, and do not make a guest "signed in" (the account page, changing an
+   access code and the session endpoint's `email` are members-only — see item 10
+   for the access code, which a guest *can* set and be opened by). A payment's owner is
    recorded in the Paystack metadata and followed through `customer_merges`
    (`liveOwnerId`) if that guest was merged before the payment confirmed.
    The last page has two buttons: "Build my CV" (`intent: 'build'` — pay first,
@@ -177,6 +178,35 @@ closed rather than crash.
    export HTML with local Chrome (puppeteer-core) and test every template for
    page count and text past a page box. The tag `before-cv-font-bump` marks the
    last commit before the CV text sizes were raised.
+
+10. **Access codes (4 digits) protect CVs and credits — RemarkableSOP's rules.**
+   A **pack** (more than one CV credit) can't be bought without one: the
+   picker asks for it unless this browser's account already has a code
+   (`CreditPicker`, `/api/cv-pin/status`), and `initiate-payment` refuses a
+   pack without it. A single CV credit never asks. Rules, in
+   `src/lib/accessCode.ts`, `accessCodeRules.ts` and `supabase_access_code.sql`:
+   - The code belongs to the **account it was set on** (member or browser
+     guest), not to an email. Email + code (`/api/cv-pin/verify`) opens the
+     one account on that address whose code matches — the member, or guests
+     that left it as receipt address — so a typo, a shared family email or a
+     cyber café address never opens anyone else's CVs. Two matches = refuse
+     and point to the email link. A code-opened guest gets a session but stays
+     `guest: true` (`currentMember`).
+   - Stored only as HMAC-SHA256 (key derived from SUPABASE_SERVICE_ROLE_KEY,
+     domain-separated; rotating that key = everyone resets by email). Old
+     scrypt PINs still match and are rewritten as HMAC on use.
+   - Lockouts in the database (`record_access_code_attempt`): 5 wrong per email
+     → 15 min, doubling to 24 h; 30 failures per network address in 15 min.
+     Checkout's "Already have a code? Enter it" uses the same lockouts.
+   - Never reveal whether an address has a code: checkout answers the same
+     whether the code matched an existing account (the purchase joins it) or
+     became this account's new code. A checkout never replaces a code.
+   - Easy codes (repeats, runs, 1212/1122/1221, years 1950–2030, common PINs)
+     are refused by the server; the browser shows the same check.
+   - First code: anyone who owns the account in this browser (checkout or My
+     CVs). Changing a code: a fresh email link (within 30 min). Forgotten
+     code: email link. `merge_customers` carries a guest's code into an
+     account that has none and never replaces one.
 
 ## Conventions already in place
 - No comments explaining *what* code does — only *why*, when non-obvious.

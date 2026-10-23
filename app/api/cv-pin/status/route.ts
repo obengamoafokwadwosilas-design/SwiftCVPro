@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
 import { currentAccess } from '@/lib/customerAuth'
-import { supabaseAdmin } from '@/lib/supabase'
+import { ownerHasCode } from '@/lib/accessCode'
 export const dynamic = 'force-dynamic'
+// Whether the account in THIS browser has an access code — never asks about an
+// email address, so it can't be used to learn whether someone is a customer.
+// `verified` is whether that account proved an email (members only).
 export async function POST() {
   const access = await currentAccess()
-  if (!access || access.guest) return NextResponse.json({ pin_set: false, verified: false }, { headers: { 'Cache-Control': 'no-store' } })
-  const { data } = await supabaseAdmin.from('customer_pins_v2').select('owner_id').eq('owner_id', access.id).maybeSingle()
-  return NextResponse.json({ pin_set: !!data, verified: true }, { headers: { 'Cache-Control': 'no-store' } })
+  if (!access) return NextResponse.json({ pin_set: false, verified: false }, { headers: { 'Cache-Control': 'no-store' } })
+  return NextResponse.json({ pin_set: await ownerHasCode(access.id), verified: !access.guest }, { headers: { 'Cache-Control': 'no-store' } })
 }

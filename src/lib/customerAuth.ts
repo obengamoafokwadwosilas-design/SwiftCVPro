@@ -22,7 +22,12 @@ export async function customerForEmail(value: unknown): Promise<Customer> {
 }
 export type Access = Customer & { sessionHash: string; persistent: boolean; verifiedAt: string; guest: boolean }
 
-// A customer who has proved their email (emailed link, Google or PIN).
+// The account this browser has signed in to: a member who proved their email
+// (emailed link, Google), or any account opened with email + access code. An
+// access code can open a browser account that never proved an email; that
+// session stays `guest: true` with the receipt address as its email, so it is
+// never treated as signed in to an email (no account page, no code change
+// without a fresh email link).
 export async function currentMember(): Promise<Access | null> {
   const token = cookies().get(SESSION_COOKIE)?.value
   if (!token || !/^[a-f0-9]{64}$/.test(token)) return null
@@ -30,9 +35,10 @@ export async function currentMember(): Promise<Access | null> {
     .select('token_hash, owner_id, persistent, verified_at').eq('token_hash', digest(token))
     .gt('expires_at', new Date().toISOString()).maybeSingle()
   if (error || !data) return null
-  const customer = await supabaseAdmin.from('customers').select('id, email').eq('id', data.owner_id).single()
+  const customer = await supabaseAdmin.from('customers').select('id, email, is_guest, contact_email').eq('id', data.owner_id).single()
   if (customer.error || !customer.data) return null
-  return { ...customer.data, sessionHash: data.token_hash, persistent: data.persistent, verifiedAt: data.verified_at, guest: false }
+  const { id, email, is_guest, contact_email } = customer.data
+  return { id, email: is_guest ? (contact_email || '') : email, sessionHash: data.token_hash, persistent: data.persistent, verifiedAt: data.verified_at, guest: !!is_guest }
 }
 
 // Whoever owns this browser's work: a signed-in member if there is one,

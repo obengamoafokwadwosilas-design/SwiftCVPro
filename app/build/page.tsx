@@ -136,6 +136,9 @@ export default function BuildPage() {
   // show a "what you have left" badge when there's anything to show.
   const [typeErr, setTypeErr] = useState('')
   const [creditBalance, setCreditBalance] = useState<{ cv: number; cl: number } | null>(null)
+  // Whether this browser's account already has an access code — if so a pack
+  // checkout doesn't ask for one (a checkout never replaces a code).
+  const [hasAccessCode, setHasAccessCode] = useState(false)
   const [cvType, setCvType] = useState<CVType>('professional')
   const [inputMethod, setInputMethod] = useState<'paste' | 'form'>('paste')
   // Which of the two non-review views shows on the paste screen — only
@@ -312,6 +315,10 @@ export default function BuildPage() {
         else if (d?.contactEmail) setEmail(prev => prev || d.contactEmail)
         refreshCreditBalance()
       })
+      .catch(() => {})
+    fetch('/api/cv-pin/status', { method: 'POST', cache: 'no-store' })
+      .then(res => res.json())
+      .then(d => { if (!cancelled) setHasAccessCode(!!d?.pin_set) })
       .catch(() => {})
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -783,7 +790,9 @@ export default function BuildPage() {
     setPayEmail(cleanEmail)
     setBuyingStandalone(false)
     const chosen = pkgFromUrl ? packagesForDoc(isCoverLetter).find(p => p.id === pkgFromUrl) : undefined
-    if (chosen) { void triggerPaystack(cleanEmail, chosen); return }
+    // A pack picked on the landing page still opens the picker when this
+    // account has no access code yet, since one has to be chosen before paying.
+    if (chosen && !(chosen.cv > 1 && !hasAccessCode)) { void triggerPaystack(cleanEmail, chosen); return }
     setPricingReason('build')
     setShowPricing(true)
   }
@@ -1049,19 +1058,20 @@ export default function BuildPage() {
     setPaymentPending({ reference, standalone: buyingStandalone, pkg })
   }
 
-  async function triggerPaystack(accessEmail: string, pkg: typeof PACKAGES[number]) {
+  async function triggerPaystack(accessEmail: string, pkg: typeof PACKAGES[number], accessCode?: string) {
     setError(null)
     try {
       const res = await fetch('/api/initiate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: accessEmail, packageId: pkg.id }),
+        body: JSON.stringify({ email: accessEmail, packageId: pkg.id, accessCode }),
       })
       const data = await res.json()
       if (!data.success) {
-        setError({ title: 'Could not start payment', msg: data.error || 'Please try again.', type: 'payment' })
+        setError({ title: 'Could not start payment', msg: data.message || data.error || 'Please try again.', type: 'payment' })
         return
       }
+      if (accessCode) setHasAccessCode(true)
 
       if (isInAppBrowser()) {
         saveBuildSeed(captureBuildSeed('summary'))
@@ -1943,7 +1953,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '16px', lineHeight: 1.6 }}>Credits never expire.</p>
 
             {/* Only the packages that grant the credit this document needs. */}
-            <CreditPicker packages={packagesForDoc(cvType === 'cover_letter')} onContinue={pkg => { setShowPricing(false); triggerPaystack(payEmail, pkg) }} />
+            <CreditPicker packages={packagesForDoc(cvType === 'cover_letter')} hasCode={hasAccessCode} initialId={pkgFromUrl || undefined} onContinue={(pkg, code) => { setShowPricing(false); triggerPaystack(payEmail, pkg, code) }} />
 
             <button type="button" onClick={() => { saveBuildSeed(captureBuildSeed('summary')); router.push('/my-cvs') }} className="xcv-link" style={{ display: 'block', margin: '12px auto 0' }}>Already purchased? Access your credits</button>
           </div>
@@ -1966,7 +1976,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                   "Continue" just closed the box and left them with no next
                   step; the primary action now names it. */}
               <button onClick={() => setPurchasedPkg(null)} style={{ padding: '11px 20px', background: 'var(--teal)', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Build my CV now</button>
-              <button onClick={() => router.push(`/my-cvs`)} style={{ padding: '11px 20px', background: 'transparent', color: 'var(--graphite)', border: '1px solid var(--rule)', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set a PIN</button>
+              <button onClick={() => router.push(`/my-cvs`)} style={{ padding: '11px 20px', background: 'transparent', color: 'var(--graphite)', border: '1px solid var(--rule)', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set an access code</button>
             </div>
           </div>
         </div>

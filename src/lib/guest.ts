@@ -70,7 +70,9 @@ export async function mergeGuest(fromId: string, toId: string): Promise<boolean>
 export async function adoptBrowserGuest(memberId: string): Promise<void> {
   try {
     const guest = await currentGuest()
-    if (!guest) return
+    // An access code can open this browser's own account; there is nothing to
+    // move, and clearing its cookie would leave it reachable only by session.
+    if (!guest || guest.id === memberId) return
     if (await mergeGuest(guest.id, memberId)) clearGuestCookie()
   } catch (error) { console.error('adoptBrowserGuest failed:', error) }
 }

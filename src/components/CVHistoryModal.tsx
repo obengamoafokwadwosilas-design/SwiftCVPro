@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TemplateId, GeneratedCV } from '@/types'
 import { saveBuildSeed, BuildSeed, clearPreviousCoverLetter } from '@/lib/buildSeed'
+import { accessCodeProblem } from '@/lib/accessCodeRules'
 
 interface HistoryItem {
   id: number; cv_type: string; template_id: TemplateId; accent_color: string | null
@@ -27,6 +28,12 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  // null until known; false shows the "protect your privacy" prompt on the list.
+  const [hasCode, setHasCode] = useState<boolean | null>(null)
+  useEffect(() => {
+    if (step !== 'list') return
+    fetch('/api/cv-pin/status', { method: 'POST', cache: 'no-store' }).then(r => r.json()).then(d => setHasCode(!!d?.pin_set)).catch(() => {})
+  }, [step])
   const initialized = useRef(false)
   useEffect(() => { if (notice) setError(notice) }, [notice])
 
@@ -150,13 +157,13 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
           <>
             <p style={{ color: '#64748b', fontSize: '14px' }}>Enter the email you used to save your CVs.</p>
             <input type="email" aria-label="Email address" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" autoComplete="email" style={inputStyle} />
-            {step === 'pin' && <input type="password" inputMode="numeric" aria-label="4-digit PIN" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4-digit PIN" style={{ ...inputStyle, marginTop: '12px' }} />}
+            {step === 'pin' && <input type="password" inputMode="numeric" aria-label="4-digit access code" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4-digit access code" style={{ ...inputStyle, marginTop: '12px' }} />}
             {step === 'pin' && <label style={{ display: 'block', margin: '14px 0', fontSize: '13px' }}><input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} /> Keep me signed in on this device</label>}
             <button disabled={loading} style={{ ...primary, width: '100%', marginTop: '16px' }} onClick={() => step === 'email' ? void emailLink() : void run(async () => {
               await request('/api/cv-pin/verify', { email, pin, remember })
               await loadHistory()
             })}>{loading ? 'Please wait…' : step === 'email' ? 'Email me a secure access link' : 'Open My CVs'}</button>
-            <button disabled={loading} style={link} onClick={() => { setStep(step === 'email' ? 'pin' : 'email'); setError(''); setMessage('') }}>{step === 'email' ? 'Use a PIN instead' : 'Use an email link / Forgot PIN'}</button>
+            <button disabled={loading} style={link} onClick={() => { setStep(step === 'email' ? 'pin' : 'email'); setError(''); setMessage('') }}>{step === 'email' ? 'Use your access code' : 'Use an email link / Forgot your code'}</button>
           </>
         )}
         {step === 'list' && (
@@ -168,8 +175,15 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
                 void run(async () => { await request('/api/customer-access/session', { remember: choice }); setRemember(choice) })
               }} /> Keep me signed in on this device
             </label>
+            {hasCode === false && (
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '12px 14px', margin: '6px 0 10px' }}>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: '#0a0f1a' }}>Protect your privacy</div>
+                <div style={{ fontSize: '13px', color: '#475569', margin: '2px 0 8px', lineHeight: 1.5 }}>Set a 4-digit access code to protect your CVs and credits.</div>
+                <button style={{ ...primary, padding: '9px 16px', fontSize: '13px' }} onClick={() => { setStep('setPin'); setPin(''); setConfirmPin(''); setError('') }}>Set my access code</button>
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <button style={link} onClick={() => { setStep('setPin'); setPin(''); setConfirmPin(''); setError('') }}>Set or change a PIN</button>
+              <button style={link} onClick={() => { setStep('setPin'); setPin(''); setConfirmPin(''); setError('') }}>{hasCode ? 'Change your access code' : 'Set an access code'}</button>
               <button style={link} onClick={() => void signOut()}>Sign out</button>
             </div>
             {items.length === 0 && <p>No saved CVs yet.</p>}
@@ -190,16 +204,18 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
         )}
         {step === 'setPin' && (
           <>
-            <p>Set a PIN for faster access next time. Your email link will always work if you forget it.</p>
-            <input type="password" inputMode="numeric" aria-label="New PIN" placeholder="New 4-digit PIN" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} style={inputStyle} />
-            <input type="password" inputMode="numeric" aria-label="Confirm PIN" placeholder="Confirm PIN" value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))} style={{ ...inputStyle, marginTop: '12px' }} />
+            <p style={{ lineHeight: 1.6 }}><strong>Protect your privacy.</strong> Set a 4-digit access code to protect your CVs and credits. Next time, open My CVs with your email and this code. Your email link always works if you forget it.</p>
+            <input type="password" inputMode="numeric" aria-label="New access code" placeholder="New 4-digit code" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} style={inputStyle} />
+            <input type="password" inputMode="numeric" aria-label="Confirm access code" placeholder="Type it again" value={confirmPin} onChange={e => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 4))} style={{ ...inputStyle, marginTop: '12px' }} />
             <button style={{ ...primary, width: '100%', marginTop: '16px' }} disabled={loading} onClick={() => void run(async () => {
-              if (pin !== confirmPin) throw new Error('PINs do not match.')
-              await request('/api/cv-pin/set', { pin })
-              setStep('list'); setMessage('PIN saved.')
-            })}>{loading ? 'Saving…' : 'Save PIN'}</button>
+              const problem = accessCodeProblem(pin)
+              if (problem) throw new Error(problem)
+              if (pin !== confirmPin) throw new Error('The two codes do not match.')
+              await request('/api/cv-pin/set', { code: pin })
+              setStep('list'); setMessage('Access code saved.')
+            })}>{loading ? 'Saving…' : 'Save code'}</button>
             <button style={link} onClick={() => { setStep('list'); setError('') }}>Back to My CVs</button>
-            <button style={{ ...link, display: 'block' }} onClick={() => void emailLink()}>Email me a fresh link to set my PIN</button>
+            <button style={{ ...link, display: 'block' }} onClick={() => void emailLink()}>Forgot your code? Email me a link to set a new one</button>
           </>
         )}
       </div>
