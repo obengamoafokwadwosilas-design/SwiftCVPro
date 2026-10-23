@@ -2201,11 +2201,14 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, docLabel, jdMode, 
         {options.map(opt => {
           const on = mode === opt.id
           return (
-            <div key={opt.id}>
+            // The selected option's own fields sit INSIDE its highlighted card.
+            // Below it, they read as belonging to the next option ("Just
+            // upgrade my CV") and people weren't sure which choice was active.
+            <div key={opt.id} style={{ background: on ? 'var(--teal-tint)' : 'white', border: on ? '2px solid var(--teal)' : '1px solid var(--rule)', borderRadius: '13px' }}>
               <button onClick={() => setMode(opt.id)} aria-pressed={on}
                 style={{ display: 'flex', alignItems: 'flex-start', gap: '11px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
-                  background: on ? 'var(--teal-tint)' : 'white', border: on ? '2px solid var(--teal)' : '1px solid var(--rule)',
-                  borderRadius: '13px', padding: on ? '12px 13px' : '13px 14px', fontFamily: "'DM Sans', sans-serif" }}>
+                  background: 'transparent', border: 'none', borderRadius: '13px',
+                  padding: on ? '12px 13px' : '13px 14px', fontFamily: "'DM Sans', sans-serif" }}>
                 {/* Same fix as the other radio circles on this flow —
                     var(--rule) fails the 3:1 boundary-contrast bar. */}
                 <span style={{ width: '17px', height: '17px', flexShrink: 0, marginTop: '1px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: on ? 'var(--teal)' : 'transparent', border: on ? 'none' : '1.5px solid var(--graphite)' }}>
@@ -2222,7 +2225,7 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, docLabel, jdMode, 
                   adverts really do arrive as PDFs and WhatsApp screenshots,
                   so upload stays here. */}
               {on && opt.id === 'advert' && (
-                <div style={{ marginTop: '10px', paddingLeft: '2px' }}>
+                <div style={{ padding: '2px 13px 13px' }}>
                   <div style={{ marginBottom: '10px' }}>
                     <ModeToggle value={jdMode} onChange={setJdMode} options={UPLOAD_PASTE_OPTIONS} />
                   </div>
@@ -2237,8 +2240,11 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, docLabel, jdMode, 
                   option is chosen), so rendering them here too would show the
                   same two fields twice on one screen. */}
               {on && opt.id === 'aim' && !isLetter && (
-                <div style={{ marginTop: '10px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div style={{ padding: '2px 13px 13px' }}>
+                  {/* Stacked on a phone (side by side, inside the card, each
+                      field was too narrow and its example was cut off); two
+                      columns again where there is room. */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '10px' }}>
                     {isAcademic
                       ? <>
                           {/* An academic application is to an institution and a
