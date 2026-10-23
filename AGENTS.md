@@ -166,6 +166,14 @@ closed rather than crash.
       as long as the font *stacks* stay metric-compatible — the paginator and
       the PDF renderer both re-measure. Changing a font family, not a size, is
       what breaks pagination.
+   **The squeeze** (`SQUEEZE_LAST_PAGE`, `SQUEEZE_CSS` in `Paginated`): when
+   the converged plan's last page is ≤30% full, the CV is laid out once more
+   with line-height 1.4 on the content blocks (`[data-cvb]`, text size
+   unchanged) and kept only if it removes a page; otherwise normal spacing is
+   restored. `data-tight` and the rule travel inside `#cv-print-area`, so the
+   preview, the plan and the PDF all use the same spacing. One attempt per
+   CV/template (`squeezeRef.tried`), and `data-pagination-ready` is only set
+   after the decision, so export never captures a half-decided layout.
    To check a change without spending Api2Pdf credit, render the captured
    export HTML with local Chrome (puppeteer-core) and test every template for
    page count and text past a page box. The tag `before-cv-font-bump` marks the

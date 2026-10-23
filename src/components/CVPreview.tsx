@@ -179,6 +179,14 @@ const PACK_TOLERANCE = 0
 // the heading/first-item pairing in packMainPlan), but the extra margin
 // stays as a hedge against the underlying client-vs-remote-renderer drift.
 const FINAL_RENDER_GUARD = 18
+// Squeeze: when the plan ends on a page that is at most this fraction full, the
+// CV is re-laid out once with tighter line spacing (text size unchanged — see
+// SQUEEZE_CSS). Kept only if it removes a page; otherwise normal spacing returns.
+const SQUEEZE_LAST_PAGE = 0.3
+// Applies to the content blocks in every render the engine makes — the measure
+// pass, the screen document, the packed PDF pages and the flow PDF document —
+// so the plan, the preview and the PDF all see the same squeezed spacing.
+const SQUEEZE_CSS = '[data-tight] [data-cvb], [data-tight] [data-cvb] * { line-height: 1.4 !important; }'
 
 const packMainPlan = (keys: string[], heights: number[], page1Usable: number, usable: number, tolerance = PACK_TOLERANCE): number[][] => {
   const result: number[][] = []
@@ -631,6 +639,15 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   // down) leak into exported PDFs as unnecessary early page breaks.
   const wrapperRef = useRef<HTMLDivElement>(null)
   const markPaginationReady = () => { if (wrapperRef.current) wrapperRef.current.setAttribute('data-pagination-ready', 'true') }
+  // A short last page (one small section alone on page 2) looks accidental, so
+  // the plan is tried once with tighter line spacing — see SQUEEZE_LAST_PAGE.
+  // `tried` makes it a single attempt per CV/template, so it can never loop.
+  const [tight, setTight] = useState(false)
+  const squeezeRef = useRef({ tried: false, normalPages: 0 })
+  useLayoutEffect(() => {
+    squeezeRef.current = { tried: false, normalPages: 0 }
+    setTight(false)
+  }, [cv, A, config.design])
 
   useLayoutEffect(() => {
     let cancelled = false
@@ -698,7 +715,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
       run()
     }
     return () => { cancelled = true; if (raf) cancelAnimationFrame(raf) }
-  }, [cv, A, config.design]) // eslint-disable-line
+  }, [cv, A, config.design, tight]) // eslint-disable-line
 
   // ═══ GROUND-TRUTH SELF-CORRECTION ═══════════════════════════════
   // The hidden measure pass gives a fast first plan, but it is a SEPARATE
@@ -761,6 +778,18 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
         // not settled yet — the state update above re-triggers this effect,
         // which will mark ready once it converges or hits the round cap
       } else {
+        const total = Math.max(pages.length, sidePages?.length ?? 0)
+        if (!tight && !squeezeRef.current.tried && pages.length >= 2) {
+          const lastUsed = pages[pages.length - 1].reduce((t, i) => t + (trueHeights[i] || 0), 0)
+          if (lastUsed <= usable * SQUEEZE_LAST_PAGE) {
+            squeezeRef.current = { tried: true, normalPages: total }
+            setTight(true)
+            return
+          }
+        }
+        // The squeeze only stays if it saved a page; otherwise normal spacing
+        // comes back and is laid out again before export may proceed.
+        if (tight && total >= squeezeRef.current.normalPages) { setTight(false); return }
         markPaginationReady()
       }
     } catch {
@@ -780,7 +809,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
           adjacent margins to the max ≤ our counted sum, so we only ever break EARLIER
           than strictly needed — never later. Safe by construction. */}
       <div ref={measureRef}>
-        {blocks.map(b => <div key={b.key} style={{ display: 'flow-root' }}>{b.node}</div>)}
+        {blocks.map(b => <div key={b.key} data-cvb="" style={{ display: 'flow-root' }}>{b.node}</div>)}
       </div>
       {config.buildSidebarBlocks && (
         <div style={{ width: config.sidebarMeasureW ?? 200 }}>
@@ -812,7 +841,8 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
   const flowSidebarContentPad = config.flowSidebarBg ? config.contentPadV : 0
 
   return (
-    <div ref={wrapperRef}>
+    <div ref={wrapperRef} data-tight={tight ? '' : undefined}>
+      {tight && <style>{SQUEEZE_CSS}</style>}
       {/* On screen, hide the paged frames and show only the continuous doc.
           In print/PDF (buildPdfHtml uses print media) this rule does NOT apply,
           so the real pages render — the download is unchanged. */}
@@ -822,13 +852,13 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
           are no inter-page padding/margin seams and no trailing empty space. */}
       <div data-screen-doc ref={screenDocRef}>
         <config.Frame cv={cv} A={A} pageIndex={0} sidebarChildren={config.buildSidebarBlocks ? sideBlocks.map(b => <div key={b.key} data-sbk={b.key}>{b.node}</div>) : undefined}>
-          {blocks.map(b => <div key={b.key} data-bk={b.key}>{b.node}</div>)}
+          {blocks.map(b => <div key={b.key} data-bk={b.key} data-cvb="">{b.node}</div>)}
         </config.Frame>
       </div>
       {/* PRINT/PDF: the real A4 pages. Captured by buildPdfHtml, hidden on screen. */}
       {pagePlan.map((blockIdxs, pageIndex) => (
         <config.Frame key={pageIndex} cv={cv} A={A} pageIndex={pageIndex} sidebarChildren={sideSlice(pageIndex)}>
-          {blockIdxs.map(i => blocks[i] ? <div key={blocks[i].key}>{blocks[i].node}</div> : null)}
+          {blockIdxs.map(i => blocks[i] ? <div key={blocks[i].key} data-cvb="">{blocks[i].node}</div> : null)}
         </config.Frame>
       ))}
       {/* PRINT/PDF (flow templates only): a single continuous document the PDF
@@ -850,7 +880,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
               </div>
               <div style={{ padding: `${config.flowBandGap ?? 0}px ${flowPadH(config)}px 0` }}>
                 {blocks.map(b => (
-                  <div key={b.key} data-flow-block="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
+                  <div key={b.key} data-flow-block="" data-cvb="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
                     {b.node}
                   </div>
                 ))}
@@ -876,7 +906,7 @@ function Paginated({ cv, A, config }: { cv: GeneratedCV; A: string; config: Temp
               <div style={{ position: 'relative', zIndex: 1, marginLeft: flowSidebarInset, paddingTop: flowSidebarContentPad, paddingBottom: flowSidebarContentPad, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }}>
                 <config.Header cv={cv} A={A} />
                 {blocks.map(b => (
-                  <div key={b.key} data-flow-block="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
+                  <div key={b.key} data-flow-block="" data-cvb="" data-flow-head={b.key.endsWith('-h') ? '' : undefined}>
                     {b.node}
                   </div>
                 ))}
