@@ -164,13 +164,12 @@ nav.scrolled {
 .hamburger.open span:nth-child(2){ opacity:0; }
 .hamburger.open span:nth-child(3){ transform:rotate(-45deg) translate(5px,-5px); }
 @media(min-width:900px){ .hamburger{display:none;} }
-/* Below 900px .nav-links is hidden, which used to hide Sign in entirely —
-   returning customers had to find it inside the hamburger. It sits in the bar
-   itself on small screens, 44px tall so it is a comfortable tap target. */
+/* No Sign in on the landing page: the browser is the account, so a visitor has
+   nothing to sign in to before building. Returning customers reach their CVs
+   from the emailed link, "Bought credits before? Sign in" on the builder's
+   last page, or My CVs in the results page menu. */
 .nav-mobile-actions { display:flex; align-items:center; gap:2px; }
 @media(min-width:900px){ .nav-mobile-actions{display:none;} }
-.nav-signin-mobile { display:inline-flex; align-items:center; white-space:nowrap; flex-shrink:0; min-height:44px; padding:0 8px; font-size:0.9rem; font-weight:600; color:var(--navy); }
-.nav-signin-mobile:hover { color:var(--teal); }
 .mobile-menu { display:none; position:fixed; inset:0; background:var(--navy); z-index:99; padding:112px 28px 40px; flex-direction:column; }
 .mobile-menu.open { display:flex; }
 .mobile-menu a { color:var(--white); font-family:var(--font-display); font-size:1.7rem; font-weight:500; padding:16px 0; border-bottom:1px solid rgba(255,255,255,0.09); transition:color 0.3s; }
@@ -973,11 +972,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <li><a href="#pricing">Pricing</a></li>
         <li><a href="#how">How It Works</a></li>
         <li><a href="#faq">FAQs</a></li>
-        <li><a href="/my-cvs">Sign in</a></li>
       </ul>
       <a href="/build" class="nav-cta">Build My CV</a>
       <div class="nav-mobile-actions">
-        <a href="/my-cvs" class="nav-signin-mobile">Sign in</a>
         <button class="hamburger" id="hamburger" aria-label="Open menu">
           <span></span><span></span><span></span>
         </button>
@@ -992,7 +989,6 @@ document.addEventListener('DOMContentLoaded', () => {
   <a href="#pricing" onclick="closeMob()">Pricing</a>
   <a href="#how" onclick="closeMob()">How It Works</a>
   <a href="#faq" onclick="closeMob()">FAQs</a>
-  <a href="/my-cvs">Sign in</a>
   <a href="/build" class="mob-cta">Build My CV →</a>
 </div>
 
