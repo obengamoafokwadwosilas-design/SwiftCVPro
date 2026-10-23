@@ -39,7 +39,7 @@ export default function AccessCodePrompt({ continueLabel, onDone }: { continueLa
         </div>
         <div id="code-prompt-title" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.55rem', fontWeight: 600, color: '#0a0f1a', lineHeight: 1.15 }}>Protect your privacy</div>
         <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.6, margin: '6px 0 16px' }}>
-          Set a 4-digit access code to protect your CVs and credits. With it you can open My CVs on any phone or computer — no email link needed.
+          Set a 4-digit access code to protect your CVs and credits.
         </p>
         <div style={{ position: 'relative' }}>
           <input aria-label="4-digit access code" value={code} inputMode="numeric" autoComplete="off" maxLength={4} type={show ? 'text' : 'password'} autoFocus
