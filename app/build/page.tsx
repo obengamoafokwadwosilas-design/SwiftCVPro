@@ -6,6 +6,7 @@ import Nav from '@/components/Nav'
 import { CVType } from '@/types'
 import { PACKAGES, packagesForDoc, PackageId } from '@/lib/packages'
 import CreditPicker from '@/components/CreditPicker'
+import AccessCodePrompt from '@/components/AccessCodePrompt'
 import { normalizeEmail } from '@/lib/email'
 import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed, clearLastInput, clearPreviousCoverLetter } from '@/lib/buildSeed'
 
@@ -139,6 +140,7 @@ export default function BuildPage() {
   // Whether this browser's account already has an access code — if so a pack
   // checkout doesn't ask for one (a checkout never replaces a code).
   const [hasAccessCode, setHasAccessCode] = useState(false)
+  const [codeOffer, setCodeOffer] = useState<{ continueLabel: string; next: () => void } | null>(null)
   const [cvType, setCvType] = useState<CVType>('professional')
   const [inputMethod, setInputMethod] = useState<'paste' | 'form'>('paste')
   // Which of the two non-review views shows on the paste screen — only
@@ -367,7 +369,11 @@ export default function BuildPage() {
       // does the moment its payment confirms. Deferred so the restored fields are in.
       if (sessionStorage.getItem('swiftcv_autobuild') === '1') {
         sessionStorage.removeItem('swiftcv_autobuild')
-        window.setTimeout(() => { void generateRef.current('build') }, 600)
+        // /payment-return flags a pack purchase, so the access-code offer the
+        // pop-up checkout shows appears after a full-page checkout too.
+        const packBought = sessionStorage.getItem('swiftcv_offer_code') === '1'
+        sessionStorage.removeItem('swiftcv_offer_code')
+        window.setTimeout(() => { void offerAccessCode(packBought ? 2 : 1, 'build my CV', () => { void generateRef.current('build') }) }, 600)
       }
       return
     }
@@ -790,9 +796,7 @@ export default function BuildPage() {
     setPayEmail(cleanEmail)
     setBuyingStandalone(false)
     const chosen = pkgFromUrl ? packagesForDoc(isCoverLetter).find(p => p.id === pkgFromUrl) : undefined
-    // A pack picked on the landing page still opens the picker when this
-    // account has no access code yet, since one has to be chosen before paying.
-    if (chosen && !(chosen.cv > 1 && !hasAccessCode)) { void triggerPaystack(cleanEmail, chosen); return }
+    if (chosen) { void triggerPaystack(cleanEmail, chosen); return }
     setPricingReason('build')
     setShowPricing(true)
   }
@@ -1058,20 +1062,19 @@ export default function BuildPage() {
     setPaymentPending({ reference, standalone: buyingStandalone, pkg })
   }
 
-  async function triggerPaystack(accessEmail: string, pkg: typeof PACKAGES[number], accessCode?: string) {
+  async function triggerPaystack(accessEmail: string, pkg: typeof PACKAGES[number]) {
     setError(null)
     try {
       const res = await fetch('/api/initiate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: accessEmail, packageId: pkg.id, accessCode }),
+        body: JSON.stringify({ email: accessEmail, packageId: pkg.id }),
       })
       const data = await res.json()
       if (!data.success) {
-        setError({ title: 'Could not start payment', msg: data.message || data.error || 'Please try again.', type: 'payment' })
+        setError({ title: 'Could not start payment', msg: data.error || 'Please try again.', type: 'payment' })
         return
       }
-      if (accessCode) setHasAccessCode(true)
 
       if (isInAppBrowser()) {
         saveBuildSeed(captureBuildSeed('summary'))
@@ -1089,13 +1092,11 @@ export default function BuildPage() {
             onSuccess: async () => {
               if (buyingStandalone) {
                 const ok = await confirmPayment(data.reference)
-                if (ok) { setPurchasedPkg(pkg); refreshCreditBalance(accessEmail) }
+                if (ok) await offerAccessCode(pkg.cv, 'continue', () => { setPurchasedPkg(pkg); refreshCreditBalance(accessEmail) })
                 return
               }
-              setIsGenerating(true)
               const ok = await confirmPayment(data.reference)
-              if (ok) await doGenerate(accessEmail, 'build')
-              else setIsGenerating(false)
+              if (ok) await offerAccessCode(pkg.cv, 'build my CV', () => { setIsGenerating(true); void doGenerate(accessEmail, 'build') })
             },
             onCancel: () => setError({ title: 'Payment cancelled', msg: 'Payment was not completed. Your CV has not been generated. Try again whenever you are ready.', type: 'payment' }),
             onError: () => openHostedFallback(data.authorization_url, data.reference, pkg),
@@ -1128,12 +1129,24 @@ export default function BuildPage() {
     const { standalone, pkg } = paymentPending
     setPaymentPending(null)
     if (standalone) {
-      setPurchasedPkg(pkg)
-      refreshCreditBalance(payEmail)
+      await offerAccessCode(pkg.cv, 'continue', () => { setPurchasedPkg(pkg); refreshCreditBalance(payEmail) })
       return
     }
-    setIsGenerating(true)
-    await doGenerate(email, 'build')
+    await offerAccessCode(pkg.cv, 'build my CV', () => { setIsGenerating(true); void doGenerate(email, 'build') })
+  }
+
+  // After a pack is paid for, offer an access code once — only if this account
+  // has none — and carry on with `next` whether they save one or skip. Asks the
+  // server when unsure, because after a full-page checkout the page has only
+  // just loaded and may not know yet.
+  async function offerAccessCode(cvCredits: number, continueLabel: string, next: () => void) {
+    if (cvCredits <= 1) { next(); return }
+    let has = hasAccessCode
+    if (!has) {
+      try { has = !!(await fetch('/api/cv-pin/status', { method: 'POST', cache: 'no-store' }).then(r => r.json())).pin_set } catch { /* offer it anyway */ }
+    }
+    if (has) { next(); return }
+    setCodeOffer({ continueLabel, next })
   }
 
   generateRef.current = handleGenerate
@@ -1953,11 +1966,20 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
             <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '16px', lineHeight: 1.6 }}>Credits never expire.</p>
 
             {/* Only the packages that grant the credit this document needs. */}
-            <CreditPicker packages={packagesForDoc(cvType === 'cover_letter')} hasCode={hasAccessCode} initialId={pkgFromUrl || undefined} onContinue={(pkg, code) => { setShowPricing(false); triggerPaystack(payEmail, pkg, code) }} />
+            <CreditPicker packages={packagesForDoc(cvType === 'cover_letter')} initialId={pkgFromUrl || undefined} onContinue={pkg => { setShowPricing(false); triggerPaystack(payEmail, pkg) }} />
 
             <button type="button" onClick={() => { saveBuildSeed(captureBuildSeed('summary')); router.push('/my-cvs') }} className="xcv-link" style={{ display: 'block', margin: '12px auto 0' }}>Already purchased? Access your credits</button>
           </div>
         </div>
+      )}
+
+      {codeOffer && (
+        <AccessCodePrompt continueLabel={codeOffer.continueLabel} onDone={saved => {
+          if (saved) setHasAccessCode(true)
+          const next = codeOffer.next
+          setCodeOffer(null)
+          next()
+        }} />
       )}
 
       {purchasedPkg && (
@@ -1976,7 +1998,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
                   "Continue" just closed the box and left them with no next
                   step; the primary action now names it. */}
               <button onClick={() => setPurchasedPkg(null)} style={{ padding: '11px 20px', background: 'var(--teal)', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Build my CV now</button>
-              <button onClick={() => router.push(`/my-cvs`)} style={{ padding: '11px 20px', background: 'transparent', color: 'var(--graphite)', border: '1px solid var(--rule)', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set an access code</button>
+              {!hasAccessCode && <button onClick={() => setCodeOffer({ continueLabel: "continue", next: () => {} })} style={{ padding: '11px 20px', background: 'transparent', color: 'var(--graphite)', border: '1px solid var(--rule)', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Set an access code</button>}
             </div>
           </div>
         </div>

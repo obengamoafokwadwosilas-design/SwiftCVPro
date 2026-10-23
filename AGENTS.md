@@ -180,10 +180,12 @@ closed rather than crash.
    last commit before the CV text sizes were raised.
 
 10. **Access codes (4 digits) protect CVs and credits — RemarkableSOP's rules.**
-   A **pack** (more than one CV credit) can't be bought without one: the
-   picker asks for it unless this browser's account already has a code
-   (`CreditPicker`, `/api/cv-pin/status`), and `initiate-payment` refuses a
-   pack without it. A single CV credit never asks. Rules, in
+   **Optional, never at checkout** (owner's call): right after a **pack**
+   (more than one CV credit) is paid for, `AccessCodePrompt` offers one —
+   "Save code & build my CV" or "Skip for now" — only if the account has none
+   (`offerAccessCode` in the build and preview pages; after a full-page
+   checkout `/payment-return` sets `swiftcv_offer_code` from `cv_credits`). A
+   single CV credit never asks; anyone can set one later in My CVs. Rules, in
    `src/lib/accessCode.ts`, `accessCodeRules.ts` and `supabase_access_code.sql`:
    - The code belongs to the **account it was set on** (member or browser
      guest), not to an email. Email + code (`/api/cv-pin/verify`) opens the
@@ -197,13 +199,14 @@ closed rather than crash.
      scrypt PINs still match and are rewritten as HMAC on use.
    - Lockouts in the database (`record_access_code_attempt`): 5 wrong per email
      → 15 min, doubling to 24 h; 30 failures per network address in 15 min.
-     Checkout's "Already have a code? Enter it" uses the same lockouts.
-   - Never reveal whether an address has a code: checkout answers the same
-     whether the code matched an existing account (the purchase joins it) or
-     became this account's new code. A checkout never replaces a code.
-   - Easy codes (repeats, runs, 1212/1122/1221, years 1950–2030, common PINs)
-     are refused by the server; the browser shows the same check.
-   - First code: anyone who owns the account in this browser (checkout or My
+   - Never reveal whether an address has a code: unknown address, wrong code,
+     two matches and a lock all get one identical answer. Status
+     (`/api/cv-pin/status`) only ever describes this browser's own account.
+   - Only obvious codes are refused (repeats like 1111, runs like 1234/4321,
+     1212/1122 patterns, keypad lines like 2580) — server decides, browser shows
+     the same check. Years and birth dates are allowed (owner's call).
+   - First code: anyone who owns the account in this browser (after-payment
+     offer or My
      CVs). Changing a code: a fresh email link (within 30 min). Forgotten
      code: email link. `merge_customers` carries a guest's code into an
      account that has none and never replaces one.

@@ -41,6 +41,9 @@ export default function PaymentReturnPage() {
           // rather than dumping a paying customer back at the start.
           const from = sessionStorage.getItem('swiftcv_pay_return')
           sessionStorage.removeItem('swiftcv_pay_return')
+          // A pack was bought: the page they land on offers an access code
+          // once (only if the account has none), same as the pop-up checkout.
+          if ((data.cv_credits || 0) > 1) sessionStorage.setItem('swiftcv_offer_code', '1')
           router.replace(from === 'preview' && sessionStorage.getItem('swiftcv_cv') ? '/preview' : '/build')
         } else {
           setStatus('failed')

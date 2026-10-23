@@ -9,6 +9,7 @@ import BalanceModal from '@/components/BalanceModal'
 import HeaderMenu from '@/components/HeaderMenu'
 import { PACKAGES, packagesForDoc } from '@/lib/packages'
 import CreditPicker from '@/components/CreditPicker'
+import AccessCodePrompt from '@/components/AccessCodePrompt'
 
 // Read from the packages so the cover-letter offer can never drift from what
 // Paystack actually charges (it once said GH₵20 while the package was GH₵19).
@@ -151,7 +152,7 @@ export default function PreviewPage() {
   const [showPricing, setShowPricing] = useState(false)
   const [pendingDownload, setPendingDownload] = useState<'pdf' | 'docx' | null>(null)
   const [purchaseError, setPurchaseError] = useState('')
-  const [paymentPending, setPaymentPending] = useState<{ reference: string } | null>(null)
+  const [paymentPending, setPaymentPending] = useState<{ reference: string; cv: number } | null>(null)
   const [verifyingPayment, setVerifyingPayment] = useState(false)
   const [template, setTemplate] = useState<TemplateId>('classic')
   const [activeTab, setActiveTab] = useState<'preview' | 'edit'>('preview')
@@ -371,9 +372,18 @@ export default function PreviewPage() {
   // Whether this browser's account already has an access code; a pack bought
   // here asks for one only if not (see CreditPicker).
   const [hasAccessCode, setHasAccessCode] = useState(false)
+  const [codeOffer, setCodeOffer] = useState<{ continueLabel: string; next: () => void } | null>(null)
   useEffect(() => {
     fetch('/api/cv-pin/status', { method: 'POST', cache: 'no-store' })
-      .then(r => r.json()).then(d => setHasAccessCode(!!d?.pin_set)).catch(() => {})
+      .then(r => r.json()).then(d => {
+        setHasAccessCode(!!d?.pin_set)
+        // Back from a full-page checkout (/payment-return flags a pack purchase):
+        // the same one-time access-code offer the pop-up checkout shows.
+        if (sessionStorage.getItem('swiftcv_offer_code') === '1') {
+          sessionStorage.removeItem('swiftcv_offer_code')
+          if (!d?.pin_set) setCodeOffer({ continueLabel: 'continue', next: () => {} })
+        }
+      }).catch(() => {})
   }, [])
   const coverIncluded = (clCredits ?? 0) > 0
 
@@ -641,25 +651,38 @@ export default function PreviewPage() {
   async function handlePreviewManualVerify() {
     if (!paymentPending) return
     setVerifyingPayment(true)
-    const ok = await confirmPreviewPayment(paymentPending.reference)
+    const { reference, cv: cvCredits } = paymentPending
+    const ok = await confirmPreviewPayment(reference)
     setVerifyingPayment(false)
-    if (ok) { setPaymentPending(null); await retryPendingDownload() }
+    if (ok) { setPaymentPending(null); await offerAccessCode(cvCredits, 'download my CV', () => { void retryPendingDownload() }) }
   }
 
-  async function triggerPreviewPaystack(pkg: typeof PACKAGES[number], accessCode?: string) {
+  // After a pack is paid for, offer an access code once — only if this account
+  // has none — then carry on with `next` whether they save one or skip.
+  async function offerAccessCode(cvCredits: number, continueLabel: string, next: () => void) {
+    if (cvCredits <= 1) { next(); return }
+    let has = hasAccessCode
+    if (!has) {
+      try { has = !!(await fetch('/api/cv-pin/status', { method: 'POST', cache: 'no-store' }).then(r => r.json())).pin_set } catch { /* offer it anyway */ }
+    }
+    if (has) { next(); return }
+    setShowPricing(false)
+    setCodeOffer({ continueLabel, next })
+  }
+
+  async function triggerPreviewPaystack(pkg: typeof PACKAGES[number]) {
     setPurchaseError('')
     try {
       const res = await fetch('/api/initiate-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, packageId: pkg.id, accessCode }),
+        body: JSON.stringify({ email, packageId: pkg.id }),
       })
       const data = await res.json()
       if (!data.success) {
-        setPurchaseError(data.message || data.error || 'Could not start payment. Please try again.')
+        setPurchaseError(data.error || 'Could not start payment. Please try again.')
         return
       }
-      if (accessCode) setHasAccessCode(true)
 
       // Leaving this page is safe: the CV lives in sessionStorage, which
       // survives a same-tab navigation, and /payment-return brings them back
@@ -675,7 +698,7 @@ export default function PreviewPage() {
         // Even a new tab was blocked — navigating this one is the only route
         // left to a completed payment, same as the builder's own fallback.
         if (!popup) { goToHostedCheckout(); return }
-        setPaymentPending({ reference: data.reference })
+        setPaymentPending({ reference: data.reference, cv: pkg.cv })
       }
 
       // In-app browsers (WhatsApp/Instagram/Facebook webviews) can't reliably
@@ -690,7 +713,7 @@ export default function PreviewPage() {
           instance.resumeTransaction(data.access_code, {
             onSuccess: async () => {
               const ok = await confirmPreviewPayment(data.reference)
-              if (ok) await retryPendingDownload()
+              if (ok) await offerAccessCode(pkg.cv, 'download my CV', () => { void retryPendingDownload() })
             },
             onCancel: () => setPurchaseError('Payment was not completed.'),
             onError: () => openHostedFallback(),
@@ -1596,7 +1619,7 @@ export default function PreviewPage() {
                 </div>
               </div>
             ) : (
-              <CreditPicker packages={packagesForDoc(isCoverLetter)} hasCode={hasAccessCode} onContinue={(pkg, code) => triggerPreviewPaystack(pkg, code)} />
+              <CreditPicker packages={packagesForDoc(isCoverLetter)} onContinue={pkg => { void triggerPreviewPaystack(pkg) }} />
             )}
 
             {!paymentPending && (
@@ -1607,6 +1630,15 @@ export default function PreviewPage() {
             )}
           </div>
         </div>
+      )}
+
+      {codeOffer && (
+        <AccessCodePrompt continueLabel={codeOffer.continueLabel} onDone={saved => {
+          if (saved) setHasAccessCode(true)
+          const next = codeOffer.next
+          setCodeOffer(null)
+          next()
+        }} />
       )}
 
       <CVHistoryModal open={showHistoryModal} initialEmail={email} onClose={() => setShowHistoryModal(false)} />
