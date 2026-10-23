@@ -234,6 +234,20 @@ export default function PreviewPage() {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = prev }
   }, [cvZoomed])
+  // On Android the phone's back button is how people leave a full-screen view;
+  // without a history entry it left the CV page instead. Opening the zoom adds
+  // one, so back closes the zoom, and the Back arrow goes through the same step.
+  useEffect(() => {
+    if (!cvZoomed) return
+    if (!window.history.state?.scvZoom) window.history.pushState({ ...window.history.state, scvZoom: true }, '')
+    const onPop = () => { setCvZoomed(false); setZoomLevel(1) }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [cvZoomed])
+  function closeZoom() {
+    if (window.history.state?.scvZoom) window.history.back()
+    else { setCvZoomed(false); setZoomLevel(1) }
+  }
 
   useEffect(() => {
     const stored = sessionStorage.getItem('swiftcv_cv')
@@ -1545,9 +1559,13 @@ export default function PreviewPage() {
           what the PDF is built from; protected like the page. */}
       {cvZoomed && isMobile && activeTab === 'preview' && (
         <div className="no-print" role="dialog" aria-modal="true" aria-label={`Your ${docWord} zoomed`} style={{ position:'fixed', inset:0, zIndex:300, background:'#e2e8f0', display:'flex', flexDirection:'column', fontFamily:"'DM Sans', sans-serif" }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'8px 12px 8px 14px', background:'#0a0f1a' }}>
-            <span style={{ fontSize:'14px', fontWeight:600, color:'white' }}>Zoom · pinch or use + / −</span>
-            <button onClick={() => { setCvZoomed(false); setZoomLevel(1) }} style={{ padding:'9px 16px', background:'white', color:'#0a0f1a', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif" }}>Close</button>
+          {/* A full-screen view reads as a page, so it gets a page's back arrow
+              (and the phone's own back button does the same — see closeZoom). */}
+          <div style={{ display:'flex', alignItems:'center', padding:'6px 8px', background:'#0a0f1a' }}>
+            <button onClick={closeZoom} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'10px 12px', background:'none', color:'white', border:'none', fontSize:'15px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif" }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              Back
+            </button>
           </div>
           <div style={{ flex:1, overflow:'auto', WebkitOverflowScrolling:'touch', position:'relative' }}>
             <div style={{ width:`${Math.ceil(794 * zoomScale)}px`, height: zoomBoxHeight ? `${Math.ceil(zoomBoxHeight * zoomScale)}px` : undefined, margin:'12px', overflow:'hidden', boxShadow:'0 4px 20px rgba(10,15,26,0.12)' }}>
@@ -1572,7 +1590,7 @@ export default function PreviewPage() {
           {docPaid !== true && (
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'10px 14px', background:'white', borderTop:'1px solid #e2e8f0' }}>
               <span style={{ fontSize:'14px', color:'#0a0f1a' }}><strong>Preview.</strong> Unlock to download.</span>
-              <button onClick={() => { setCvZoomed(false); setZoomLevel(1); unlockDocument() }} style={barCta}>Unlock {docWord}</button>
+              <button onClick={() => { closeZoom(); unlockDocument() }} style={barCta}>Unlock {docWord}</button>
             </div>
           )}
         </div>
