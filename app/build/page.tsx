@@ -1095,8 +1095,12 @@ export default function BuildPage() {
                 if (ok) await offerAccessCode(pkg.cv, 'continue', () => { setPurchasedPkg(pkg); refreshCreditBalance(accessEmail) })
                 return
               }
+              // The loading screen covers confirming the payment too — without it the
+              // page sat still for the seconds that check takes.
+              setIsGenerating(true)
               const ok = await confirmPayment(data.reference)
               if (ok) await offerAccessCode(pkg.cv, 'build my CV', () => { setIsGenerating(true); void doGenerate(accessEmail, 'build') })
+              else setIsGenerating(false)
             },
             onCancel: () => setError({ title: 'Payment cancelled', msg: 'Payment was not completed. Your CV has not been generated. Try again whenever you are ready.', type: 'payment' }),
             onError: () => openHostedFallback(data.authorization_url, data.reference, pkg),
@@ -1132,6 +1136,7 @@ export default function BuildPage() {
       await offerAccessCode(pkg.cv, 'continue', () => { setPurchasedPkg(pkg); refreshCreditBalance(payEmail) })
       return
     }
+    setIsGenerating(true)
     await offerAccessCode(pkg.cv, 'build my CV', () => { setIsGenerating(true); void doGenerate(email, 'build') })
   }
 
@@ -1146,6 +1151,8 @@ export default function BuildPage() {
       try { has = !!(await fetch('/api/cv-pin/status', { method: 'POST', cache: 'no-store' }).then(r => r.json())).pin_set } catch { /* offer it anyway */ }
     }
     if (has) { next(); return }
+    // The loading screen steps aside for the offer and comes back with next().
+    setIsGenerating(false)
     setCodeOffer({ continueLabel, next })
   }
 
