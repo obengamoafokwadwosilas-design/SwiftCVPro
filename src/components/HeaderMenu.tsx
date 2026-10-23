@@ -16,7 +16,7 @@ const WHATSAPP_HREF = 'https://wa.me/233559519783?text=' + encodeURIComponent('H
 // The header's ONE primary action (e.g. Download) stays outside this menu,
 // front and centre; everything else (My CVs, + New CV, Cover Letter, …)
 // lives behind this one consistent control.
-export default function HeaderMenu({ items }: { items: HeaderMenuItem[] }) {
+export default function HeaderMenu({ items, iconOnly }: { items: HeaderMenuItem[]; iconOnly?: boolean }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -31,19 +31,27 @@ export default function HeaderMenu({ items }: { items: HeaderMenuItem[] }) {
     <div ref={ref} style={{ position: 'relative' }}>
       {/* Labelled, not a bare icon: a lone hamburger is easy to miss for users
           who don't live in SaaS apps, and this hides core actions (My CVs,
-          New CV, …). The word "Menu" + chevron makes it obviously a menu. */}
+          New CV, …). The word "Menu" + chevron makes it obviously a menu.
+          iconOnly is for the phone results page, where the main actions sit in
+          a labelled bottom bar and the bare icon takes the usual top-left spot. */}
       <button
         onClick={() => setOpen(v => !v)}
         aria-label="Menu"
         aria-expanded={open}
         className="xcv-menubtn"
-        style={{ height: '34px', display: 'flex', alignItems: 'center', gap: '7px', padding: '0 13px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '6px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
+        style={iconOnly
+          ? { width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, background: 'none', border: 'none', cursor: 'pointer' }
+          : { height: '34px', display: 'flex', alignItems: 'center', gap: '7px', padding: '0 13px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '6px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
       >
+        {iconOnly ? (
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        ) : <>
         <span style={{ fontSize: '13.5px', fontWeight: 400, color: 'rgba(255,255,255,0.86)', letterSpacing: '.01em' }}>Menu</span>
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><polyline points="6 9 12 15 18 9"/></svg>
+        </>}
       </button>
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 9px)', right: 0, background: 'var(--sheet)', borderRadius: '6px', border: '1px solid var(--rule)', boxShadow: '0 14px 34px -10px rgba(11,16,23,0.28)', overflow: 'hidden', minWidth: '196px', zIndex: 60 }}>
+        <div style={{ position: 'absolute', top: 'calc(100% + 9px)', ...(iconOnly ? { left: 0 } : { right: 0 }), background: 'var(--sheet)', borderRadius: '6px', border: '1px solid var(--rule)', boxShadow: '0 14px 34px -10px rgba(11,16,23,0.28)', overflow: 'hidden', minWidth: '196px', zIndex: 60 }}>
           {items.map((item, i) => (
             <button
               key={i}

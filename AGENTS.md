@@ -125,8 +125,20 @@ closed rather than crash.
    The last page has two buttons: "Build my CV" (`intent: 'build'` — pay first,
    never silently falls back to a free preview) and "See a free preview first"
    (`intent: 'preview'`). An unpaid document shows a protected preview
-   (watermark outside `#cv-print-area`, copy/print blocked, no Edit tab); that is
-   a deterrent only — the PDF and Word files are served only for paid documents.
+   (watermark outside `#cv-print-area`, copy/print blocked); that is a deterrent
+   only — the PDF and Word files are served only for paid documents. **Edit is
+   open before paying** (owner's call: people won't pay until their details are
+   right); copying out of the editor's fields (`[data-cv-editor]`) is blocked
+   while unpaid, typing and pasting in are not.
+
+8. **On phones the results page is a slim top bar (☰ Menu, logo, CV / Letter)
+   plus a fixed bottom bar (Edit · Templates · Colour · Unlock/Download)**, so
+   the CV gets the screen between them. Templates and Colour open a panel with
+   no backdrop on purpose — the CV above changes live as they tap. The zoom view
+   shows a *copy of the laid-out page* (`innerHTML` of `#cv-print-area`), not a
+   second `CVPreview`: CVPreview measures on-screen sizes for its page breaks,
+   so a second live copy rendered while scaled lays its pages out wrong. Desktop
+   keeps the original layout (sidebar, Preview/Edit toggle, top Download).
 
 ## Conventions already in place
 - No comments explaining *what* code does — only *why*, when non-obvious.

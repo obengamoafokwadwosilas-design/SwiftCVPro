@@ -154,7 +154,6 @@ function normalizeCV(raw: any): GeneratedCV {
 export default function PreviewPage() {
   const router = useRouter()
   const [isMobile, setIsMobile] = useState(false)
-  const [showMobileSidebar, setShowMobileSidebar] = useState(false)
   const [cv, setCV] = useState<GeneratedCV | null>(null)
   const [email, setEmail] = useState('')
   // Set just before a deliberate navigation away (the in-app-browser payment
@@ -210,8 +209,21 @@ export default function PreviewPage() {
   const cvBoxRef = useRef<HTMLDivElement>(null)
   const cvWrapRef = useRef<HTMLDivElement>(null)
   const [cvBoxHeight, setCvBoxHeight] = useState(0)
-  // Shrunk to phone width the CV text is ~6px; tapping it opens it full size.
+  // Shrunk to phone width the CV text is small; the zoom view opens it fitted
+  // to the screen first (never cut off) and enlarges it in steps from there.
   const [cvZoomed, setCvZoomed] = useState(false)
+  const [zoomLevel, setZoomLevel] = useState(1)
+  const zoomBoxRef = useRef<HTMLDivElement>(null)
+  const [zoomBoxHeight, setZoomBoxHeight] = useState(0)
+  // The zoom view shows a copy of the page exactly as already laid out. A second
+  // live CVPreview would redo its page breaks while shrunk, and the break maths
+  // measures on-screen sizes, so it laid the pages out wrong (blank first page).
+  const [zoomHtml, setZoomHtml] = useState('')
+  function openZoom() {
+    setZoomHtml(document.getElementById('cv-print-area')?.innerHTML || '')
+    setLookPanel(null)
+    setCvZoomed(true)
+  }
   useEffect(() => {
     const el = cvBoxRef.current
     if (!isMobile || !el) return
@@ -219,19 +231,18 @@ export default function PreviewPage() {
     ro.observe(el)
     return () => ro.disconnect()
   }, [isMobile, activeTab, cv])
-  // The template strip under the CV draws a small live page per template; on a slow
-  // phone that work waits until the strip is about to come into view.
-  const stripRef = useRef<HTMLDivElement>(null)
-  const [stripNear, setStripNear] = useState(false)
-  const [stripAtEnd, setStripAtEnd] = useState(false)
   useEffect(() => {
-    const el = stripRef.current
-    if (!isMobile || stripNear || !el) return
-    const io = new IntersectionObserver(entries => { if (entries.some(e => e.isIntersecting)) setStripNear(true) }, { rootMargin: '200px 0px' })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [isMobile, stripNear, activeTab, cv])
-  // The page behind the full-size viewer must not scroll along with it.
+    const el = zoomBoxRef.current
+    if (!cvZoomed || !el) return
+    const ro = new ResizeObserver(() => setZoomBoxHeight(el.offsetHeight))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [cvZoomed])
+  // Phone tools panel (Templates / Colour), opened from the bottom bar. It has no
+  // backdrop on purpose: the CV stays visible above it and changes as they tap.
+  const [lookPanel, setLookPanel] = useState<null | 'template' | 'colour'>(null)
+  const [stripAtEnd, setStripAtEnd] = useState(false)
+  // The page behind the zoom view must not scroll along with it.
   useEffect(() => {
     if (!cvZoomed) return
     const prev = document.body.style.overflow
@@ -319,14 +330,17 @@ export default function PreviewPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeDoc, coverLetter])
 
-  // While a document is only a preview, nothing on the page can be copied or cut
-  // (form fields excepted). A deterrent, not a lock — the server is the lock: the
-  // PDF and Word files are only ever served for paid documents.
+  // While a document is only a preview, nothing on the page can be copied or cut.
+  // Edit is open before paying (people won't pay until their number and dates are
+  // right), so the editor's fields are covered too; other fields (an email box, a
+  // pasted job advert) stay normal. Typing and pasting in still work. A deterrent,
+  // not a lock — the server is the lock: the PDF and Word files are only ever
+  // served for paid documents.
   useEffect(() => {
     if (docPaid === true) return
     const block = (e: Event) => {
       const t = e.target as HTMLElement | null
-      if (t && /^(INPUT|TEXTAREA)$/.test(t.tagName)) return
+      if (t && /^(INPUT|TEXTAREA)$/.test(t.tagName) && !t.closest('[data-cv-editor]')) return
       e.preventDefault()
     }
     document.addEventListener('copy', block)
@@ -876,15 +890,40 @@ export default function PreviewPage() {
   // Phone text runs a little larger than desktop: the same 12.5–13px that reads
   // fine on a laptop is hard work on a small screen held at arm's length.
   const fs = (px: number) => `${isMobile ? px + 1.5 : px}px`
-  const mobilePickLabel = { padding:'0 16px', fontSize:'12px', fontWeight:600, letterSpacing:'0.4px', color:'#64748b' }
-  // A colour or template picked under the CV brings the CV's top up to just
-  // below the header: a one-page CV then shows in full with the choices still
-  // under it, so the next one can be tried without scrolling back down.
-  function pickLook(apply: () => void) {
-    apply()
+  const mobilePickLabel = { fontSize:'12px', fontWeight:600, letterSpacing:'0.4px', color:'#64748b' }
+  // Opening Templates / Colour brings the CV's top up to just below the header,
+  // so the part that changes is in view above the panel while they tap.
+  // Each of these closes the cover-letter offer: it floats above the bottom
+  // bar and would cover the panel or the PDF / Word choice.
+  function openLookPanel(which: 'template' | 'colour') {
+    setShowDownloadMenu(false)
+    setShowUpsell(false)
+    setLookPanel(which)
     const el = cvWrapRef.current
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: 'smooth' })
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 52, behavior: 'smooth' })
   }
+  function openEditor() {
+    setLookPanel(null)
+    setShowUpsell(false)
+    setShowDownloadMenu(false)
+    setActiveTab('edit')
+    window.scrollTo({ top: 0 })
+  }
+  const docWord = isCoverLetter ? 'letter' : 'CV'
+  const barButton = (label: string, icon: React.ReactNode, onClick: () => void, active: boolean) => (
+    <button onClick={onClick} aria-pressed={active} style={{ flex:'0 0 66px', display:'flex', flexDirection:'column', alignItems:'center', gap:'3px', padding:'6px 0', background: active ? '#f0fdf9' : 'none', borderRadius:'12px', border:'none', cursor:'pointer', color: active ? '#0f766e' : '#334155', fontFamily:"'DM Sans', sans-serif", fontSize:'12px', fontWeight:600 }}>
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{icon}</svg>
+      {label}
+    </button>
+  )
+  const barCta = { display:'flex', alignItems:'center', gap:'7px', padding:'11px 18px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14.5px', fontWeight:600, cursor:'pointer', whiteSpace:'nowrap' as const, fontFamily:"'DM Sans', sans-serif" }
+  const zoomScale = Math.min(1, ((typeof window !== 'undefined' ? window.innerWidth : 375) - 24) / 794) * zoomLevel
+  const menuItems = [
+    { label: 'My CVs', onClick: () => setShowHistoryModal(true), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
+    { label: 'Check my balance', onClick: () => setShowBalanceModal(true), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="17" cy="14.5" r="1" fill="currentColor" stroke="none"/></svg> },
+    { label: 'New CV', onClick: handleNewCV, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 5v14M5 12h14"/></svg> },
+    { label: 'Cover Letter', onClick: () => { setCoverErr(''); setShowCoverModal(true) }, icon: <span style={{ color: '#0d9488' }}>✦</span> },
+  ]
 
   // The protected-preview layer, shared by the page and the full-size viewer.
   // It sits OUTSIDE #cv-print-area: the PDF is built from that element's HTML,
@@ -1049,7 +1088,7 @@ export default function PreviewPage() {
         @keyframes scv-sheen { 0%{transform:translateX(-120%) skewX(-18deg)} 60%,100%{transform:translateX(320%) skewX(-18deg)} }
         @keyframes scv-timer { from{transform:scaleX(1)} to{transform:scaleX(0)} }
         .scv-toast-wrap { position:fixed; bottom:24px; right:24px; z-index:120; width:300px; max-width:calc(100vw - 32px); }
-        @media (max-width:767px) { .scv-toast-wrap { left:16px; right:16px; bottom:16px; width:auto; max-width:none; } }
+        @media (max-width:767px) { .scv-toast-wrap { left:16px; right:16px; bottom:calc(76px + env(safe-area-inset-bottom)); width:auto; max-width:none; } }
         .scv-toast { position:relative; display:flex; gap:13px; align-items:flex-start; padding:16px 16px 18px;
           background:linear-gradient(150deg,#ffffff 0%,#f6fefb 100%); border:1px solid rgba(13,148,136,.16);
           border-radius:16px; overflow:hidden;
@@ -1090,34 +1129,37 @@ export default function PreviewPage() {
         @media (prefers-reduced-motion: reduce) { .scv-tpl { transition: none; } .scv-tpl:hover { transform: none; } }
       `}</style>
 
-      {/* On a phone the bar is one row (logo, Menu, Download): it stays on screen
-          while scrolling, and as three wrapped rows it took a fifth of the
-          screen. Preview/Edit moves into the Menu there and Templates sits
-          beside the CV / Cover Letter switch. */}
-      <nav className="no-print" style={{ background:'#0a0f1a', padding: isMobile ? '10px 14px' : '14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap: isMobile ? 'nowrap' : 'wrap', gap:'10px' }}>
+      {isMobile ? (
+        /* Phone: one slim bar — Menu, logo, CV / Letter. Everything that acts on
+           the document (Edit, Templates, Colour, Download) is in the bottom bar,
+           within thumb reach, so the CV gets the screen in between. */
+        <nav className="no-print" style={{ background:'#0a0f1a', padding:'5px 10px 5px 4px', display:'flex', alignItems:'center', gap:'4px', position:'sticky', top:0, zIndex:50 }}>
+          <HeaderMenu iconOnly items={menuItems} />
+          <a href="/" title="Back to home" style={{ flex:1, fontFamily:"'Cormorant Garamond', serif", fontSize:'1.15rem', fontWeight:600, color:'white', textDecoration:'none', whiteSpace:'nowrap' }}>Remarkable <span style={{ color:'#5eead4' }}>CV</span></a>
+          {cvType !== 'cover_letter' && (
+            <div style={{ display:'flex', background:'rgba(255,255,255,0.1)', borderRadius:'50px', padding:'3px' }}>
+              <button onClick={showCvDoc} style={{ padding:'6px 13px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", background: activeDoc==='cv' ? '#0d9488' : 'transparent', color: activeDoc==='cv' ? 'white' : 'rgba(255,255,255,0.75)' }}>CV</button>
+              <button onClick={() => { if (coverLetter) showCoverDoc(); else { setCoverErr(''); setShowCoverModal(true) } }} style={{ padding:'6px 13px', borderRadius:'50px', fontSize:'13px', fontWeight:600, border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", background: activeDoc==='cover' ? '#0d9488' : 'transparent', color: activeDoc==='cover' ? 'white' : 'rgba(255,255,255,0.75)' }}>Letter</button>
+            </div>
+          )}
+        </nav>
+      ) : (
+      <nav className="no-print" style={{ background:'#0a0f1a', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50, flexWrap:'wrap', gap:'10px' }}>
         {/* The logo is the universal "get me home" control — clicking it
             leaves the preview for the home page, so the header is never a
             dead end even if someone misses the menu. */}
-        <a href="/" title="Back to home" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize: isMobile ? '1.2rem' : '1.25rem', fontWeight:600, color:'white', textDecoration:'none', cursor:'pointer', whiteSpace:'nowrap' }}>Remarkable <span style={{ color:'#5eead4' }}>CV</span></a>
-        {!isMobile && <div style={{ display:'flex', background:'rgba(255,255,255,0.08)', borderRadius:'50px', padding:'3px', gap:'2px' }}>
+        <a href="/" title="Back to home" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.25rem', fontWeight:600, color:'white', textDecoration:'none', cursor:'pointer', whiteSpace:'nowrap' }}>Remarkable <span style={{ color:'#5eead4' }}>CV</span></a>
+        <div style={{ display:'flex', background:'rgba(255,255,255,0.08)', borderRadius:'50px', padding:'3px', gap:'2px' }}>
           {/* Inactive tab was rgba(255,255,255,0.4) at weight 400 — near
               invisible on the dark bar, so people could not find Edit. */}
           <button onClick={() => setActiveTab('preview')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12.5px', fontWeight:activeTab==='preview'?600:500, background:activeTab==='preview'?'white':'none', color:activeTab==='preview'?'#0a0f1a':'rgba(255,255,255,0.72)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Preview</button>
           {/* "Edit with AI" is dropped for now: Edit goes straight to manual
               editing. The chooser + AI-revision flow below are left intact but
               unreachable, so re-enabling is a one-line change (setShowChooser). */}
-          <button onClick={() => docPaid === true ? setActiveTab('edit') : unlockDocument()} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12.5px', fontWeight:activeTab==='edit'?600:500, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.72)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
-        </div>}
-        <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap: isMobile ? 'nowrap' : 'wrap' }}>
-          <HeaderMenu items={[
-            ...(isMobile ? [activeTab === 'edit'
-              ? { label: 'Back to preview', onClick: () => setActiveTab('preview'), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> }
-              : { label: isCoverLetter ? 'Edit the letter' : 'Edit the CV text', onClick: () => docPaid === true ? setActiveTab('edit') : unlockDocument(), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg> }] : []),
-            { label: 'My CVs', onClick: () => setShowHistoryModal(true), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> },
-            { label: 'Check my balance', onClick: () => setShowBalanceModal(true), icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="17" cy="14.5" r="1" fill="currentColor" stroke="none"/></svg> },
-            { label: 'New CV', onClick: handleNewCV, icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 5v14M5 12h14"/></svg> },
-            { label: 'Cover Letter', onClick: () => { setCoverErr(''); setShowCoverModal(true) }, icon: <span style={{ color: '#0d9488' }}>✦</span> },
-          ]} />
+          <button onClick={() => setActiveTab('edit')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12.5px', fontWeight:activeTab==='edit'?600:500, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.72)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
+        </div>
+        <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
+          <HeaderMenu items={menuItems} />
           <div style={{ position:'relative' }}>
             <button onClick={() => setShowDownloadMenu(v => !v)} disabled={!!downloading} style={{ padding: isMobile ? '9px 14px' : '8px 16px', background:'rgba(255,255,255,0.1)', color:'white', border:'none', borderRadius:'50px', fontSize:fs(13), fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', whiteSpace:'nowrap' }}>
               {downloading ? <>Preparing<span className="scv-dots">…</span></> : <><DownIcon /> Download <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style={{ marginLeft:'-1px' }}><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg></>}
@@ -1131,6 +1173,7 @@ export default function PreviewPage() {
           </div>
         </div>
       </nav>
+      )}
 
       {activeTab === 'preview' && showReadyBanner && (
         <div className="no-print scv-toast-wrap" onMouseEnter={() => setBannerPaused(true)} onMouseLeave={() => setBannerPaused(false)}>
@@ -1141,7 +1184,7 @@ export default function PreviewPage() {
             </div>
             <div style={{ flex:1, minWidth:0 }}>
               <div className="scv-btitle" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize: isMobile ? '1.15rem' : '1.02rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.15, color:'#0a0f1a' }}>{docPaid === true ? 'Your CV is ready' : 'Your preview is ready'}</div>
-              <div className="scv-bsub" style={{ fontSize:fs(11.5), color:'#64748b', marginTop:'1px' }}>{docPaid === true ? 'Download it any time from the top bar.' : 'Unlock your finished CV to download it.'}</div>
+              <div className="scv-bsub" style={{ fontSize:fs(11.5), color:'#64748b', marginTop:'1px' }}>{docPaid === true ? (isMobile ? 'Download it any time from the bar below.' : 'Download it any time from the top bar.') : 'Unlock your finished CV to download it.'}</div>
             </div>
             <button className="scv-x" onClick={() => setShowReadyBanner(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'3px', display:'flex', borderRadius:'8px', alignSelf:'flex-start' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             <div className="scv-toast-timer" data-paused={bannerPaused} onAnimationEnd={() => setShowReadyBanner(false)} />
@@ -1193,12 +1236,12 @@ export default function PreviewPage() {
           </div>
         )}
 
-        <div style={{ padding: isMobile ? '16px 0' : '24px', overflowY:'auto', overflowX: isMobile ? 'hidden' : 'auto', background:'#f1f5f9' }}>
+        <div style={{ padding: isMobile ? `${activeTab === 'preview' ? 8 : 16}px 0 ${lookPanel ? 330 : 84}px` : '24px', overflowY:'auto', overflowX: isMobile ? 'hidden' : 'auto', background:'#f1f5f9' }}>
           {/* CV / Cover Letter switch — shown to EVERYONE on a CV, not only
               once a letter exists. It's how people discover the letter at all:
               if none has been made yet, the tab opens the generate sheet (which
               states the price or "Included"), so it doubles as the offer. */}
-          {(cvType !== 'cover_letter' || (isMobile && !isCoverLetter)) && (
+          {!isMobile && cvType !== 'cover_letter' && (
             <div className="no-print" style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:'10px', flexWrap:'wrap', marginBottom: isMobile ? '12px' : '18px', padding: isMobile ? '0 14px' : 0 }}>
               {cvType !== 'cover_letter' && (
               <div style={{ display:'inline-flex', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', padding:'4px', boxShadow:'0 2px 8px rgba(10,15,26,0.06)' }}>
@@ -1213,26 +1256,10 @@ export default function PreviewPage() {
                 </button>
               </div>
               )}
-              {isMobile && !isCoverLetter && (
-                <button onClick={() => setShowMobileSidebar(true)} style={{ padding:'10px 16px', background:'white', color:'#0a0f1a', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:fs(13), fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', boxShadow:'0 2px 8px rgba(10,15,26,0.06)', fontFamily:"'DM Sans',sans-serif" }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="3" y="15" width="7" height="6" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></svg>
-                  Templates
-                </button>
-              )}
             </div>
           )}
-          {docPaid !== true && activeTab === 'preview' && (
-            <div className="no-print" style={{ maxWidth:'210mm', margin: isMobile ? '0 auto 12px' : '0 auto 14px', padding:'0 ' + (isMobile ? '14px' : '0') }}>
-              {isMobile ? (
-                <div style={{ background:'white', border:'1px solid #bff0e4', borderRadius:'14px', padding:'10px 10px 10px 14px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', boxShadow:'0 2px 8px rgba(10,15,26,0.05)' }}>
-                  <div style={{ fontSize:'14px', color:'#0a0f1a', lineHeight:1.35 }}>
-                    <strong>Preview.</strong> Unlock to download.
-                  </div>
-                  <button onClick={unlockDocument} style={{ padding:'10px 16px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif", whiteSpace:'nowrap' as const }}>
-                    Unlock {isCoverLetter ? 'letter' : 'CV'}
-                  </button>
-                </div>
-              ) : (
+          {docPaid !== true && activeTab === 'preview' && !isMobile && (
+            <div className="no-print" style={{ maxWidth:'210mm', margin:'0 auto 14px' }}>
               <div style={{ background:'white', border:'1px solid #bff0e4', borderRadius:'14px', padding:'14px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'12px', flexWrap:'wrap' as const, boxShadow:'0 2px 8px rgba(10,15,26,0.05)' }}>
                 <div style={{ fontSize:'13.5px', color:'#0a0f1a', lineHeight:1.5, flex:'1 1 240px' }}>
                   <strong>This is your preview.</strong> Unlock your finished {isCoverLetter ? 'cover letter' : 'CV'} to download it as a ready-to-submit PDF or Word file.
@@ -1241,22 +1268,16 @@ export default function PreviewPage() {
                   Unlock your finished {isCoverLetter ? 'cover letter' : 'CV'}
                 </button>
               </div>
-              )}
             </div>
           )}
           {activeTab === 'preview' ? (<>
-            {isMobile && (
-              <button className="no-print" onClick={() => setCvZoomed(true)} style={{ display:'flex', alignItems:'center', gap:'6px', margin:'0 auto 10px', background:'none', border:'none', color:'#475569', fontSize:fs(12.5), fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif" }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg>
-                Tap your {isCoverLetter ? 'letter' : 'CV'} to read it full size
-              </button>
-            )}
-            <div ref={cvWrapRef} onClick={isMobile ? () => setCvZoomed(true) : undefined} style={isMobile ? {
+            <div ref={cvWrapRef} onClick={isMobile ? openZoom : undefined} style={isMobile ? {
               width: '100vw',
               display: 'flex',
               justifyContent: 'center',
               height: cvBoxHeight ? `${Math.ceil(cvBoxHeight * mobileScale)}px` : undefined,
               overflow: 'hidden',
+              position: 'relative',
               cursor: 'zoom-in',
             } : {}}>
             <div ref={cvBoxRef} style={isMobile ? {
@@ -1275,47 +1296,93 @@ export default function PreviewPage() {
                 {watermark}
               </div>
             </div>
-            </div>
-            {/* The Templates button sits at the top; by the time someone has read
-                to the end of their CV that is a long way back up. Colours and
-                templates are offered again right where they finish reading,
-                as the choices themselves rather than a link to them. */}
-            {isMobile && !isCoverLetter && (
-              <div className="no-print" style={{ marginTop:'20px' }}>
-                {currentTpl?.customizable && (
-                  <>
-                    <div style={mobilePickLabel}>Colour</div>
-                    <div role="group" aria-label="Accent colour" style={{ display:'flex', flexWrap:'wrap', gap:'9px', padding:'6px 16px 18px' }}>
-                      <button onClick={() => pickLook(() => setAccentColor(null))} className="scv-swatch" title="Default" aria-label="Template default colour" aria-pressed={accentColor === null} style={{ width:'26px', height:'26px', flexShrink:0, borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #f1f5f9, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0' }} />
-                      {COLOR_SWATCHES.map(s => (
-                        <button key={s.value} onClick={() => pickLook(() => setAccentColor(s.value))} className="scv-swatch" title={s.name} aria-label={s.name} aria-pressed={accentColor === s.value} style={{ width:'26px', height:'26px', flexShrink:0, borderRadius:'50%', background: s.value, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === s.value ? `0 0 0 2px #f1f5f9, 0 0 0 4px ${s.value}` : '0 0 0 1px #e2e8f0' }} />
-                      ))}
-                    </div>
-                  </>
-                )}
-                <div style={mobilePickLabel}>Template · {premiumTemplates.length + atsTemplates.length} designs</div>
-                {/* The fade on the right edge says there is more to swipe; it goes once the
-                    last design is in view, so it never hides the end. */}
-                <div style={{ position:'relative' }}>
-                <div ref={stripRef} onScroll={e => { const t = e.currentTarget; setStripAtEnd(t.scrollLeft + t.clientWidth >= t.scrollWidth - 8) }} style={{ display:'flex', gap:'10px', overflowX:'auto', padding:'4px 16px 12px', scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch', minHeight:'190px' }}>
-                  {stripNear && [...premiumTemplates, ...atsTemplates].map(tpl => (
-                    <div key={tpl.id} style={{ flex:'0 0 118px', scrollSnapAlign:'start' }}>
-                      <TemplateCard tpl={tpl} large active={template === tpl.id} onClick={() => pickLook(() => setTemplate(tpl.id))} />
-                    </div>
-                  ))}
-                </div>
-                <div aria-hidden="true" style={{ position:'absolute', top:0, right:0, bottom:0, width:'56px', pointerEvents:'none', background:'linear-gradient(90deg, rgba(241,245,249,0), #f1f5f9 85%)', opacity: stripAtEnd ? 0 : 1, transition:'opacity .2s ease' }} />
-                </div>
-              </div>
+            {isMobile && (
+              <span className="no-print" aria-hidden="true" style={{ position:'absolute', right:'12px', top:'10px', zIndex:6, width:'34px', height:'34px', borderRadius:'50%', background:'rgba(10,15,26,0.82)', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              </span>
             )}
+            </div>
           </>) : (
-            <div style={{ maxWidth:'720px', margin:'0 auto' }}>
-              <button onClick={() => setActiveTab('preview')} className="no-print" style={{ display:'flex', alignItems:'center', gap:'7px', padding:'9px 16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, color:'#0a0f1a', cursor:'pointer', marginBottom:'18px' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5m0 0l6 6m-6-6l6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Back to preview</button>
+            <div data-cv-editor style={{ maxWidth:'720px', margin:'0 auto' }}>
+              <button onClick={() => setActiveTab('preview')} className="no-print" style={{ display:'flex', alignItems:'center', gap:'7px', padding:'9px 16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'12.5px', fontWeight:600, color:'#0a0f1a', cursor:'pointer', margin: isMobile ? '0 14px 14px' : '0 0 18px' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5m0 0l6 6m-6-6l6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Back to preview</button>
               <CVEditor cv={cv} updateCV={updateCV} />
             </div>
           )}
         </div>
       </div>
+
+      {/* PHONE BOTTOM BAR — the actions that work on the document, labelled and
+          within thumb reach wherever they have scrolled. The money button is
+          the last one: "Unlock" on a preview, "Download" once paid. */}
+      {isMobile && (
+        <div className="no-print" style={{ position:'fixed', left:0, right:0, bottom:0, zIndex:70, background:'white', borderTop:'1px solid #e2e8f0', boxShadow:'0 -4px 16px rgba(10,15,26,0.06)', paddingBottom:'env(safe-area-inset-bottom)', fontFamily:"'DM Sans', sans-serif" }}>
+          {activeTab === 'edit' ? (
+            <div style={{ padding:'9px 14px' }}>
+              <button onClick={() => { setActiveTab('preview'); window.scrollTo({ top: 0 }) }} style={{ width:'100%', padding:'12px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'15px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif" }}>
+                Done · see it on your {docWord}
+              </button>
+            </div>
+          ) : (
+            <div style={{ display:'flex', alignItems:'center', gap:'2px', height:'60px', padding:'0 10px 0 4px' }}>
+              {barButton('Edit', <path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/>, openEditor, false)}
+              {!isCoverLetter && barButton('Templates', <><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="3" y="15" width="7" height="6" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></>, () => lookPanel === 'template' ? setLookPanel(null) : openLookPanel('template'), lookPanel === 'template')}
+              {!isCoverLetter && currentTpl?.customizable && barButton('Colour', <><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.2"/><circle cx="12" cy="7.5" r="1.2"/><circle cx="15.5" cy="10" r="1.2"/><path d="M12 21a2.5 2.5 0 010-5h1.5a2.5 2.5 0 002.5-2.5"/></>, () => lookPanel === 'colour' ? setLookPanel(null) : openLookPanel('colour'), lookPanel === 'colour')}
+              <div style={{ position:'relative', marginLeft:'auto' }}>
+                {docPaid === true ? (
+                  <button onClick={() => { setLookPanel(null); setShowUpsell(false); setShowDownloadMenu(v => !v) }} disabled={!!downloading} style={barCta}>
+                    {downloading ? <>Preparing<span className="scv-dots">…</span></> : <><DownIcon /> Download</>}
+                  </button>
+                ) : (
+                  <button onClick={() => { setLookPanel(null); unlockDocument() }} style={barCta}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 017.5-2"/></svg>
+                    Unlock {docWord}
+                  </button>
+                )}
+                {showDownloadMenu && docPaid === true && (
+                  <div style={{ position:'absolute', bottom:'calc(100% + 12px)', right:0, background:'white', borderRadius:'12px', border:'1px solid #e2e8f0', boxShadow:'0 12px 30px -6px rgba(10,15,26,0.25)', overflow:'hidden', minWidth:'180px' }}>
+                    <button onClick={() => { setShowDownloadMenu(false); handleDownloadPdf() }} style={{ display:'flex', alignItems:'center', gap:'8px', width:'100%', textAlign:'left', padding:'14px 16px', background:'white', border:'none', borderBottom:'1px solid #f1f5f9', fontSize:'14.5px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}><DownIcon/> Download PDF</button>
+                    <button onClick={() => { setShowDownloadMenu(false); handleDownloadDocx() }} style={{ display:'flex', alignItems:'center', gap:'8px', width:'100%', textAlign:'left', padding:'14px 16px', background:'white', border:'none', fontSize:'14.5px', fontWeight:600, color:'#0a0f1a', cursor:'pointer' }}><DownIcon/> Download Word</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* PHONE TEMPLATES / COLOUR PANEL — sits on the bottom bar with no
+          backdrop, so the CV above changes live with each tap and several
+          looks can be tried before "Done". */}
+      {isMobile && lookPanel && activeTab === 'preview' && !isCoverLetter && (
+        <div className="no-print scv-sheet" style={{ position:'fixed', left:0, right:0, bottom:'calc(60px + env(safe-area-inset-bottom))', zIndex:65, background:'white', borderRadius:'18px 18px 0 0', boxShadow:'0 -10px 30px rgba(10,15,26,0.14)', padding:'8px 0 10px', fontFamily:"'DM Sans', sans-serif" }}>
+          <div style={{ width:'36px', height:'4px', borderRadius:'99px', background:'#e2e8f0', margin:'0 auto 6px' }} />
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'0 16px 6px' }}>
+            <span style={mobilePickLabel}>{lookPanel === 'colour' ? 'Colour' : `Template · ${premiumTemplates.length + atsTemplates.length} designs`}</span>
+            <button onClick={() => setLookPanel(null)} style={{ background:'none', border:'none', color:'#0d9488', fontSize:'14.5px', fontWeight:700, cursor:'pointer', padding:'6px 0', fontFamily:"'DM Sans', sans-serif" }}>Done</button>
+          </div>
+          {lookPanel === 'colour' && currentTpl?.customizable ? (
+            <div role="group" aria-label="Accent colour" style={{ display:'flex', flexWrap:'wrap', gap:'9px', padding:'4px 16px 6px' }}>
+              <button onClick={() => setAccentColor(null)} className="scv-swatch" title="Default" aria-label="Template default colour" aria-pressed={accentColor === null} style={{ width:'26px', height:'26px', flexShrink:0, borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #fff, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0' }} />
+              {COLOR_SWATCHES.map(s => (
+                <button key={s.value} onClick={() => setAccentColor(s.value)} className="scv-swatch" title={s.name} aria-label={s.name} aria-pressed={accentColor === s.value} style={{ width:'26px', height:'26px', flexShrink:0, borderRadius:'50%', background: s.value, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === s.value ? `0 0 0 2px #fff, 0 0 0 4px ${s.value}` : '0 0 0 1px #e2e8f0' }} />
+              ))}
+            </div>
+          ) : (
+            /* The fade on the right edge says there is more to swipe; it goes
+               once the last design is in view, so it never hides the end. */
+            <div style={{ position:'relative' }}>
+              <div onScroll={e => { const t = e.currentTarget; setStripAtEnd(t.scrollLeft + t.clientWidth >= t.scrollWidth - 8) }} style={{ display:'flex', gap:'10px', overflowX:'auto', padding:'4px 16px 6px', scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch' }}>
+                {[...premiumTemplates, ...atsTemplates].map(tpl => (
+                  <div key={tpl.id} style={{ flex:'0 0 108px', scrollSnapAlign:'start' }}>
+                    <TemplateCard tpl={tpl} large active={template === tpl.id} onClick={() => setTemplate(tpl.id)} />
+                  </div>
+                ))}
+              </div>
+              <div aria-hidden="true" style={{ position:'absolute', top:0, right:0, bottom:0, width:'56px', pointerEvents:'none', background:'linear-gradient(90deg, rgba(255,255,255,0), #fff 85%)', opacity: stripAtEnd ? 0 : 1, transition:'opacity .2s ease' }} />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* COVER LETTER MODAL */}
       {showCoverModal && (
@@ -1404,7 +1471,7 @@ export default function PreviewPage() {
                 a future feature, not ready to ship. Its code (showRevision,
                 handleRevision/doRevision, the revision panel below) is left
                 in place to resume from later; this is just the entry point. */}
-            <button className="scv-opt" onClick={() => { setShowChooser(false); if (docPaid === true) setActiveTab('edit'); else unlockDocument() }} style={{ display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'0 8px', textAlign:'left', padding:'15px', background:'white', border:'1px solid #e7ebf0', borderRadius:'14px', cursor:'pointer' }}>
+            <button className="scv-opt" onClick={() => { setShowChooser(false); setActiveTab('edit') }} style={{ display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'0 8px', textAlign:'left', padding:'15px', background:'white', border:'1px solid #e7ebf0', borderRadius:'14px', cursor:'pointer' }}>
               <span style={{ width:'42px', height:'42px', borderRadius:'11px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#f1f5f9' }}>
                 <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5M4 20l1.2-4.2L15.3 5.7a1.7 1.7 0 012.4 0l.6.6a1.7 1.7 0 010 2.4L8.2 18.8 4 20z" stroke="#0a0f1a" strokeWidth="1.8" strokeLinejoin="round"/></svg>
               </span>
@@ -1446,7 +1513,7 @@ export default function PreviewPage() {
 
       {/* COVER LETTER UPSELL */}
       {showUpsell && !isCoverLetter && !coverLetter && (
-        <div className="scv-sheet" style={{ position:'fixed', bottom: isMobile ? '16px' : '24px', right: isMobile ? '16px' : '24px', left: isMobile ? '16px' : undefined, zIndex:150, background:'white', borderRadius:'16px', padding:'18px 20px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)', border:'1px solid #e2e8f0', maxWidth: isMobile ? 'none' : '290px' }}>
+        <div className="scv-sheet" style={{ position:'fixed', bottom: isMobile ? 'calc(76px + env(safe-area-inset-bottom))' : '24px', right: isMobile ? '16px' : '24px', left: isMobile ? '16px' : undefined, zIndex:150, background:'white', borderRadius:'16px', padding:'18px 20px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)', border:'1px solid #e2e8f0', maxWidth: isMobile ? 'none' : '290px' }}>
           <button onClick={() => setShowUpsell(false)} style={{ position:'absolute', top:'10px', right:'12px', background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
           <div style={{ fontSize:'1.15rem', fontWeight:600, color:'#0a0f1a', fontFamily:"'Cormorant Garamond', serif", marginBottom:'6px' }}>Add a matching cover letter?</div>
           <div style={{ fontSize:fs(12), color:'#64748b', lineHeight:1.6, marginBottom:'14px' }}>Written from this same CV — tailored to a role, or general. Ready in seconds.</div>
@@ -1457,67 +1524,42 @@ export default function PreviewPage() {
         </div>
       )}
 
-      {/* FULL-SIZE VIEWER (phone) — the page at its real size, scrolled in both
-          directions (and pinch-zoomable), because shrunk to phone width the
-          text cannot be read. Its own CVPreview, outside #cv-print-area, so it
-          never touches what the PDF is built from; protected like the page. */}
+      {/* ZOOM VIEW (phone) — opens with the whole page fitted to the screen, so
+          nothing is ever cut off, then + / − enlarge it (pinch works too). It is a
+          copy of the laid-out page, outside #cv-print-area, so it never touches
+          what the PDF is built from; protected like the page. */}
       {cvZoomed && isMobile && activeTab === 'preview' && (
-        <div className="no-print" role="dialog" aria-modal="true" aria-label="Your CV at full size" style={{ position:'fixed', inset:0, zIndex:300, background:'#e2e8f0', display:'flex', flexDirection:'column', fontFamily:"'DM Sans', sans-serif" }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'10px 14px', background:'#0a0f1a' }}>
-            <span style={{ fontSize:'14px', fontWeight:600, color:'white' }}>Full size · scroll to read</span>
-            <button onClick={() => setCvZoomed(false)} style={{ padding:'9px 16px', background:'white', color:'#0a0f1a', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif" }}>Close</button>
+        <div className="no-print" role="dialog" aria-modal="true" aria-label={`Your ${docWord} zoomed`} style={{ position:'fixed', inset:0, zIndex:300, background:'#e2e8f0', display:'flex', flexDirection:'column', fontFamily:"'DM Sans', sans-serif" }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'8px 12px 8px 14px', background:'#0a0f1a' }}>
+            <span style={{ fontSize:'14px', fontWeight:600, color:'white' }}>Zoom · pinch or use + / −</span>
+            <button onClick={() => { setCvZoomed(false); setZoomLevel(1) }} style={{ padding:'9px 16px', background:'white', color:'#0a0f1a', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif" }}>Close</button>
           </div>
-          <div style={{ flex:1, overflow:'auto', WebkitOverflowScrolling:'touch' }}>
-            <div style={{ width:'210mm', margin:'12px', background:'white', boxShadow:'0 4px 20px rgba(10,15,26,0.12)' }}>
-              <div {...protectedProps}>
-                <CVPreview cv={cv} templateId={template} accentColor={accentColor} />
-                {watermark}
+          <div style={{ flex:1, overflow:'auto', WebkitOverflowScrolling:'touch', position:'relative' }}>
+            <div style={{ width:`${Math.ceil(794 * zoomScale)}px`, height: zoomBoxHeight ? `${Math.ceil(zoomBoxHeight * zoomScale)}px` : undefined, margin:'12px', overflow:'hidden', boxShadow:'0 4px 20px rgba(10,15,26,0.12)' }}>
+              <div ref={zoomBoxRef} style={{ width:'210mm', background:'white', transform:`scale(${zoomScale})`, transformOrigin:'top left' }}>
+                <div {...protectedProps}>
+                  {/* CVPreview hides its print-only pages on screen with a rule scoped to
+                      #cv-print-area; the copy needs the same rule under its own marker. */}
+                  <style>{`[data-zoom-copy] > div > div:not([data-screen-doc]):not([data-measure-pass]) { display: none !important; }`}</style>
+                  <div data-zoom-copy dangerouslySetInnerHTML={{ __html: zoomHtml }} />
+                  {watermark}
+                </div>
               </div>
             </div>
+          </div>
+          <div style={{ position:'absolute', right:'14px', bottom: docPaid === true ? '18px' : '78px', display:'flex', flexDirection:'column', gap:'8px' }}>
+            {([['Zoom in', 0.5, 'M12 5v14M5 12h14'], ['Zoom out', -0.5, 'M5 12h14']] as const).map(([label, step, d]) => (
+              <button key={label} aria-label={label} onClick={() => setZoomLevel(z => Math.min(2.5, Math.max(1, z + step)))} style={{ width:'44px', height:'44px', borderRadius:'50%', background:'#0a0f1a', color:'white', border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 4px 12px rgba(10,15,26,0.25)' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d={d}/></svg>
+              </button>
+            ))}
           </div>
           {docPaid !== true && (
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'10px 14px', background:'white', borderTop:'1px solid #e2e8f0' }}>
               <span style={{ fontSize:'14px', color:'#0a0f1a' }}><strong>Preview.</strong> Unlock to download.</span>
-              <button onClick={() => { setCvZoomed(false); unlockDocument() }} style={{ padding:'10px 16px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif", whiteSpace:'nowrap' }}>Unlock {isCoverLetter ? 'letter' : 'CV'}</button>
+              <button onClick={() => { setCvZoomed(false); setZoomLevel(1); unlockDocument() }} style={barCta}>Unlock {docWord}</button>
             </div>
           )}
-        </div>
-      )}
-
-      {/* MOBILE TEMPLATE / COLOUR SIDEBAR — bottom sheet */}
-      {showMobileSidebar && !isCoverLetter && (
-        <div onClick={() => setShowMobileSidebar(false)} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:220, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px 20px 0 0', width:'100%', maxHeight:'80vh', overflowY:'auto', padding:'20px 20px 32px', fontFamily:"'DM Sans', sans-serif" }}>
-            <div style={{ width:'36px', height:'4px', borderRadius:'99px', background:'#e2e8f0', margin:'0 auto 20px' }} />
-            {currentTpl?.customizable && (
-              <div style={{ marginBottom:'22px' }}>
-                <div style={{ fontSize:'12px', fontWeight:700, textTransform:'uppercase' as const, letterSpacing:'1.5px', color:'#475569', marginBottom:'12px' }}>Choose Colour</div>
-                <div style={{ display:'flex', gap:'10px', flexWrap:'wrap' as const }}>
-                  <button onClick={() => setAccentColor(null)} title="Default" style={{ width:'28px', height:'28px', borderRadius:'50%', background: currentTpl.color, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === null ? `0 0 0 2px #fff, 0 0 0 4px ${currentTpl.color}` : '0 0 0 1px #e2e8f0' }} />
-                  {COLOR_SWATCHES.map(s => (
-                    <button key={s.value} onClick={() => setAccentColor(s.value)} title={s.name} style={{ width:'28px', height:'28px', borderRadius:'50%', background: s.value, cursor:'pointer', padding:0, border:'none', boxShadow: accentColor === s.value ? `0 0 0 2px #fff, 0 0 0 4px ${s.value}` : '0 0 0 1px #e2e8f0' }} />
-                  ))}
-                </div>
-              </div>
-            )}
-            <div style={{ fontSize:'12px', fontWeight:700, textTransform:'uppercase' as const, letterSpacing:'1.5px', color:'#475569', marginBottom:'12px' }}>Choose Template</div>
-            {premiumTemplates.length > 0 && (<>
-              <div style={{ fontSize:'12px', fontWeight:600, color:'#94a3b8', letterSpacing:'0.5px', textTransform:'uppercase' as const, marginBottom:'8px' }}>Premium</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'9px', marginBottom:'16px' }}>
-                {premiumTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => { setTemplate(tpl.id); setShowMobileSidebar(false) }} large />)}
-              </div>
-            </>)}
-            <div style={{ fontSize:'12px', fontWeight:600, color:'#94a3b8', letterSpacing:'0.5px', textTransform:'uppercase' as const, marginBottom:'8px' }}>ATS Templates</div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'9px', marginBottom:'16px' }}>
-              {atsTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => { setTemplate(tpl.id); setShowMobileSidebar(false) }} large />)}
-            </div>
-            {academicTemplates.length > 0 && (<>
-              <div style={{ fontSize:'12px', fontWeight:600, color:'#94a3b8', letterSpacing:'0.5px', textTransform:'uppercase' as const, marginBottom:'8px' }}>Academic</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'9px' }}>
-                {academicTemplates.map(tpl => <TemplateCard key={tpl.id} tpl={tpl} active={template===tpl.id} onClick={() => { setTemplate(tpl.id); setShowMobileSidebar(false) }} large />)}
-              </div>
-            </>)}
-          </div>
         </div>
       )}
 
