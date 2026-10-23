@@ -726,8 +726,12 @@ export default function PreviewPage() {
           const instance = new PaystackPop()
           instance.resumeTransaction(data.access_code, {
             onSuccess: async () => {
-              const ok = await confirmPreviewPayment(data.reference)
-              if (ok) await offerAccessCode(pkg.cv, 'download my CV', () => { void retryPendingDownload() })
+              // The access-code offer, when due, appears at once with the payment
+              // confirming behind it, instead of after a silent pause.
+              const confirmed = confirmPreviewPayment(data.reference)
+              const download = async () => { if (await confirmed) await retryPendingDownload() }
+              if (pkg.cv > 1 && !hasAccessCode) { setShowPricing(false); setCodeOffer({ continueLabel: 'download my CV', next: () => { void download() } }) }
+              else await download()
             },
             onCancel: () => setPurchaseError('Payment was not completed.'),
             onError: () => openHostedFallback(),
