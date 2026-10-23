@@ -176,8 +176,8 @@ closed rather than crash.
    after the decision, so export never captures a half-decided layout.
    To check a change without spending Api2Pdf credit, render the captured
    export HTML with local Chrome (puppeteer-core) and test every template for
-   page count and text past a page box. The tag `before-cv-font-bump` marks the
-   last commit before the CV text sizes were raised.
+   page count and text past a page box. Restore points: tag `before-cv-font-bump` (before body text went
+   ~10.5 → 11pt) and `before-cv-12pt` (before 11 → 12pt body, 11pt dates/contact).
 
 10. **Access codes (4 digits) protect CVs and credits — RemarkableSOP's rules.**
    **Optional, never at checkout** (owner's call): right after a **pack**

@@ -61,7 +61,7 @@ export function buildMeridian(cv: GeneratedCV, accent?: string | null): Document
       spacing: { before: 200, after: 70 },
       border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: P.accent, space: 4 } },
       children: [new TextRun({
-        text: text.toUpperCase(), bold: true, size: 23, color: P.navy,
+        text: text.toUpperCase(), bold: true, size: 25, color: P.navy,
         font: FONT, characterSpacing: 40,
       })],
     })
@@ -70,7 +70,7 @@ export function buildMeridian(cv: GeneratedCV, accent?: string | null): Document
     new Paragraph({
       numbering: { reference: 'meridian-bullets', level: 0 },
       spacing: { before: 40, after: 40 },
-      children: [new TextRun({ text, size: 22, font: FONT, color: BODY_GREY })],
+      children: [new TextRun({ text, size: 24, font: FONT, color: BODY_GREY })],
     })
 
   // role | dates two-column row
@@ -85,14 +85,14 @@ export function buildMeridian(cv: GeneratedCV, accent?: string | null): Document
             borders: noBorders, width: { size: 5800, type: WidthType.DXA },
             margins: { top: 0, bottom: 0, left: 0, right: 60 },
             children: [
-              new Paragraph({ spacing: { before: 120, after: 0 }, children: [new TextRun({ text: role, bold: true, size: 23, color: P.navy, font: FONT })] }),
-              new Paragraph({ spacing: { before: 20, after: 0 }, children: [new TextRun({ text: company, size: 22, color: P.accent, font: FONT, bold: true })] }),
+              new Paragraph({ spacing: { before: 120, after: 0 }, children: [new TextRun({ text: role, bold: true, size: 25, color: P.navy, font: FONT })] }),
+              new Paragraph({ spacing: { before: 20, after: 0 }, children: [new TextRun({ text: company, size: 24, color: P.accent, font: FONT, bold: true })] }),
             ],
           }),
           new TableCell({
             borders: noBorders, width: { size: 3226, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER,
             margins: { top: 0, bottom: 0, left: 60, right: 0 },
-            children: [new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { before: 60, after: 0 }, children: [new TextRun({ text: period, size: 20, color: MID_GREY, font: FONT, italics: true })] })],
+            children: [new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { before: 60, after: 0 }, children: [new TextRun({ text: period, size: 22, color: MID_GREY, font: FONT, italics: true })] })],
           }),
         ],
       })],
@@ -110,12 +110,12 @@ export function buildMeridian(cv: GeneratedCV, accent?: string | null): Document
             borders: noBorders, width: { size: 2000, type: WidthType.DXA },
             shading: { fill: P.tint, type: ShadingType.CLEAR, color: 'auto' },
             margins: { top: 80, bottom: 80, left: 120, right: 120 },
-            children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 20, color: P.accent, font: FONT })] })],
+            children: [new Paragraph({ children: [new TextRun({ text: label, bold: true, size: 22, color: P.accent, font: FONT })] })],
           }),
           new TableCell({
             borders: noBorders, width: { size: 7026, type: WidthType.DXA },
             margins: { top: 80, bottom: 80, left: 160, right: 0 },
-            children: [new Paragraph({ children: [new TextRun({ text: items, size: 20, font: FONT, color: BODY_GREY })] })],
+            children: [new Paragraph({ children: [new TextRun({ text: items, size: 22, font: FONT, color: BODY_GREY })] })],
           }),
         ],
       })],
@@ -124,7 +124,7 @@ export function buildMeridian(cv: GeneratedCV, accent?: string | null): Document
   // ── HEADER: navy name block | accent contact block ─────────────
   const contactLines: Paragraph[] = []
   const pushContact = (text: string, first = false) =>
-    contactLines.push(new Paragraph({ spacing: first ? {} : { before: 60 }, children: [new TextRun({ text, size: 20, color: WHITE, font: FONT })] }))
+    contactLines.push(new Paragraph({ spacing: first ? {} : { before: 60 }, children: [new TextRun({ text, size: 22, color: WHITE, font: FONT })] }))
   if (cv.location) pushContact(`📍  ${cv.location}`, contactLines.length === 0)
   if (cv.phone) pushContact(`📞  ${cv.phone}`, contactLines.length === 0)
   if (cv.email) pushContact(`✉   ${cv.email}`, contactLines.length === 0)
@@ -144,7 +144,7 @@ export function buildMeridian(cv: GeneratedCV, accent?: string | null): Document
           verticalAlign: VerticalAlign.CENTER,
           children: [
             new Paragraph({ children: [new TextRun({ text: (cv.fullName || '').toUpperCase(), bold: true, size: 36, color: WHITE, font: FONT, characterSpacing: 20 })] }),
-            ...(cv.jobTitle ? [new Paragraph({ spacing: { before: 60 }, children: [new TextRun({ text: cv.jobTitle, size: 22, color: P.subtitle, font: FONT, italics: true })] })] : []),
+            ...(cv.jobTitle ? [new Paragraph({ spacing: { before: 60 }, children: [new TextRun({ text: cv.jobTitle, size: 24, color: P.subtitle, font: FONT, italics: true })] })] : []),
           ],
         }),
         new TableCell({
@@ -164,14 +164,14 @@ export function buildMeridian(cv: GeneratedCV, accent?: string | null): Document
   // Cover letter short-circuit
   if (cv.coverLetterBody) {
     cv.coverLetterBody.split('\n\n').forEach(p =>
-      children.push(new Paragraph({ spacing: { before: 80, after: 80, line: 300 }, alignment: AlignmentType.JUSTIFIED, children: [new TextRun({ text: p, size: 22, font: FONT, color: BODY_GREY })] }))
+      children.push(new Paragraph({ spacing: { before: 80, after: 80, line: 300 }, alignment: AlignmentType.JUSTIFIED, children: [new TextRun({ text: p, size: 24, font: FONT, color: BODY_GREY })] }))
     )
     return assemble(children, P)
   }
 
   if (cv.summary) {
     children.push(sectionHeading('Professional Profile'))
-    children.push(new Paragraph({ spacing: { before: 80, after: 80, line: 290 }, alignment: AlignmentType.JUSTIFIED, children: [new TextRun({ text: cv.summary, size: 22, font: FONT, color: BODY_GREY })] }))
+    children.push(new Paragraph({ spacing: { before: 80, after: 80, line: 290 }, alignment: AlignmentType.JUSTIFIED, children: [new TextRun({ text: cv.summary, size: 24, font: FONT, color: BODY_GREY })] }))
   }
 
   if (cv.experience?.length) {
@@ -195,14 +195,14 @@ export function buildMeridian(cv: GeneratedCV, accent?: string | null): Document
             new TableCell({
               borders: noBorders, width: { size: 5800, type: WidthType.DXA }, margins: { top: 80, bottom: 40, left: 0, right: 120 },
               children: [
-                new Paragraph({ children: [new TextRun({ text: ed.field ? `${ed.qualification} in ${ed.field}` : ed.qualification, bold: true, size: 22, color: P.navy, font: FONT })] }),
-                new Paragraph({ spacing: { before: 30 }, children: [new TextRun({ text: ed.institution, size: 20, color: MID_GREY, font: FONT, italics: true })] }),
-                ...(ed.grade ? [new Paragraph({ spacing: { before: 20 }, children: [new TextRun({ text: ed.grade, size: 20, color: P.accent, font: FONT })] })] : []),
+                new Paragraph({ children: [new TextRun({ text: ed.field ? `${ed.qualification} in ${ed.field}` : ed.qualification, bold: true, size: 24, color: P.navy, font: FONT })] }),
+                new Paragraph({ spacing: { before: 30 }, children: [new TextRun({ text: ed.institution, size: 22, color: MID_GREY, font: FONT, italics: true })] }),
+                ...(ed.grade ? [new Paragraph({ spacing: { before: 20 }, children: [new TextRun({ text: ed.grade, size: 22, color: P.accent, font: FONT })] })] : []),
               ],
             }),
             new TableCell({
               borders: noBorders, width: { size: 3226, type: WidthType.DXA }, margins: { top: 80, bottom: 40, left: 120, right: 0 },
-              children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `${ed.startYear} – ${ed.endYear}`, size: 20, color: MID_GREY, font: FONT, italics: true })] })],
+              children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `${ed.startYear} – ${ed.endYear}`, size: 22, color: MID_GREY, font: FONT, italics: true })] })],
             }),
           ],
         })],
@@ -240,7 +240,7 @@ export function buildMeridian(cv: GeneratedCV, accent?: string | null): Document
     cv.teaching.forEach(t => children.push(bullet(t)))
   }
 
-  extraSectionParagraphs(cv, sectionHeading, { size: 22, font: FONT, color: BODY_GREY }).forEach(pp => children.push(pp))
+  extraSectionParagraphs(cv, sectionHeading, { size: 24, font: FONT, color: BODY_GREY }).forEach(pp => children.push(pp))
 
   return assemble(children, P)
 }
@@ -252,11 +252,11 @@ function assemble(children: (Paragraph | Table)[], P: { accent: string }): Docum
         reference: 'meridian-bullets',
         levels: [{
           level: 0, format: LevelFormat.BULLET, text: '▸', alignment: AlignmentType.LEFT,
-          style: { run: { color: P.accent, size: 20, font: FONT }, paragraph: { indent: { left: 400, hanging: 260 } } },
+          style: { run: { color: P.accent, size: 22, font: FONT }, paragraph: { indent: { left: 400, hanging: 260 } } },
         }],
       }],
     },
-    styles: { default: { document: { run: { font: FONT, size: 22, color: BODY_GREY } } } },
+    styles: { default: { document: { run: { font: FONT, size: 24, color: BODY_GREY } } } },
     sections: [{
       properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 720, right: 800, bottom: 800, left: 800 } } },
       children,
