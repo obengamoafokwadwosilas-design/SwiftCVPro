@@ -1304,14 +1304,13 @@ export default function PreviewPage() {
             </div>
           )}
           {activeTab === 'preview' ? (<>
-            <div ref={cvWrapRef} onClick={isMobile ? openZoom : undefined} style={isMobile ? {
+            <div ref={cvWrapRef} style={isMobile ? {
               width: '100vw',
               display: 'flex',
               justifyContent: 'center',
               height: cvBoxHeight ? `${Math.ceil(cvBoxHeight * mobileScale)}px` : undefined,
               overflow: 'hidden',
               position: 'relative',
-              cursor: 'zoom-in',
             } : {}}>
             <div ref={cvBoxRef} style={isMobile ? {
               transformOrigin: 'top center',
@@ -1330,9 +1329,12 @@ export default function PreviewPage() {
               </div>
             </div>
             {isMobile && (
-              <span className="no-print" aria-hidden="true" style={{ position:'absolute', right:'12px', top:'10px', zIndex:6, width:'34px', height:'34px', borderRadius:'50%', background:'rgba(10,15,26,0.82)', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-              </span>
+              // Full screen only when they choose it: a tap or double-tap on the CV
+              // itself (often just scrolling, or trying to zoom) shouldn't throw
+              // them into another view.
+              <button type="button" className="no-print" onClick={openZoom} aria-label={`Expand your ${docWord} to full screen`} style={{ position:'absolute', right:'10px', top:'8px', zIndex:6, width:'40px', height:'40px', borderRadius:'50%', border:'none', padding:0, cursor:'pointer', background:'rgba(10,15,26,0.82)', color:'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+              </button>
             )}
             </div>
           </>) : (
