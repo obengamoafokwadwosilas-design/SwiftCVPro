@@ -49,21 +49,20 @@ closed rather than crash.
    any reintroduced, that's a regression, not a feature.
 
 3. **Payment packages are the single source of truth in `src/lib/packages.ts`**
-   — GH₵ amounts in pesewas for Paystack. Currently active: Career Ready 39
-   — 1 CV (id `single`), Standout Cover Letter 19 — 1 cover letter (id
-   `coverletter`), Job Hunter Pack 99 — 3 CVs + 1 cover letter (id
-   `hunter`), Job Hunter Max 179 — 6 CVs + 2 cover letters (id
-   `huntermax`). No package is flagged `recommended` — a steered "best
-   value" pick decides for the customer instead of letting them choose, so
-   each paid tier gets its own accent colour instead (teal/indigo/gold —
-   see `TIER_ICON_COLOR` in the build and preview pages, and the
-   `accent-*` classes in `landing.html`); `single` stays neutral grey
-   everywhere. All four show at once on the landing page in a single
-   `.pricing-grid` (4 columns on desktop, 2 on tablet, a swipeable
-   horizontal strip on mobile) — there is no "view more" toggle hiding any
-   of them. The bundle pricing is intentionally close to the per-unit price (e.g.
-   Job Hunter Pack's 3 CVs cost only ~GH₵12 less per CV than buying Career
-   Ready three times) — this is deliberate, not a missed discount: a deeper
+   — GH₵ amounts in pesewas for Paystack, named by what they buy (credits).
+   Currently offered: **1 CV Credit** 39 (id `single`), **3 CV Credits** 99
+   — 3 CVs + a free cover letter (id `hunter`, badge "Best value"), and
+   **1 Cover Letter Credit** 19 (id `coverletter`). The 6-CV pack (`huntermax`,
+   179) is `hidden`: not offered and refused by `initiate-payment`, but still
+   credited by amount if an old payment arrives — don't delete it. Two CV
+   choices, not three, is the owner's call (the 6-pack barely lowered the
+   price per CV). The badged pack is pre-selected in `CreditPicker`
+   (`src/components/CreditPicker.tsx`, used by both pricing modals) — this
+   reverses an earlier no-"best value" rule, also at the owner's request. The
+   landing page shows exactly the three offered packages in one
+   `.pricing-grid` (3 columns on desktop). The bundle pricing is intentionally close to the per-unit price (e.g.
+   the 3 CV Credits pack costs only ~GH₵6 less per CV than buying 1 CV Credit
+   three times) — this is deliberate, not a missed discount: a deeper
    cut makes it cheap for a group of friends to split one purchase instead
    of each paying individually. The public landing page
    (`public/landing.html`) must mirror the *active* set exactly — it has

@@ -8,27 +8,11 @@ import CVHistoryModal from '@/components/CVHistoryModal'
 import BalanceModal from '@/components/BalanceModal'
 import HeaderMenu from '@/components/HeaderMenu'
 import { PACKAGES, packagesForDoc } from '@/lib/packages'
+import CreditPicker from '@/components/CreditPicker'
 
-// Pricing modal icons — no package is marked "recommended" on purpose (a
-// steered pick decides for the customer instead of letting them choose).
-// Each paid tier gets its own accent colour; `single` (the base 1-CV
-// option) stays neutral grey. Matches the build page's copy of this modal.
-const PKG_ICON: Record<string, JSX.Element> = {
-  single: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>,
-  coverletter: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>,
-  hunter: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
-  huntermax: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
-}
 // Read from the packages so the cover-letter offer can never drift from what
 // Paystack actually charges (it once said GH₵20 while the package was GH₵19).
 const COVER_LETTER_PRICE = PACKAGES.find(p => p.id === 'coverletter')!.price
-const TIER_ICON_COLOR: Record<string, { bg: string; fg: string }> = {
-  single: { bg: 'rgba(100,116,139,0.14)', fg: '#64748b' },     // steel grey — stays plain
-  hunter: { bg: 'rgba(10,164,71,0.14)', fg: '#0aa447' },       // teal
-  huntermax: { bg: 'rgba(76,29,149,0.10)', fg: '#4c1d95' },    // deep indigo
-  coverletter: { bg: 'rgba(180,131,15,0.14)', fg: '#b4830f' }, // warm gold
-  default: { bg: 'rgba(15,23,42,0.05)', fg: '#64748b' },
-}
 
 // ══════════════════════════════════════════════════════
 // TEMPLATE LIBRARY — Premium first, then ATS, then Academic
@@ -1585,10 +1569,10 @@ export default function PreviewPage() {
         <div onClick={() => { setShowPricing(false); setPendingDownload(null) }} style={{ position: 'fixed', inset: 0, background: 'rgba(8,13,24,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '22px', width: '100%', maxWidth: '440px', padding: '28px 26px', boxShadow: '0 25px 80px rgba(0,0,0,0.4)', fontFamily: "'DM Sans', sans-serif", maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 600, color: '#0a0f1a', lineHeight: 1.15 }}>Choose your package</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 600, color: '#0a0f1a', lineHeight: 1.15 }}>Choose your credits</div>
               <button onClick={() => { setShowPricing(false); setPendingDownload(null) }} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '6px', display: 'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
-            <p style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '18px', lineHeight: 1.6 }}>Your CV is ready — pay once to download it. One-time payment · no subscription.</p>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px', lineHeight: 1.6 }}>Your {isCoverLetter ? 'letter' : 'CV'} is ready — one credit unlocks it for download. Credits never expire.</p>
 
             {purchaseError && <div style={{ fontSize: '12.5px', color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '10px 12px', marginBottom: '14px' }}>{purchaseError}</div>}
 
@@ -1604,31 +1588,15 @@ export default function PreviewPage() {
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'grid', gap: '11px' }}>
-                {packagesForDoc(isCoverLetter).map(pkg => {
-                  // Every card gets the same neutral background/border — no
-                  // single package is singled out as "the" pick. The colour
-                  // comes only from each tier's icon badge and price figure.
-                  const tierColor = TIER_ICON_COLOR[pkg.id] || TIER_ICON_COLOR.default
-                  const isAccented = pkg.id !== 'single'
-                  return (
-                  <button key={pkg.id} onClick={() => triggerPreviewPaystack(pkg)}
-                    style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
-                      background: 'white', border: '1px solid #e7ebf0',
-                      borderRadius: '16px', padding: '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
-                    <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: tierColor.bg, color: tierColor.fg }}>{PKG_ICON[pkg.id]}</span>
-                    <span style={{ flex: 1 }}>
-                      <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: '#0a0f1a' }}>{pkg.name}</span>
-                      <span style={{ display: 'block', fontSize: '12.5px', color: '#64748b', marginTop: '2px' }}>{pkg.blurb}</span>
-                    </span>
-                    <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 700, color: isAccented ? tierColor.fg : '#0a0f1a', whiteSpace: 'nowrap' as const }}>GH₵{pkg.price}</span>
-                  </button>
-                  )
-                })}
-              </div>
+              <CreditPicker packages={packagesForDoc(isCoverLetter)} onContinue={pkg => triggerPreviewPaystack(pkg)} />
             )}
 
-            <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '16px', textAlign: 'center' as const, lineHeight: 1.5 }}>Secure payment via Paystack · MTN MoMo, Vodafone Cash & card</p>
+            {!paymentPending && (
+              <button type="button" onClick={() => { setShowPricing(false); setPendingDownload(null); setShowHistoryModal(true) }}
+                style={{ display: 'block', margin: '12px auto 0', background: 'none', border: 'none', color: '#15803d', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                Already purchased? Access your credits
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -27,7 +27,9 @@ export async function POST(req: NextRequest) {
     const { email, packageId } = await req.json()
     const typedEmail = normalizeEmail(email)
 
-    const pkg = PACKAGES.find(p => p.id === packageId)
+    // A hidden package is still credited if an old payment arrives, but a new
+    // one can't be started from a stale link or a hand-made request.
+    const pkg = PACKAGES.find(p => p.id === packageId && !p.hidden)
     if (!pkg) return NextResponse.json({ error: 'Unknown package.' }, { status: 400 })
 
     if (!rateLimit('payment:' + clientIp(req), 10, 60000).allowed) return NextResponse.json({ error: 'Please wait before starting another payment.' }, { status: 429 })

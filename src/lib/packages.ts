@@ -17,18 +17,22 @@ export interface Package {
   // but not offered in the pricing modal or on the landing page for now —
   // multi-CV bundles are parked, not deleted. Un-hide by removing this flag.
   hidden?: boolean
+  // Shown on the card and pre-selected in the credit picker.
+  badge?: string
 }
 
-// No package is flagged "recommended" on purpose — a steered pick decides
-// for the customer instead of letting them pick on their own. Each paid
-// tier gets its own accent colour instead (see TIER_ICON_COLOR in the build
-// and preview pages, and the accent-* classes in landing.html) so they're
-// equally eye-catching without ranking one above the others.
+// Named by what they buy — a CV credit builds one CV, a cover-letter credit
+// builds one letter. Two CV choices, not three: the old 6-CV pack barely
+// lowered the price per CV (~GH₵30 vs ~GH₵33), so it was a third decision with
+// no real reason to pick it. The 3-credit pack carries the "Best value" badge
+// and is pre-selected (owner's call — this reverses the earlier no-steering
+// rule). landing.html must list exactly the packages that aren't hidden.
 export const PACKAGES: Package[] = [
-  { id: 'single',      name: 'Career Ready',          emoji: '🥈', price: 39,  amount: 3900,  cv: 1, cl: 0, blurb: '1 Professional CV' },
-  { id: 'coverletter', name: 'Standout Cover Letter',  emoji: '✉️', price: 19,  amount: 1900,  cv: 0, cl: 1, blurb: '1 Professional Cover Letter' },
-  { id: 'hunter',      name: 'Job Hunter Pack',        emoji: '🎯', price: 99,  amount: 9900,  cv: 3, cl: 1, blurb: '3 Professional CVs + 1 Cover Letter' },
-  { id: 'huntermax',   name: 'Job Hunter Max',         emoji: '🚀', price: 179, amount: 17900, cv: 6, cl: 2, blurb: '6 Professional CVs + 2 Cover Letters' },
+  { id: 'single',      name: '1 CV Credit',            emoji: '🥈', price: 39,  amount: 3900,  cv: 1, cl: 0, blurb: 'Builds 1 professional CV' },
+  { id: 'coverletter', name: '1 Cover Letter Credit',  emoji: '✉️', price: 19,  amount: 1900,  cv: 0, cl: 1, blurb: 'Builds 1 cover letter' },
+  { id: 'hunter',      name: '3 CV Credits',           emoji: '🎯', price: 99,  amount: 9900,  cv: 3, cl: 1, blurb: 'Builds 3 CVs + free cover letter', badge: 'Best value' },
+  // No longer offered; kept so a replayed or late GH₵179 payment is still credited.
+  { id: 'huntermax',   name: '6 CV Credits',           emoji: '🚀', price: 179, amount: 17900, cv: 6, cl: 2, blurb: 'Builds 6 CVs + 2 cover letters', hidden: true },
 ]
 
 // Packages relevant to the document being built: a CV needs CV credits, a

@@ -5,15 +5,13 @@ import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import { CVType } from '@/types'
 import { PACKAGES, packagesForDoc, PackageId } from '@/lib/packages'
+import CreditPicker from '@/components/CreditPicker'
 import { normalizeEmail } from '@/lib/email'
 import { BuildSeed, saveBuildSeed, loadBuildSeed, clearBuildSeed, clearLastInput, clearPreviousCoverLetter } from '@/lib/buildSeed'
 
 // ─────────────────────────────────────────────────────────────
-// PRICING MODAL ICONS — no package is marked "recommended" on purpose (a
-// steered pick decides for the customer instead of letting them choose).
-// Each paid tier gets its own accent colour so they're equally eye-catching;
-// `single` (the base 1-CV option) stays neutral grey, matching its plain
-// treatment on the landing page.
+// PACKAGE ICONS — used for the package someone picked on the landing page,
+// shown on the last step. The pricing modal itself is CreditPicker.
 // ─────────────────────────────────────────────────────────────
 const PKG_ICON: Record<string, JSX.Element> = {
   single: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>,
@@ -1199,7 +1197,7 @@ export default function BuildPage() {
             </p>
           ) : (
             <p style={{ margin: 0, textAlign: 'center', fontSize: '12px', color: 'var(--graphite)' }}>
-              {picked ? `${picked.name} · GH₵${picked.price}` : `From GH₵${fromPrice}`} · secure payment via Paystack · MTN MoMo, Vodafone Cash &amp; card
+              {picked ? `${picked.name} · GH₵${picked.price}` : `From GH₵${fromPrice}`} · secure payment via Paystack · MTN MoMo, Telecel, AirtelTigo &amp; card
             </p>
           )}
           <button type="button" onClick={() => void handleGenerate('preview')} disabled={busy} className="xcv-link"
@@ -1936,42 +1934,18 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
         <div onClick={() => setShowPricing(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(8,13,24,0.6)', backdropFilter: 'blur(4px)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: '22px', width: '100%', maxWidth: '440px', padding: '28px 26px', boxShadow: '0 25px 80px rgba(0,0,0,0.4)', fontFamily: "'DM Sans', sans-serif", maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.15 }}>Choose your package</div>
+              <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.5rem', fontWeight: 600, color: 'var(--ink)', lineHeight: 1.15 }}>Choose your credits</div>
               <button onClick={() => setShowPricing(false)} style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', padding: '6px', display: 'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
             {pricingReason === 'free' && (
-              <p style={{ fontSize: '13px', color: 'var(--ink)', marginBottom: '8px', lineHeight: 1.6 }}>You&apos;ve used your free previews. Choose a package and your {cvType === 'cover_letter' ? 'cover letter' : 'CV'} is built as soon as you&apos;ve paid.</p>
+              <p style={{ fontSize: '13px', color: 'var(--ink)', marginBottom: '8px', lineHeight: 1.6 }}>You&apos;ve used your free previews. Choose your credits and your {cvType === 'cover_letter' ? 'cover letter' : 'CV'} is built as soon as you&apos;ve paid.</p>
             )}
-            <p style={{ fontSize: '12.5px', color: 'var(--graphite)', marginBottom: '18px', lineHeight: 1.6 }}>One-time payment · no subscription. Credits never expire.</p>
+            <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '16px', lineHeight: 1.6 }}>Credits never expire.</p>
 
-            <div style={{ display: 'grid', gap: '11px' }}>
-              {/* Only the packages that grant the credit this document needs. */}
-              {packagesForDoc(cvType === 'cover_letter').map(pkg => {
-                // Every card gets the same neutral background/border — no
-                // single package is singled out as "the" pick. The colour
-                // comes only from each tier's icon badge (and the price
-                // figure below), so people choose on what catches their eye
-                // rather than which one we told them to buy.
-                const tierColor = TIER_ICON_COLOR[pkg.id] || TIER_ICON_COLOR.default
-                const isAccented = pkg.id !== 'single'
-                return (
-                <button key={pkg.id} onClick={() => { setShowPricing(false); triggerPaystack(payEmail, pkg) }}
-                  style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left' as const, cursor: 'pointer',
-                    background: 'white', border: '1px solid var(--rule)',
-                    borderRadius: '16px', padding: '16px 18px', fontFamily: "'DM Sans', sans-serif" }}>
-                  <span style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: tierColor.bg, color: tierColor.fg }}>{PKG_ICON[pkg.id]}</span>
-                  <span style={{ flex: 1 }}>
-                    <span style={{ display: 'block', fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>{pkg.name}</span>
-                    <span style={{ display: 'block', fontSize: '12.5px', color: 'var(--graphite)', marginTop: '2px' }}>{pkg.blurb}</span>
-                  </span>
-                  <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 700, color: isAccented ? tierColor.fg : 'var(--ink)', whiteSpace: 'nowrap' as const }}>GH₵{pkg.price}</span>
-                </button>
-                )
-              })}
-            </div>
+            {/* Only the packages that grant the credit this document needs. */}
+            <CreditPicker packages={packagesForDoc(cvType === 'cover_letter')} onContinue={pkg => { setShowPricing(false); triggerPaystack(payEmail, pkg) }} />
 
-            <button type="button" onClick={() => { saveBuildSeed(captureBuildSeed('summary')); router.push('/my-cvs') }} className="xcv-link" style={{ display: 'block', margin: '16px auto 0' }}>Already purchased? Access your credits</button>
-            <p style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '16px', textAlign: 'center' as const, lineHeight: 1.5 }}>Secure payment via Paystack · MTN MoMo, Vodafone Cash & card</p>
+            <button type="button" onClick={() => { saveBuildSeed(captureBuildSeed('summary')); router.push('/my-cvs') }} className="xcv-link" style={{ display: 'block', margin: '12px auto 0' }}>Already purchased? Access your credits</button>
           </div>
         </div>
       )}
@@ -1983,7 +1957,7 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
             </div>
             <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '1.4rem', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>Payment successful</div>
-            <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '18px', lineHeight: 1.6 }}>{purchasedPkg.blurb} added to <strong style={{ color: 'var(--ink)' }}>{payEmail}</strong>. Credits never expire — use them whenever you're ready.</p>
+            <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '18px', lineHeight: 1.6 }}>{purchasedPkg.name} added to <strong style={{ color: 'var(--ink)' }}>{payEmail}</strong>. Credits never expire — use them whenever you're ready.</p>
             <div style={{ fontSize: '12px', color: 'var(--graphite)', marginBottom: '18px' }}>Check your email for your receipt and secure access link.</div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' as const }}>
               {/* This modal only ever shows for a standalone purchase — buying

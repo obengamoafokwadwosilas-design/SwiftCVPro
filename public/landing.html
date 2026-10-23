@@ -429,7 +429,7 @@ section { padding:var(--section-y) 0; }
 .pricing-note { text-align:center; color:var(--ink-38); margin-bottom:8px; }
 .pricing-grid { display:grid; grid-template-columns:1fr; gap:14px; max-width:1180px; margin:0 auto; }
 @media(min-width:680px){ .pricing-grid{ grid-template-columns:repeat(2,1fr); align-items:stretch; } }
-@media(min-width:980px){ .pricing-grid{ grid-template-columns:repeat(4,1fr); } }
+@media(min-width:980px){ .pricing-grid{ grid-template-columns:repeat(3,1fr); max-width:960px; } }
 .price-card {
   position:relative; isolation:isolate; overflow:hidden; background:var(--white);
   border:1px solid var(--rule-strong); border-radius:8px;
@@ -1263,13 +1263,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     <div class="pricing-grid reveal">
       <div class="price-card">
-        <div class="price-name">Career Ready</div>
+        <div class="price-name">1 CV Credit</div>
         <div class="price-figure"><span class="cur">GH₵</span><span class="num">39</span></div>
         <p class="price-desc">Professional, ATS-optimised CV.</p>
         <div class="price-bonus" aria-hidden="true">&nbsp;</div>
         <div class="price-divider"></div>
         <ul class="price-features">
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 Professional CV</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Builds 1 professional CV</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
         </ul>
@@ -1277,43 +1277,28 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
 
       <div class="price-card accent-teal">
-        <div class="price-name">Job Hunter Pack</div>
+        <div class="price-name">3 CV Credits</div>
         <div class="price-figure"><span class="cur">GH₵</span><span class="num">99</span></div>
         <p class="price-desc">For applying to several roles — 3 tailored CVs plus a cover letter.</p>
-        <div class="price-bonus">Save GH₵37</div>
+        <div class="price-bonus">Best value · Save GH₵37</div>
         <div class="price-divider"></div>
         <ul class="price-features">
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>3 Professional CVs</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 Cover Letter</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Builds 3 professional CVs</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free cover letter</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
         </ul>
-        <a href="/build?pkg=hunter" class="price-btn">Get the Job Hunter Pack →</a>
-      </div>
-
-      <div class="price-card accent-indigo">
-        <div class="price-name">Job Hunter Max</div>
-        <div class="price-figure"><span class="cur">GH₵</span><span class="num">179</span></div>
-        <p class="price-desc">For a complete job search — 6 tailored CVs + 2 cover letters.</p>
-        <div class="price-bonus">Save GH₵93</div>
-        <div class="price-divider"></div>
-        <ul class="price-features">
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>6 Professional CVs</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>2 Cover Letters</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
-        </ul>
-        <a href="/build?pkg=huntermax" class="price-btn">Get the Job Hunter Max →</a>
+        <a href="/build?pkg=hunter" class="price-btn">Get 3 CV Credits →</a>
       </div>
 
       <div class="price-card accent-gold">
-        <div class="price-name">Standout Cover Letter</div>
+        <div class="price-name">1 Cover Letter Credit</div>
         <div class="price-figure"><span class="cur">GH₵</span><span class="num">19</span></div>
         <p class="price-desc">A compelling cover letter, tailored to the role.</p>
         <div class="price-bonus" aria-hidden="true">&nbsp;</div>
         <div class="price-divider"></div>
         <ul class="price-features">
-          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>1 Professional Cover Letter</li>
+          <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Builds 1 cover letter</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>PDF &amp; Word download</li>
           <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>Free re-downloads, any time</li>
         </ul>
