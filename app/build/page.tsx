@@ -163,6 +163,7 @@ export default function BuildPage() {
   // actually read — someone shouldn't discover their CV was unreadable only
   // after clicking Generate.
   const [uploadReadError, setUploadReadError] = useState('')
+  const [cvTextOpen, setCvTextOpen] = useState(false)
   // "Not sure what to write? See example" on the paste screen — shows a
   // sample of rough notes turning into a CV, not filled into the real box.
   const [showCvExample, setShowCvExample] = useState(false)
@@ -664,6 +665,7 @@ export default function BuildPage() {
   async function handleCVFileUpload(file: File | null) {
     setUploadedCV(file)
     setUploadReadError('')
+    setCvTextOpen(false)
     if (!file) {
       setIsExtracting(false)
       setExtractedCVText(null)
@@ -1431,22 +1433,37 @@ export default function BuildPage() {
                     </div>
                   ) : pasteInputMode === 'upload' && isReview ? (
                     <>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
-                        <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 0 }}>Review your CV</div>
-                        {/* Quiet on purpose, and away from the main sentence —
-                            a rare "start over" escape hatch, not something that
-                            should compete with the actual instruction below. */}
+                      {/* What we read is shown, not edited: two boxes that both
+                          took changes left people unsure which to use. Every fix
+                          or addition goes in "Anything to add or change?" below,
+                          which the AI applies. The first lines show so they can
+                          check we read the right file; "Show more" has the rest. */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                        <span aria-hidden="true" style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 0 }}>We&apos;ve read your CV</div>
+                          {uploadedCV?.name && <div style={{ fontSize: '12px', color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{uploadedCV.name}</div>}
+                        </div>
                         <button type="button" onClick={() => handleCVFileUpload(null)}
-                          style={{ fontSize: '11px', fontWeight: 500, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
-                          Not this file?
+                          style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+                          Change
                         </button>
                       </div>
-                      {/* This box is for fixing a misread; new information goes in
-                          "Anything to add or change?" below. Still says they can just
-                          carry on, so nobody feels they must check every line. */}
-                      <p style={{ fontSize: '13px', color: 'var(--graphite)', marginBottom: '12px', fontWeight: 300 }}>
-                        Fix anything we read wrong. Anything new goes in the box below — or just carry on.
-                      </p>
+                      <div style={{ position: 'relative' }}>
+                        <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontFamily: "'Cormorant Garamond', serif", fontSize: '16px', lineHeight: 1.7, color: 'var(--ink)', maxHeight: cvTextOpen ? 'none' : '6.8em', overflow: 'hidden' }}>
+                          {/* PDF extraction keeps the file's line wraps, so a sentence
+                              breaks mid-way ("in administrative / work."). Joined for
+                              display only — generation still reads the text as extracted. */}
+                          {extractedCVText?.text.replace(/([a-z,;])[ \t]*\n(?=[a-z(])/g, '$1 ')}
+                        </div>
+                        {!cvTextOpen && <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '2.4em', background: 'linear-gradient(transparent, var(--sheet))' }} />}
+                      </div>
+                      <button type="button" onClick={() => setCvTextOpen(v => !v)} aria-expanded={cvTextOpen}
+                        style={{ marginTop: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', fontFamily: "'DM Sans', sans-serif" }}>
+                        {cvTextOpen ? 'Show less' : 'Show more'}
+                      </button>
                     </>
                   ) : (
                     <>
@@ -1472,16 +1489,16 @@ export default function BuildPage() {
                       textarea (TA()) — this is the one field on the whole screen
                       someone actually writes or reviews a document in, so it should
                       read like a page, not a form input. */}
-                  <textarea ref={refs.paste} style={{ ...TA(180), fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', lineHeight: 1.75, display: showLoading ? 'none' : undefined }} rows={8} placeholder="Start with your name, contact details, education and experience — rough notes are welcome." />
+                  <textarea ref={refs.paste} style={{ ...TA(180), fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', lineHeight: 1.75, display: (showLoading || (pasteInputMode === 'upload' && isReview)) ? 'none' : undefined }} rows={8} placeholder="Start with your name, contact details, education and experience — rough notes are welcome." />
                 </div>
               </>
             )
           })()}
 
-          {/* Answers "how do I update my CV if I upload it?" — editing the
-              extracted text above was the only way, and nobody found it. One
-              free-text box, no fields to fill: the faint example shows what
-              can go in. Sent as `changes`, which the prompt tells the AI to
+          {/* Answers "how do I update my CV if I upload it?" — and, since the
+              uploaded text above is shown read-only, it is also where a misread
+              gets corrected. One free-text box, no fields to fill: the faint
+              example shows both kinds of thing that can go in. Sent as `changes`, which the prompt tells the AI to
               apply (CHANGES in prompts.ts) — unlike the old emphasis box,
               which forbade adding anything. Visible, not collapsed: it is the
               answer to that question, so it can't be hidden. */}
@@ -1492,10 +1509,10 @@ export default function BuildPage() {
             </label>
             <textarea id="cv-changes" ref={refs.cvChanges} style={TA(96)} rows={4}
               placeholder={cvType === 'academic'
-                ? 'e.g. Add my new paper in the Journal of Physics (2025). Add my lecturing at KNUST since 2024. Put my research before teaching.'
+                ? 'e.g. My email is k.owusu@ug.edu.gh. Add my new paper in the Journal of Physics (2025). Add my lecturing at KNUST since 2024.'
                 : cvType === 'cover_letter'
                   ? 'e.g. Mention my new PMP certificate. Leave out my first job. Keep it warm and confident.'
-                  : 'e.g. Add my new job at MTN as Sales Lead (2025–now). Add my PMP certificate. Remove my secondary school. Keep it to one page.'} />
+                  : 'e.g. My phone number is 024 123 4567. Add my new job at MTN as Sales Lead (2025–now). Add my PMP certificate. Remove my secondary school.'} />
           </div>
 
           <ErrorDisplay error={error} onRetry={goToTailor} onDismiss={() => setError(null)} />
