@@ -140,6 +140,37 @@ closed rather than crash.
    so a second live copy rendered while scaled lays its pages out wrong. Desktop
    keeps the original layout (sidebar, Preview/Edit toggle, top Download).
 
+9. **How the PDF page-break problem was finally fixed — keep all five parts.**
+   The root cause: page breaks were *planned* in the user's browser but the PDF
+   is *drawn* by Api2Pdf's own Chrome, and tiny height differences between the
+   two pushed the last line past a fixed-height page box, which sliced it.
+   1. **Flow pagination for 14 of 16 designs** (`flowPaginate: true` →
+      `getFlowPdfConfig` → the flow branch of `buildPdfHtml`): the PDF is one
+      continuous document and the PDF renderer chooses the breaks itself
+      (`[data-flow-block] { break-inside: avoid }`, `[data-flow-head]
+      { break-after: avoid }`, per-sheet `@page` margins). The engine that
+      decides a break is the one that draws it, so clipping is impossible by
+      construction; per-page decorations repeat as `position: fixed`.
+   2. **Only Meridian and Sterling still use the packer** (two-column with a
+      per-page sidebar, which flow can't express). They rely on: metric-
+      compatible font fallbacks (item 5 — a Cambria/Georgia fallback once
+      swelled text ~20% and clipped), `packBottomSafety: 58`,
+      `FINAL_RENDER_GUARD = 18`, `PACK_TOLERANCE = 0`, a heading always placed
+      together with its first item, and the ground-truth correction pass that
+      re-measures the real on-screen document.
+   3. **Every wrappable item is its own block** (`safeBullet`, `summaryChunks`,
+      skills/languages rows) so a break can never fall inside one.
+   4. **Webfonts are awaited before export** (`document.fonts.ready`, and the
+      `data-pagination-ready` flag) so the plan and the PDF use the same font.
+   5. **The plan is measured, never hard-coded**: font sizes can change freely
+      as long as the font *stacks* stay metric-compatible — the paginator and
+      the PDF renderer both re-measure. Changing a font family, not a size, is
+      what breaks pagination.
+   To check a change without spending Api2Pdf credit, render the captured
+   export HTML with local Chrome (puppeteer-core) and test every template for
+   page count and text past a page box. The tag `before-cv-font-bump` marks the
+   last commit before the CV text sizes were raised.
+
 ## Conventions already in place
 - No comments explaining *what* code does — only *why*, when non-obvious.
 - Don't add speculative abstractions, feature flags, or "just in case"

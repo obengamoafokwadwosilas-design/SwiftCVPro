@@ -391,7 +391,7 @@ function buildClassic(cv: GeneratedCV, accentColor?: string | null): Document {
 function buildSlate(cv: GeneratedCV, accentColor?: string | null): Document {
   const ACCENT = (accentColor || '#1a1a1a').replace('#', '')
   const sectionHead = (text: string) => new Paragraph({
-    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 20, font: BODY_FONT, color: ACCENT, characterSpacing: 70 })],
+    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 22, font: BODY_FONT, color: ACCENT, characterSpacing: 70 })],
     spacing: { before: 320, after: 120 }
   })
 
@@ -403,7 +403,7 @@ function buildSlate(cv: GeneratedCV, accentColor?: string | null): Document {
     spacing: { after: cv.jobTitle ? 70 : 40 }
   }))
   if (cv.jobTitle) children.push(new Paragraph({
-    children: [new TextRun({ text: cv.jobTitle.toUpperCase(), size: 18, font: BODY_FONT, color: '888888', characterSpacing: 80 })],
+    children: [new TextRun({ text: cv.jobTitle.toUpperCase(), size: 20, font: BODY_FONT, color: '888888', characterSpacing: 80 })],
     spacing: { after: 90 }
   }))
   // Short rule (narrow table cell with a bottom border) — mirrors the PDF's 36px bar.
@@ -412,7 +412,7 @@ function buildSlate(cv: GeneratedCV, accentColor?: string | null): Document {
     rows: [new TableRow({ children: [new TableCell({ width: { size: 700, type: WidthType.DXA }, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 10, color: '1a1a1a' } }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] })] })]
   }))
   children.push(new Paragraph({
-    children: [new TextRun({ text: contactStr(cv), size: 19, font: BODY_FONT, color: '999999', characterSpacing: 20 })],
+    children: [new TextRun({ text: contactStr(cv), size: 21, font: BODY_FONT, color: '999999', characterSpacing: 20 })],
     spacing: { before: 120, after: 240 }
   }))
 
@@ -546,7 +546,7 @@ function buildCompass(cv: GeneratedCV, accentColor?: string | null): Document {
     width: { size: 10200, type: WidthType.DXA }, columnWidths: [2400, 5400, 2400], borders: NO_BORDERS,
     rows: [new TableRow({ children: [
       new TableCell({ width: { size: 2400, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT } }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }),
-      new TableCell({ width: { size: 5400, type: WidthType.DXA }, borders: NO_BORDERS, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 20, font: HEADER_FONT, color: '1a1a1a', characterSpacing: 40 })] })] }),
+      new TableCell({ width: { size: 5400, type: WidthType.DXA }, borders: NO_BORDERS, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 22, font: HEADER_FONT, color: '1a1a1a', characterSpacing: 40 })] })] }),
       new TableCell({ width: { size: 2400, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT } }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }),
     ] })]
   })
@@ -561,7 +561,7 @@ function buildBeacon(cv: GeneratedCV, accentColor?: string | null): Document {
   const heading = (text: string) => new Table({
     width: { size: 10200, type: WidthType.DXA }, columnWidths: [3200, 7000], borders: NO_BORDERS,
     rows: [new TableRow({ children: [
-      new TableCell({ width: { size: 3200, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: ACCENT, color: ACCENT }, verticalAlign: VerticalAlign.CENTER, margins: { top: 50, bottom: 50, left: 130, right: 130 }, children: [new Paragraph({ children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 16, color: 'FFFFFF', font: BODY_FONT, characterSpacing: 20 })] })] }),
+      new TableCell({ width: { size: 3200, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: ACCENT, color: ACCENT }, verticalAlign: VerticalAlign.CENTER, margins: { top: 50, bottom: 50, left: 130, right: 130 }, children: [new Paragraph({ children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 20, color: 'FFFFFF', font: BODY_FONT, characterSpacing: 20 })] })] }),
       new TableCell({ width: { size: 7000, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 10, color: ACCENT } }, margins: { left: 120 }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }),
     ] })]
   })
@@ -581,7 +581,7 @@ function buildEditorial(cv: GeneratedCV, accentColor?: string | null): Document 
   // Thick top border above the heading text = the PDF's accent rule above it.
   const heading = (text: string) => new Paragraph({
     border: { top: { style: BorderStyle.SINGLE, size: 24, color: ACCENT } },
-    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 21, font: HEADER_FONT, color: ACCENT, characterSpacing: 50 })],
+    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 22, font: HEADER_FONT, color: ACCENT, characterSpacing: 50 })],
     spacing: { before: 300, after: 150 }
   })
 
@@ -595,7 +595,7 @@ function buildEditorial(cv: GeneratedCV, accentColor?: string | null): Document 
       new TextRun({ text: `${first.toUpperCase()} `, bold: true, size: 46, font: NAME_FONT_SERIF, color: '1a1a1a' }),
       new TextRun({ text: rest.toUpperCase(), size: 46, font: NAME_FONT_SERIF, color: '1a1a1a' }),
     ], spacing: { after: 70 } }),
-    ...(cv.jobTitle ? [new Paragraph({ children: [new TextRun({ text: cv.jobTitle.toUpperCase(), bold: true, size: 20, font: HEADER_FONT, color: ACCENT, characterSpacing: 60 })], spacing: { after: 90 } })] : []),
+    ...(cv.jobTitle ? [new Paragraph({ children: [new TextRun({ text: cv.jobTitle.toUpperCase(), bold: true, size: 22, font: HEADER_FONT, color: ACCENT, characterSpacing: 60 })], spacing: { after: 90 } })] : []),
     new Paragraph({ children: [new TextRun({ text: contactStr(cv), size: SIZE_CONTACT, font: BODY_FONT, color: '777777' })], spacing: { after: 260 } }),
   ]
 
