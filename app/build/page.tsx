@@ -1389,7 +1389,7 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: PASTE PATH ══════════════════════════════════ */}
         <div style={{ display: screen === 'paste' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <h1 className="xcv-h1" style={{ ...h1Style, fontSize: 'clamp(1.25rem, 3.2vw, 1.7rem)', marginBottom: '22px' }}>Upload or paste your CV</h1>
+          <h1 className="xcv-h1" style={{ ...h1Style, fontSize: 'clamp(1.25rem, 3.2vw, 1.7rem)', marginBottom: '22px' }}>{pasteInputMode === 'upload' && uploadedCV && !uploadReadError && !isExtracting ? 'Your CV' : 'Upload or paste your CV'}</h1>
 
           {/* Visible toggle, not a plain link — the "Upload" tab relabels
               itself once a file's read, so it stays selected and shows the
@@ -1415,7 +1415,9 @@ export default function BuildPage() {
             const showUploadZone = pasteInputMode === 'upload' && !isReview && !isExtracting
             return (
               <>
-                <div style={{ marginBottom: '16px' }}>
+                {/* Once a file is read the choice is made, so the tabs step
+                    aside; "Change" clears the file and brings them back. */}
+                <div style={{ marginBottom: '16px', display: pasteInputMode === 'upload' && isReview ? 'none' : undefined }}>
                   <ModeToggle value={pasteInputMode} onChange={setPasteInputMode} options={toggleOptions} />
                 </div>
 
@@ -1436,33 +1438,38 @@ export default function BuildPage() {
                       {/* What we read is shown, not edited: two boxes that both
                           took changes left people unsure which to use. Every fix
                           or addition goes in "Anything to add or change?" below,
-                          which the AI applies. The first lines show so they can
-                          check we read the right file; "Show more" has the rest. */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                        <span aria-hidden="true" style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                          which the AI applies. Two lines show so they can check we
+                          read the right file; "Preview what we read" opens the rest. */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span aria-hidden="true" style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
                         </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", marginBottom: 0 }}>We&apos;ve read your CV</div>
-                          {uploadedCV?.name && <div style={{ fontSize: '12px', color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{uploadedCV.name}</div>}
+                          <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--ink)', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{uploadedCV?.name || 'Your CV'}</div>
+                          <div style={{ fontSize: '13px', color: 'var(--graphite)' }}>Read successfully</div>
                         </div>
                         <button type="button" onClick={() => handleCVFileUpload(null)}
-                          style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+                          style={{ fontSize: '14px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
                           Change
                         </button>
                       </div>
-                      <div style={{ position: 'relative' }}>
-                        <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontFamily: "'Cormorant Garamond', serif", fontSize: '16px', lineHeight: 1.7, color: 'var(--ink)', maxHeight: cvTextOpen ? 'none' : '6.8em', overflow: 'hidden' }}>
-                          {/* PDF extraction keeps the file's line wraps, so a sentence
-                              breaks mid-way ("in administrative / work."). Joined for
-                              display only — generation still reads the text as extracted. */}
+                      <div style={{ borderTop: '1px solid var(--rule)', margin: '14px 0 12px' }} />
+                      {/* PDF extraction keeps the file's line wraps, so a sentence
+                          breaks mid-way ("in administrative / work."). Joined for
+                          display only — generation still reads the text as extracted. */}
+                      {cvTextOpen ? (
+                        <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: '14px', lineHeight: 1.65, color: 'var(--graphite)' }}>
                           {extractedCVText?.text.replace(/([a-z,;])[ \t]*\n(?=[a-z(])/g, '$1 ')}
                         </div>
-                        {!cvTextOpen && <div aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: '2.4em', background: 'linear-gradient(transparent, var(--sheet))' }} />}
-                      </div>
+                      ) : (
+                        <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--graphite)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {extractedCVText?.text.replace(/\s+/g, ' ').trim()}
+                        </div>
+                      )}
                       <button type="button" onClick={() => setCvTextOpen(v => !v)} aria-expanded={cvTextOpen}
-                        style={{ marginTop: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', fontFamily: "'DM Sans', sans-serif" }}>
-                        {cvTextOpen ? 'Show less' : 'Show more'}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '10px', fontSize: '14px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontFamily: "'DM Sans', sans-serif" }}>
+                        {cvTextOpen ? 'Hide what we read' : 'Preview what we read'}
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ transform: cvTextOpen ? 'rotate(180deg)' : 'none' }}><path d="M6 9l6 6 6-6"/></svg>
                       </button>
                     </>
                   ) : (
@@ -1503,9 +1510,9 @@ export default function BuildPage() {
               which forbade adding anything. Visible, not collapsed: it is the
               answer to that question, so it can't be hidden. */}
           <div style={{ marginTop: '22px' }}>
-            <label htmlFor="cv-changes" style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
+            <label htmlFor="cv-changes" style={{ ...cardTitleStyle, fontSize: '0.98rem', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", display: 'block', marginBottom: '10px' }}>
               Anything to add or change?
-              <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--muted)' }}>Optional</span>
+              <span style={{ display: 'block', fontSize: '12.5px', fontWeight: 400, color: 'var(--muted)', marginTop: '2px' }}>Optional</span>
             </label>
             <textarea id="cv-changes" ref={refs.cvChanges} style={TA(96)} rows={4}
               placeholder={cvType === 'academic'
@@ -1517,9 +1524,9 @@ export default function BuildPage() {
 
           <ErrorDisplay error={error} onRetry={goToTailor} onDismiss={() => setError(null)} />
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: '24px', gap: '12px', flexWrap: 'wrap' as const }}>
-            <button onClick={goToTailor} disabled={isExtracting || !!uploadReadError} style={{ ...btnPrimary, opacity: (isExtracting || uploadReadError) ? 0.6 : 1 }}>
-              Next →
+          <div style={{ marginTop: '24px' }}>
+            <button onClick={goToTailor} disabled={isExtracting || !!uploadReadError} style={{ ...btnPrimary, width: '100%', justifyContent: 'center', padding: '15px 26px', fontSize: '15px', fontWeight: 600, opacity: (isExtracting || uploadReadError) ? 0.6 : 1 }}>
+              Continue
             </button>
           </div>
         </div>
