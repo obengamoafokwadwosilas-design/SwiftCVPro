@@ -440,27 +440,28 @@ section { padding:var(--section-y) 0; }
 }
 .price-card::before { content:""; position:absolute; z-index:-1; left:0; right:0; top:0; height:5px; background:#b9c0c6; }
 .price-card:hover { transform:translateY(-6px); box-shadow:0 30px 64px -34px rgba(7,25,45,0.38); }
-/* Accent colours — no card is marked "recommended"; each paid tier gets its
-   own catchy colour on the same dark-navy card body instead, so people
-   choose on appeal, not a steered pick. The base single-CV card (Career
-   Ready) keeps no accent class, staying plain and light like before. */
-.price-card.accent-teal   { --accent:var(--teal);  --accent-light:#73ef91; --accent-dark:var(--teal-dark); }
-.price-card.accent-indigo { --accent:#4c1d95;       --accent-light:#c4b5fd; --accent-dark:#3b1578; }
-.price-card.accent-gold   { --accent:#b4830f;       --accent-light:#fbbf24; --accent-dark:#8a6310; }
-.price-card[class*="accent-"] {
-  color:var(--white); background:var(--navy); border-color:var(--navy);
-  box-shadow:0 34px 70px -32px rgba(7,25,45,0.65);
-}
+/* All cards stay light — the owner found dark-navy cards heavy against the
+   paper page. Colour only marks the choice: the pack gets a green border and
+   a "Best value" pill on its top edge, the cover letter a gold strip, and
+   each its own coloured button and ticks. */
+.price-card.accent-teal { --accent:var(--teal); --accent-dark:var(--teal-dark); }
+.price-card.accent-gold { --accent:#b4830f;     --accent-dark:#8a6310; }
 .price-card[class*="accent-"]::before { height:6px; background:var(--accent); }
-@media(min-width:680px){ .price-card[class*="accent-"]{ transform:translateY(-10px); } .price-card[class*="accent-"]:hover{ transform:translateY(-16px); } }
-.price-card[class*="accent-"] .price-name, .price-card[class*="accent-"] .price-figure { color:var(--white); }
-.price-card[class*="accent-"] .price-figure .cur, .price-card[class*="accent-"] .price-desc, .price-card[class*="accent-"] .price-features li { color:rgba(255,255,255,0.7); }
-.price-card[class*="accent-"] .price-feat-value { color:rgba(255,255,255,0.45); }
-.price-card[class*="accent-"] .price-bonus { color:var(--accent-light); }
-.price-card[class*="accent-"] .price-divider { background:rgba(255,255,255,0.15); }
-.price-card[class*="accent-"] .price-features li svg { color:var(--accent-light); }
+.price-card[class*="accent-"] .price-features li svg { color:var(--accent); }
 .price-card[class*="accent-"] .price-btn { background:var(--accent); border-color:var(--accent); color:var(--white); }
 .price-card[class*="accent-"] .price-btn:hover { background:var(--accent-dark); border-color:var(--accent-dark); }
+/* The pill sits across the top border, so this card can't clip its overflow
+   (and so drops the strip, which relied on that clipping for its corners). */
+.price-card.accent-teal { overflow:visible; border:2px solid var(--accent); box-shadow:0 30px 64px -34px rgba(10,138,63,0.4); }
+.price-card.accent-teal::before { display:none; }
+.price-card.accent-teal .price-bonus {
+  position:absolute; top:-12px; left:20px; min-height:0; margin:0;
+  padding:3px 12px; border-radius:999px; background:var(--accent); color:var(--white);
+}
+@media(min-width:680px){ .price-card.accent-teal{ transform:translateY(-10px); } .price-card.accent-teal:hover{ transform:translateY(-16px); } }
+/* The bonus line now sits on the border, so the other cards' blank spacers
+   that kept the dividers level aren't needed. */
+.price-bonus[aria-hidden="true"] { display:none; }
 .price-name { font-family:var(--font-display); font-size:1.25rem; font-weight:600; color:var(--navy); margin-bottom:8px; }
 .price-figure { display:flex; align-items:baseline; gap:5px; font-family:var(--font-display); font-weight:600; color:var(--navy); margin-bottom:12px; }
 .price-figure .cur { font-family:var(--font-mono); font-size:0.78rem; color:var(--ink-38); font-weight:500; }
@@ -489,7 +490,7 @@ section { padding:var(--section-y) 0; }
      run long, independently of the desktop grid above. */
   .pricing-section { padding:2.75rem 0; }
   .pricing-section .section-head { margin-bottom:28px; }
-  .pricing-grid { grid-template-columns:1fr; gap:12px; }
+  .pricing-grid { grid-template-columns:1fr; gap:22px; }
   .price-card { min-height:0; padding:20px 18px 18px; }
   .price-name { margin-bottom:6px; }
   .price-figure { margin-bottom:8px; }
