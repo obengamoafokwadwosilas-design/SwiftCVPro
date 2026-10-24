@@ -1933,10 +1933,10 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
           <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: '#e1f5ee', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '14px' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="1.8"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3a1 1 0 011-1h4a1 1 0 011 1v1"/><path d="M9 10h6M9 14h6M9 18h3"/></svg>
           </div>
-          <h1 className="xcv-h1" style={{ ...h1Style, marginBottom: '6px' }}>{isCoverLetter ? 'Ready To Write Your Letter' : 'Ready To Build Your CV'}</h1>
-          <p style={{ ...subStyle, marginBottom: '10px' }}>Check your details before generating.</p>
+          <h1 className="xcv-h1" style={{ ...h1Style, marginBottom: '6px' }}>{isCoverLetter ? 'Ready To Build Your Letter' : 'Ready To Build Your CV'}</h1>
+          <p style={{ ...subStyle, marginBottom: '10px' }}>Check your details before building.</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F5F5F1', border: '1px solid var(--rule)', borderRadius: '10px', padding: '9px 13px', marginBottom: '24px', fontSize: '12px', color: 'var(--graphite)' }}>
-            This is what you’ve entered, not the finished {isCoverLetter ? 'letter' : 'CV'} — click Generate below to create it.
+            This is what you’ve entered, not the finished {isCoverLetter ? 'letter' : 'CV'} — click Build below to create it.
           </div>
 
           {/* Summary blocks — only show sections with content */}

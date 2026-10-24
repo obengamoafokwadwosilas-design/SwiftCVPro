@@ -463,7 +463,7 @@ export default function PreviewPage() {
       const data = await res.json()
       if (!res.ok) {
         if (data.error === 'FREE_CAP_REACHED') setCoverErr(data.message || 'You\u2019ve used your free cover-letter previews. Purchase CV credits to keep generating.')
-        else setCoverErr(data.error || 'Generation failed. Please try again.')
+        else setCoverErr(data.error || 'Couldn’t build your cover letter. Please try again.')
         return
       }
       const letter = normalizeCV(data.coverLetter)
@@ -1402,7 +1402,7 @@ export default function PreviewPage() {
         <div onClick={() => !coverGenerating && setShowCoverModal(false)} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
           <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'440px', padding:'22px', boxShadow:'0 1px 3px rgba(10,15,26,0.08), 0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif" }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'6px' }}>
-              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>Generate a cover letter</div>
+              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>Build a cover letter</div>
               <button onClick={() => !coverGenerating && setShowCoverModal(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
             <p style={{ fontSize:'12.5px', color:'#64748b', lineHeight:1.5, margin:'0 0 14px' }}>Written from your CV. Choose the kind of letter you need.</p>
@@ -1459,7 +1459,7 @@ export default function PreviewPage() {
             ) : (
               <>
                 <button onClick={handleGenerateCover} disabled={coverReadingFile} style={{ width:'100%', marginTop:'16px', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
-                  <span style={{ color:'#fff' }}>✦</span> Generate Cover Letter
+                  <span style={{ color:'#fff' }}>✦</span> Build my cover letter
                 </button>
                 <div style={{ textAlign:'center', fontSize:'11px', color:'#64748b', marginTop:'10px' }}>{coverIncluded ? 'Included in your pack' : `GH₵${COVER_LETTER_PRICE}`} · takes about 20 seconds</div>
               </>
