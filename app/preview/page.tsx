@@ -168,8 +168,6 @@ export default function PreviewPage() {
   const [freeRevisionUsed, setFreeRevisionUsed] = useState(false)
   const [isRevising, setIsRevising] = useState(false)
   const [revisionError, setRevisionError] = useState('')
-  const [showUpsell, setShowUpsell] = useState(false)
-  const [upsellShown, setUpsellShown] = useState(false)
   const [hasDownloaded, setHasDownloaded] = useState(false)
   // Whether the document on screen has been paid for. null until the server has
   // answered; anything other than true shows the protected preview, so a slow
@@ -401,20 +399,6 @@ export default function PreviewPage() {
   }, [])
   const coverIncluded = (clCredits ?? 0) > 0
 
-  // A few seconds after the "Your CV is ready" toast (which runs ~6s), gently
-  // surface the cover-letter offer on its own — so it's discovered even by
-  // people who never download. Only for a CV (never when viewing a letter),
-  // only if one hasn't been made yet, and only once. It's the same dismissable
-  // bottom-right card the download path shows; if the user makes a letter or
-  // dismisses first, the timer is cleared / the card's render guards hide it.
-  // Never on an unpaid preview: there the one thing to do is unlock the CV, and
-  // a second offer floating over it only competes with that.
-  useEffect(() => {
-    if (!cv || isCoverLetter || cvType === 'cover_letter' || coverLetter || upsellShown || docPaid !== true) return
-    const t = setTimeout(() => { setShowUpsell(true); setUpsellShown(true) }, 7000)
-    return () => clearTimeout(t)
-  }, [cv, isCoverLetter, cvType, coverLetter, upsellShown, docPaid])
-
   // Fetch the cover-letter balance to label the offer honestly (Included vs the
   // price). The server answers for this browser's owner, so no email is needed.
   // Best-effort; on failure we just omit the tag.
@@ -533,7 +517,6 @@ export default function PreviewPage() {
       a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.docx`
       setHasDownloaded(true)
       setDocPaid(true)
-      setTimeout(() => { if (!upsellShown && !coverLetter && activeDoc === 'cv') { setShowUpsell(true); setUpsellShown(true) } }, 2000)
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
     } catch { alert('Download failed. Please try again.') }
@@ -608,7 +591,6 @@ export default function PreviewPage() {
       a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.pdf`
       setHasDownloaded(true)
       setDocPaid(true)
-      setTimeout(() => { if (!upsellShown && !coverLetter && activeDoc === 'cv') { setShowUpsell(true); setUpsellShown(true) } }, 2000)
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -926,18 +908,14 @@ export default function PreviewPage() {
   const mobilePickLabel = { fontSize:'12px', fontWeight:600, letterSpacing:'0.4px', color:'#64748b' }
   // Opening Templates / Colour brings the CV's top up to just below the header,
   // so the part that changes is in view above the panel while they tap.
-  // Each of these closes the cover-letter offer: it floats above the bottom
-  // bar and would cover the panel or the PDF / Word choice.
   function openLookPanel(which: 'template' | 'colour') {
     setShowDownloadMenu(false)
-    setShowUpsell(false)
     setLookPanel(which)
     const el = cvWrapRef.current
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 52, behavior: 'smooth' })
   }
   function openEditor() {
     setLookPanel(null)
-    setShowUpsell(false)
     setShowDownloadMenu(false)
     setActiveTab('edit')
     window.scrollTo({ top: 0 })
@@ -1364,7 +1342,7 @@ export default function PreviewPage() {
               {!isCoverLetter && currentTpl?.customizable && barButton('Colour', <><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.2"/><circle cx="12" cy="7.5" r="1.2"/><circle cx="15.5" cy="10" r="1.2"/><path d="M12 21a2.5 2.5 0 010-5h1.5a2.5 2.5 0 002.5-2.5"/></>, () => lookPanel === 'colour' ? setLookPanel(null) : openLookPanel('colour'), lookPanel === 'colour')}
               <div style={{ position:'relative', marginLeft:'auto' }}>
                 {docPaid === true ? (
-                  <button onClick={() => { setLookPanel(null); setShowUpsell(false); setShowDownloadMenu(v => !v) }} disabled={!!downloading} style={barCta}>
+                  <button onClick={() => { setLookPanel(null); setShowDownloadMenu(v => !v) }} disabled={!!downloading} style={barCta}>
                     {downloading ? <>Preparing<span className="scv-dots">…</span></> : <><DownIcon /> Download</>}
                   </button>
                 ) : (
@@ -1542,19 +1520,6 @@ export default function PreviewPage() {
                 {isRevising ? 'Regenerating...' : freeRevisionUsed ? 'Pay GH₵5 & Regenerate →' : 'Regenerate →'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* COVER LETTER UPSELL */}
-      {showUpsell && !isCoverLetter && !coverLetter && (
-        <div className="scv-sheet" style={{ position:'fixed', bottom: isMobile ? 'calc(76px + env(safe-area-inset-bottom))' : '24px', right: isMobile ? '16px' : '24px', left: isMobile ? '16px' : undefined, zIndex:150, background:'white', borderRadius:'16px', padding:'18px 20px', boxShadow:'0 8px 40px rgba(0,0,0,0.15)', border:'1px solid #e2e8f0', maxWidth: isMobile ? 'none' : '290px' }}>
-          <button onClick={() => setShowUpsell(false)} style={{ position:'absolute', top:'10px', right:'12px', background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'4px', display:'flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
-          <div style={{ fontSize:'1.15rem', fontWeight:600, color:'#0a0f1a', fontFamily:"'Cormorant Garamond', serif", marginBottom:'6px' }}>Add a matching cover letter?</div>
-          <div style={{ fontSize:fs(12), color:'#64748b', lineHeight:1.6, marginBottom:'14px' }}>Written from this same CV — tailored to a role, or general. Ready in seconds.</div>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div style={{ fontSize:fs(12), fontWeight:700, color:'#0d9488', background:'#f0fdf9', padding:'4px 10px', borderRadius:'20px' }}>{coverIncluded ? 'Included in your pack' : `GH₵${COVER_LETTER_PRICE}`}</div>
-            <button onClick={() => { setShowUpsell(false); setCoverErr(''); setShowCoverModal(true) }} style={{ display:'flex', alignItems:'center', gap:'6px', padding:'9px 18px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:fs(12), fontWeight:600, cursor:'pointer' }}>Generate<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></button>
           </div>
         </div>
       )}

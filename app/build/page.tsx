@@ -189,7 +189,7 @@ export default function BuildPage() {
   const [paymentPending, setPaymentPending] = useState<{ reference: string; standalone: boolean; pkg: typeof PACKAGES[number] } | null>(null)
   const [verifyingPayment, setVerifyingPayment] = useState(false)
   const [uploadedJD, setUploadedJD] = useState<File | null>(null)
-  const [jdInputMode, setJdInputMode] = useState<'paste' | 'upload'>('paste')
+  const [jdInputMode, setJdInputMode] = useState<'paste' | 'upload'>('upload')
   // How (or whether) to aim this CV. Previously the advert box and the
   // job/industry box were two separate optional sections, so a user could fill
   // BOTH — and the advert silently won, ignoring what they'd typed. One
@@ -812,8 +812,8 @@ export default function BuildPage() {
       // an advert had been uploaded) to Academic would otherwise silently
       // tailor the academic CV to that stale job advert.
       if (isAcademic) return refs.jdPaste.current?.value || ''
-      const jdPastedByHand = !!refs.jdPaste.current?.value.trim()
-      if (!uploadedJD || jdPastedByHand) return refs.jdPaste.current?.value || ''
+      // The paste box stays mounted while hidden, so the tab they're on decides.
+      if (jdInputMode !== 'upload' || !uploadedJD) return refs.jdPaste.current?.value || ''
       try {
         return await extractFile(uploadedJD)
       } catch (err: any) {
@@ -1415,7 +1415,17 @@ export default function BuildPage() {
 
       {/* ══ SCREEN: PASTE PATH ══════════════════════════════════ */}
         <div style={{ display: screen === 'paste' ? 'block' : 'none', maxWidth: '640px', margin: '0 auto', padding: '52px 24px 80px' }}>
-          <h1 className="xcv-h1" style={{ ...h1Style, fontSize: 'clamp(1.25rem, 3.2vw, 1.7rem)', marginBottom: '22px' }}>{pasteInputMode === 'upload' && uploadedCV && !uploadReadError && !isExtracting ? 'Your CV' : 'Upload or paste your CV'}</h1>
+          {pasteInputMode === 'upload' && uploadedCV && !uploadReadError && !isExtracting ? (
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', marginBottom: '22px' }}>
+              <h1 className="xcv-h1" style={{ ...h1Style, fontSize: 'clamp(1.25rem, 3.2vw, 1.7rem)', margin: 0 }}>Your CV</h1>
+              <button type="button" onClick={() => handleCVFileUpload(null)}
+                style={{ fontSize: '13px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', fontFamily: "'DM Sans', sans-serif", flexShrink: 0, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                Change file
+              </button>
+            </div>
+          ) : (
+            <h1 className="xcv-h1" style={{ ...h1Style, fontSize: 'clamp(1.25rem, 3.2vw, 1.7rem)', marginBottom: '22px' }}>Upload or paste your CV</h1>
+          )}
 
           {/* Visible toggle, not a plain link — the "Upload" tab relabels
               itself once a file's read, so it stays selected and shows the
@@ -1474,10 +1484,6 @@ export default function BuildPage() {
                           <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--ink)', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{uploadedCV?.name || 'Your CV'}</div>
                           <div style={{ fontSize: '13px', color: 'var(--graphite)' }}>Read successfully</div>
                         </div>
-                        <button type="button" onClick={() => handleCVFileUpload(null)}
-                          style={{ fontSize: '14px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
-                          Change
-                        </button>
                       </div>
                       <div style={{ borderTop: '1px solid var(--rule)', margin: '14px 0 12px' }} />
                       {/* PDF extraction keeps the file's line wraps, so a sentence
@@ -2240,9 +2246,11 @@ function TailorSection({ mode, setMode, isLetter, isAcademic, docLabel, jdMode, 
                   <div style={{ marginBottom: '10px' }}>
                     <ModeToggle value={jdMode} onChange={setJdMode} options={UPLOAD_PASTE_OPTIONS} />
                   </div>
-                  {jdMode === 'paste'
-                    ? <textarea ref={jdPasteRef} style={TA(110)} rows={5} placeholder="Paste the job advert here..." />
-                    : <UploadZone label="Upload the job advert" hint="PDF · Word · Image (screenshot) — or drag and drop" onFile={setJdFile} file={jdFile} />}
+                  {/* Upload is the default, so the paste box stays mounted while
+                      hidden: a restored draft's advert needs it to land in, and
+                      flipping tabs shouldn't lose what was typed. */}
+                  <textarea ref={jdPasteRef} style={{ ...TA(110), display: jdMode === 'paste' ? undefined : 'none' }} rows={5} placeholder="Paste the job advert here..." />
+                  {jdMode === 'upload' && <UploadZone label="Upload the job advert" hint="PDF · Word · Image (screenshot) — or drag and drop" onFile={setJdFile} file={jdFile} />}
                 </div>
               )}
 
