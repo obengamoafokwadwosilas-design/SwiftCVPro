@@ -66,7 +66,7 @@ export default function Nav({ step, subProgress = 1, rightSlot }: NavProps) {
             color: 'rgba(255,255,255,0.5)',
             marginTop: '3px'
           }}>
-            Ghana&apos;s Job-Winning CV Builder
+            The Job-Winning CV Builder
           </div>
         </div>
       </a>
