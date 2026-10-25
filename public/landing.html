@@ -239,7 +239,9 @@ nav.scrolled {
 }
 .hero-h1 .line-timing svg { flex-shrink:0; }
 @media(min-width:1024px){ .hero-h1 .line-timing{ justify-content:flex-start; } }
-@media(max-width:479px){ .hero-h1{ font-size:2.65rem; line-height:0.98; } }
+/* Scales down on narrow phones so "Build your perfect," (~7.4em wide) keeps
+   to one line instead of leaving "perfect," alone on the next. */
+@media(max-width:479px){ .hero-h1{ font-size:min(2.65rem, calc((100vw - 64px) / 7.6)); line-height:0.98; } }
 
 .hero-hook { margin-bottom:26px; max-width:56ch; }
 @media(min-width:1024px){ .hero-hook{ margin-left:0; margin-right:0; } }
@@ -1001,7 +1003,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="hero-left">
         <p class="hero-eyebrow">Applying for your next role?</p>
         <h1 class="hero-h1">
-          <span>Build your <span style="white-space:nowrap">ready to submit</span></span>
+          <span>Build your perfect, <span style="white-space:nowrap">ready to submit</span></span>
           <span class="line-accent">Job-Winning CV</span>
           <span class="line-timing"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>in less than a minute.</span>
         </h1>
