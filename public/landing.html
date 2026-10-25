@@ -366,7 +366,8 @@ nav.scrolled {
 .ticker-track::before, .ticker-track::after { content:''; position:absolute; top:0; bottom:0; width:100px; z-index:2; pointer-events:none; }
 .ticker-track::before { left:0; background:linear-gradient(90deg,var(--paper),transparent); }
 .ticker-track::after { right:0; background:linear-gradient(-90deg,var(--paper),transparent); }
-.ticker-inner { display:flex; white-space:nowrap; animation:tickerRoll 40s linear infinite; }
+/* Duration grows with the list (15 names ran at 40s / 24s) so the names move at the same speed. */
+.ticker-inner { display:flex; white-space:nowrap; animation:tickerRoll 80s linear infinite; }
 .ticker-inner:hover { animation-play-state:paused; }
 @keyframes tickerRoll { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
 .ticker-item { display:inline-flex; align-items:center; gap:20px; padding:0 20px; font-family:var(--font-display); font-size:1.15rem; font-weight:600; color:var(--navy); }
@@ -758,7 +759,7 @@ section { padding:var(--section-y) 0; }
    delivers a third of the content per second and reads as crawling. Shorter
    durations restore the desktop sense of pace. */
 @media(max-width:768px){
-  .ticker-inner    { animation-duration: 24s; }
+  .ticker-inner    { animation-duration: 48s; }
   .template-ticker { animation-duration: 20s; }
   .testi-grid      { animation-duration: 45s; }
 }
@@ -1079,34 +1080,64 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="ticker-track">
     <div class="ticker-inner">
       <span class="ticker-item">Google <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Microsoft <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Amazon <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Deloitte <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">PwC <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">KPMG <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">EY <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Shell <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Unilever <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Nestlé <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Coca-Cola <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Standard Chartered <span class="ticker-dot">◆</span></span>
       <span class="ticker-item">MTN <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Ecobank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Deloitte <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">GCB Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Unilever <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Newmont <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Microsoft <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Stanbic Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Guinness Ghana <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">PwC <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Fidelity Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Tullow Oil <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Nestlé <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Absa <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">COCOBOD <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">KPMG <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Telecel <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Gold Fields <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Amazon <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">CalBank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Standard Chartered <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Kasapreko <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">EY <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Hubtel <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Coca-Cola <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Enterprise Group <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Shell <span class="ticker-dot">◆</span></span>
       <span class="ticker-item">United Nations <span class="ticker-dot">◆</span></span>
       <span class="ticker-item">World Bank <span class="ticker-dot">◆</span></span>
       <!-- duplicate -->
       <span class="ticker-item">Google <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Microsoft <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Amazon <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Deloitte <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">PwC <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">KPMG <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">EY <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Shell <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Unilever <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Nestlé <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Coca-Cola <span class="ticker-dot">◆</span></span>
-      <span class="ticker-item">Standard Chartered <span class="ticker-dot">◆</span></span>
       <span class="ticker-item">MTN <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Ecobank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Deloitte <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">GCB Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Unilever <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Newmont <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Microsoft <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Stanbic Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Guinness Ghana <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">PwC <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Fidelity Bank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Tullow Oil <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Nestlé <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Absa <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">COCOBOD <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">KPMG <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Telecel <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Gold Fields <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Amazon <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">CalBank <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Standard Chartered <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Kasapreko <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">EY <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Hubtel <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Coca-Cola <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Enterprise Group <span class="ticker-dot">◆</span></span>
+      <span class="ticker-item">Shell <span class="ticker-dot">◆</span></span>
       <span class="ticker-item">United Nations <span class="ticker-dot">◆</span></span>
       <span class="ticker-item">World Bank <span class="ticker-dot">◆</span></span>
     </div>
