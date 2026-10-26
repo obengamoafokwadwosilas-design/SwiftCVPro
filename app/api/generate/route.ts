@@ -121,6 +121,7 @@ async function saveToHistory(
   rawContent: string | undefined,
   jobDescription: string | undefined,
   changes: string | undefined,
+  uploadedFileName: string | undefined,
   generatedCV: GeneratedCV
 ): Promise<number | null> {
   try {
@@ -147,6 +148,7 @@ async function saveToHistory(
           email: accessEmail,
           pasteContent: rawContent,
           changes,
+          uploadedFileName,
           jobDescription,
           landingScreen: 'type',
         }
@@ -190,6 +192,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const { cvType, rawContent, jobDescription, whyRole, changes, email, intent } = body
+    // Only a label for the "from your last visit" card — never read as content.
+    const uploadedFileName = typeof body.uploadedFileName === 'string' ? body.uploadedFileName.slice(0, 200) : undefined
     const formData = body.formData
 
     if (!rawContent && !formData) {
@@ -377,7 +381,7 @@ export async function POST(req: NextRequest) {
     // ── Save to history, then mark download paid for paid generations ──
     // Paid users spend their credit at generate time (above). The export routes
     // check download_paid=true and serve the file without a second charge.
-    const historyId = await saveToHistory(ownerId, contactEmail, cvType, formData, rawContent, jobDescription, changes, generatedCV)
+    const historyId = await saveToHistory(ownerId, contactEmail, cvType, formData, rawContent, jobDescription, changes, uploadedFileName, generatedCV)
 
     if (!historyId) {
       await refundOnFailure()

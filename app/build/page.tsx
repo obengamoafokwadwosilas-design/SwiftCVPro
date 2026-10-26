@@ -161,6 +161,8 @@ export default function BuildPage() {
   // restoreUploadedFile) — the live generate path just reads refs.paste,
   // which this same text was written into the moment extraction finished.
   const [extractedCVText, setExtractedCVText] = useState<{ file: File; text: string } | null>(null)
+  // The CV on screen came from their last visit, not an upload just now.
+  const [rememberedUpload, setRememberedUpload] = useState(false)
   // Surfaced on the upload card itself when background extraction (below)
   // fails, instead of silently showing "Ready" for a file that was never
   // actually read — someone shouldn't discover their CV was unreadable only
@@ -378,6 +380,10 @@ export default function BuildPage() {
       return
     }
     clearLastInput()
+    fetch('/api/cv-history/last-input', { method: 'POST' })
+      .then(r => r.json())
+      .then(d => { if (d?.input) applyRemembered(d.input) })
+      .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -596,6 +602,32 @@ export default function BuildPage() {
     return true
   }
 
+  // A returning visitor starts from their last CV (or form answers) and notes,
+  // so they only add the new job. Never over anything already typed or
+  // uploaded this visit — an upload fills refs.paste, so an empty one means
+  // they haven't started.
+  function applyRemembered(input: Pick<BuildSeed, 'inputMethod' | 'pasteContent' | 'uploadedFileName' | 'changes' | 'form'>) {
+    const fill = (ref: React.RefObject<HTMLInputElement | HTMLTextAreaElement>, v?: string) => {
+      if (v && ref.current && !ref.current.value) ref.current.value = v
+    }
+    if (input.pasteContent && refs.paste.current && !refs.paste.current.value) {
+      refs.paste.current.value = input.pasteContent
+      if (input.uploadedFileName) {
+        restoreUploadedFile({ ...input, cvType: cvType, landingScreen: 'type' } as BuildSeed)
+        setRememberedUpload(true)
+      } else setPasteInputMode('paste')
+    }
+    fill(refs.cvChanges, input.changes)
+    const f = input.form
+    if (f) {
+      fill(refs.fullName, f.fullName); fill(refs.phone, f.phone); fill(refs.email, f.email); fill(refs.location, f.location)
+      fill(refs.dob, f.dob); fill(refs.nationality, f.nationality); fill(refs.linkedin, f.linkedin)
+      fill(refs.education, f.education); fill(refs.gpa, f.gpa); fill(refs.thesis, f.thesis); fill(refs.research, f.research)
+      fill(refs.experience, f.experience); fill(refs.publications, f.publications); fill(refs.teaching, f.teaching); fill(refs.conferences, f.conferences)
+      fill(refs.extras, f.extras); fill(refs.grants, f.grants); fill(refs.supervision, f.supervision); fill(refs.orcid, f.orcid)
+    }
+  }
+
   function applyBuildSeed(seed: BuildSeed) {
     setCvType(seed.cvType)
     setInputMethod(seed.inputMethod)
@@ -674,6 +706,7 @@ export default function BuildPage() {
   // silent until Generate — someone should find out their file couldn't be
   // read right away, not after filling in the rest of the screen.
   async function handleCVFileUpload(file: File | null) {
+    setRememberedUpload(false)
     setUploadedCV(file)
     setUploadReadError('')
     setCvTextOpen(false)
@@ -952,6 +985,7 @@ export default function BuildPage() {
           company: tailorMode === 'aim' ? (refs.tailorSchoolPaste.current?.value || undefined) : undefined,
           targetProgramme: tailorMode === 'aim' ? (refs.tailorProgrammePaste.current?.value || undefined) : undefined,
           changes: refs.cvChanges.current?.value || undefined,
+          uploadedFileName: pasteInputMode === 'upload' ? (uploadedCV?.name || undefined) : undefined,
           // A cover letter's "why this role" is answered on form-5; it used to be
           // dropped on this path because only the upload page's box was sent.
           whyRole: isCoverLetter ? (refs.tailorEmphasisForm.current?.value || undefined) : undefined,
@@ -1418,7 +1452,9 @@ export default function BuildPage() {
           {pasteInputMode === 'upload' && uploadedCV && !uploadReadError && !isExtracting ? (
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '12px', marginBottom: '22px' }}>
               <h1 className="xcv-h1" style={{ ...h1Style, fontSize: 'clamp(1.25rem, 3.2vw, 1.7rem)', margin: 0 }}>Your CV</h1>
-              <button type="button" onClick={() => handleCVFileUpload(null)}
+              {/* Changing a remembered CV also drops its remembered notes, so
+                  someone else on a shared device starts properly fresh. */}
+              <button type="button" onClick={() => { if (rememberedUpload && refs.cvChanges.current) refs.cvChanges.current.value = ''; handleCVFileUpload(null) }}
                 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 0', fontFamily: "'DM Sans', sans-serif", flexShrink: 0, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
                 Change file
               </button>
@@ -1482,7 +1518,7 @@ export default function BuildPage() {
                         </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--ink)', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{uploadedCV?.name || 'Your CV'}</div>
-                          <div style={{ fontSize: '13px', color: 'var(--graphite)' }}>Read successfully</div>
+                          <div style={{ fontSize: '13px', color: 'var(--graphite)' }}>{rememberedUpload ? 'Saved from your last visit' : 'Read successfully'}</div>
                         </div>
                       </div>
                       <div style={{ borderTop: '1px solid var(--rule)', margin: '14px 0 12px' }} />
