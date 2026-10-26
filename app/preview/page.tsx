@@ -174,6 +174,9 @@ export default function PreviewPage() {
   // answer never shows the finished CV by mistake.
   const [docPaid, setDocPaid] = useState<boolean | null>(null)
   const [showReadyBanner, setShowReadyBanner] = useState(true)
+  // After a CV download: "Tailor this CV for another job". Once per visit.
+  const [showAgainToast, setShowAgainToast] = useState(false)
+  const againOffered = useRef(false)
   const [showChooser, setShowChooser] = useState(false)
   const [showDownloadMenu, setShowDownloadMenu] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
@@ -517,10 +520,24 @@ export default function PreviewPage() {
       a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.docx`
       setHasDownloaded(true)
       setDocPaid(true)
+      offerTailorAgain()
       document.body.appendChild(a); a.click(); a.remove()
       window.URL.revokeObjectURL(url)
     } catch { alert('Download failed. Please try again.') }
     finally { setDownloading(null) }
+  }
+
+  // Right after a download is when the next application comes to mind. The
+  // builder reopens on the job step with this CV and its notes already in.
+  function offerTailorAgain() {
+    if (activeDoc !== 'cv' || isCoverLetter || againOffered.current) return
+    againOffered.current = true
+    setShowReadyBanner(false)
+    setShowAgainToast(true)
+  }
+  function tailorAgain() {
+    const id = sessionStorage.getItem('swiftcv_history_id')
+    router.push(id ? `/build?again=${id}` : '/build')
   }
 
   async function handleDownloadPdf() {
@@ -591,6 +608,7 @@ export default function PreviewPage() {
       a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.pdf`
       setHasDownloaded(true)
       setDocPaid(true)
+      offerTailorAgain()
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -908,8 +926,12 @@ export default function PreviewPage() {
   const mobilePickLabel = { fontSize:'12px', fontWeight:600, letterSpacing:'0.4px', color:'#64748b' }
   // Opening Templates / Colour brings the CV's top up to just below the header,
   // so the part that changes is in view above the panel while they tap.
+  // The toasts sit just above the bottom bar, right where the panel and the
+  // PDF / Word menu open, so they close first or they'd cover them.
   function openLookPanel(which: 'template' | 'colour') {
     setShowDownloadMenu(false)
+    setShowReadyBanner(false)
+    setShowAgainToast(false)
     setLookPanel(which)
     const el = cvWrapRef.current
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 52, behavior: 'smooth' })
@@ -1202,6 +1224,23 @@ export default function PreviewPage() {
           </div>
         </div>
       )}
+      {activeTab === 'preview' && showAgainToast && (
+        <div className="no-print scv-toast-wrap" onMouseEnter={() => setBannerPaused(true)} onMouseLeave={() => setBannerPaused(false)}>
+          <div className="scv-toast">
+            <div className="scv-toast-sheen" />
+            <div className="scv-check" style={{ width:'26px', height:'26px', borderRadius:'50%', background:'linear-gradient(140deg,#14b8a6,#0a5d55)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 4px 12px -2px rgba(13,148,136,0.5)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div className="scv-btitle" style={{ fontFamily:"'Cormorant Garamond', serif", fontSize: isMobile ? '1.15rem' : '1.02rem', fontWeight:600, letterSpacing:'0.2px', lineHeight:1.15, color:'#0a0f1a' }}>Downloaded</div>
+              <div className="scv-bsub" style={{ fontSize:fs(11.5), color:'#64748b', marginTop:'1px' }}>Applying somewhere else?</div>
+              <button onClick={tailorAgain} style={{ background:'none', border:'none', padding:'4px 0 0', color:'#0a8a3f', fontWeight:600, fontSize:fs(12.5), cursor:'pointer', fontFamily:"'DM Sans', sans-serif", textAlign:'left' }}>Tailor this CV for another job →</button>
+            </div>
+            <button className="scv-x" aria-label="Close" onClick={() => setShowAgainToast(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'3px', display:'flex', borderRadius:'8px', alignSelf:'flex-start' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+            <div className="scv-toast-timer" data-paused={bannerPaused} style={{ animationDuration:'10s' }} onAnimationEnd={() => setShowAgainToast(false)} />
+          </div>
+        </div>
+      )}
       <div style={{ display:'grid', gridTemplateColumns: (isCoverLetter || isMobile) ? '1fr' : '260px 1fr', minHeight:'calc(100vh - 57px)' }}>
         {!isCoverLetter && !isMobile && (
           <div className="no-print" style={{ background:'white', borderRight:'1px solid #e2e8f0', padding:'22px 20px', overflowY:'auto', height:'calc(100vh - 57px)' }}>
@@ -1342,7 +1381,7 @@ export default function PreviewPage() {
               {!isCoverLetter && currentTpl?.customizable && barButton('Colour', <><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.2"/><circle cx="12" cy="7.5" r="1.2"/><circle cx="15.5" cy="10" r="1.2"/><path d="M12 21a2.5 2.5 0 010-5h1.5a2.5 2.5 0 002.5-2.5"/></>, () => lookPanel === 'colour' ? setLookPanel(null) : openLookPanel('colour'), lookPanel === 'colour')}
               <div style={{ position:'relative', marginLeft:'auto' }}>
                 {docPaid === true ? (
-                  <button onClick={() => { setLookPanel(null); setShowDownloadMenu(v => !v) }} disabled={!!downloading} style={barCta}>
+                  <button onClick={() => { setLookPanel(null); setShowReadyBanner(false); setShowAgainToast(false); setShowDownloadMenu(v => !v) }} disabled={!!downloading} style={barCta}>
                     {downloading ? <>Preparing<span className="scv-dots">…</span></> : <><DownIcon /> Download</>}
                   </button>
                 ) : (

@@ -380,9 +380,24 @@ export default function BuildPage() {
       return
     }
     clearLastInput()
-    fetch('/api/cv-history/last-input', { method: 'POST' })
+    // "Tailor this CV for another job" (after a download) names the CV to start
+    // from and goes straight to the job step; a plain visit starts from their
+    // latest CV on the first step as usual.
+    const again = Number(new URLSearchParams(window.location.search).get('again')) || null
+    fetch('/api/cv-history/last-input', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(again ? { historyId: again } : {}),
+    })
       .then(r => r.json())
-      .then(d => { if (d?.input) applyRemembered(d.input) })
+      .then(d => {
+        if (!d?.input) return
+        applyRemembered(d.input)
+        if (!again) return
+        setCvType(d.input.cvType)
+        setInputMethod(d.input.inputMethod)
+        setTailorMode(d.input.cvType === 'academic' ? 'aim' : 'advert')
+        requestAnimationFrame(() => go(d.input.inputMethod === 'form' ? 'form-5' : 'tailor'))
+      })
       .catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
