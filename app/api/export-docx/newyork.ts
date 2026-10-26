@@ -55,7 +55,7 @@ export function buildNewYork(cv: GeneratedCV, accent?: string | null): Document 
       alignment: AlignmentType.CENTER,
       spacing: { before: 240, after: 40 },
       children: [new TextRun({
-        text: text.toUpperCase(), bold: true, size: 24, color: ACCENT,
+        text: text.toUpperCase(), bold: true, size: 25, color: ACCENT,
         font: SERIF, characterSpacing: 80,
       })],
     })
@@ -64,7 +64,7 @@ export function buildNewYork(cv: GeneratedCV, accent?: string | null): Document 
     new Paragraph({
       numbering: { reference: 'ny-bullets', level: 0 },
       spacing: { before: 46, after: 46, line: 276 },
-      children: [new TextRun({ text, size: 24, font: BODY, color: INK })],
+      children: [new TextRun({ text, size: 25, font: BODY, color: INK })],
     })
 
   // role | dates row — role left in bold serif, dates right italic
@@ -126,7 +126,7 @@ export function buildNewYork(cv: GeneratedCV, accent?: string | null): Document 
   if (cv.coverLetterBody) {
     children.push(spacer(6))
     cv.coverLetterBody.split('\n\n').forEach(p =>
-      children.push(new Paragraph({ spacing: { before: 100, after: 100, line: 320 }, alignment: AlignmentType.LEFT, children: [new TextRun({ text: p, size: 24, font: BODY, color: INK })] }))
+      children.push(new Paragraph({ spacing: { before: 100, after: 100, line: 320 }, alignment: AlignmentType.LEFT, children: [new TextRun({ text: p, size: 25, font: BODY, color: INK })] }))
     )
     return assemble(children, ACCENT)
   }
@@ -137,7 +137,7 @@ export function buildNewYork(cv: GeneratedCV, accent?: string | null): Document 
     children.push(new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { before: 40, after: 60, line: 300 },
-      children: [new TextRun({ text: cv.summary, size: 24, font: BODY, color: INK, italics: true })],
+      children: [new TextRun({ text: cv.summary, size: 25, font: BODY, color: INK, italics: true })],
     }))
   }
 
@@ -164,7 +164,7 @@ export function buildNewYork(cv: GeneratedCV, accent?: string | null): Document 
             new TableCell({
               borders: noBorders, width: { size: 6000, type: WidthType.DXA }, margins: { top: 90, bottom: 30, left: 0, right: 80 },
               children: [
-                new Paragraph({ children: [new TextRun({ text: ed.field ? `${ed.qualification} in ${ed.field}` : ed.qualification, bold: true, size: 24, color: INK, font: SERIF })] }),
+                new Paragraph({ children: [new TextRun({ text: ed.field ? `${ed.qualification} in ${ed.field}` : ed.qualification, bold: true, size: 25, color: INK, font: SERIF })] }),
                 new Paragraph({ spacing: { before: 24 }, children: [new TextRun({ text: ed.institution, size: 22, color: GREY, font: BODY, italics: true })] }),
                 ...(ed.grade ? [new Paragraph({ spacing: { before: 18 }, children: [new TextRun({ text: ed.grade, size: 22, color: ACCENT, font: BODY })] })] : []),
               ],
@@ -213,7 +213,7 @@ export function buildNewYork(cv: GeneratedCV, accent?: string | null): Document 
   }
 
   // ── ADDITIONAL ────────────────────────────────────────────────
-  extraSectionParagraphs(cv, sectionHeading, { size: 24, font: BODY, color: INK }).forEach(pp => children.push(pp))
+  extraSectionParagraphs(cv, sectionHeading, { size: 25, font: BODY, color: INK }).forEach(pp => children.push(pp))
 
   return assemble(children, ACCENT)
 }
@@ -225,11 +225,11 @@ function assemble(children: (Paragraph | Table)[], accent: string): Document {
         reference: 'ny-bullets',
         levels: [{
           level: 0, format: LevelFormat.BULLET, text: '—', alignment: AlignmentType.LEFT,
-          style: { run: { color: accent, size: 24, font: BODY }, paragraph: { indent: { left: 360, hanging: 240 } } },
+          style: { run: { color: accent, size: 25, font: BODY }, paragraph: { indent: { left: 360, hanging: 240 } } },
         }],
       }],
     },
-    styles: { default: { document: { run: { font: BODY, size: 24, color: INK } } } },
+    styles: { default: { document: { run: { font: BODY, size: 25, color: INK } } } },
     sections: [{
       properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 900, right: 1000, bottom: 900, left: 1000 } } },
       children,

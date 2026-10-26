@@ -177,7 +177,9 @@ closed rather than crash.
    To check a change without spending Api2Pdf credit, render the captured
    export HTML with local Chrome (puppeteer-core) and test every template for
    page count and text past a page box. Restore points: tag `before-cv-font-bump` (before body text went
-   ~10.5 → 11pt) and `before-cv-12pt` (before 11 → 12pt body, 11pt dates/contact).
+   ~10.5 → 11pt) `before-cv-12pt` (before 11 → 12pt body, 11pt dates/contact) and
+   `before-cv-12-5pt` (before 12 → 12.5pt body; PDF 16 → 16.5px, roles 17px).
+   12.5pt is meant as the ceiling — above it a CV starts to look padded.
 
 10. **Access codes (4 digits) protect CVs and credits — RemarkableSOP's rules.**
    **Optional, never at checkout** (owner's call): right after a **pack**

@@ -30,8 +30,8 @@ function appendExtras(c: any[], cv: GeneratedCV, heading: (t: string) => any, bu
 
 function pageDoc(children: any[], ref: string, bulletColor: string, bulletChar = '•', margin = { top: 850, right: 850, bottom: 850, left: 850 }): Document {
   return new Document({
-    numbering: { config: [{ reference: ref, levels: [{ level: 0, format: LevelFormat.BULLET, text: bulletChar, alignment: AlignmentType.LEFT, style: { run: { color: bulletColor, size: 24, font: BODY }, paragraph: { indent: { left: 300, hanging: 190 } } } }] }] },
-    styles: { default: { document: { run: { font: BODY, size: 24, color: '1a1a1a' } } } },
+    numbering: { config: [{ reference: ref, levels: [{ level: 0, format: LevelFormat.BULLET, text: bulletChar, alignment: AlignmentType.LEFT, style: { run: { color: bulletColor, size: 25, font: BODY }, paragraph: { indent: { left: 300, hanging: 190 } } } }] }] },
+    styles: { default: { document: { run: { font: BODY, size: 25, color: '1a1a1a' } } } },
     sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin } }, children }],
   })
 }
@@ -43,8 +43,8 @@ export function buildVertex(cv: GeneratedCV, accent?: string | null): Document {
   const A = hex(accent, 'e0533d'), DARK = '1c1c1c', GREY = '666666', LIGHT = '999999'
   if (cv.coverLetterBody) return coverLetter(cv, A, BODY)
 
-  const heading = (t: string) => new Paragraph({ spacing: { before: 200, after: 90 }, children: [new TextRun({ text: `— ${t.toUpperCase()}`, bold: true, size: 24, color: DARK, font: BODY, characterSpacing: 30 })] })
-  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'vertex-b', level: 0 }, spacing: { before: 40, after: 40, line: 264 }, children: [new TextRun({ text: t, size: 24, font: BODY, color: '555555' })] })
+  const heading = (t: string) => new Paragraph({ spacing: { before: 200, after: 90 }, children: [new TextRun({ text: `— ${t.toUpperCase()}`, bold: true, size: 25, color: DARK, font: BODY, characterSpacing: 30 })] })
+  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'vertex-b', level: 0 }, spacing: { before: 40, after: 40, line: 264 }, children: [new TextRun({ text: t, size: 25, font: BODY, color: '555555' })] })
 
   const first = cv.fullName.split(' ')[0], rest = cv.fullName.split(' ').slice(1).join(' ')
   const nameP = new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: first.toUpperCase() + ' ', bold: true, size: 52, color: DARK, font: BODY }), new TextRun({ text: rest.toUpperCase(), size: 52, color: DARK, font: BODY })] })
@@ -53,7 +53,7 @@ export function buildVertex(cv: GeneratedCV, accent?: string | null): Document {
 
   const left: any[] = []
   left.push(heading('Profile'))
-  left.push(new Paragraph({ spacing: { after: 100, line: 264 }, children: [new TextRun({ text: cv.summary, size: 24, font: BODY, color: '555555' })] }))
+  left.push(new Paragraph({ spacing: { after: 100, line: 264 }, children: [new TextRun({ text: cv.summary, size: 25, font: BODY, color: '555555' })] }))
   left.push(heading('Experience'))
   cv.experience?.forEach(e => {
     left.push(new Paragraph({ spacing: { before: 80 }, children: [new TextRun({ text: e.role, bold: true, size: 26, color: DARK, font: BODY })] }))
@@ -67,7 +67,7 @@ export function buildVertex(cv: GeneratedCV, accent?: string | null): Document {
   if (cv.education?.length) {
     right.push(heading('Education'))
     cv.education.forEach(e => {
-      right.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} ${e.field}`, bold: true, size: 24, color: DARK, font: BODY })] }))
+      right.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} ${e.field}`, bold: true, size: 25, color: DARK, font: BODY })] }))
       right.push(new Paragraph({ children: [new TextRun({ text: e.institution, size: 22, color: GREY, font: BODY })] }))
       right.push(new Paragraph({ children: [new TextRun({ text: `${e.startYear}–${e.endYear}${e.grade ? ` · ${e.grade}` : ''}`, size: 22, color: LIGHT, font: BODY, italics: true })] }))
     })
@@ -92,8 +92,8 @@ export function buildSovereign(cv: GeneratedCV, accent?: string | null): Documen
   const A = hex(accent, 'b08d3f'), DARK = '1a2238', GREY = '666666', LIGHT = '999999'
   if (cv.coverLetterBody) return coverLetter(cv, A, SERIF)
 
-  const heading = (t: string) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 240, after: 130 }, border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: A, space: 3 } }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 24, color: DARK, font: SERIF, characterSpacing: 60 })] })
-  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'sov-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 24, font: BODY, color: '444444' })] })
+  const heading = (t: string) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 240, after: 130 }, border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: A, space: 3 } }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 25, color: DARK, font: SERIF, characterSpacing: 60 })] })
+  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'sov-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 25, font: BODY, color: '444444' })] })
   const cpara = (t: string) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { line: 300 }, children: [new TextRun({ text: t, size: 22, color: '444444', font: BODY })] })
 
   const c: any[] = []
@@ -103,13 +103,13 @@ export function buildSovereign(cv: GeneratedCV, accent?: string | null): Documen
   c.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 120, after: 60 }, border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: A, space: 6 } }, children: [new TextRun({ text: '', size: 2 })] }))
   c.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 60 }, children: [new TextRun({ text: contactStr(cv), size: 22, color: GREY, font: BODY })] }))
 
-  if (cv.summary) { c.push(heading('Profile')); c.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 60, line: 300 }, children: [new TextRun({ text: cv.summary, size: 24, font: BODY, color: '444444', italics: true })] })) }
+  if (cv.summary) { c.push(heading('Profile')); c.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 60, line: 300 }, children: [new TextRun({ text: cv.summary, size: 25, font: BODY, color: '444444', italics: true })] })) }
 
   if (cv.experience?.length) {
     c.push(heading('Experience'))
     cv.experience.forEach(e => {
       c.push(new Table({ width: { size: 9700, type: WidthType.DXA }, columnWidths: [6900, 2800], borders: NO_BORDERS, rows: [new TableRow({ children: [new TableCell({ borders: NO_BORDERS, width: { size: 6900, type: WidthType.DXA }, margins: { top: 80, bottom: 0, left: 0, right: 60 }, children: [new Paragraph({ children: [new TextRun({ text: e.role, bold: true, size: 26, color: DARK, font: SERIF })] })] }), new TableCell({ borders: NO_BORDERS, width: { size: 2800, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, margins: { top: 80, bottom: 0, left: 60, right: 0 }, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `${e.startDate} – ${e.endDate}`, size: 22, color: A, italics: true, font: BODY })] })] })] })] }))
-      c.push(new Paragraph({ spacing: { before: 20, after: 40 }, children: [new TextRun({ text: e.company, size: 24, color: A, italics: true, font: SERIF })] }))
+      c.push(new Paragraph({ spacing: { before: 20, after: 40 }, children: [new TextRun({ text: e.company, size: 25, color: A, italics: true, font: SERIF })] }))
       e.bullets.forEach(b => c.push(bullet(b)))
     })
   }
@@ -117,7 +117,7 @@ export function buildSovereign(cv: GeneratedCV, accent?: string | null): Documen
   if (cv.education?.length) {
     c.push(heading('Education'))
     cv.education.forEach(e => {
-      c.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 24, color: DARK, font: SERIF })] }))
+      c.push(new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 25, color: DARK, font: SERIF })] }))
       c.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: e.institution, size: 22, color: GREY, italics: true, font: BODY })] }))
       c.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: `${e.startYear} – ${e.endYear}${e.grade ? ` · ${e.grade}` : ''}`, size: 22, color: LIGHT, font: BODY })] }))
     })
@@ -148,14 +148,14 @@ export function buildMeridianV2(cv: GeneratedCV, accent?: string | null): Docume
   if (cv.skills?.length) { sidebar.push(sbHeading('Skills')); cv.skills.forEach(s => sidebar.push(new Paragraph({ spacing: { before: 28, after: 28 }, children: [new TextRun({ text: '› ', size: 22, color: '5eead4', font: BODY }), new TextRun({ text: s, size: 22, color: white, font: BODY })] }))) }
   if (cv.languages?.length) { sidebar.push(sbHeading('Languages')); cv.languages.forEach(l => sidebar.push(sbText(l))) }
 
-  const mainHeading = (t: string) => new Paragraph({ spacing: { before: 220, after: 110 }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 24, color: A, characterSpacing: 40, font: BODY })] })
-  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'mer-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 24, font: BODY, color: '333333' })] })
+  const mainHeading = (t: string) => new Paragraph({ spacing: { before: 220, after: 110 }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 25, color: A, characterSpacing: 40, font: BODY })] })
+  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'mer-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 25, font: BODY, color: '333333' })] })
   const mpara = (t: string) => new Paragraph({ spacing: { line: 288 }, children: [new TextRun({ text: t, size: 23, color: '333333', font: BODY })] })
 
   const main: any[] = []
   main.push(new Paragraph({ spacing: { after: 30 }, children: [new TextRun({ text: cv.fullName, bold: true, size: 38, color: INK, font: BODY })] }))
-  if (cv.jobTitle) main.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: cv.jobTitle.toUpperCase(), size: 24, color: A, bold: true, characterSpacing: 30, font: BODY })] }))
-  if (cv.summary) { main.push(mainHeading('Profile')); main.push(new Paragraph({ spacing: { after: 60, line: 288 }, children: [new TextRun({ text: cv.summary, size: 24, color: '333333', font: BODY })] })) }
+  if (cv.jobTitle) main.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: cv.jobTitle.toUpperCase(), size: 25, color: A, bold: true, characterSpacing: 30, font: BODY })] }))
+  if (cv.summary) { main.push(mainHeading('Profile')); main.push(new Paragraph({ spacing: { after: 60, line: 288 }, children: [new TextRun({ text: cv.summary, size: 25, color: '333333', font: BODY })] })) }
   if (cv.experience?.length) {
     main.push(mainHeading('Experience'))
     cv.experience.forEach(e => {
@@ -167,7 +167,7 @@ export function buildMeridianV2(cv: GeneratedCV, accent?: string | null): Docume
   if (cv.education?.length) {
     main.push(mainHeading('Education'))
     cv.education.forEach(e => {
-      main.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 24, color: INK, font: BODY })] }))
+      main.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 25, color: INK, font: BODY })] }))
       main.push(new Paragraph({ children: [new TextRun({ text: `${e.institution}${e.grade ? ` — ${e.grade}` : ''}`, size: 22, color: '666666', font: BODY }), new TextRun({ text: `    ${e.startYear} – ${e.endYear}`, size: 22, color: GREY, italics: true, font: BODY })] }))
     })
   }
@@ -187,7 +187,7 @@ export function buildAscend(cv: GeneratedCV, accent?: string | null): Document {
 
   const heading = (t: string) => new Table({ width: { size: 10200, type: WidthType.DXA }, columnWidths: [10200], borders: NO_BORDERS, rows: [new TableRow({ children: [new TableCell({ width: { size: 10200, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: A, color: A }, margins: { top: 70, bottom: 70, left: 160, right: 160 }, children: [new Paragraph({ children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 23, color: 'FFFFFF', characterSpacing: 50, font: BODY })] })] })] })] })
   const sp = () => new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: '', size: 2 })] })
-  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'asc-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 24, font: BODY, color: '333333' })] })
+  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'asc-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 25, font: BODY, color: '333333' })] })
   const para = (t: string) => new Paragraph({ spacing: { line: 288 }, children: [new TextRun({ text: t, size: 23, color: '333333', font: BODY })] })
 
   const c: any[] = []
@@ -195,25 +195,25 @@ export function buildAscend(cv: GeneratedCV, accent?: string | null): Document {
   if (cv.jobTitle) c.push(new Paragraph({ spacing: { before: 40, after: 80 }, children: [new TextRun({ text: cv.jobTitle, size: 26, color: A, font: BODY, bold: true })] }))
   c.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: contactStr(cv).replace(/•/g, '|'), size: 22, color: GREY, font: BODY })] }))
 
-  if (cv.summary) { c.push(heading('Profile')); c.push(sp()); c.push(new Paragraph({ spacing: { after: 80, line: 288 }, children: [new TextRun({ text: cv.summary, size: 24, color: '333333', font: BODY })] })) }
+  if (cv.summary) { c.push(heading('Profile')); c.push(sp()); c.push(new Paragraph({ spacing: { after: 80, line: 288 }, children: [new TextRun({ text: cv.summary, size: 25, color: '333333', font: BODY })] })) }
   if (cv.experience?.length) {
     c.push(heading('Professional Experience')); c.push(sp())
     cv.experience.forEach(e => {
       c.push(new Table({ width: { size: 10200, type: WidthType.DXA }, columnWidths: [7400, 2800], borders: NO_BORDERS, rows: [new TableRow({ children: [new TableCell({ borders: NO_BORDERS, width: { size: 7400, type: WidthType.DXA }, margins: { top: 80, bottom: 0, left: 0, right: 60 }, children: [new Paragraph({ children: [new TextRun({ text: e.role, bold: true, size: 26, color: INK, font: BODY })] })] }), new TableCell({ borders: NO_BORDERS, width: { size: 2800, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, margins: { top: 80, bottom: 0, left: 60, right: 0 }, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `${e.startDate} – ${e.endDate}`, size: 22, color: GREY, italics: true, font: BODY })] })] })] })] }))
-      c.push(new Paragraph({ spacing: { before: 10, after: 40 }, children: [new TextRun({ text: e.company, size: 24, color: A, bold: true, font: BODY })] }))
+      c.push(new Paragraph({ spacing: { before: 10, after: 40 }, children: [new TextRun({ text: e.company, size: 25, color: A, bold: true, font: BODY })] }))
       e.bullets.forEach(b => c.push(bullet(b)))
     })
   }
   if (cv.education?.length) {
     c.push(heading('Education')); c.push(sp())
     cv.education.forEach(e => {
-      c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 24, color: INK, font: BODY }), new TextRun({ text: `     ${e.startYear} – ${e.endYear}`, size: 22, color: GREY, italics: true, font: BODY })] }))
+      c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 25, color: INK, font: BODY }), new TextRun({ text: `     ${e.startYear} – ${e.endYear}`, size: 22, color: GREY, italics: true, font: BODY })] }))
       c.push(new Paragraph({ children: [new TextRun({ text: `${e.institution}${e.grade ? ` — ${e.grade}` : ''}`, size: 22, color: '666666', font: BODY })] }))
     })
   }
   if (cv.skills?.length) {
     c.push(heading('Core Skills')); c.push(sp())
-    c.push(new Paragraph({ spacing: { line: 300 }, children: [new TextRun({ text: cv.skills.join('   •   '), size: 24, color: '333333', font: BODY })] }))
+    c.push(new Paragraph({ spacing: { line: 300 }, children: [new TextRun({ text: cv.skills.join('   •   '), size: 25, color: '333333', font: BODY })] }))
     if (cv.languages?.length) c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: 'Languages: ', bold: true, size: 23, color: INK, font: BODY }), new TextRun({ text: cv.languages.join(', '), size: 23, color: '333333', font: BODY })] }))
   }
   if (cv.publications?.length) { c.push(heading('Publications')); c.push(sp()); cv.publications.forEach(p => c.push(bullet(p))) }
@@ -239,9 +239,9 @@ export function buildAurora(cv: GeneratedCV, accent?: string | null): Document {
   // SERIF (not BODY/Calibri) throughout, matching the PDF's switch to
   // BODY_SERIF — Aurora was the sans-serif outlier among templates whose PDF
   // now runs serif end-to-end, this brings the Word doc back in line.
-  const heading = (t: string) => new Paragraph({ spacing: { before: 220, after: 90 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: A, space: 4 } }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 24, color: A, characterSpacing: 30, font: SERIF })] })
+  const heading = (t: string) => new Paragraph({ spacing: { before: 220, after: 90 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: A, space: 4 } }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 25, color: A, characterSpacing: 30, font: SERIF })] })
   const sp = () => new Paragraph({ spacing: { after: 80 }, children: [new TextRun({ text: '', size: 2 })] })
-  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'aur-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 24, font: SERIF, color: '333333' })] })
+  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'aur-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 25, font: SERIF, color: '333333' })] })
 
   const c: any[] = []
   // ── HEADER BAND (filled accent, white text) ──
@@ -252,25 +252,25 @@ export function buildAurora(cv: GeneratedCV, accent?: string | null): Document {
   ] })] })] }))
   c.push(new Paragraph({ spacing: { after: 160 }, children: [new TextRun({ text: '', size: 2 })] }))
 
-  if (cv.summary) { c.push(heading('Profile')); c.push(sp()); c.push(new Paragraph({ spacing: { after: 80, line: 288 }, children: [new TextRun({ text: cv.summary, size: 24, color: '333333', font: SERIF })] })) }
+  if (cv.summary) { c.push(heading('Profile')); c.push(sp()); c.push(new Paragraph({ spacing: { after: 80, line: 288 }, children: [new TextRun({ text: cv.summary, size: 25, color: '333333', font: SERIF })] })) }
   if (cv.experience?.length) {
     c.push(heading('Professional Experience')); c.push(sp())
     cv.experience.forEach(e => {
       c.push(new Table({ width: { size: 10200, type: WidthType.DXA }, columnWidths: [7400, 2800], borders: NO_BORDERS, rows: [new TableRow({ children: [new TableCell({ borders: NO_BORDERS, width: { size: 7400, type: WidthType.DXA }, margins: { top: 80, bottom: 0, left: 0, right: 60 }, children: [new Paragraph({ children: [new TextRun({ text: e.role, bold: true, size: 26, color: INK, font: SERIF })] })] }), new TableCell({ borders: NO_BORDERS, width: { size: 2800, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, margins: { top: 80, bottom: 0, left: 60, right: 0 }, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `${e.startDate} – ${e.endDate}`, size: 22, color: GREY, italics: true, font: SERIF })] })] })] })] }))
-      c.push(new Paragraph({ spacing: { before: 10, after: 40 }, children: [new TextRun({ text: e.company, size: 24, color: A, bold: true, font: SERIF })] }))
+      c.push(new Paragraph({ spacing: { before: 10, after: 40 }, children: [new TextRun({ text: e.company, size: 25, color: A, bold: true, font: SERIF })] }))
       e.bullets.forEach(b => c.push(bullet(b)))
     })
   }
   if (cv.education?.length) {
     c.push(heading('Education')); c.push(sp())
     cv.education.forEach(e => {
-      c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 24, color: INK, font: SERIF }), new TextRun({ text: `     ${e.startYear} – ${e.endYear}`, size: 22, color: GREY, italics: true, font: SERIF })] }))
+      c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 25, color: INK, font: SERIF }), new TextRun({ text: `     ${e.startYear} – ${e.endYear}`, size: 22, color: GREY, italics: true, font: SERIF })] }))
       c.push(new Paragraph({ children: [new TextRun({ text: `${e.institution}${e.grade ? ` — ${e.grade}` : ''}`, size: 22, color: '666666', font: SERIF })] }))
     })
   }
   if (cv.skills?.length) {
     c.push(heading('Core Skills')); c.push(sp())
-    c.push(new Paragraph({ spacing: { line: 300 }, children: [new TextRun({ text: cv.skills.join('   •   '), size: 24, color: '333333', font: SERIF })] }))
+    c.push(new Paragraph({ spacing: { line: 300 }, children: [new TextRun({ text: cv.skills.join('   •   '), size: 25, color: '333333', font: SERIF })] }))
     if (cv.languages?.length) c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: 'Languages: ', bold: true, size: 23, color: INK, font: SERIF }), new TextRun({ text: cv.languages.join(', '), size: 23, color: '333333', font: SERIF })] }))
   }
   if (cv.publications?.length) { c.push(heading('Publications')); c.push(sp()); cv.publications.forEach(p => c.push(bullet(p))) }
@@ -288,16 +288,16 @@ export function buildHarbour(cv: GeneratedCV, accent?: string | null): Document 
   const A = hex(accent, '0f766e'), INK = '1a2a2a', GREY = '778080'
   if (cv.coverLetterBody) return coverLetter(cv, A, SERIF)
 
-  const heading = (t: string) => new Paragraph({ spacing: { before: 260, after: 120 }, children: [new TextRun({ text: '▎ ', size: 26, color: A, font: BODY }), new TextRun({ text: t.toUpperCase(), bold: true, size: 24, color: INK, characterSpacing: 80, font: BODY })] })
-  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'har-b', level: 0 }, spacing: { before: 46, after: 46, line: 288 }, children: [new TextRun({ text: t, size: 24, font: BODY, color: '444444' })] })
+  const heading = (t: string) => new Paragraph({ spacing: { before: 260, after: 120 }, children: [new TextRun({ text: '▎ ', size: 26, color: A, font: BODY }), new TextRun({ text: t.toUpperCase(), bold: true, size: 25, color: INK, characterSpacing: 80, font: BODY })] })
+  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'har-b', level: 0 }, spacing: { before: 46, after: 46, line: 288 }, children: [new TextRun({ text: t, size: 25, font: BODY, color: '444444' })] })
   const para = (t: string) => new Paragraph({ spacing: { line: 300 }, children: [new TextRun({ text: t, size: 23, color: '444444', font: BODY })] })
 
   const c: any[] = []
-  c.push(new Table({ width: { size: 10200, type: WidthType.DXA }, columnWidths: [80, 10120], borders: NO_BORDERS, rows: [new TableRow({ children: [new TableCell({ borders: NO_BORDERS, width: { size: 80, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: A, color: A }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }), new TableCell({ borders: NO_BORDERS, width: { size: 10120, type: WidthType.DXA }, margins: { top: 0, bottom: 0, left: 240, right: 0 }, children: [new Paragraph({ children: [new TextRun({ text: cv.fullName, bold: true, size: 44, color: INK, font: SERIF })] }), new Paragraph({ spacing: { before: 60 }, children: [new TextRun({ text: cv.jobTitle || '', size: 24, color: A, italics: true, font: SERIF })] })] })] })] }))
+  c.push(new Table({ width: { size: 10200, type: WidthType.DXA }, columnWidths: [80, 10120], borders: NO_BORDERS, rows: [new TableRow({ children: [new TableCell({ borders: NO_BORDERS, width: { size: 80, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: A, color: A }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }), new TableCell({ borders: NO_BORDERS, width: { size: 10120, type: WidthType.DXA }, margins: { top: 0, bottom: 0, left: 240, right: 0 }, children: [new Paragraph({ children: [new TextRun({ text: cv.fullName, bold: true, size: 44, color: INK, font: SERIF })] }), new Paragraph({ spacing: { before: 60 }, children: [new TextRun({ text: cv.jobTitle || '', size: 25, color: A, italics: true, font: SERIF })] })] })] })] }))
   c.push(new Paragraph({ spacing: { before: 140, after: 80 }, children: [new TextRun({ text: contactStr(cv).replace(/   •   /g, '     '), size: 22, color: GREY, font: BODY })] }))
   c.push(new Paragraph({ spacing: { after: 40 }, border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'd8e0e0', space: 2 } }, children: [new TextRun({ text: '', size: 2 })] }))
 
-  if (cv.summary) { c.push(heading('Profile')); c.push(new Paragraph({ spacing: { after: 60, line: 300 }, children: [new TextRun({ text: cv.summary, size: 24, color: '444444', font: BODY })] })) }
+  if (cv.summary) { c.push(heading('Profile')); c.push(new Paragraph({ spacing: { after: 60, line: 300 }, children: [new TextRun({ text: cv.summary, size: 25, color: '444444', font: BODY })] })) }
   if (cv.experience?.length) {
     c.push(heading('Experience'))
     cv.experience.forEach(e => {
@@ -309,13 +309,13 @@ export function buildHarbour(cv: GeneratedCV, accent?: string | null): Document 
   if (cv.education?.length) {
     c.push(heading('Education'))
     cv.education.forEach(e => {
-      c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 24, color: INK, font: SERIF }), new TextRun({ text: `     ${e.startYear} – ${e.endYear}`, size: 22, color: GREY, italics: true, font: BODY })] }))
+      c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 25, color: INK, font: SERIF }), new TextRun({ text: `     ${e.startYear} – ${e.endYear}`, size: 22, color: GREY, italics: true, font: BODY })] }))
       c.push(new Paragraph({ children: [new TextRun({ text: `${e.institution}${e.grade ? ` — ${e.grade}` : ''}`, size: 22, color: '666666', italics: true, font: BODY })] }))
     })
   }
   if (cv.skills?.length) {
     c.push(heading('Skills'))
-    c.push(new Paragraph({ spacing: { line: 300 }, children: [new TextRun({ text: cv.skills.join('   ·   '), size: 24, color: '444444', font: BODY })] }))
+    c.push(new Paragraph({ spacing: { line: 300 }, children: [new TextRun({ text: cv.skills.join('   ·   '), size: 25, color: '444444', font: BODY })] }))
     if (cv.languages?.length) c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: 'Languages — ', bold: true, size: 23, color: INK, font: BODY }), new TextRun({ text: cv.languages.join(', '), size: 23, color: '444444', font: BODY })] }))
   }
   appendExtras(c, cv, heading, bullet, para)
@@ -333,7 +333,7 @@ export function buildPulse(cv: GeneratedCV, accent?: string | null): Document {
 
   // ── MAIN (left) ──
   const mainHeading = (t: string) => new Paragraph({ spacing: { before: 220, after: 110 }, children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 25, color: A, characterSpacing: 30, font: BODY })] })
-  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'pulse-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 24, font: BODY, color: '444444' })] })
+  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'pulse-b', level: 0 }, spacing: { before: 40, after: 40, line: 276 }, children: [new TextRun({ text: t, size: 25, font: BODY, color: '444444' })] })
   const mpara = (t: string) => new Paragraph({ spacing: { line: 288 }, children: [new TextRun({ text: t, size: 23, color: '444444', font: BODY })] })
 
   const main: any[] = []
@@ -341,7 +341,7 @@ export function buildPulse(cv: GeneratedCV, accent?: string | null): Document {
   main.push(new Paragraph({ spacing: { after: 60 }, children: [new TextRun({ text: cv.fullName, bold: true, size: 40, color: DARK, font: BODY })] }))
   if (cv.jobTitle) main.push(new Paragraph({ spacing: { after: 80 }, shading: { type: ShadingType.CLEAR, fill: A, color: A }, children: [new TextRun({ text: `  ${cv.jobTitle.toUpperCase()}  `, size: 22, color: white, bold: true, characterSpacing: 30, font: BODY })] }))
   main.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: contactStr(cv), size: 22, color: '777777', font: BODY })] }))
-  if (cv.summary) { main.push(mainHeading('Profile')); main.push(new Paragraph({ spacing: { after: 60, line: 288 }, children: [new TextRun({ text: cv.summary, size: 24, color: '444444', font: BODY })] })) }
+  if (cv.summary) { main.push(mainHeading('Profile')); main.push(new Paragraph({ spacing: { after: 60, line: 288 }, children: [new TextRun({ text: cv.summary, size: 25, color: '444444', font: BODY })] })) }
   if (cv.experience?.length) {
     main.push(mainHeading('Experience'))
     cv.experience.forEach(e => {
@@ -375,9 +375,9 @@ export function buildPulse(cv: GeneratedCV, accent?: string | null): Document {
 function coverLetter(cv: GeneratedCV, A: string, font: string): Document {
   const c: any[] = []
   c.push(new Paragraph({ spacing: { after: 0 }, border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: A, space: 6 } }, children: [new TextRun({ text: cv.fullName, bold: true, size: 36, color: A, font })] }))
-  if (cv.jobTitle) c.push(new Paragraph({ spacing: { before: 60 }, children: [new TextRun({ text: cv.jobTitle, size: 24, color: '666666', italics: true, font })] }))
+  if (cv.jobTitle) c.push(new Paragraph({ spacing: { before: 60 }, children: [new TextRun({ text: cv.jobTitle, size: 25, color: '666666', italics: true, font })] }))
   c.push(new Paragraph({ spacing: { before: 60, after: 240 }, children: [new TextRun({ text: contactStr(cv), size: 22, color: '666666', font: BODY })] }))
-  ;(cv.coverLetterBody || '').split('\n\n').forEach(p => c.push(new Paragraph({ spacing: { before: 100, after: 100, line: 320 }, children: [new TextRun({ text: p, size: 24, color: '222222', font: BODY })] })))
+  ;(cv.coverLetterBody || '').split('\n\n').forEach(p => c.push(new Paragraph({ spacing: { before: 100, after: 100, line: 320 }, children: [new TextRun({ text: p, size: 25, color: '222222', font: BODY })] })))
   return pageDoc(c, 'cl-b', A, '•', { top: 1000, right: 1100, bottom: 1000, left: 1100 })
 }
 
@@ -393,38 +393,38 @@ export function buildRegent(cv: GeneratedCV, accent?: string | null): Document {
   const heading = (t: string) => new Paragraph({
     spacing: { before: 280, after: 140 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: A } },
-    children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 24, color: A, characterSpacing: 20, font: SERIF })],
+    children: [new TextRun({ text: t.toUpperCase(), bold: true, size: 25, color: A, characterSpacing: 20, font: SERIF })],
   })
-  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'reg-b', level: 0 }, spacing: { before: 40, after: 40, line: 288 }, children: [new TextRun({ text: t, size: 24, font: SERIF, color: '333333' })] })
+  const bullet = (t: string) => new Paragraph({ numbering: { reference: 'reg-b', level: 0 }, spacing: { before: 40, after: 40, line: 288 }, children: [new TextRun({ text: t, size: 25, font: SERIF, color: '333333' })] })
 
   const c: any[] = []
   // ── HEADER BAND (filled accent, centred white text) ──
   c.push(new Table({ width: { size: 10200, type: WidthType.DXA }, columnWidths: [10200], borders: NO_BORDERS, rows: [new TableRow({ children: [new TableCell({ width: { size: 10200, type: WidthType.DXA }, shading: { type: ShadingType.CLEAR, fill: A, color: A }, margins: { top: 260, bottom: 220, left: 280, right: 280 }, children: [
     new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: cv.fullName.toUpperCase(), bold: true, size: 34, color: 'FFFFFF', font: SERIF, characterSpacing: 15 })] }),
-    ...(cv.jobTitle ? [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 70 }, children: [new TextRun({ text: cv.jobTitle, size: 24, color: 'FFFFFF', italics: true, font: SERIF })] })] : []),
+    ...(cv.jobTitle ? [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 70 }, children: [new TextRun({ text: cv.jobTitle, size: 25, color: 'FFFFFF', italics: true, font: SERIF })] })] : []),
     new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 110 }, children: [new TextRun({ text: contactStr(cv).replace(/•/g, '/'), size: 22, color: 'FFFFFF', font: SERIF })] }),
   ] })] })] }))
   c.push(new Paragraph({ spacing: { after: 160 }, children: [new TextRun({ text: '', size: 2 })] }))
 
-  if (cv.summary) c.push(heading('Summary'), new Paragraph({ spacing: { after: 80, line: 300 }, children: [new TextRun({ text: cv.summary, size: 24, color: '333333', font: SERIF })] }))
+  if (cv.summary) c.push(heading('Summary'), new Paragraph({ spacing: { after: 80, line: 300 }, children: [new TextRun({ text: cv.summary, size: 25, color: '333333', font: SERIF })] }))
   if (cv.experience?.length) {
     c.push(heading('Career History'))
     cv.experience.forEach(e => {
       c.push(new Table({ width: { size: 10200, type: WidthType.DXA }, columnWidths: [7400, 2800], borders: NO_BORDERS, rows: [new TableRow({ children: [new TableCell({ borders: NO_BORDERS, width: { size: 7400, type: WidthType.DXA }, margins: { top: 80, bottom: 0, left: 0, right: 60 }, children: [new Paragraph({ children: [new TextRun({ text: e.role, bold: true, size: 26, color: INK, font: SERIF })] })] }), new TableCell({ borders: NO_BORDERS, width: { size: 2800, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, margins: { top: 80, bottom: 0, left: 60, right: 0 }, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `${e.startDate} – ${e.endDate}`, size: 22, color: GREY, italics: true, font: SERIF })] })] })] })] }))
-      c.push(new Paragraph({ spacing: { before: 10, after: 40 }, children: [new TextRun({ text: e.company, size: 24, color: A, italics: true, bold: true, font: SERIF })] }))
+      c.push(new Paragraph({ spacing: { before: 10, after: 40 }, children: [new TextRun({ text: e.company, size: 25, color: A, italics: true, bold: true, font: SERIF })] }))
       e.bullets.forEach(b => c.push(bullet(b)))
     })
   }
   if (cv.education?.length) {
     c.push(heading('Education'))
     cv.education.forEach(e => {
-      c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 24, color: INK, font: SERIF }), new TextRun({ text: `     ${e.startYear} – ${e.endYear}`, size: 22, color: GREY, italics: true, font: SERIF })] }))
+      c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: 25, color: INK, font: SERIF }), new TextRun({ text: `     ${e.startYear} – ${e.endYear}`, size: 22, color: GREY, italics: true, font: SERIF })] }))
       c.push(new Paragraph({ children: [new TextRun({ text: `${e.institution}${e.grade ? ` — ${e.grade}` : ''}`, size: 22, color: '666666', italics: true, font: SERIF })] }))
     })
   }
   if (cv.skills?.length) {
     c.push(heading('Core Skills'))
-    c.push(new Paragraph({ spacing: { line: 300 }, children: [new TextRun({ text: cv.skills.join('   •   '), size: 24, color: '333333', font: SERIF })] }))
+    c.push(new Paragraph({ spacing: { line: 300 }, children: [new TextRun({ text: cv.skills.join('   •   '), size: 25, color: '333333', font: SERIF })] }))
     if (cv.languages?.length) c.push(new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: 'Languages: ', bold: true, size: 23, color: INK, font: SERIF }), new TextRun({ text: cv.languages.join(', '), size: 23, color: '333333', font: SERIF })] }))
   }
   appendExtras(c, cv, heading, bullet, (t: string) => new Paragraph({ spacing: { line: 300 }, children: [new TextRun({ text: t, size: 23, color: '333333', font: SERIF })] }))

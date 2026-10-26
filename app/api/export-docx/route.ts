@@ -24,13 +24,13 @@ const NAME_FONT_SANS = 'Calibri'       // For modern templates
 
 // Sizes (half-points)
 const SIZE_NAME = 44       // 22pt
-const SIZE_TITLE = 26      // 12pt
-const SIZE_CONTACT = 22    // 10pt
-const SIZE_SECTION_HEAD = 24  // 11pt bold caps
-const SIZE_BODY = 24       // 11pt
-const SIZE_ROLE = 26       // 12pt bold
-const SIZE_DATES = 22      // 10pt italic
-const SIZE_BULLET = 24     // 11pt
+const SIZE_TITLE = 26      // 13pt
+const SIZE_CONTACT = 22    // 11pt
+const SIZE_SECTION_HEAD = 25  // 12.5pt bold caps
+const SIZE_BODY = 25       // 12.5pt
+const SIZE_ROLE = 26       // 13pt bold
+const SIZE_DATES = 22      // 11pt italic
+const SIZE_BULLET = 25     // 12.5pt
 
 // ── Bullet numbering ──────────────────────────────
 const numbering = {
@@ -391,7 +391,7 @@ function buildClassic(cv: GeneratedCV, accentColor?: string | null): Document {
 function buildSlate(cv: GeneratedCV, accentColor?: string | null): Document {
   const ACCENT = (accentColor || '#1a1a1a').replace('#', '')
   const sectionHead = (text: string) => new Paragraph({
-    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 24, font: BODY_FONT, color: ACCENT, characterSpacing: 70 })],
+    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 25, font: BODY_FONT, color: ACCENT, characterSpacing: 70 })],
     spacing: { before: 320, after: 120 }
   })
 
@@ -546,7 +546,7 @@ function buildCompass(cv: GeneratedCV, accentColor?: string | null): Document {
     width: { size: 10200, type: WidthType.DXA }, columnWidths: [2400, 5400, 2400], borders: NO_BORDERS,
     rows: [new TableRow({ children: [
       new TableCell({ width: { size: 2400, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT } }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }),
-      new TableCell({ width: { size: 5400, type: WidthType.DXA }, borders: NO_BORDERS, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 24, font: HEADER_FONT, color: '1a1a1a', characterSpacing: 40 })] })] }),
+      new TableCell({ width: { size: 5400, type: WidthType.DXA }, borders: NO_BORDERS, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 25, font: HEADER_FONT, color: '1a1a1a', characterSpacing: 40 })] })] }),
       new TableCell({ width: { size: 2400, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT } }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }),
     ] })]
   })
@@ -581,7 +581,7 @@ function buildEditorial(cv: GeneratedCV, accentColor?: string | null): Document 
   // Thick top border above the heading text = the PDF's accent rule above it.
   const heading = (text: string) => new Paragraph({
     border: { top: { style: BorderStyle.SINGLE, size: 24, color: ACCENT } },
-    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 24, font: HEADER_FONT, color: ACCENT, characterSpacing: 50 })],
+    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 25, font: HEADER_FONT, color: ACCENT, characterSpacing: 50 })],
     spacing: { before: 300, after: 150 }
   })
 
@@ -595,7 +595,7 @@ function buildEditorial(cv: GeneratedCV, accentColor?: string | null): Document 
       new TextRun({ text: `${first.toUpperCase()} `, bold: true, size: 46, font: NAME_FONT_SERIF, color: '1a1a1a' }),
       new TextRun({ text: rest.toUpperCase(), size: 46, font: NAME_FONT_SERIF, color: '1a1a1a' }),
     ], spacing: { after: 70 } }),
-    ...(cv.jobTitle ? [new Paragraph({ children: [new TextRun({ text: cv.jobTitle.toUpperCase(), bold: true, size: 24, font: HEADER_FONT, color: ACCENT, characterSpacing: 60 })], spacing: { after: 90 } })] : []),
+    ...(cv.jobTitle ? [new Paragraph({ children: [new TextRun({ text: cv.jobTitle.toUpperCase(), bold: true, size: 25, font: HEADER_FONT, color: ACCENT, characterSpacing: 60 })], spacing: { after: 90 } })] : []),
     new Paragraph({ children: [new TextRun({ text: contactStr(cv), size: SIZE_CONTACT, font: BODY_FONT, color: '777777' })], spacing: { after: 260 } }),
   ]
 
