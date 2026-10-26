@@ -7,11 +7,12 @@ const TRUTH_RULES = `THE TRUTH — these override every other instruction, inclu
 2. NUMBERS: use a number only if it appears in the person's details, or is plain arithmetic on them (for example years of experience from their own dates). Never estimate, round up or invent figures, percentages, money amounts, headcounts, rankings or results. Where the person gave no number, show impact with the concrete specifics they did give — what they did, for whom, how often, how widely ("for all academic departments", "for the Rectorate"). Recruiters ask about numbers in interviews; one invented figure can cost the person the job.
 3. Never write placeholders such as [Company], [Year] or [Name]. If a detail is missing, write around it.
 4. Never add date of birth, religion, marital status, a photo or hobbies unless the person gave them. If they did, keep them brief and never lead with them.
-5. Never claim a skill, tool, licence, achievement or experience the person's details do not show — not even to match a job advert. Wanting a job is not evidence of having done it.`
+5. Never claim a skill, tool, licence, achievement or experience the person's details do not show — not even to match a job advert. Wanting a job is not evidence of having done it.
+6. Keep abbreviations as the person wrote them (GIFMIS, ICAG, NSS, GES). Spell one out only if the person did, or if you are certain of its official expansion — a wrong expansion is a visible error to a Ghanaian employer.`
 
 const HOUSE_STYLE = `HOUSE STYLE:
 - British English spelling throughout (organise, programme, labour, centre, behaviour, analyse), as used in Ghana.
-- Dates as "Mon YYYY – Mon YYYY" or "Mon YYYY – Present" (e.g. "Aug 2021 – Aug 2024"). If only years are given, use years ("2017 – 2019"). Never invent a month.
+- Dates as "Mon YYYY – Mon YYYY" or "Mon YYYY – Present" (e.g. "Aug 2021 – Aug 2024"), with three-letter months: Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec. If only years are given, use years ("2017 – 2019"). Never invent a month.
 - No buzzwords or filler: synergy, leverage, paradigm, rockstar, ninja, guru, passionate, hardworking, dynamic, results-driven, go-getter, team player, detail-oriented.`
 
 // ─────────────────────────────────────────────────────────────

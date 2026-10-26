@@ -27,7 +27,7 @@ interface Case {
 interface Usage { inputTokens: number; outputTokens: number; ms: number }
 interface Result {
   id: string; about?: string; engine: string; effort?: Effort; checks: Check[]; usage: Usage[]; ms: number
-  doc?: GeneratedCV; letter?: GeneratedCV; error?: string
+  doc?: GeneratedCV; letter?: GeneratedCV; error?: string; inputText?: string
 }
 
 const args = process.argv.slice(2)
@@ -87,10 +87,15 @@ async function runCase(c: Case): Promise<Result> {
         checks.push(...scoreLetter(letter, `${inputText}\n${c.letter.jobDescription || ''}`, c.expect))
       }
     }
-    const result: Result = { id: c.id, about: c.about, engine, effort, checks, usage, doc, letter, ms: Date.now() - t0 }
+    const result: Result = { id: c.id, about: c.about, engine, effort, checks, usage, doc, letter, inputText, ms: Date.now() - t0 }
     fs.writeFileSync(path.join(outDir, `${c.id}.json`), JSON.stringify(result, null, 2))
     return result
   } catch (err: any) {
+    if (c.expect.rejects && err?.kind === 'not_a_cv') {
+      const result: Result = { id: c.id, about: c.about, engine, effort, checks: [{ name: 'refuses a non-CV input', level: 'hard', pass: true }], usage, ms: Date.now() - t0 }
+      fs.writeFileSync(path.join(outDir, `${c.id}.json`), JSON.stringify(result, null, 2))
+      return result
+    }
     const result: Result = { id: c.id, about: c.about, engine, effort, error: String(err?.message || err), checks: [], usage, ms: Date.now() - t0 }
     fs.writeFileSync(path.join(outDir, `${c.id}.json`), JSON.stringify(result, null, 2))
     return result

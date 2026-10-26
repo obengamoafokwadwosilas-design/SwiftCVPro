@@ -16,7 +16,7 @@ let client: Anthropic | null = null
 const ai = () => (client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }))
 
 export class WriterError extends Error {
-  constructor(public kind: 'refusal' | 'truncated', message: string) { super(message) }
+  constructor(public kind: 'refusal' | 'truncated' | 'not_a_cv', message: string) { super(message) }
 }
 
 export interface WriterUsage { inputTokens: number; outputTokens: number; ms: number }
@@ -122,14 +122,25 @@ export async function writeDocument(formData: CVFormData, effort: Effort = WRITE
     return { doc, usage }
   }
 
+  // The writer invents nothing, so a file that isn't a CV (a letter, a list, a
+  // certificate) comes back with no person in it. Failing here refunds the
+  // credit or preview and tells them, instead of delivering an empty CV.
+  if (!doc.fullName?.trim() && !doc.experience?.length && !doc.education?.length) {
+    throw new WriterError('not_a_cv', 'No CV details were found in this input.')
+  }
+
   // No headline under the name (owner's rule); the role the CV is aimed at
   // lives in targetRole instead.
   doc.jobTitle = ''
   if (!formData.changes?.trim()) doc.changesReport = []
-  try {
-    await runPaginationRiskPass(doc)
-  } catch (err) {
-    console.error('Pagination-risk pass failed (non-fatal):', err)
+  // The trim pass is cosmetic, so a slow main write skips it rather than push
+  // the whole request towards the server's time limit.
+  if (usage.ms < 35000) {
+    try {
+      await runPaginationRiskPass(doc)
+    } catch (err) {
+      console.error('Pagination-risk pass failed (non-fatal):', err)
+    }
   }
   return { doc, usage }
 }

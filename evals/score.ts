@@ -16,6 +16,7 @@ export interface Expect {
   letterSubjectIncludes?: string
   letterFacts?: string[]
   letterOnly?: boolean
+  rejects?: boolean          // input is not a CV: the writer must refuse, not deliver an empty CV
 }
 
 export interface Check { name: string; level: 'hard' | 'soft'; pass: boolean; detail?: string }

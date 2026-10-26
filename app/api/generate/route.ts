@@ -214,6 +214,9 @@ export async function POST(req: NextRequest) {
       if (err instanceof Anthropic.APIError && [429, 503, 529].includes(err.status ?? 0)) {
         return NextResponse.json({ error: 'AI service is busy. Please wait 30 seconds and try again.' }, { status: 503 })
       }
+      if (err instanceof WriterError && err.kind === 'not_a_cv') {
+        return NextResponse.json({ error: "We couldn't find CV details in what you gave us — it may be a different document. Please upload or paste your CV. Your credit or preview has been returned." }, { status: 422 })
+      }
       if (err instanceof WriterError && err.kind === 'truncated') {
         return NextResponse.json({ error: 'Your details are too long to fit in one CV. Please shorten them and try again — your credit or preview has been returned.' }, { status: 500 })
       }

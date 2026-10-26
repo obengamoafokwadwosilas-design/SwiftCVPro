@@ -46,7 +46,8 @@ async function main() {
     const a = read(labelA, id), b = read(labelB, id)
     if (a.error || b.error) { rows.push(`| ${id} | — | ${a.error ? labelA : labelB} errored |`); continue }
     const c = cases.find((x: any) => x.id === id)
-    const input = c?.file ? `(uploaded file ${path.basename(c.file)} — judge against the documents' own consistency)` : JSON.stringify(c?.input?.formData || c?.input || {}, null, 2)
+    // For an uploaded file, the text the writer actually read (saved by run.ts).
+    const input = c?.file ? (a.inputText || b.inputText || `(uploaded file ${path.basename(c.file)})`) : JSON.stringify(c?.input?.formData || c?.input || {}, null, 2)
     const flip = Math.random() < 0.5
     const [first, second] = flip ? [b, a] : [a, b]
     const message = await client.messages.create({
