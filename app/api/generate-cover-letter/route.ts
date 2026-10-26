@@ -6,10 +6,8 @@ import { currentAccess, resolveOwner } from '@/lib/customerAuth'
 import { setGuestContact } from '@/lib/guest'
 import { normalizeEmail, isValidEmail } from '@/lib/email'
 import { clientIp } from '@/lib/rateLimit'
-import { buildGenerationPrompt, CV_SYSTEM_PROMPT } from '@/lib/prompts'
-import { CVFormData, GeneratedCV } from '@/types'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+import { writeDocument, WriterError, serializeCV } from '@/lib/cvEngine'
+import type { CVFormData, GeneratedCV } from '@/types'
 
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
 const RATE_LIMIT_MAX = 20
@@ -25,38 +23,6 @@ function checkRateLimit(id: string) {
   if (rec.count >= RATE_LIMIT_MAX) return { allowed: false, resetIn: rec.resetTime - now }
   rec.count++
   return { allowed: true, resetIn: rec.resetTime - now }
-}
-
-// Turn a finished CV into plain text the cover-letter prompt can build from.
-function serializeCV(cv: GeneratedCV): string {
-  const lines: string[] = []
-  if (cv.fullName) lines.push(`Name: ${cv.fullName}`)
-  if (cv.jobTitle) lines.push(`Current/target title: ${cv.jobTitle}`)
-  const contact = [cv.email, cv.phone, cv.location, cv.linkedin].filter(Boolean).join(' · ')
-  if (contact) lines.push(`Contact: ${contact}`)
-  if (cv.summary) lines.push(`\nPROFILE:\n${cv.summary}`)
-
-  if (cv.experience?.length) {
-    lines.push('\nEXPERIENCE:')
-    cv.experience.forEach(e => {
-      lines.push(`- ${e.role || ''}${e.company ? `, ${e.company}` : ''}${e.startDate || e.endDate ? ` (${e.startDate || ''} – ${e.endDate || ''})` : ''}`)
-      ;(e.bullets || []).forEach(b => lines.push(`  • ${b}`))
-    })
-  }
-  if (cv.education?.length) {
-    lines.push('\nEDUCATION:')
-    cv.education.forEach(e => lines.push(`- ${e.qualification || ''}${e.field ? ` in ${e.field}` : ''}${e.institution ? `, ${e.institution}` : ''}${e.endYear ? ` (${e.startYear || ''}–${e.endYear})` : ''}`))
-  }
-  if (cv.skills?.length) lines.push(`\nSKILLS: ${cv.skills.join(', ')}`)
-  if (cv.languages?.length) lines.push(`LANGUAGES: ${cv.languages.join(', ')}`)
-  const extras = (cv as any).extraSections as { heading: string; items: string[] }[] | undefined
-  if (extras?.length) {
-    extras.forEach(sec => { if (sec?.items?.length) lines.push(`\n${sec.heading.toUpperCase()}: ${sec.items.join('; ')}`) })
-  } else if (cv.additionalInfo) {
-    lines.push(`\nADDITIONAL: ${cv.additionalInfo}`)
-  }
-  if ((cv as any).attributes?.length) lines.push(`\nATTRIBUTES: ${((cv as any).attributes as string[]).join('; ')}`)
-  return lines.join('\n')
 }
 
 export async function POST(req: NextRequest) {
@@ -141,48 +107,35 @@ export async function POST(req: NextRequest) {
     }
     refundOnFailure = async () => { await refundFree(); await refundPaid() }
 
-    // ── Build the cover-letter prompt from the existing CV ──
+    // ── Write the letter from the existing CV ──
+    // No role field on this path: with an advert the writer reads the role
+    // from it; without one the letter is a general application.
     const formData: CVFormData = {
       cvType: 'cover_letter',
       fullName: cv.fullName || '', email: cv.email || '', phone: cv.phone || '',
-      location: cv.location || '', jobTitle: cv.jobTitle || '',
+      location: cv.location || '', jobTitle: '',
       rawContent: serializeCV(cv),
       jobDescription: jobDescription || undefined,
       company: company || undefined,
     }
-    const prompt = buildGenerationPrompt(formData)
-
-    let message
-    try {
-      message = await anthropic.messages.create({
-        model: 'claude-opus-4-7',
-        max_tokens: 4000,
-        system: CV_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    } catch (err: any) {
-      console.error('Anthropic API error (cover letter):', err)
-      await refundFree()
-      if (err?.status === 529 || err?.status === 503) {
-        return NextResponse.json({ error: 'AI service is busy. Please wait 30 seconds and try again.' }, { status: 503 })
-      }
-      return NextResponse.json({ error: 'Generation failed. Please try again.' }, { status: 500 })
-    }
-
-    const rawText = message.content.filter(b => b.type === 'text').map(b => (b as any).text).join('')
-    const cleaned = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
 
     let coverLetter: GeneratedCV
     try {
-      coverLetter = JSON.parse(cleaned)
-    } catch {
-      console.error('Cover-letter JSON parse failed. First 500 chars:', rawText.substring(0, 500))
-      await refundFree()
-      return NextResponse.json({ error: 'Cover letter processing failed. Please try again.' }, { status: 500 })
+      ({ doc: coverLetter } = await writeDocument(formData))
+    } catch (err) {
+      console.error('Writer error (cover letter):', err)
+      await refundOnFailure()
+      if (err instanceof Anthropic.APIError && [429, 503, 529].includes(err.status ?? 0)) {
+        return NextResponse.json({ error: 'AI service is busy. Please wait 30 seconds and try again.' }, { status: 503 })
+      }
+      if (err instanceof WriterError && err.kind === 'truncated') {
+        return NextResponse.json({ error: 'The letter could not be finished. Your credit or preview has been returned — please try again.' }, { status: 500 })
+      }
+      return NextResponse.json({ error: 'Generation failed. Your credit or preview has been returned — please try again.' }, { status: 500 })
     }
 
-    if (!coverLetter.coverLetterBody) {
-      await refundFree()
+    if (!coverLetter.coverLetterBody?.trim()) {
+      await refundOnFailure()
       return NextResponse.json({ error: 'Cover letter came back empty. Please try again.' }, { status: 500 })
     }
 
@@ -192,15 +145,6 @@ export async function POST(req: NextRequest) {
     coverLetter.phone = cv.phone
     coverLetter.location = cv.location
     coverLetter.linkedin = cv.linkedin
-
-    // Formal Ghanaian frame — company from the target role if given; no
-    // addressee/address is collected on this path, so sensible defaults apply.
-    const { buildCoverLetterFrame, defaultSubject } = await import('@/lib/coverLetter')
-    const frame = buildCoverLetterFrame({ company })
-    coverLetter.clRecipient = frame.clRecipient
-    coverLetter.clSalutation = frame.clSalutation
-    coverLetter.clSignOff = frame.clSignOff
-    coverLetter.clSubject = (coverLetter.clSubject?.trim() || defaultSubject(coverLetter.jobTitle)).toUpperCase()
 
     // No credit deduction here — a cover-letter credit is only spent at
     // download time, same as CVs.

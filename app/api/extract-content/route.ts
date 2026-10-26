@@ -1,19 +1,14 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import pdfParse from 'pdf-parse'
 import mammoth from 'mammoth'
+import { extractWithClaude, CLAUDE_IMAGE_TYPES, type ClaudeImageType } from '@/lib/fileText'
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-})
 
 // The vision API accepts four image formats and caps each image at 10MB once
 // base64-encoded. Base64 inflates by ~4/3, so the raw file has to stay under
 // ~7.5MB; 7MB leaves headroom for the rest of the request body.
-const CLAUDE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const
-type ClaudeImageType = typeof CLAUDE_IMAGE_TYPES[number]
 const MAX_IMAGE_BYTES = 7 * 1024 * 1024
 
 const EXT_TO_IMAGE_TYPE: Record<string, ClaudeImageType> = {
@@ -148,55 +143,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-async function extractWithClaude(
-  buffer: Buffer,
-  mediaType: 'application/pdf' | ClaudeImageType
-): Promise<string> {
-  const base64 = buffer.toString('base64')
-  const isImage = mediaType.startsWith('image/')
-
-  const message = await anthropic.messages.create({
-    // Opus over Sonnet here on purpose: this call reads real phone photos of
-    // CVs — often skewed, poorly lit, or slightly blurry — where the extra
-    // interpretive accuracy matters more than the cost difference. Both are in
-    // the high-resolution vision tier (2576px long edge), so Opus's edge here
-    // is model quality, not image resolution.
-    model: 'claude-opus-5',
-    max_tokens: 8000,
-    // Opus 5 runs adaptive thinking whenever this field is omitted, and
-    // max_tokens caps thinking and output together. Transcription needs no
-    // reasoning, so turning it off keeps the whole budget for the extracted
-    // text. Valid because effort is left at its high default here — disabled
-    // thinking on Opus 5 only 400s above that (xhigh/max). Asserted because
-    // @anthropic-ai/sdk is pinned at 0.20.x, which predates the parameter —
-    // the client still serialises the body as-is, so it reaches the API.
-    // Drop the assertion once the SDK is upgraded.
-    thinking: { type: 'disabled' },
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: isImage ? 'image' : 'document',
-            source: {
-              type: 'base64',
-              media_type: mediaType,
-              data: base64
-            }
-          } as any,
-          {
-            type: 'text',
-            text: 'Extract all text from this document or image exactly as it appears. Do not summarise. Return only the raw text.'
-          }
-        ]
-      }
-    ]
-  } as Anthropic.MessageCreateParamsNonStreaming)
-
-  return message.content
-    .filter((block: any) => block.type === 'text')
-    .map((block: any) => block.text)
-    .join('')
 }

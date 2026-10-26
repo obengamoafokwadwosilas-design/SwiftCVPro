@@ -6,102 +6,10 @@ import { currentAccess, resolveOwner } from '@/lib/customerAuth'
 import { setGuestContact } from '@/lib/guest'
 import { normalizeEmail, isValidEmail } from '@/lib/email'
 import { clientIp } from '@/lib/rateLimit'
-import { buildGenerationPrompt, buildBulletTrimPrompt, CV_SYSTEM_PROMPT } from '@/lib/prompts'
-import { CVFormData, GeneratedCV } from '@/types'
+import { writeDocument, WriterError, cvFormDataFromRequest } from '@/lib/cvEngine'
+import type { CVFormData, GeneratedCV } from '@/types'
 import { supabaseAdmin } from '@/lib/supabase'
 import type { BuildSeed } from '@/lib/buildSeed'
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-// ── Pagination-risk pass ──────────────────────────────────────
-// This app has no reliable way to know real page-break positions
-// server-side (running headless Chrome in this Vercel function was
-// already tried for PDF export and abandoned twice in favour of an
-// external renderer — see git history on app/api/export-pdf/route.ts).
-// So instead of detecting real page breaks, this deterministically
-// flags the *shape* of content most likely to strand as a page
-// orphan or widow: the last bullet/item in a role or list running
-// much longer than its siblings. Best-effort only — never blocks
-// or fails CV delivery.
-type RiskyItem = { id: string; text: string; context: string; maxWords: number; set: (text: string) => void }
-
-function wordCount(s: string): number {
-  return (s || '').trim().split(/\s+/).filter(Boolean).length
-}
-
-function flagTrailingOutlier(
-  list: string[] | undefined,
-  idPrefix: string,
-  context: string,
-  hardCap: number,
-  targetMaxWords: number,
-  set: (index: number, text: string) => void,
-  out: RiskyItem[]
-) {
-  if (!list || !list.length) return
-  const lastIdx = list.length - 1
-  const counts = list.map(wordCount)
-  const last = counts[lastIdx]
-  const others = counts.slice(0, lastIdx)
-  const avgOthers = others.length ? others.reduce((a, b) => a + b, 0) / others.length : 0
-  const isTrailingOutlier = others.length >= 1 && last > avgOthers * 1.4 && last > targetMaxWords
-  const isHardOverCap = last > hardCap
-  if (isTrailingOutlier || isHardOverCap) {
-    out.push({
-      id: `${idPrefix}-${lastIdx}`,
-      text: list[lastIdx],
-      context,
-      maxWords: targetMaxWords,
-      set: (text: string) => set(lastIdx, text),
-    })
-  }
-}
-
-function findPaginationRiskyItems(cv: GeneratedCV): RiskyItem[] {
-  const items: RiskyItem[] = []
-
-  cv.experience?.forEach((e, i) => {
-    flagTrailingOutlier(e.bullets, `exp${i}`, `${e.role} at ${e.company}`, 26, 18, (idx, text) => { e.bullets[idx] = text }, items)
-  })
-  if (cv.attributes?.length) {
-    flagTrailingOutlier(cv.attributes, 'attr', 'Professional attribute', 18, 15, (idx, text) => { cv.attributes![idx] = text }, items)
-  }
-  flagTrailingOutlier(cv.publications, 'pub', 'Publication citation', 34, 24, (idx, text) => { cv.publications![idx] = text }, items)
-  flagTrailingOutlier(cv.research, 'res', 'Research item', 34, 24, (idx, text) => { cv.research![idx] = text }, items)
-  flagTrailingOutlier(cv.teaching, 'teach', 'Teaching item', 34, 24, (idx, text) => { cv.teaching![idx] = text }, items)
-  ;((cv as any).extraSections as { heading: string; items: string[] }[] | undefined)?.forEach((sec, i) => {
-    if (!sec?.items?.length) return
-    flagTrailingOutlier(sec.items, `extra${i}`, sec.heading || 'Additional item', 34, 24, (idx, text) => { sec.items[idx] = text }, items)
-  })
-
-  // Cap so the extra call stays small, fast, and genuinely surgical.
-  return items.slice(0, 4)
-}
-
-async function runPaginationRiskPass(cv: GeneratedCV): Promise<void> {
-  const risky = findPaginationRiskyItems(cv)
-  if (!risky.length) return
-
-  const prompt = buildBulletTrimPrompt(risky.map(r => ({ id: r.id, text: r.text, context: r.context, maxWords: r.maxWords })))
-  const call = anthropic.messages.create({
-    model: 'claude-opus-4-7',
-    max_tokens: 800,
-    system: 'You are a precise copy editor. Follow instructions exactly and return only valid JSON.',
-    messages: [{ role: 'user', content: prompt }],
-  })
-  const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('pagination-risk pass timed out')), 12000))
-
-  const message: any = await Promise.race([call, timeout])
-  const rawText = message.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('')
-  const cleaned = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-  const trimmed = JSON.parse(cleaned)
-
-  risky.forEach(r => {
-    const replacement = trimmed[r.id]
-    if (typeof replacement === 'string' && replacement.trim()) r.set(replacement.trim())
-  })
-  console.log(`[Generate] Pagination-risk pass tightened ${risky.length} item(s)`)
-}
 
 // ── Save every generation to history ──────────────────────────
 // Every CV a user generates is kept permanently (never expires) so it can be
@@ -292,90 +200,24 @@ export async function POST(req: NextRequest) {
     }
     refundOnFailure = async () => { await refundFree(); await refundPaid() }
 
-    // ── Build prompt ──────────────────────────────
-    let prompt: string
-    if (formData) {
-      prompt = buildGenerationPrompt(formData)
-    } else {
-      const cvFormData: CVFormData = {
-        cvType: cvType || 'professional',
-        fullName: '', email: '', phone: '', location: '',
-        // Set on the paste path by "Tailor my CV for…", so a CV with no advert
-        // can still be aimed at a job/industry.
-        jobTitle: body.jobTitle || '',
-        targetIndustry: body.targetIndustry || undefined,
-        // Academic aiming: the institution and course being applied to.
-        company: body.company || undefined,
-        targetProgramme: body.targetProgramme || undefined,
-        rawContent,
-        jobDescription,
-        whyRole: whyRole || undefined,
-        changes: changes || undefined,
-      }
-      prompt = buildGenerationPrompt(cvFormData)
-    }
-
-    // ── Call Claude ───────────────────────────────
-    console.log(`[Generate] phone=${ownerId} cvType=${cvType}`)
-
-    let message
-    try {
-      message = await anthropic.messages.create({
-        model: 'claude-opus-4-7',
-        max_tokens: 6000,
-        system: CV_SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    } catch (err: any) {
-      console.error('Anthropic API error:', err)
-      await refundFree()
-      if (err?.status === 401) {
-        return NextResponse.json({ error: 'API key error. Please contact support.' }, { status: 500 })
-      }
-      if (err?.status === 529 || err?.status === 503) {
-        return NextResponse.json({ error: 'AI service is busy. Please wait 30 seconds and try again.' }, { status: 503 })
-      }
-      return NextResponse.json({ error: 'Generation failed. Please try again.' }, { status: 500 })
-    }
-
-    const rawText = message.content
-      .filter(b => b.type === 'text')
-      .map(b => (b as any).text)
-      .join('')
-
-    const cleaned = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim()
-
+    // ── Write it ──────────────────────────────────
+    console.log(`[Generate] owner=${ownerId} cvType=${cvType}`)
     let generatedCV: GeneratedCV
     try {
-      generatedCV = JSON.parse(cleaned)
-    } catch {
-      console.error('JSON parse failed. First 500 chars:', rawText.substring(0, 500))
-      await refundFree()
-      return NextResponse.json({ error: 'CV processing failed. Please try again.' }, { status: 500 })
-    }
-
-    // ── Cover letter: build the formal Ghanaian frame around the AI's body ──
-    // Recipient block, salutation and sign-off are constructed from the inputs
-    // (never invented), and a subject is guaranteed even if the model omitted it.
-    if (isCoverLetterDoc) {
-      const { buildCoverLetterFrame, defaultSubject } = await import('@/lib/coverLetter')
-      const frame = buildCoverLetterFrame({
-        addressee: formData?.addressee,
-        company: formData?.company,
-        companyAddress: formData?.companyAddress,
-      })
-      generatedCV.clRecipient = frame.clRecipient
-      generatedCV.clSalutation = frame.clSalutation
-      generatedCV.clSignOff = frame.clSignOff
-      if (!generatedCV.clSubject?.trim()) generatedCV.clSubject = defaultSubject(generatedCV.jobTitle)
-      generatedCV.clSubject = generatedCV.clSubject.toUpperCase()
-    }
-
-    // ── Pagination-risk pass (best-effort, never blocks delivery) ──
-    try {
-      await runPaginationRiskPass(generatedCV)
+      ({ doc: generatedCV } = await writeDocument(formData || cvFormDataFromRequest(body)))
     } catch (err) {
-      console.error('Pagination-risk pass failed (non-fatal):', err)
+      console.error('Writer error:', err)
+      await refundOnFailure()
+      if (err instanceof Anthropic.AuthenticationError) {
+        return NextResponse.json({ error: 'API key error. Please contact support.' }, { status: 500 })
+      }
+      if (err instanceof Anthropic.APIError && [429, 503, 529].includes(err.status ?? 0)) {
+        return NextResponse.json({ error: 'AI service is busy. Please wait 30 seconds and try again.' }, { status: 503 })
+      }
+      if (err instanceof WriterError && err.kind === 'truncated') {
+        return NextResponse.json({ error: 'Your details are too long to fit in one CV. Please shorten them and try again — your credit or preview has been returned.' }, { status: 500 })
+      }
+      return NextResponse.json({ error: 'Generation failed. Your credit or preview has been returned — please try again.' }, { status: 500 })
     }
 
     // ── Save to history, then mark download paid for paid generations ──

@@ -220,6 +220,25 @@ closed rather than crash.
      code: email link. `merge_customers` carries a guest's code into an
      account that has none and never replaces one.
 
+11. **The CV / cover-letter writer is one module, measured by an eval set.**
+   `src/lib/cvEngine.ts` (`writeDocument`) is the only place documents are
+   written — both `/api/generate` and `/api/generate-cover-letter` call it, and
+   so does the eval runner, so the evals measure exactly what customers get.
+   Claude Opus 5.5 with structured outputs (`src/lib/cvSchema.ts` — a reply
+   always parses), the server-side refusal fallback, and `WRITER_EFFORT`
+   chosen on the evals. Prompt rules that are promises, not style — don't
+   weaken them: **no numbers that aren't in the person's input** (they get asked
+   about them in interviews), job titles copied exactly, nothing claimed to
+   match an advert, no headline under the name (`jobTitle` is always '' on CVs;
+   the aimed-at role is `targetRole`, used to name the CV in My CVs), every
+   "Anything to add or change?" request reported in `changesReport` (shown as
+   "Your requests" on the results page). Before changing a prompt, the model or
+   the effort: run `npx tsx --env-file=.env.local --tsconfig evals/tsconfig.json
+   evals/run.ts` (add `--private` for the real CVs in `evals/private/`, never
+   committed), compare with the previous run using `evals/judge.ts`, and don't
+   ship a change that loses hard checks. `evals/legacy/` is the engine as it
+   was at tag `before-engine-v2`, kept as the baseline.
+
 ## Conventions already in place
 - No comments explaining *what* code does — only *why*, when non-obvious.
 - Don't add speculative abstractions, feature flags, or "just in case"

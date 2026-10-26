@@ -37,3 +37,7 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# eval runs and private test CVs (real people) never leave this machine
+evals/results/
+evals/private/

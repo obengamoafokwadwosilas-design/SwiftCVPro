@@ -136,6 +136,19 @@ export interface GeneratedCV {
   publications?: string[]
   research?: string[]
   teaching?: string[]
+  extraSections?: { heading: string; items: string[] }[]
+  // The role this document is aimed at (from the advert or the stated aim), or
+  // ''. Never printed on the CV — it names the document in My CVs and gives a
+  // cover letter written later from this CV its role.
+  targetRole?: string
+  // What the writer did with each "Anything to add or change?" request.
+  changesReport?: ChangeReportItem[]
+}
+
+export interface ChangeReportItem {
+  request: string
+  status: 'applied' | 'partly' | 'not_applied'
+  note: string
 }
 
 export interface CheckCreditsResponse {

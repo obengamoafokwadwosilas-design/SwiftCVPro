@@ -16,7 +16,7 @@ const TYPE_NAMES: Record<string, string> = { professional: 'Professional CV', ta
 // ("Banking Officer CV"), else the kind of document.
 function titleOf(item: HistoryItem) {
   if (item.label?.trim()) return item.label.trim()
-  const role = item.cv_type !== 'cover_letter' ? item.generated_cv?.jobTitle?.trim() : ''
+  const role = item.cv_type !== 'cover_letter' ? (item.generated_cv?.targetRole?.trim() || item.generated_cv?.jobTitle?.trim()) : ''
   return role ? `${role} CV` : TYPE_NAMES[item.cv_type] || 'CV'
 }
 function whenOf(iso: string) {

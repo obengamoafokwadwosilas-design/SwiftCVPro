@@ -1,0 +1,6 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "target": "es2022", "paths": { "@/*": ["../src/*"] } },
+  "include": ["./**/*.ts", "../src/**/*.ts", "../next-env.d.ts"],
+  "exclude": []
+}
