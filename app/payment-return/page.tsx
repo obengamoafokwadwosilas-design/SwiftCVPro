@@ -44,7 +44,11 @@ export default function PaymentReturnPage() {
           // A pack was bought: the page they land on offers an access code
           // once (only if the account has none), same as the pop-up checkout.
           if ((data.cv_credits || 0) > 1) sessionStorage.setItem('swiftcv_offer_code', '1')
-          router.replace(from === 'preview' && sessionStorage.getItem('swiftcv_cv') ? '/preview' : '/build')
+          // Paid from a preview's Unlock: the preview spends the new credit on
+          // that CV as soon as it loads, instead of asking to pay again.
+          const backToPreview = from === 'preview' && !!sessionStorage.getItem('swiftcv_cv')
+          if (backToPreview) sessionStorage.setItem('swiftcv_unlock_after_pay', '1')
+          router.replace(backToPreview ? '/preview' : '/build')
         } else {
           setStatus('failed')
           setMessage(data.error || 'Payment could not be confirmed.')

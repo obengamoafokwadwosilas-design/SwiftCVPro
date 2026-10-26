@@ -124,7 +124,14 @@ closed rather than crash.
    (`liveOwnerId`) if that guest was merged before the payment confirmed.
    The last page has two buttons: "Build my CV" (`intent: 'build'` — pay first,
    never silently falls back to a free preview) and "See a free preview first"
-   (`intent: 'preview'`). An unpaid document shows a protected preview
+   (`intent: 'preview'`) — hidden when the visitor already holds a credit for
+   that document type (paid people build the finished CV, never a preview).
+   **Unlock spends a credit already held before asking for money**
+   (`/api/cv-history/unlock` → `payDocument`, no file rendered); after a
+   purchase the CV unlocks itself — pop-up via `afterPurchase`, Paystack's own
+   page via the `swiftcv_unlock_after_pay` flag that `/payment-return` sets only
+   when it sends them back to `/preview` (without it, WhatsApp-browser buyers
+   came back still locked and were asked to pay again). An unpaid document shows a protected preview
    (watermark outside `#cv-print-area`, copy/print blocked); that is a deterrent
    only — the PDF and Word files are served only for paid documents. **Edit is
    open before paying** (owner's call: people won't pay until their details are

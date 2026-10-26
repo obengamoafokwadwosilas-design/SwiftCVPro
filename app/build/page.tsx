@@ -1277,10 +1277,14 @@ export default function BuildPage() {
               {picked ? `${picked.name} · GH₵${picked.price}` : `From GH₵${fromPrice}`} · secure payment via Paystack · MTN MoMo, Telecel, AirtelTigo &amp; card
             </p>
           )}
-          <button type="button" onClick={() => void handleGenerate('preview')} disabled={busy} className="xcv-link"
-            style={{ alignSelf: 'center', fontSize: '13px', color: 'var(--graphite)', textDecoration: 'underline', textUnderlineOffset: '3px', opacity: busy ? 0.6 : 1 }}>
-            See a free preview first
-          </button>
+          {/* Someone holding a credit has already paid: they build the finished
+              CV, never a watermarked preview they'd then have to unlock. */}
+          {credits === 0 && (
+            <button type="button" onClick={() => void handleGenerate('preview')} disabled={busy} className="xcv-link"
+              style={{ alignSelf: 'center', fontSize: '13px', color: 'var(--graphite)', textDecoration: 'underline', textUnderlineOffset: '3px', opacity: busy ? 0.6 : 1 }}>
+              See a free preview first
+            </button>
+          )}
         </div>
       </div>
     )

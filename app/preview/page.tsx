@@ -348,11 +348,45 @@ export default function PreviewPage() {
     return () => { document.removeEventListener('copy', block); document.removeEventListener('cut', block) }
   }, [docPaid])
 
-  function unlockDocument() {
+  // Unlocking spends a credit the owner already has (a pack bought earlier, or
+  // one just paid for) and takes the watermark off; they then pick PDF or Word.
+  // Only with no credit does it ask them to buy one.
+  const [unlocking, setUnlocking] = useState(false)
+  async function unlockWithCredit(): Promise<boolean> {
+    const historyId = paidDocumentId()
+    if (!historyId) return false
+    setUnlocking(true)
+    try {
+      const res = await fetch('/api/cv-history/unlock', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ historyId, isCoverLetter }),
+      })
+      if (!res.ok) return false
+      setDocPaid(true)
+      setShowPricing(false)
+      // Restarted, not just left on, so "Your CV is ready" gets its full time
+      // even when the preview's own message was already running out.
+      setShowReadyBanner(false)
+      requestAnimationFrame(() => setShowReadyBanner(true))
+      return true
+    } catch { return false }
+    finally { setUnlocking(false) }
+  }
+  async function unlockDocument() {
     setPurchaseError('')
-    setPendingDownload('pdf')
+    if (await unlockWithCredit()) return
+    setPendingDownload(null)
     setShowPricing(true)
   }
+  // Back from Paystack's own page (/payment-return sets the flag when the
+  // payment began here): the new credit unlocks this CV straight away, so
+  // nobody is asked to pay twice for it.
+  useEffect(() => {
+    if (docPaid === null || sessionStorage.getItem('swiftcv_unlock_after_pay') !== '1') return
+    sessionStorage.removeItem('swiftcv_unlock_after_pay')
+    if (docPaid === false) void unlockWithCredit()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [docPaid])
 
   const [showCoverModal, setShowCoverModal] = useState(false)
   const [coverGenerating, setCoverGenerating] = useState(false)
@@ -638,6 +672,12 @@ export default function PreviewPage() {
     if (kind === 'pdf') await handleDownloadPdf()
     else if (kind === 'docx') await handleDownloadDocx()
   }
+  // After a purchase: finish the download that asked for it, or (from Unlock)
+  // unlock the CV with the credit just bought.
+  async function afterPurchase() {
+    if (pendingDownload) await retryPendingDownload()
+    else await unlockWithCredit()
+  }
 
   async function confirmPreviewPayment(reference: string): Promise<boolean> {
     try {
@@ -668,7 +708,7 @@ export default function PreviewPage() {
     const { reference, cv: cvCredits } = paymentPending
     const ok = await confirmPreviewPayment(reference)
     setVerifyingPayment(false)
-    if (ok) { setPaymentPending(null); await offerAccessCode(cvCredits, 'download my CV', () => { void retryPendingDownload() }) }
+    if (ok) { setPaymentPending(null); await offerAccessCode(cvCredits, 'see my CV', () => { void afterPurchase() }) }
   }
 
   // After a pack is paid for, offer an access code once — only if this account
@@ -729,9 +769,9 @@ export default function PreviewPage() {
               // The access-code offer, when due, appears at once with the payment
               // confirming behind it, instead of after a silent pause.
               const confirmed = confirmPreviewPayment(data.reference)
-              const download = async () => { if (await confirmed) await retryPendingDownload() }
-              if (pkg.cv > 1 && !hasAccessCode) { setShowPricing(false); setCodeOffer({ continueLabel: 'download my CV', next: () => { void download() } }) }
-              else await download()
+              const finish = async () => { if (await confirmed) await afterPurchase() }
+              if (pkg.cv > 1 && !hasAccessCode) { setShowPricing(false); setCodeOffer({ continueLabel: 'see my CV', next: () => { void finish() } }) }
+              else await finish()
             },
             onCancel: () => setPurchaseError('Payment was not completed.'),
             onError: () => openHostedFallback(),
@@ -1314,8 +1354,8 @@ export default function PreviewPage() {
                 <div style={{ fontSize:'13.5px', color:'#0a0f1a', lineHeight:1.5, flex:'1 1 240px' }}>
                   <strong>This is your preview.</strong> Unlock your finished {isCoverLetter ? 'cover letter' : 'CV'} to download it as a ready-to-submit PDF or Word file.
                 </div>
-                <button onClick={unlockDocument} style={{ padding:'11px 20px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'13.5px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif", whiteSpace:'nowrap' as const }}>
-                  Unlock your finished {isCoverLetter ? 'cover letter' : 'CV'}
+                <button onClick={() => void unlockDocument()} disabled={unlocking} style={{ padding:'11px 20px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'13.5px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif", whiteSpace:'nowrap' as const, opacity: unlocking ? 0.7 : 1 }}>
+                  {unlocking ? 'Unlocking…' : `Unlock your finished ${isCoverLetter ? 'cover letter' : 'CV'}`}
                 </button>
               </div>
             </div>
@@ -1385,9 +1425,9 @@ export default function PreviewPage() {
                     {downloading ? <>Preparing<span className="scv-dots">…</span></> : <><DownIcon /> Download</>}
                   </button>
                 ) : (
-                  <button onClick={() => { setLookPanel(null); unlockDocument() }} style={barCta}>
+                  <button onClick={() => { setLookPanel(null); setShowReadyBanner(false); void unlockDocument() }} disabled={unlocking} style={barCta}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 017.5-2"/></svg>
-                    Unlock {docWord}
+                    {unlocking ? <>Unlocking<span className="scv-dots">…</span></> : `Unlock ${docWord}`}
                   </button>
                 )}
                 {showDownloadMenu && docPaid === true && (
@@ -1600,7 +1640,7 @@ export default function PreviewPage() {
           {docPaid !== true && (
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'10px', padding:'10px 14px', background:'white', borderTop:'1px solid #e2e8f0' }}>
               <span style={{ fontSize:'14px', color:'#0a0f1a' }}><strong>Preview.</strong> Unlock to download.</span>
-              <button onClick={() => { closeZoom(); unlockDocument() }} style={barCta}>Unlock {docWord}</button>
+              <button onClick={() => { closeZoom(); void unlockDocument() }} disabled={unlocking} style={barCta}>Unlock {docWord}</button>
             </div>
           )}
         </div>
@@ -1638,7 +1678,7 @@ export default function PreviewPage() {
             {paymentPending ? (
               <div style={{ background: '#f0fdf9', border: '1px solid #bff0e4', borderRadius: '14px', padding: '16px' }}>
                 <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0a0f1a', marginBottom: '4px' }}>Complete payment in the window that opened</div>
-                <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '12px', lineHeight: 1.6 }}>Once you&apos;ve paid, click below to confirm — your download will start right after.</div>
+                <div style={{ fontSize: '12.5px', color: '#64748b', marginBottom: '12px', lineHeight: 1.6 }}>Once you&apos;ve paid, click below to confirm — your {isCoverLetter ? 'letter' : 'CV'} unlocks right after.</div>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' as const }}>
                   <button onClick={handlePreviewManualVerify} disabled={verifyingPayment} style={{ padding: '11px 20px', background: '#0d9488', color: 'white', border: 'none', borderRadius: '50px', fontSize: '13.5px', fontWeight: 600, cursor: 'pointer', opacity: verifyingPayment ? 0.6 : 1 }}>
                     {verifyingPayment ? 'Checking…' : 'Verify Payment'}
