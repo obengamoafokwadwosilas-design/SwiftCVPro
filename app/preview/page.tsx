@@ -378,13 +378,23 @@ export default function PreviewPage() {
     setPendingDownload(null)
     setShowPricing(true)
   }
-  // Back from Paystack's own page (/payment-return sets the flag when the
-  // payment began here): the new credit unlocks this CV straight away, so
-  // nobody is asked to pay twice for it.
+  // Once this CV's paid status is known, finish what brought them here:
+  // - back from Paystack's own page (/payment-return sets the flag when the
+  //   payment began here): the new credit unlocks this CV straight away, so
+  //   nobody is asked to pay twice for it;
+  // - My CVs' "Unlock" / "Download": unlock (credit held, else "Choose your
+  //   credits"), or open the PDF / Word choice.
+  // Both flags are cleared either way so they can't reach another CV.
   useEffect(() => {
-    if (docPaid === null || sessionStorage.getItem('swiftcv_unlock_after_pay') !== '1') return
+    if (docPaid === null) return
+    const afterPay = sessionStorage.getItem('swiftcv_unlock_after_pay') === '1'
+    const onOpen = sessionStorage.getItem('swiftcv_on_open')
+    if (!afterPay && !onOpen) return
     sessionStorage.removeItem('swiftcv_unlock_after_pay')
-    if (docPaid === false) void unlockWithCredit()
+    sessionStorage.removeItem('swiftcv_on_open')
+    if (docPaid === false && afterPay) void unlockWithCredit()
+    else if (docPaid === false && onOpen === 'unlock') void unlockDocument()
+    else if (docPaid === true && onOpen === 'download') { setShowReadyBanner(false); setShowDownloadMenu(true) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docPaid])
 

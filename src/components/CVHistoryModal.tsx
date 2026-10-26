@@ -9,7 +9,21 @@ import { accessCodeProblem } from '@/lib/accessCodeRules'
 interface HistoryItem {
   id: number; cv_type: string; template_id: TemplateId; accent_color: string | null
   label: string | null; generated_cv: GeneratedCV; raw_input: BuildSeed; created_at: string
+  download_paid?: boolean
 }
+const TYPE_NAMES: Record<string, string> = { professional: 'Professional CV', targeted: 'Targeted CV', academic: 'Academic CV', cover_letter: 'Cover letter' }
+// A name people recognise: their own label, else the role the CV is aimed at
+// ("Banking Officer CV"), else the kind of document.
+function titleOf(item: HistoryItem) {
+  if (item.label?.trim()) return item.label.trim()
+  const role = item.cv_type !== 'cover_letter' ? item.generated_cv?.jobTitle?.trim() : ''
+  return role ? `${role} CV` : TYPE_NAMES[item.cv_type] || 'CV'
+}
+function whenOf(iso: string) {
+  const d = new Date(iso)
+  return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · ${d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+}
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 type Step = 'email' | 'pin' | 'list' | 'setPin'
 const inputStyle = { width: '100%', padding: '12px 14px', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '14px' }
 const primary = { padding: '12px 18px', background: '#0a8a3f', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px' }
@@ -30,9 +44,15 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
   const [message, setMessage] = useState('')
   // null until known; false shows the "protect your privacy" prompt on the list.
   const [hasCode, setHasCode] = useState<boolean | null>(null)
+  // A browser guest has no sign-in to keep, so "Keep me signed in" is for members only.
+  const [guest, setGuest] = useState(true)
+  const [credits, setCredits] = useState<{ cv: number; cl: number } | null>(null)
+  const [renaming, setRenaming] = useState<number | null>(null)
   useEffect(() => {
     if (step !== 'list') return
     fetch('/api/cv-pin/status', { method: 'POST', cache: 'no-store' }).then(r => r.json()).then(d => setHasCode(!!d?.pin_set)).catch(() => {})
+    fetch('/api/check-credits', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      .then(r => r.json()).then(d => { if (!d.error) setCredits({ cv: d.credits || 0, cl: d.coverLetterCredits || 0 }) }).catch(() => {})
   }, [step])
   const initialized = useRef(false)
   useEffect(() => { if (notice) setError(notice) }, [notice])
@@ -46,6 +66,7 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
   async function loadHistory(setup = false) {
     const data = await request('/api/cv-history/list', {})
     setEmail(data.email)
+    setGuest(!!data.guest)
     setItems(data.history || [])
     setStep(setup ? 'setPin' : 'list')
     setMessage('')
@@ -89,6 +110,7 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
               .then(data => {
                 if (!data.success || !(data.history || []).length) return
                 setEmail(session.contactEmail)
+                setGuest(true)
                 setItems(data.history)
                 setStep('list')
               })
@@ -118,14 +140,26 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
       setMessage('Signed out of this device.')
     })
   }
-  function openCv(item: HistoryItem, rewrite = false) {
+  // The builder only reads its seed / ?again= when it loads, so from the
+  // builder itself this has to be a real page load, not a client-side push.
+  function goBuild(url: string) {
+    onClose()
+    if (window.location.pathname === '/build') window.location.assign(url)
+    else router.push(url)
+  }
+  // `then`: what the preview does on arrival — open the PDF/Word choice, or
+  // unlock (with a credit already held, else "Choose your credits").
+  function openCv(item: HistoryItem, rewrite = false, then?: 'download' | 'unlock') {
     if (rewrite) {
+      // A CV goes straight to its job step with everything filled in.
+      if (item.cv_type !== 'cover_letter') { goBuild(`/build?again=${item.id}`); return }
       const seed = { ...item.raw_input, email, landingScreen: 'type' as const }
       delete seed.jobDescription; delete seed.whyRole
       if (seed.form) seed.form = { ...seed.form, jobTitle: undefined, company: undefined }
       saveBuildSeed(seed)
-      onClose(); router.push('/build'); return
+      goBuild('/build'); return
     }
+    if (then) sessionStorage.setItem('swiftcv_on_open', then)
     sessionStorage.setItem('swiftcv_cv', JSON.stringify(item.generated_cv))
     sessionStorage.setItem('swiftcv_type', item.cv_type)
     sessionStorage.setItem('swiftcv_email', email)
@@ -143,7 +177,9 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
       <div role="dialog" aria-modal="true" aria-labelledby="history-title" style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '540px', padding: '28px', maxHeight: '88vh', overflowY: 'auto', fontFamily: "'DM Sans', sans-serif" }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 id="history-title" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', margin: '0 0 12px' }}>{step === 'email' ? 'Sign in' : 'My CVs'}</h2>
-          <button onClick={onClose} aria-label="Close My CVs" style={link}>Close</button>
+          <button onClick={onClose} aria-label="Close My CVs" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '6px', margin: '-6px -6px 6px 0', display: 'flex' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+          </button>
         </div>
         {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
         {message && <p role="status" style={{ color: '#0a5d55', lineHeight: 1.6 }}>{message}</p>}
@@ -168,38 +204,65 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
         )}
         {step === 'list' && (
           <>
-            <p style={{ color: '#64748b', overflowWrap: 'anywhere' }}>{email}</p>
-            <label style={{ display: 'block', fontSize: '13px', marginBottom: '10px' }}>
-              <input type="checkbox" checked={remember} disabled={loading} onChange={e => {
-                const choice = e.target.checked
-                void run(async () => { await request('/api/customer-access/session', { remember: choice }); setRemember(choice) })
-              }} /> Keep me signed in on this device
-            </label>
-            {hasCode === false && (
-              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '12px 14px', margin: '6px 0 10px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#0a0f1a' }}>Protect your privacy</div>
-                <div style={{ fontSize: '13px', color: '#475569', margin: '2px 0 8px', lineHeight: 1.5 }}>Set a 4-digit access code to protect your CVs and credits.</div>
-                <button style={{ ...primary, padding: '9px 16px', fontSize: '13px' }} onClick={() => { setStep('setPin'); setPin(''); setConfirmPin(''); setError('') }}>Set my access code</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+              <span style={{ color: '#64748b', fontSize: '14px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{email || 'Saved on this device'}</span>
+              <button style={{ ...link, color: '#475569', padding: '4px 0', flexShrink: 0 }} onClick={() => void signOut()}>Sign out</button>
+            </div>
+            {credits && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '12px', padding: '12px 16px', marginBottom: '10px' }}>
+                <div>
+                  <div style={{ fontSize: '15px', fontWeight: 700, color: '#0a0f1a' }}>{credits.cv || credits.cl ? `${plural(credits.cv, 'CV credit')} left` : 'No credits yet'}</div>
+                  {credits.cl > 0 && <div style={{ fontSize: '12.5px', color: '#475569', marginTop: '1px' }}>{plural(credits.cl, 'cover letter credit')}</div>}
+                </div>
+                <a href="/#pricing" style={{ color: '#0a8a3f', fontWeight: 700, fontSize: '14px', textDecoration: 'none', flexShrink: 0 }}>{credits.cv || credits.cl ? 'Buy more' : 'Buy credits'}</a>
               </div>
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <button style={link} onClick={() => { setStep('setPin'); setPin(''); setConfirmPin(''); setError('') }}>{hasCode ? 'Change your access code' : 'Set an access code'}</button>
-              <button style={link} onClick={() => void signOut()}>Sign out</button>
-            </div>
-            {items.length === 0 && <p>No saved CVs yet.</p>}
-            {items.map(item => (
-              <div key={item.id} style={{ border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px', marginTop: '12px' }}>
-                <input aria-label="CV label" defaultValue={item.label || item.cv_type.replace('_', ' ')} style={{ ...inputStyle, fontWeight: 600 }} onBlur={e => {
-                  const label = e.target.value
-                  if (label !== item.label) void run(async () => { await request('/api/cv-history/label', { id: item.id, label }) })
-                }} />
-                <p style={{ color: '#64748b', fontSize: '12px' }}>{new Date(item.created_at).toLocaleDateString('en-GB')}</p>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <button style={primary} onClick={() => openCv(item)}>Preview / Download</button>
-                  <button style={link} onClick={() => openCv(item, true)}>Tailor for another job</button>
-                </div>
+            {hasCode !== null && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '12px 16px', marginBottom: '14px' }}>
+                <span style={{ fontSize: '13.5px', color: '#334155', lineHeight: 1.4 }}>{hasCode ? 'Your CVs are protected with an access code' : 'Protect your CVs with a 4-digit code'}</span>
+                <button style={{ ...link, fontWeight: 700, fontSize: '14px', padding: '4px 0', flexShrink: 0 }} onClick={() => { setStep('setPin'); setPin(''); setConfirmPin(''); setError('') }}>{hasCode ? 'Change' : 'Set code'}</button>
               </div>
-            ))}
+            )}
+            {items.length === 0 && <p style={{ color: '#64748b' }}>No saved CVs yet.</p>}
+            {items.map(item => {
+              const paid = !!item.download_paid
+              return (
+                <div key={item.id} style={{ border: '1px solid #e5e7eb', borderRadius: '14px', padding: '14px 16px', marginTop: '10px' }}>
+                  {renaming === item.id ? (
+                    <input aria-label="Name this CV" autoFocus defaultValue={titleOf(item)} maxLength={80} style={{ ...inputStyle, fontWeight: 600, padding: '8px 10px' }}
+                      onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') setRenaming(null) }}
+                      onBlur={e => {
+                        const label = e.target.value.trim()
+                        setRenaming(null)
+                        if (!label || label === titleOf(item)) return
+                        setItems(list => list.map(x => x.id === item.id ? { ...x, label } : x))
+                        void run(async () => { await request('/api/cv-history/label', { id: item.id, label }) })
+                      }} />
+                  ) : (
+                    <div style={{ fontSize: '16px', fontWeight: 700, color: '#0a0f1a', overflowWrap: 'anywhere' }}>{titleOf(item)}</div>
+                  )}
+                  <div style={{ color: '#64748b', fontSize: '12.5px', margin: '2px 0 12px' }}>
+                    {whenOf(item.created_at)}{!paid && <span style={{ marginLeft: '8px', color: '#92400e', background: '#fef3c7', borderRadius: '99px', padding: '1px 8px', fontSize: '11.5px', fontWeight: 600 }}>Preview</span>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <button style={{ ...primary, padding: '10px 18px', fontWeight: 700 }} onClick={() => openCv(item, false, paid ? 'download' : 'unlock')}>{paid ? 'Download' : 'Unlock'}</button>
+                    <button style={{ ...link, fontWeight: 600, fontSize: '14px' }} onClick={() => openCv(item, true)}>{item.cv_type === 'cover_letter' ? 'Write another' : 'Tailor for a job'}</button>
+                    <button aria-label={`Rename ${titleOf(item)}`} title="Rename" onClick={() => setRenaming(item.id)}
+                      style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '6px', display: 'flex', borderRadius: '8px' }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+            {!guest && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#64748b', marginTop: '16px' }}>
+                <input type="checkbox" checked={remember} disabled={loading} onChange={e => {
+                  const choice = e.target.checked
+                  void run(async () => { await request('/api/customer-access/session', { remember: choice }); setRemember(choice) })
+                }} /> Keep me signed in on this device
+              </label>
+            )}
           </>
         )}
         {step === 'setPin' && (
