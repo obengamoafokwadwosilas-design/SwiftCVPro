@@ -262,7 +262,7 @@ WHAT GOES WHERE:
 - "experience": their non-academic or administrative jobs, written concisely (2–4 bullets each) in an academic register.
 - "skills": research methods, analysis tools and academic skills they actually show (e.g. "Qualitative case-study research", "SPSS", "Literature review"). No general office skills unless the person has nothing else.
 - "attributes": always [] — professional attributes do not belong on an academic CV.
-- "extraSections": "Conference Presentations", "Awards & Scholarships", "Academic Service" (committees, enrolment drives), "Memberships", "Certifications" and "Academic Referees" (lecturers and supervisors first) — only from what was given.
+- "extraSections": "Conference Presentations", "Awards & Scholarships", "Academic Service" (committees, enrolment drives), "Memberships", "Certifications" and "Referees" (lecturers and supervisors first) — only from what was given.
 
 THIN ACADEMIC RECORDS: many applicants have no publications. Make the most of what is genuinely there — dissertations and projects, supervisors, class of degree, seminars attended, academic committee work, teaching during National Service — so the CV still reads as a scholar's record. Never invent anything to fill a section; leave it empty instead.
 

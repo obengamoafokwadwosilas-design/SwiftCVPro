@@ -11,7 +11,7 @@ import React, { useRef, useState, useLayoutEffect } from 'react'
 // older sessions still render.
 const SIDEBAR_HEADS = ['certifications', 'certification', 'memberships', 'membership', 'references', 'reference', 'awards', 'awards & recognition', 'licences', 'licenses', 'professional memberships']
 function isSidebarHead(h: string) { return SIDEBAR_HEADS.includes((h || '').trim().toLowerCase()) }
-function isRefsHead(h: string) { const t = (h || '').trim().toLowerCase(); return t === 'references' || t === 'reference' }
+function isRefsHead(h: string) { return /^(references?|referees?)$/.test((h || '').trim().toLowerCase()) }
 
 function legacyToSections(text?: string): ExtraSection[] {
   if (!text) return []

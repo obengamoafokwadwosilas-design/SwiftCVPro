@@ -22,8 +22,7 @@ export function getExtraSections(cv: any): { heading: string; items: string[] }[
 }
 
 function isRefs(h: string): boolean {
-  const t = (h || '').trim().toLowerCase()
-  return t === 'references' || t === 'reference'
+  return /^(references?|referees?)$/.test((h || '').trim().toLowerCase())
 }
 
 // Render every extra section as: heading (via the caller's own heading builder) + one paragraph per item.
