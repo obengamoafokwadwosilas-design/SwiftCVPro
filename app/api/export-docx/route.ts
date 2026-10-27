@@ -131,6 +131,14 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
   // the templateId sent.
   if (cv.coverLetterBody) return buildFormalCoverLetter(cv)
 
+  // Academic CVs share one Word layout across the academic designs (each keeps
+  // its accent): the section order and headings are what make it academic,
+  // and they must match the PDF.
+  if (cv.cvType === 'academic') {
+    const designAccent: Partial<Record<TemplateId, string>> = { sovereign: '#b08d3f', harbour: '#0f766e' }
+    return buildAcademicCv(cv, accentColor || designAccent[templateId] || '#1e3a6e')
+  }
+
   // Map each premium template to its signature accent for the flagship builder
   const accentFor: Partial<Record<TemplateId, string>> = {
     meridian: '0a1f44',
@@ -517,24 +525,47 @@ function composeSingleColumn(cv: GeneratedCV, heading: (t: string) => Paragraph 
   const bullet = (t: string) => new Paragraph({ numbering: { reference: 'bullets', level: 0 }, children: [new TextRun({ text: t, size: SIZE_BULLET, font: opts.bodyFont, color: '333333' })], spacing: { after: 60, line: 300 } })
   const sect = (title: string, content: () => void) => { children.push(gapB()); children.push(heading(title)); children.push(gapA()); content() }
 
-  if (cv.summary) sect('Profile', () => children.push(new Paragraph({ children: [new TextRun({ text: cv.summary, size: SIZE_BODY, font: opts.bodyFont, color: '333333' })], spacing: { after: 80, line: 320 }, alignment: AlignmentType.JUSTIFIED })))
-  if (cv.experience?.length) sect('Professional Experience', () => cv.experience.forEach((e, i) => {
+  const summary = (title: string) => { if (cv.summary) sect(title, () => children.push(new Paragraph({ children: [new TextRun({ text: cv.summary, size: SIZE_BODY, font: opts.bodyFont, color: '333333' })], spacing: { after: 80, line: 320 }, alignment: AlignmentType.JUSTIFIED }))) }
+  const experience = () => { if (cv.experience?.length) sect('Professional Experience', () => cv.experience.forEach((e, i) => {
     children.push(new Paragraph({ children: [new TextRun({ text: e.role, bold: true, size: SIZE_ROLE, font: opts.bodyFont, color: '0a0a0a' }), new TextRun({ text: '\t', size: SIZE_ROLE }), new TextRun({ text: `${e.startDate} – ${e.endDate}`, size: SIZE_DATES, font: opts.bodyFont, color: '6a6a6a', italics: true })], tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }], spacing: { before: i === 0 ? 0 : 200, after: 40 } }))
     children.push(new Paragraph({ children: [new TextRun({ text: e.company, size: SIZE_BODY, font: opts.bodyFont, color: ACCENT, bold: true })], spacing: { after: 80 } }))
     e.bullets.forEach(b => children.push(bullet(b)))
-  }))
-  if (cv.education?.length) sect('Education', () => cv.education.forEach((e, i) => {
-    children.push(new Paragraph({ children: [new TextRun({ text: `${e.qualification} in ${e.field}`, bold: true, size: SIZE_ROLE, font: opts.bodyFont, color: '0a0a0a' }), new TextRun({ text: '\t', size: SIZE_ROLE }), new TextRun({ text: `${e.startYear} – ${e.endYear}`, size: SIZE_DATES, font: opts.bodyFont, color: '6a6a6a', italics: true })], tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }], spacing: { before: i === 0 ? 0 : 160, after: 40 } }))
+  })) }
+  const education = () => { if (cv.education?.length) sect('Education', () => cv.education.forEach((e, i) => {
+    children.push(new Paragraph({ children: [new TextRun({ text: `${e.qualification}${e.field ? ` in ${e.field}` : ''}`, bold: true, size: SIZE_ROLE, font: opts.bodyFont, color: '0a0a0a' }), new TextRun({ text: '\t', size: SIZE_ROLE }), new TextRun({ text: [e.startYear, e.endYear].filter(Boolean).join(' – '), size: SIZE_DATES, font: opts.bodyFont, color: '6a6a6a', italics: true })], tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }], spacing: { before: i === 0 ? 0 : 160, after: 40 } }))
     children.push(new Paragraph({ children: [new TextRun({ text: `${e.institution}${e.grade ? ` — ${e.grade}` : ''}`, size: SIZE_BODY, font: opts.bodyFont, color: '4a4a4a', italics: true })], spacing: { after: 80 } }))
-  }))
-  if (cv.skills?.length) sect('Core Skills', () => children.push(new Paragraph({ children: [new TextRun({ text: cv.skills.join('   •   '), size: SIZE_BODY, font: opts.bodyFont, color: '333333' })], spacing: { after: 100, line: 340 } })))
-  if (cv.languages?.length) sect('Languages', () => children.push(new Paragraph({ children: [new TextRun({ text: cv.languages!.join('   •   '), size: SIZE_BODY, font: opts.bodyFont, color: '333333' })], spacing: { after: 100 } })))
-  if (cv.publications?.length) sect('Publications', () => cv.publications!.forEach(p => children.push(bullet(p))))
-  if (cv.research?.length) sect('Research', () => cv.research!.forEach(r => children.push(bullet(r))))
-  if (cv.teaching?.length) sect('Teaching Experience', () => cv.teaching!.forEach(t => children.push(bullet(t))))
-  extraSectionParagraphs(cv, heading, { size: SIZE_BODY, font: opts.bodyFont, color: '333333' }).forEach(pp => children.push(pp))
+  })) }
+  const skills = (title: string) => { if (cv.skills?.length) sect(title, () => children.push(new Paragraph({ children: [new TextRun({ text: cv.skills.join('   •   '), size: SIZE_BODY, font: opts.bodyFont, color: '333333' })], spacing: { after: 100, line: 340 } }))) }
+  const languages = () => { if (cv.languages?.length) sect('Languages', () => children.push(new Paragraph({ children: [new TextRun({ text: cv.languages!.join('   •   '), size: SIZE_BODY, font: opts.bodyFont, color: '333333' })], spacing: { after: 100 } }))) }
+  const list = (title: string, items?: string[]) => { if (items?.length) sect(title, () => items.forEach(x => children.push(bullet(x)))) }
+  const extras = () => extraSectionParagraphs(cv, heading, { size: SIZE_BODY, font: opts.bodyFont, color: '333333' }).forEach(pp => children.push(pp))
 
+  // Same order and headings as the academic PDF (commonBlocks in CVPreview).
+  if (cv.cvType === 'academic') {
+    summary('Academic Profile'); education()
+    list('Research Experience', cv.research); list('Teaching Experience', cv.teaching); list('Publications', cv.publications)
+    experience(); skills('Research Skills & Methods'); languages(); extras()
+    return wrapDoc(children)
+  }
+
+  summary('Profile'); experience(); education(); skills('Core Skills'); languages()
+  list('Publications', cv.publications); list('Research', cv.research); list('Teaching Experience', cv.teaching)
+  extras()
   return wrapDoc(children)
+}
+
+// ═══════════════════════════════════════════════════════
+// ACADEMIC — one Word layout for academic CVs on every academic design:
+// centred name, accent rule headings, academic section order.
+// ═══════════════════════════════════════════════════════
+function buildAcademicCv(cv: GeneratedCV, accentColor: string): Document {
+  const ACCENT = accentColor.replace('#', '')
+  const heading = (text: string) => new Paragraph({
+    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: SIZE_SECTION_HEAD, font: HEADER_FONT, color: ACCENT, characterSpacing: 30 })],
+    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT, space: 2 } },
+    spacing: { after: 60 },
+  })
+  return composeSingleColumn(cv, heading, ACCENT, { center: true, bodyFont: BODY_FONT, nameFont: HEADER_FONT, nameColor: '111111', titleUsesAccent: false })
 }
 
 // ═══════════════════════════════════════════════════════

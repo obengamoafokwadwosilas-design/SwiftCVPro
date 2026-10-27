@@ -305,7 +305,7 @@ const packMainPlan = (keys: string[], heights: number[], page1Usable: number, us
     if (/^attributes-\d+$/.test(key)) return 'attributes'
     const extra = key.match(/^(extra-\d+)-\d+$/)
     if (extra) return extra[1]
-    const named = key.match(/^(Publications|Research|Teaching Experience)-\d+$/)
+    const named = key.match(/^(Publications|Research|Research Experience|Teaching Experience)-\d+$/)
     return named ? named[1] : null
   }
   for (let p = 0; p < result.length - 1; p++) {
@@ -510,16 +510,19 @@ function safeBullet(text: string, color = '#333') {
 
 function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skillsInline?: boolean }): Block[] {
   const blocks: Block[] = []
+  const academic = cv.cvType === 'academic'
 
-  if (cv.summary) {
-    blocks.push({ key: 'summary-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Profile', A, headStyle)}</div> })
+  const summary = (title: string) => {
+    if (!cv.summary) return
+    blocks.push({ key: 'summary-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading(title, A, headStyle)}</div> })
     blocks.push({
       key: 'summary',
       node: <p style={{ fontSize: 16.5, lineHeight: 1.78, color: '#333', textAlign: 'justify', margin: 0, marginBottom: 18 }}>{cv.summary}</p>
     })
   }
 
-  if (cv.experience?.length) {
+  const experience = () => {
+    if (!cv.experience?.length) return
     blocks.push({ key: 'exp-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Professional Experience', A, headStyle)}</div> })
     cv.experience.forEach((e, i) => {
       const dates = [e.startDate, e.endDate].filter(Boolean).join(' – ')
@@ -542,7 +545,8 @@ function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skill
     })
   }
 
-  if (cv.education?.length) {
+  const education = () => {
+    if (!cv.education?.length) return
     blocks.push({ key: 'edu-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Education', A, headStyle)}</div> })
     cv.education.forEach((e, i) => {
       const dates = [e.startYear, e.endYear].filter(Boolean).join(' – ')
@@ -562,48 +566,46 @@ function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skill
     })
   }
 
-  const addNamedList = (title: string, items?: string[]) => {
+  const namedList = (title: string, items?: string[]) => {
     if (!items?.length) return
     blocks.push({ key: `${title}-h`, node: <div style={{ marginBottom: 4 }}>{sectionHeading(title, A, headStyle)}</div> })
     items.forEach((x, i) => blocks.push({ key: `${title}-${i}`, node: <div style={{ marginBottom: i === items.length - 1 ? 12 : 0 }}>{safeBullet(x, '#444')}</div> }))
   }
-  addNamedList('Publications', cv.publications)
-  addNamedList('Research', cv.research)
-  addNamedList('Teaching Experience', cv.teaching)
 
-  if (opts?.skillsInline) {
-    if (cv.skills?.length) {
-      blocks.push({ key: 'skills-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Core Skills', A, headStyle)}</div> })
-      for (let i = 0; i < cv.skills.length; i += 3) {
-        const chunk = cv.skills.slice(i, i + 3)
-        blocks.push({
-          key: `skills-${i / 3}`,
-          node: <div style={{ fontSize: 16.5, color: '#333', lineHeight: 1.85, marginBottom: i + 3 >= cv.skills.length ? 13 : 2, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{dotList(chunk, A)}</div>
-        })
-      }
-    }
-
-    if (cv.attributes?.length) {
-      blocks.push({ key: 'attributes-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Professional Attributes', A, headStyle)}</div> })
-      cv.attributes.forEach((a, i) => blocks.push({
-        key: `attributes-${i}`,
-        node: <div style={{ marginBottom: i === cv.attributes!.length - 1 ? 12 : 0 }}>{safeBullet(a)}</div>
-      }))
-    }
-
-    if (cv.languages?.length) {
-      blocks.push({ key: 'langs-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Languages', A, headStyle)}</div> })
-      for (let i = 0; i < cv.languages.length; i += 4) {
-        const chunk = cv.languages.slice(i, i + 4)
-        blocks.push({
-          key: `langs-${i / 4}`,
-          node: <div style={{ fontSize: 16.5, color: '#333', lineHeight: 1.75, marginBottom: i + 4 >= cv.languages.length ? 13 : 2, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{dotList(chunk, A)}</div>
-        })
-      }
+  const skills = (title: string) => {
+    if (!cv.skills?.length) return
+    blocks.push({ key: 'skills-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading(title, A, headStyle)}</div> })
+    for (let i = 0; i < cv.skills.length; i += 3) {
+      const chunk = cv.skills.slice(i, i + 3)
+      blocks.push({
+        key: `skills-${i / 3}`,
+        node: <div style={{ fontSize: 16.5, color: '#333', lineHeight: 1.85, marginBottom: i + 3 >= cv.skills.length ? 13 : 2, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{dotList(chunk, A)}</div>
+      })
     }
   }
 
-  getSections(cv).forEach((sec, i) => {
+  const attributes = () => {
+    if (!cv.attributes?.length) return
+    blocks.push({ key: 'attributes-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Professional Attributes', A, headStyle)}</div> })
+    cv.attributes.forEach((a, i) => blocks.push({
+      key: `attributes-${i}`,
+      node: <div style={{ marginBottom: i === cv.attributes!.length - 1 ? 12 : 0 }}>{safeBullet(a)}</div>
+    }))
+  }
+
+  const languages = () => {
+    if (!cv.languages?.length) return
+    blocks.push({ key: 'langs-h', node: <div style={{ marginBottom: 4 }}>{sectionHeading('Languages', A, headStyle)}</div> })
+    for (let i = 0; i < cv.languages.length; i += 4) {
+      const chunk = cv.languages.slice(i, i + 4)
+      blocks.push({
+        key: `langs-${i / 4}`,
+        node: <div style={{ fontSize: 16.5, color: '#333', lineHeight: 1.75, marginBottom: i + 4 >= cv.languages.length ? 13 : 2, breakInside: 'avoid', pageBreakInside: 'avoid' }}>{dotList(chunk, A)}</div>
+      })
+    }
+  }
+
+  const extras = () => getSections(cv).forEach((sec, i) => {
     if (!sec?.items?.length) return
     blocks.push({ key: `extra-${i}-h`, node: <div style={{ marginBottom: 4 }}>{sectionHeading(sec.heading, A, headStyle)}</div> })
     sec.items.forEach((item, j) => blocks.push({
@@ -614,6 +616,28 @@ function commonBlocks(cv: GeneratedCV, A: string, headStyle: any, opts?: { skill
     }))
   })
 
+  if (academic) {
+    // An academic CV leads with the scholar: education, then research and
+    // teaching, with jobs after them. No professional attributes.
+    summary('Academic Profile')
+    education()
+    namedList('Research Experience', cv.research)
+    namedList('Teaching Experience', cv.teaching)
+    namedList('Publications', cv.publications)
+    experience()
+    if (opts?.skillsInline) { skills('Research Skills & Methods'); languages() }
+    extras()
+    return blocks
+  }
+
+  summary('Profile')
+  experience()
+  education()
+  namedList('Publications', cv.publications)
+  namedList('Research', cv.research)
+  namedList('Teaching Experience', cv.teaching)
+  if (opts?.skillsInline) { skills('Core Skills'); attributes(); languages() }
+  extras()
   return blocks
 }
 

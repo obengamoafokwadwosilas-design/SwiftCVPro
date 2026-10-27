@@ -257,6 +257,9 @@ export default function PreviewPage() {
     if (!stored) { router.push('/build'); return }
     try {
       const parsed = normalizeCV(JSON.parse(stored))
+      // CVs saved before the writer recorded its type get it from the session,
+      // so an academic CV still lays out as one.
+      if (!parsed.cvType && !parsed.coverLetterBody) parsed.cvType = (sessionStorage.getItem('swiftcv_type') || 'professional') as GeneratedCV['cvType']
       setCV(parsed)
       setBaseCv(parsed)
       setEmail(em || '')

@@ -132,6 +132,7 @@ export async function writeDocument(formData: CVFormData, effort: Effort = WRITE
   // No headline under the name (owner's rule); the role the CV is aimed at
   // lives in targetRole instead.
   doc.jobTitle = ''
+  doc.cvType = formData.cvType
   if (!formData.changes?.trim()) doc.changesReport = []
   // The trim pass is cosmetic, so a slow main write skips it rather than push
   // the whole request towards the server's time limit.

@@ -137,6 +137,9 @@ export interface GeneratedCV {
   research?: string[]
   teaching?: string[]
   extraSections?: { heading: string; items: string[] }[]
+  // Which kind of CV this is; an academic one lays out as one (education
+  // first, research and teaching, academic headings) in PDF and Word.
+  cvType?: CVType
   // The role this document is aimed at (from the advert or the stated aim), or
   // ''. Never printed on the CV — it names the document in My CVs and gives a
   // cover letter written later from this CV its role.
