@@ -556,6 +556,16 @@ export default function PreviewPage() {
     finally { setCoverGenerating(false) }
   }
 
+  // Each design downloads under its own name. With one fixed name, phones
+  // (Android download manager, Brave) opened the file already downloaded, so
+  // after switching design people kept seeing their first download.
+  function downloadName(ext: 'pdf' | 'docx') {
+    const clean = (s: string) => s.trim().replace(/[^A-Za-z0-9À-ÿ]+/g, '_').replace(/^_+|_+$/g, '')
+    const kind = isCoverLetter ? 'Cover_Letter' : 'CV'
+    const design = isCoverLetter ? '' : `_${clean(TEMPLATES.find(t => t.id === template)?.name || template)}`
+    return `${clean(cv?.fullName || 'RemarkableCV')}_${kind}${design}.${ext}`
+  }
+
   async function handleDownloadDocx() {
     if (!cv) return
     const tpl = TEMPLATES.find(t => t.id === template)
@@ -590,7 +600,7 @@ export default function PreviewPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.docx`
+      a.download = downloadName('docx')
       setHasDownloaded(true)
       setDocPaid(true)
       offerTailorAgain()
@@ -678,7 +688,7 @@ export default function PreviewPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${cv.fullName.replace(/\s+/g, '_')}_CV.pdf`
+      a.download = downloadName('pdf')
       setHasDownloaded(true)
       setDocPaid(true)
       offerTailorAgain()
