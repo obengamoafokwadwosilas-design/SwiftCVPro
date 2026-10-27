@@ -30,6 +30,28 @@
     }
   },
   {
+    "id": "thin-teacher",
+    "about": "A job with no duties listed — the writer should add the standard duties of that role, confidently, with no invented results",
+    "input": {
+      "cvType": "professional",
+      "rawContent": "Ama Kyerewaa Owusu\nama.kowusu@gmail.com | 0246 551 209 | Koforidua\n\nTeacher, Ghana Education Service — Oyoko Methodist Basic School, 2016 - present\n\nAccounts Clerk, Koforidua Technical University, 2013 - 2016\n\nDiploma in Basic Education, Presbyterian College of Education, Akropong, 2010 - 2013"
+    },
+    "expect": {
+      "facts": [
+        "Ama Kyerewaa Owusu",
+        "Oyoko Methodist",
+        "Accounts Clerk",
+        "Presbyterian College of Education"
+      ],
+      "absent": [
+        "Head Teacher",
+        "Headteacher",
+        "pass rate"
+      ],
+      "minBulletsPerRole": 2
+    }
+  },
+  {
     "id": "banker-advert",
     "about": "Banker tailoring to a Relationship Officer advert; only numbers given may appear",
     "input": {

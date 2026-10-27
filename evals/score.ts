@@ -16,6 +16,7 @@ export interface Expect {
   letterSubjectIncludes?: string
   letterFacts?: string[]
   letterOnly?: boolean
+  minBulletsPerRole?: number // thin input: the writer should still give every role real duties
   allowNumbers?: string[]    // true figures the writer may add (e.g. the year in a law's official name)
   rejects?: boolean          // input is not a CV: the writer must refuse, not deliver an empty CV
 }
@@ -103,6 +104,10 @@ export function scoreCv(cv: GeneratedCV, input: string, expect: Expect, cvType: 
     if (!expect.notAppliedOk) add('every change request applied', 'hard', skipped.length === 0, skipped.map(r => r.request).join(' · ') || undefined)
   }
 
+  if (expect.minBulletsPerRole) {
+    const thin = (cv.experience || []).filter(e => (e.bullets || []).length < expect.minBulletsPerRole!).map(e => e.role)
+    add('every role has duties', 'hard', thin.length === 0, thin.join(' · ') || undefined)
+  }
   if (expect.targetRole) add('target role recognised', 'soft', has(cv.targetRole || '', expect.targetRole), cv.targetRole || '(empty)')
 
   const badDates = (cv.experience || []).flatMap(e => [e.startDate, e.endDate]).filter(d => d && !DATE_RE.test(d.trim()))

@@ -15,7 +15,7 @@ const dir = (l: string) => path.join(here, 'results', l)
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 const CRITERIA = `Judge as an experienced Ghanaian recruiter and HR manager would.
-1. TRUTH (most important): anything stated that the person's input does not support — invented numbers, results, skills, upgraded job titles — is a serious fault, however impressive it sounds.
+1. TRUTH (most important): invented numbers or specific results, achievements, awards or promotions the person did not mention, upgraded job titles, or a raised level of involvement ("assisted" written as "managed") are serious faults, however impressive they sound. By the house rules these are NOT faults: describing the general benefit of work the person really did ("helping the company keep projects within budget"), and adding the standard duties of the exact role they named when they listed few or none.
 2. INSTRUCTIONS: the person's change requests applied; the job advert or aim reflected honestly.
 3. IMPACT: does it make the person sound capable and specific, at their real level? Would you call them?
 4. READABILITY: clear, well ordered, no repetition or filler, right length.
