@@ -8,12 +8,24 @@ const TRUTH_RULES = `THE TRUTH — these override every other instruction, inclu
 3. Never write placeholders such as [Company], [Year] or [Name]. If a detail is missing, write around it.
 4. Never add date of birth, religion, marital status, a photo or hobbies unless the person gave them. If they did, keep them brief and never lead with them.
 5. Never claim a skill, tool, licence, achievement or experience the person's details do not show — not even to match a job advert. Wanting a job is not evidence of having done it.
-6. Keep abbreviations as the person wrote them (GIFMIS, ICAG, NSS, GES). Spell one out only if the person did, or if you are certain of its official expansion — a wrong expansion is a visible error to a Ghanaian employer.`
+6. Never raise the person's level of involvement or responsibility. "Assisted with", "helped" and "supported" stay at that level — never "managed", "led", "owned" or "drove". Keep qualifiers that limit a claim: "basic", "intern", "trainee", "part-time", "contract", "in progress", "co-researched". Do not add duties, decisions, outcomes or purposes they did not state ("shaped treatment decisions", "ensured compliance", "improving efficiency"). You may rephrase, order and give context to what they wrote — but every claim must be traceable to their own words.
+7. Keep abbreviations as the person wrote them (GIFMIS, ICAG, NSS, GES). Spell one out only if the person did, or if you are certain of its official expansion — a wrong expansion is a visible error to a Ghanaian employer.`
 
 const HOUSE_STYLE = `HOUSE STYLE:
 - British English spelling throughout (organise, programme, labour, centre, behaviour, analyse), as used in Ghana.
 - Dates as "Mon YYYY – Mon YYYY" or "Mon YYYY – Present" (e.g. "Aug 2021 – Aug 2024"), with three-letter months: Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec. If only years are given, use years ("2017 – 2019"). Never invent a month.
 - No buzzwords or filler: synergy, leverage, paradigm, rockstar, ninja, guru, passionate, hardworking, dynamic, results-driven, go-getter, team player, detail-oriented.`
+
+const LETTER_OPENINGS = [
+  'I wish to apply for', 'I write to apply for', 'I hereby submit my application for', 'I respectfully apply for',
+  'It is with keen interest that I apply for', 'Please accept this letter as my application for', 'I am pleased to submit my application for',
+]
+const LETTER_CLOSINGS = [
+  'thank you for considering my application', 'I would be grateful for the opportunity of an interview',
+  'I look forward to your favourable response', 'thank you for your time and kind consideration',
+  'I would welcome the opportunity to discuss my application further',
+]
+const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)]
 
 // ─────────────────────────────────────────────────────────────
 // SYSTEM PROMPTS
@@ -24,7 +36,7 @@ ${TRUTH_RULES}
 
 YOUR WRITING VOICE:
 - Crisp, confident and specific; never wordy, never generic. It should read as if a senior consultant wrote it about this particular person.
-- Every bullet shows what the person achieved or carried out, not just a duty: lead with the outcome or the scope, then the action, then the context where it helps. "Responsible for…" and "Duties included…" are never acceptable.
+- Every bullet shows what the person actually carried out, in active, specific language: the scope or result they stated first where there is one, then the action, then the context where it helps. "Responsible for…" and "Duties included…" are never acceptable. Strength comes from precise wording of what they really did — never from adding results, seniority or duties they did not state.
 - Start bullets with strong action verbs (past tense for past roles; present tense is fine for the current role). Never start two bullets in the same role with the same verb.
 - Bullets are 14–26 words, one idea each.
 - Say each achievement once: do not repeat the same point in the summary, the bullets and the skills.
@@ -32,8 +44,8 @@ YOUR WRITING VOICE:
 ${HOUSE_STYLE}
 
 LENGTH AND WEIGHT:
-- Recent and relevant roles get the most detail (3–5 bullets); older or less relevant roles get 2–3.
-- Aim for a CV that fits about two pages for most people; three only for long senior careers or academics with long publication lists. Cut repetition before cutting substance.
+- Recent and relevant roles get the most detail (3–5 bullets); older or less relevant roles get 2–3; roles from long ago, or short ones, can be a single line.
+- Aim for a CV that fits about two pages for most people — roughly 600–850 words in total; three pages only for long senior careers or academics with long publication lists. Cut repetition before cutting substance.
 
 MATCH SENIORITY TO EVIDENCE:
 - Write at the level the person's details support. Do not inflate limited experience into seniority, and do not write a student or early-career person in a seasoned-executive voice.
@@ -190,10 +202,11 @@ function getTypeInstructions(formData: CVFormData): string {
       const base = `TASK: Write a Professional CV that commands attention — strong enough that a recruiter wants to call, and honest enough that every line survives an interview.
 
 STRUCTURE:
-- SUMMARY (3–4 sentences): open with the person's years of experience and field, then their most impressive real achievement or responsibility, then the value they bring to the next employer. It should read like a confident professional bio, never a job-seeker's plea.
+- SUMMARY (3–4 sentences, at most about 80 words): open with the person's years of experience and field, then their most impressive real achievement or responsibility, then the value they bring to the next employer. It should read like a confident professional bio, never a job-seeker's plea.
 - EXPERIENCE: each bullet shows an outcome or real scope first, then the action, then the context where it helps.
   Wrong: "Responsible for managing the IT team."
-  Right (the person wrote that they managed 8 IT staff across 14 branches): "Led an 8-person IT team supporting all 14 branches, keeping systems running through the core-banking upgrade."
+  Right (the person wrote that they managed 8 IT staff across 14 branches and supported the core-banking upgrade): "Led an 8-person IT team supporting all 14 branches, including through the core-banking upgrade."
+  Right (the person wrote that they assisted with cost estimates): "Assisted project managers in estimating and tracking aluminium and glass project costs." — never "Managed project costs".
   Right (the person wrote only that they handled complaints, with no numbers): "Resolved walk-in and phone complaints for retail and corporate clients, escalating policy issues to the branch manager."
 - EDUCATION: highest first; grade or class only if given.
 
@@ -241,7 +254,7 @@ QUALITY: it should read as their real career, told in a way that makes sense to 
       const academicBase = `TASK: Write an Academic CV in scholarly format — for a graduate programme, scholarship, fellowship, teaching assistantship or lectureship. It must read unmistakably as an academic CV even when the person's academic record is short.
 
 WHAT GOES WHERE:
-- "summary" is the ACADEMIC PROFILE (4–5 sentences, scholarly tone): their field, degrees, research interests and the questions or methods their work has engaged, and the academic direction they are pursuing. No marketing language.
+- "summary" is the ACADEMIC PROFILE — no more than 5 sentences and about 110 words, in a scholarly tone: their field, their research interests and the questions or methods their work has engaged, and the academic direction they are pursuing. Do not list their degrees or jobs here; the sections below show them. No marketing language.
 - "education": most recent first; the degree and field exactly as given, institution, years, and "grade" for the class or GPA if given.
 - "research": every piece of research they have done, each item as "Title — level or context, institution (year); supervisor if given". Dissertations, theses and project work at undergraduate and master's level all count; so do research assistance and data collection. If they show their research under education, list it here too.
 - "teaching": teaching assistance, tutoring, demonstrating, marking and National Service teaching — role, institution and years. [] if none.
@@ -290,6 +303,11 @@ QUALITY: a selection committee in ${field} should see the fit in the first parag
     }
 
     case 'cover_letter': {
+      // Each letter is written on its own, so "rotate the wording" can't work
+      // inside the model — the eval set caught different applicants getting
+      // the same opening. The code picks the opening and closing instead.
+      const opening = pick(LETTER_OPENINGS)
+      const closing = pick(LETTER_CLOSINGS)
       const role = jobTitle?.trim()
       const advert = jobDescription?.trim()
       // A letter written from the preview page often has no role field — the
@@ -315,9 +333,10 @@ GHANAIAN APPLICATION-LETTER STYLE:
 - BODY (2–3 paragraphs): the current or most recent role and what it has given the applicant; then the qualifications and strengths that fit ${hasRole ? 'what this role asks for' : 'the kind of role they are suited to'}. Draw only on the applicant's details.
 - CLOSING PARAGRAPH: appreciation for consideration and a reference to the attached CV and supporting documents, then one brief line of thanks.
 
-VARY THE WORDING:
-- Do not reuse a stock template. Rotate naturally among openings such as "I wish to apply for…", "I write to apply for…", "I hereby submit my application for…", "I respectfully apply for…", "It is with keen interest that I apply for…", choosing what suits the applicant's seniority and field.
-- Vary the closing too. Let the substance of this person's background drive the wording.
+WORDING FOR THIS LETTER:
+- Begin the opening sentence with "${opening}" and continue it naturally${hasRole ? ' with the role' : ''}.
+- Build the final thank-you line around "${closing}", in your own words.
+- Everything in between is written fresh from this applicant's own background — no stock phrases.
 
 LENGTH: 220–320 words for the body.
 

@@ -16,6 +16,7 @@ export interface Expect {
   letterSubjectIncludes?: string
   letterFacts?: string[]
   letterOnly?: boolean
+  allowNumbers?: string[]    // true figures the writer may add (e.g. the year in a law's official name)
   rejects?: boolean          // input is not a CV: the writer must refuse, not deliver an empty CV
 }
 
@@ -83,7 +84,7 @@ export function scoreCv(cv: GeneratedCV, input: string, expect: Expect, cvType: 
   add('has core content', 'hard', !!cv.fullName && (cv.experience?.length || 0) + (cv.education?.length || 0) > 0)
   add('no headline under the name', 'hard', !cv.jobTitle?.trim(), cv.jobTitle || undefined)
 
-  const invented = inventedNumbers(cv, input)
+  const invented = inventedNumbers(cv, input).filter(n => !(expect.allowNumbers || []).includes(n))
   add('no invented numbers', 'hard', invented.length === 0, invented.join(', ') || undefined)
 
   const missing = (expect.facts || []).filter(f => !has(all, f))
@@ -124,6 +125,10 @@ export function scoreCv(cv: GeneratedCV, input: string, expect: Expect, cvType: 
   }).map(e => e.role)
   add('no repeated opening verb within a role', 'soft', repeatedVerb.length === 0, repeatedVerb.join(' · ') || undefined)
 
+  const sentences = (cv.summary || '').split(/(?<=[.!?])\s+/).filter(s => s.trim()).length
+  const summaryMax = cvType === 'academic' ? { s: 5, w: 120 } : { s: 4, w: 90 }
+  add('summary length', 'soft', sentences <= summaryMax.s && words(cv.summary || '') <= summaryMax.w, `${sentences} sentences, ${words(cv.summary || '')} words`)
+
   const total = words(cvText(cv, false))
   add('length within target', 'soft', total <= (expect.maxWords ?? (cvType === 'academic' ? 1100 : 900)), `${total} words`)
 
@@ -148,7 +153,7 @@ export function scoreLetter(letter: GeneratedCV, input: string, expect: Expect):
   if (expect.letterSubjectIncludes) add('letter: subject names the role', 'hard', has(letter.clSubject || '', expect.letterSubjectIncludes), letter.clSubject)
   add('letter: no salutation or sign-off in the body', 'hard', !/\bDear\b|Yours (faithfully|sincerely)/i.test(body))
   add('letter: no placeholders', 'hard', !/\[[A-Za-z][^\]]{1,30}\]/.test(body))
-  const invented = inventedNumbers(letter, input)
+  const invented = inventedNumbers(letter, input).filter(n => !(expect.allowNumbers || []).includes(n))
   add('letter: no invented numbers', 'hard', invented.length === 0, invented.join(', ') || undefined)
   const missing = (expect.letterFacts || []).filter(f => !has(`${letter.clSubject}\n${body}`, f))
   add('letter: facts used', 'hard', missing.length === 0, missing.join(' · ') || undefined)

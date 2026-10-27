@@ -33,7 +33,7 @@ const schema = {
 
 const read = (l: string, id: string) => JSON.parse(fs.readFileSync(path.join(dir(l), `${id}.json`), 'utf8'))
 const docText = (r: { doc?: GeneratedCV; letter?: GeneratedCV }) =>
-  [r.doc ? cvText(r.doc) : '', r.letter ? `\n--- COVER LETTER ---\n${cvText(r.letter)}` : ''].join('')
+  [r.doc ? cvText(r.doc) : '', r.letter && !process.env.CV_ONLY ? `\n--- COVER LETTER ---\n${cvText(r.letter)}` : ''].join('')
 
 async function main() {
   const ids = fs.readdirSync(dir(labelA)).filter(f => f.endsWith('.json')).map(f => f.replace(/\.json$/, ''))

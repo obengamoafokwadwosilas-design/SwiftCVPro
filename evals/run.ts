@@ -129,6 +129,12 @@ async function main() {
     const fails = r.error ? `ERROR: ${r.error}` : r.checks.filter(k => !k.pass).map(k => `${k.level === 'hard' ? '**' : ''}${k.name}${k.level === 'hard' ? '**' : ''}${k.detail ? ` (${k.detail})` : ''}`).join('; ')
     lines.push(`| ${r.id} | ${hard.filter(k => k.pass).length}/${hard.length} | ${soft.filter(k => k.pass).length}/${soft.length} | ${(r.ms / 1000).toFixed(0)}s | ${fails} |`)
   }
+  // Two applicants must never get the same letter. Openings are drawn from a
+  // small set of formal phrases, so compare beyond the phrase (15 words).
+  const openings = results.filter(r => r.letter?.coverLetterBody).map(r => ({ id: r.id, open: r.letter!.coverLetterBody!.split(/\s+/).slice(0, 15).join(' ').toLowerCase() }))
+  const repeated = openings.filter((o, i) => openings.some((p, j) => j !== i && p.open === o.open))
+  lines.push('', `**Letter openings:** ${openings.length} letters, ${repeated.length ? `repeated: ${repeated.map(o => `${o.id} ("${o.open}…")`).join(', ')}` : 'all different'}`)
+
   writerMs.sort((a, b) => a - b)
   const median = writerMs.length ? writerMs[Math.floor(writerMs.length / 2)] / 1000 : 0
   const cost = (tokIn * PRICE.in + tokOut * PRICE.out) / 1e6

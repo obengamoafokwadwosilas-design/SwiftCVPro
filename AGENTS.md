@@ -228,7 +228,9 @@ closed rather than crash.
    always parses), the server-side refusal fallback, and `WRITER_EFFORT`
    chosen on the evals. Prompt rules that are promises, not style — don't
    weaken them: **no numbers that aren't in the person's input** (they get asked
-   about them in interviews), job titles copied exactly, nothing claimed to
+   about them in interviews), **no raised involvement** ("assisted" never
+   becomes "managed"; "basic", "intern", "in progress" are kept; no added
+   duties or outcomes), job titles copied exactly, nothing claimed to
    match an advert, no headline under the name (`jobTitle` is always '' on CVs;
    the aimed-at role is `targetRole`, used to name the CV in My CVs), every
    "Anything to add or change?" request reported in `changesReport` (shown as
