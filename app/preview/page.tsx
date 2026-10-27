@@ -269,9 +269,17 @@ export default function PreviewPage() {
       const storedCvType = sessionStorage.getItem('swiftcv_type') || 'professional'
       setCvType(storedCvType)
       if (storedCvType === 'cover_letter' || parsed.coverLetterBody) setIsCoverLetter(true)
-      if (storedCvType === 'academic') { setIsAcademicCV(true); setTemplate('academic') }
+      // Back after a reload: the colour they had chosen comes with the design
+      // (My CVs sets swiftcv_accent itself, which wins).
+      const keptAccent = sessionStorage.getItem('swiftcv_accent_kept')
+      if (sessionStorage.getItem('swiftcv_accent') === null && keptAccent) sessionStorage.setItem('swiftcv_accent', keptAccent)
+      const storedTemplate = sessionStorage.getItem('swiftcv_template') as TemplateId | null
+      if (storedCvType === 'academic') {
+        setIsAcademicCV(true)
+        setTemplate(storedTemplate && (['academic', 'classic', 'sovereign', 'harbour'] as TemplateId[]).includes(storedTemplate) ? storedTemplate : 'academic')
+      }
       else if (storedCvType === 'cover_letter') setTemplate('classic')
-      else setTemplate((sessionStorage.getItem('swiftcv_template') as TemplateId) || pickLandingTemplate())
+      else setTemplate(storedTemplate || pickLandingTemplate())
     } catch { router.push('/build') }
     const warn = (e: BeforeUnloadEvent) => {
       if (leavingOnPurposeRef.current) return
@@ -281,25 +289,42 @@ export default function PreviewPage() {
     return () => window.removeEventListener('beforeunload', warn)
   }, [router])
 
-  // Reset accent color when switching templates
+  // Each design starts on its own colour — except the first one shown, which
+  // takes a colour restored from My CVs or kept across a reload. It waits for
+  // the CV to load: running on the very first render used the restored colour
+  // up on the placeholder design, so it never reached the real one.
+  const cvLoaded = !!cv
   useEffect(() => {
+    if (!cvLoaded) return
     setAccentColor(sessionStorage.getItem('swiftcv_accent') || null)
     sessionStorage.removeItem('swiftcv_accent')
     setShowColorPicker(false)
-  }, [template])
+  }, [template, cvLoaded])
+
+  // The chosen design and colour survive a reload — paying on Paystack's own
+  // page, a refresh, coming back from My CVs — instead of snapping back to the
+  // starter design, which the download would then use.
+  useEffect(() => {
+    if (!cv || isCoverLetter) return
+    sessionStorage.setItem('swiftcv_template', template)
+    sessionStorage.setItem('swiftcv_accent_kept', accentColor || '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template, accentColor, isCoverLetter])
 
   // Keep the saved history row's template/colour in sync with whatever is
   // currently on screen. Fire-and-forget: this is bookkeeping, never blocks
   // the UI, and only applies to CVs (cover letters aren't saved to history).
+  // The server knows the owner from the browser, so no email is needed — a
+  // guest without one used to lose their design in My CVs.
   useEffect(() => {
     const historyId = sessionStorage.getItem('swiftcv_history_id')
-    if (!historyId || !email || isCoverLetter) return
+    if (!historyId || isCoverLetter || !cvLoaded) return
     fetch('/api/cv-history/update-template', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, historyId: Number(historyId), templateId: template, accentColor }),
     }).catch(() => { /* best-effort — never surface this to the user */ })
-  }, [template, accentColor, email, isCoverLetter])
+  }, [template, accentColor, email, isCoverLetter, cvLoaded])
 
   // Ready toast: pause the countdown while hovered (dismissal is driven by the
   // progress bar's animationEnd below, so there is a single clock).
