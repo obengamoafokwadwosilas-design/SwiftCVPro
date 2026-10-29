@@ -6,6 +6,7 @@ import { creditPackageIfNew, liveOwnerId } from '@/lib/credits'
 import { packageByAmount } from '@/lib/packages'
 import { sendCustomerLink } from '@/lib/customerMail'
 import { mailTargetFor } from '@/lib/customerAuth'
+import { alertOwner } from '@/lib/alerts'
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,8 +46,8 @@ export async function POST(req: NextRequest) {
     const amount = Number(event.data?.amount)
     const pkg = packageByAmount(amount)
     if (!pkg) {
-      // Unknown amount: don't guess credits. Log loudly for reconciliation.
-      console.error(`Paystack charge for unrecognised amount ${amount} (ownerId ${ownerId}) — no credits granted`)
+      // Unknown amount: don't guess credits. Tell the owner so it gets reconciled.
+      await alertOwner('PAID but amount not recognised (webhook)', `reference ${reference}, amount ${amount} pesewas`)
       return NextResponse.json({ error: 'Unrecognised package amount' }, { status: 400 })
     }
 
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true, duplicate: true })
     }
     if (!result.credited) {
-      console.error(`Failed to credit ${ownerId} (pkg ${pkg.id}, ref ${reference}): ${result.error}`)
+      await alertOwner('PAID but credits NOT added (webhook)', `reference ${reference}, package ${pkg.id}: ${result.error || 'unknown'}`)
       return NextResponse.json({ error: result.error || 'Failed to add credits' }, { status: 500 })
     }
 
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
 
   } catch (error) {
-    console.error('Webhook error:', error)
+    await alertOwner('Paystack webhook crashed', error)
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
   }
 }

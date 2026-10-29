@@ -5,6 +5,7 @@ import { creditPackageIfNew, liveOwnerId } from '@/lib/credits'
 import { packageByAmount } from '@/lib/packages'
 import { sendCustomerLink } from '@/lib/customerMail'
 import { requireOwner, mailTargetFor } from '@/lib/customerAuth'
+import { alertOwner } from '@/lib/alerts'
 
 // Client-facing confirmation path — used (a) as the manual "Verify payment"
 // fallback when the Paystack popup was blocked and the user paid in a new
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     const ownerId = tx.metadata?.owner_id
     if (!ownerId) {
-      console.error(`verify-payment: no ownerId in metadata for reference ${reference}`)
+      await alertOwner('PAID but no customer on the payment', `reference ${reference}`)
       return NextResponse.json({ error: 'Payment succeeded but has no customer on file. Contact support.' }, { status: 500 })
     }
 
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     const amount = Number(tx.amount)
     const pkg = packageByAmount(amount)
     if (!pkg) {
-      console.error(`verify-payment: unrecognised amount ${amount} for reference ${reference}`)
+      await alertOwner('PAID but amount not recognised', `reference ${reference}, amount ${amount} pesewas`)
       return NextResponse.json({ error: 'Payment succeeded but the amount was not recognised. Contact support.' }, { status: 500 })
     }
 
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
     if (!creditTo) return NextResponse.json({ error: 'Payment customer could not be found.' }, { status: 400 })
     const result = await creditPackageIfNew(creditTo, reference, pkg, amount)
     if (!result.credited && !result.duplicate) {
+      await alertOwner('PAID but credits NOT added', `reference ${reference}: ${result.error || 'unknown'}`)
       return NextResponse.json({ error: result.error || 'Failed to add credits.' }, { status: 500 })
     }
 
@@ -65,7 +67,7 @@ export async function POST(req: NextRequest) {
       alreadyProcessed: result.duplicate,
     })
   } catch (error) {
-    console.error('verify-payment error:', error)
+    await alertOwner('Payment check crashed', error)
     return NextResponse.json({ error: 'Could not verify payment.' }, { status: 500 })
   }
 }

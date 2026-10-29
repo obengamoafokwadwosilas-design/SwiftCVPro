@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { rateLimit, clientIp } from '@/lib/rateLimit'
+import { alertOwner } from '@/lib/alerts'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -88,6 +89,7 @@ export async function POST(req: Request) {
     const apiKey = process.env.API2PDF_API_KEY
 
     if (!apiKey) {
+      await alertOwner('PDF downloads are DOWN: API2PDF_API_KEY missing', 'No PDF can be made.')
       return NextResponse.json(
         { error: 'API2PDF_API_KEY is missing. Add it to your Vercel environment variables.' },
         { status: 500 }
@@ -125,6 +127,7 @@ export async function POST(req: Request) {
     const raw = await apiResponse.text()
 
     if (!apiResponse.ok) {
+      await alertOwner('PDF downloads failing (Api2Pdf refused)', `HTTP ${apiResponse.status}: ${raw.slice(0, 120)} — check the Api2Pdf account balance`)
       return NextResponse.json(
         { error: 'API2PDF failed to generate the PDF.', detail: raw },
         { status: 502 }
@@ -144,6 +147,7 @@ export async function POST(req: Request) {
     const pdfUrl = result.FileUrl || result.fileUrl
 
     if (!pdfUrl) {
+      await alertOwner('PDF downloads failing (Api2Pdf gave no file)', result.Error || result.error || result.Message || result.message || 'no reason given')
       return NextResponse.json(
         { error: result.Error || result.error || result.Message || result.message || 'API2PDF did not return a PDF URL.', detail: result },
         { status: 502 }
@@ -178,7 +182,7 @@ export async function POST(req: Request) {
       },
     })
   } catch (error) {
-    console.error('PDF export error:', error)
+    await alertOwner('PDF export crashed', error)
     return NextResponse.json({ error: 'PDF export failed.' }, { status: 500 })
   }
 }

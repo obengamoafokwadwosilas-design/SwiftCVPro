@@ -7,6 +7,7 @@ import { setGuestContact } from '@/lib/guest'
 import { normalizeEmail, isValidEmail } from '@/lib/email'
 import { clientIp } from '@/lib/rateLimit'
 import { writeDocument, WriterError, cvFormDataFromRequest } from '@/lib/cvEngine'
+import { alertOwner } from '@/lib/alerts'
 import type { CVFormData, GeneratedCV } from '@/types'
 import { supabaseAdmin } from '@/lib/supabase'
 import type { BuildSeed } from '@/lib/buildSeed'
@@ -206,12 +207,13 @@ export async function POST(req: NextRequest) {
     try {
       ({ doc: generatedCV } = await writeDocument(formData || cvFormDataFromRequest(body)))
     } catch (err) {
-      console.error('Writer error:', err)
       await refundOnFailure()
       if (err instanceof Anthropic.AuthenticationError) {
+        await alertOwner('CV writing is DOWN: AI key rejected', err)
         return NextResponse.json({ error: 'API key error. Please contact support.' }, { status: 500 })
       }
       if (err instanceof Anthropic.APIError && [429, 503, 529].includes(err.status ?? 0)) {
+        await alertOwner('AI service busy or out of credit', `HTTP ${err.status}: ${err.message}`)
         return NextResponse.json({ error: 'AI service is busy. Please wait 30 seconds and try again.' }, { status: 503 })
       }
       if (err instanceof WriterError && err.kind === 'not_a_cv') {
@@ -220,6 +222,7 @@ export async function POST(req: NextRequest) {
       if (err instanceof WriterError && err.kind === 'truncated') {
         return NextResponse.json({ error: 'Your details are too long to fit in one CV. Please shorten them and try again — your credit or preview has been returned.' }, { status: 500 })
       }
+      if (!(err instanceof WriterError)) await alertOwner('CV writing failed unexpectedly', err)
       return NextResponse.json({ error: 'Generation failed. Your credit or preview has been returned — please try again.' }, { status: 500 })
     }
 
@@ -230,6 +233,7 @@ export async function POST(req: NextRequest) {
 
     if (!historyId) {
       await refundOnFailure()
+      await alertOwner('CVs cannot be saved to the database', 'saveToHistory returned nothing; customers got an error and a refund')
       return NextResponse.json({ error: 'Could not save your document. Your credit or preview has been returned. Please try again.' }, { status: 503 })
     }
     if (consumedPaidCredit && historyId) {

@@ -7,6 +7,7 @@ import { setGuestContact } from '@/lib/guest'
 import { normalizeEmail, isValidEmail } from '@/lib/email'
 import { clientIp } from '@/lib/rateLimit'
 import { writeDocument, WriterError, serializeCV } from '@/lib/cvEngine'
+import { alertOwner } from '@/lib/alerts'
 import type { CVFormData, GeneratedCV } from '@/types'
 
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
@@ -123,14 +124,19 @@ export async function POST(req: NextRequest) {
     try {
       ({ doc: coverLetter } = await writeDocument(formData))
     } catch (err) {
-      console.error('Writer error (cover letter):', err)
       await refundOnFailure()
+      if (err instanceof Anthropic.AuthenticationError) {
+        await alertOwner('Cover letters are DOWN: AI key rejected', err)
+        return NextResponse.json({ error: 'API key error. Please contact support.' }, { status: 500 })
+      }
       if (err instanceof Anthropic.APIError && [429, 503, 529].includes(err.status ?? 0)) {
+        await alertOwner('AI service busy or out of credit', `HTTP ${err.status}: ${err.message}`)
         return NextResponse.json({ error: 'AI service is busy. Please wait 30 seconds and try again.' }, { status: 503 })
       }
       if (err instanceof WriterError && err.kind === 'truncated') {
         return NextResponse.json({ error: 'The letter could not be finished. Your credit or preview has been returned — please try again.' }, { status: 500 })
       }
+      if (!(err instanceof WriterError)) await alertOwner('Cover letter writing failed unexpectedly', err)
       return NextResponse.json({ error: 'Generation failed. Your credit or preview has been returned — please try again.' }, { status: 500 })
     }
 

@@ -3,7 +3,16 @@ export const dynamic = 'force-dynamic'
 import { NextRequest, NextResponse } from 'next/server'
 import pdfParse from 'pdf-parse'
 import mammoth from 'mammoth'
+import Anthropic from '@anthropic-ai/sdk'
 import { extractWithClaude, CLAUDE_IMAGE_TYPES, type ClaudeImageType } from '@/lib/fileText'
+import { takeFromBucket } from '@/lib/dbRateLimit'
+import { clientIp } from '@/lib/rateLimit'
+import { alertOwner } from '@/lib/alerts'
+
+// Generous for a real person (a few photos while getting a CV right) and low
+// enough that scripting the reader cannot run up the AI bill.
+const AI_READS_PER_HOUR = 15
+class TooManyScans extends Error {}
 
 
 // The vision API accepts four image formats and caps each image at 10MB once
@@ -60,12 +69,20 @@ export async function POST(req: NextRequest) {
 
     let extractedText = ''
 
+    // Reading a photo or a scanned PDF is an AI call (a few US cents each), so
+    // it is capped per network address across all server instances. Ordinary
+    // PDFs and Word files are read locally and never count.
+    const readWithAi = async (type: Parameters<typeof extractWithClaude>[1]) => {
+      if (!await takeFromBucket('ai-read:' + clientIp(req), AI_READS_PER_HOUR, 3600)) throw new TooManyScans()
+      return extractWithClaude(buffer, type)
+    }
+
     if (mimeType === 'application/pdf' || fileName.endsWith('.pdf')) {
       const data = await pdfParse(buffer)
       extractedText = data.text || ''
 
       if (extractedText.trim().length < 50) {
-        extractedText = await extractWithClaude(buffer, 'application/pdf')
+        extractedText = await readWithAi('application/pdf')
       }
     }
 
@@ -105,7 +122,7 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      extractedText = await extractWithClaude(buffer, imageType)
+      extractedText = await readWithAi(imageType)
     }
 
     // The upload screen's own hint text has always advertised "Text (.txt)"
@@ -136,7 +153,14 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Extract content error:', error)
+    if (error instanceof TooManyScans) {
+      return NextResponse.json(
+        { error: 'You have sent a lot of photos and scans in a short time. Please wait about an hour, or paste your CV text instead.' },
+        { status: 429 }
+      )
+    }
+    if (error instanceof Anthropic.APIError) await alertOwner('Reading photos and scanned CVs failing', `HTTP ${error.status}: ${error.message}`)
+    else console.error('Extract content error:', error)
 
     return NextResponse.json(
       { error: 'Failed to process file. Please try again or paste your content manually.' },

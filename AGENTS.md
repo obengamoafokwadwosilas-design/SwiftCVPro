@@ -29,6 +29,8 @@ which throws rather than silently degrading if the Supabase key is missing).
 - `RESEND_API_KEY` / `RECOVERY_EMAIL_FROM` — access links and receipts
 - `NEXT_PUBLIC_BASE_URL` — canonical URL used in emailed access links
 - `ADMIN_SECRET` — gates `/admin` and `/api/admin/*`
+- `ALERT_EMAIL` — where `src/lib/alerts.ts` emails the owner when payments, PDFs
+  or the AI writer break (one email per kind per 15 min; unset = server log only)
 
 If you don't have real values, most UI/logic work can proceed without them —
 just expect DB-backed routes (credits, history, payments, PIN) to fail
