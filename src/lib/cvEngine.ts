@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { CVFormData, GeneratedCV } from '@/types'
-import { buildGenerationPrompt, buildBulletTrimPrompt, CV_SYSTEM_PROMPT, COVER_LETTER_SYSTEM_PROMPT } from './prompts'
+import { buildGenerationPrompt, buildBulletTrimPrompt, buildEditPrompt, CV_SYSTEM_PROMPT, COVER_LETTER_SYSTEM_PROMPT } from './prompts'
 import { CV_SCHEMA, COVER_LETTER_SCHEMA, trimSchema } from './cvSchema'
 
 // The one place CVs and cover letters are written, shared by the API routes and
@@ -96,6 +96,23 @@ export function serializeCV(cv: GeneratedCV): string {
   }
   if (cv.attributes?.length) lines.push(`\nATTRIBUTES: ${cv.attributes.join('; ')}`)
   return lines.join('\n')
+}
+
+// "Edit with RemarkableCV": the person's own change requests applied to a
+// finished CV. The name is locked to the original — one purchase, one person.
+export async function editDocument(cv: GeneratedCV, instruction: string, cvType: string): Promise<{ doc: GeneratedCV; usage: WriterUsage }> {
+  const { changesReport: _report, cvType: _type, ...current } = cv
+  const { data: doc, usage } = await writeJson<GeneratedCV>({
+    system: CV_SYSTEM_PROMPT,
+    prompt: buildEditPrompt(current, instruction, cvType),
+    schema: CV_SCHEMA,
+    maxTokens: 24000,
+    effort: WRITER_EFFORT,
+  })
+  doc.fullName = cv.fullName
+  doc.jobTitle = ''
+  doc.cvType = cvType as GeneratedCV['cvType']
+  return { doc, usage }
 }
 
 export async function writeDocument(formData: CVFormData, effort: Effort = WRITER_EFFORT): Promise<{ doc: GeneratedCV; usage: WriterUsage }> {

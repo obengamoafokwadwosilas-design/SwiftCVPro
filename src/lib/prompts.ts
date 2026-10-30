@@ -378,3 +378,30 @@ ${items.map(it => `- id: "${it.id}"\n  context: ${it.context}\n  max words: ${it
 
 Return each rewritten line under its id.`
 }
+
+// ─────────────────────────────────────────────────────────────
+// AI EDIT PROMPT — "Edit with RemarkableCV": the person's own change
+// requests applied to a finished CV. The CV goes in as JSON and comes back
+// whole in the same shape, so the design, the section layout and everything
+// they did not touch carry over untouched.
+// ─────────────────────────────────────────────────────────────
+export function buildEditPrompt(cv: unknown, instruction: string, cvType: string): string {
+  return `TASK: Apply the person's change requests to their finished ${cvType === 'academic' ? 'Academic CV' : 'CV'} and return the complete updated CV in the same structure.
+
+THE CURRENT CV (JSON):
+${JSON.stringify(cv)}
+
+THE PERSON'S CHANGE REQUESTS — they wrote these themselves; apply every one:
+${instruction.trim()}
+
+HOW TO APPLY THEM:
+- Change only what the requests ask for. Every other word comes back exactly as it is now: same wording, order, dates, titles, skills and sections.
+- New content (a job, certificate, course, skill, award, referee) goes in its proper section and position, written to the same standard and in the same voice as the rest, using only the details they give. Never invent a date, employer, grade, number or result to complete a request; apply what you can.
+- Things to remove come out everywhere they appear. A correction (a new phone number, a changed title) replaces the old detail everywhere. Where a request disagrees with the CV, the request wins.
+- Requests about length, tone or emphasis ("make it shorter", "make the summary more confident") apply to the parts they concern, within THE TRUTH rules.
+- THE NAME CANNOT BE CHANGED HERE: keep "fullName" exactly as it is. If asked to change it, report "not_applied" with the note "Your name can only be changed with Edit it myself."
+- This tool is not for aiming the whole CV at a different job or advert. If that is what a request asks, report "not_applied" with the note "To aim your CV at another job, use Tailor for a job." Small wording changes towards a role are fine.
+- Keep "jobTitle" an empty string. Keep academic CVs academic: "attributes" stays [] for them.
+
+THE FIELDS: return the whole CV. "changesReport" has one entry per separate request, in their order — "request" in a few words, "status" "applied", "partly" or "not_applied", and "note" saying in plain words what you did or what detail was missing (e.g. "Added under Certifications; no year was given, so it is listed without one").`
+}

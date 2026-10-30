@@ -50,3 +50,11 @@ export function packagesForDoc(isCoverLetter: boolean): Package[] {
 export function packageByAmount(amount: number): Package | undefined {
   return PACKAGES.find(p => p.amount === amount)
 }
+
+// "Edit with RemarkableCV": each saved CV gets 1 free AI edit, and this pack
+// buys 2 more for that CV. Deliberately NOT in PACKAGES — it isn't a credit,
+// the landing page doesn't list it, and a stray GH₵5 payment must never be
+// credited as a package. The webhook and verify-payment tell it apart by the
+// transaction's metadata.kind, then check the amount against this.
+export const AI_EDIT_PACK = { amount: 500, price: 5, edits: 2 } as const
+export const FREE_AI_EDITS = 1

@@ -243,6 +243,26 @@ closed rather than crash.
    ship a change that loses hard checks. `evals/legacy/` is the engine as it
    was at tag `before-engine-v2`, kept as the baseline.
 
+12. **"Edit with RemarkableCV" (AI edits) — 1 free edit per saved CV, then GH₵5
+   for 2 more (owner's call).** Tapping Edit on a CV offers "Edit with
+   RemarkableCV" or "Edit it myself" (always free, unchanged). Counts live on
+   `customer_history` (`ai_edits_used`, `ai_edits_bought`) via the functions in
+   `supabase_ai_edits.sql` — **run that file once in Supabase**; until then
+   `/api/cv-history/ai-edit-status` says `available: false` and the page just
+   edits by hand, so deploying first is safe. `/api/cv-history/ai-edit` takes an
+   edit *before* the AI call and hands it back if the call fails; the writer is
+   `editDocument` in `cvEngine.ts` (same truth rules, returns the whole CV plus a
+   `changesReport`). **The name is locked to the one saved with the document**
+   and whole-CV re-aiming at another job is refused ("Tailor for a job") — so one
+   purchase can't write someone else's CV. The GH₵5 pack is deliberately NOT in
+   `PACKAGES` (`AI_EDIT_PACK` in `packages.ts`): the payment carries
+   `metadata.kind = 'ai_edits'` + the document id, and both `/api/verify-payment`
+   and the webhook route it to `creditEditPayment` (amount checked against the
+   pack, credited once per Paystack reference) *before* any package logic, so it
+   can never be credited as a package. Cover letters have no AI edit. The old
+   dormant "Edit with AI" code (which ran the edit after the payment window
+   closed without checking with Paystack) is gone — don't bring it back.
+
 ## Conventions already in place
 - No comments explaining *what* code does — only *why*, when non-obvious.
 - Don't add speculative abstractions, feature flags, or "just in case"

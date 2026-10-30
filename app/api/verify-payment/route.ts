@@ -6,6 +6,7 @@ import { packageByAmount } from '@/lib/packages'
 import { sendCustomerLink } from '@/lib/customerMail'
 import { requireOwner, mailTargetFor } from '@/lib/customerAuth'
 import { alertOwner } from '@/lib/alerts'
+import { creditEditPayment } from '@/lib/aiEdits'
 
 // Client-facing confirmation path — used (a) as the manual "Verify payment"
 // fallback when the Paystack popup was blocked and the user paid in a new
@@ -38,6 +39,13 @@ export async function POST(req: NextRequest) {
     if (!ownerId) {
       await alertOwner('PAID but no customer on the payment', `reference ${reference}`)
       return NextResponse.json({ error: 'Payment succeeded but has no customer on file. Contact support.' }, { status: 500 })
+    }
+
+    // A GH₵5 AI-edit pack is credited to its document, never as a package.
+    if (tx.metadata?.kind === 'ai_edits') {
+      const edits = await creditEditPayment({ reference, amount: Number(tx.amount), currency: tx.currency, ownerId, historyId: tx.metadata?.history_id })
+      if (!edits.ok) return NextResponse.json({ error: edits.error }, { status: 500 })
+      return NextResponse.json({ success: true, kind: 'ai_edits', historyId: Number(tx.metadata.history_id), alreadyProcessed: edits.duplicate })
     }
 
     if (tx.currency !== 'GHS') return NextResponse.json({ error: 'Invalid payment currency.' }, { status: 400 })

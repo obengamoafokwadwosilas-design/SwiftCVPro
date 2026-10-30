@@ -7,7 +7,7 @@ import CVPreview, { getFlowPdfConfig, TemplatePreview } from '@/components/CVPre
 import CVHistoryModal from '@/components/CVHistoryModal'
 import BalanceModal from '@/components/BalanceModal'
 import HeaderMenu from '@/components/HeaderMenu'
-import { PACKAGES, packagesForDoc } from '@/lib/packages'
+import { PACKAGES, packagesForDoc, AI_EDIT_PACK } from '@/lib/packages'
 import CreditPicker from '@/components/CreditPicker'
 import AccessCodePrompt from '@/components/AccessCodePrompt'
 
@@ -163,11 +163,16 @@ export default function PreviewPage() {
   const [pdfOnlyModal, setPdfOnlyModal] = useState(false)
   const [accentColor, setAccentColor] = useState<string | null>(null)
   const [showColorPicker, setShowColorPicker] = useState(false)
-  const [showRevision, setShowRevision] = useState(false)
-  const [revisionText, setRevisionText] = useState('')
-  const [freeRevisionUsed, setFreeRevisionUsed] = useState(false)
-  const [isRevising, setIsRevising] = useState(false)
-  const [revisionError, setRevisionError] = useState('')
+  // "Edit with RemarkableCV": one free AI edit per saved CV, then GH₵5 for two
+  // more. aiAvail is false until the server confirms this CV is theirs and the
+  // database supports it — until then Edit goes straight to editing by hand.
+  const [aiAvail, setAiAvail] = useState(false)
+  const [aiLeft, setAiLeft] = useState(0)
+  const [showAiEdit, setShowAiEdit] = useState(false)
+  const [aiText, setAiText] = useState('')
+  const [aiBusy, setAiBusy] = useState<'edit' | 'pay' | null>(null)
+  const [aiError, setAiError] = useState('')
+  const [aiPendingRef, setAiPendingRef] = useState<string | null>(null)
   const [hasDownloaded, setHasDownloaded] = useState(false)
   // Whether the document on screen has been paid for. null until the server has
   // answered; anything other than true shows the protected preview, so a slow
@@ -1000,6 +1005,16 @@ export default function PreviewPage() {
     }
   }
 
+  // Effects for "Edit with RemarkableCV" live here, above the early return below.
+  useEffect(() => { void refreshAiEdits() }, [cvLoaded, activeDoc, isCoverLetter]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Back from Paystack's own page after buying edits: reopen the edit box.
+  useEffect(() => {
+    if (!aiAvail || sessionStorage.getItem('swiftcv_ai_edit_open') !== '1') return
+    sessionStorage.removeItem('swiftcv_ai_edit_open')
+    setAiError(''); setShowAiEdit(true)
+  }, [aiAvail])
+
   if (!cv) return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center' }}>
       <div style={{ width:'40px', height:'40px', border:'3px solid rgba(13,148,136,0.2)', borderTopColor:'#0d9488', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
@@ -1079,65 +1094,105 @@ export default function PreviewPage() {
   const atsTemplates = visibleTemplates.filter(t => t.category === 'ats' || t.category === 'academic').sort(bothFirst)
   const academicTemplates = visibleTemplates.filter(t => t.category === 'academic').sort(bothFirst)
 
-  async function handleRevision() {
-    if (!revisionText.trim()) { setRevisionError('Please describe what you would like changed.'); return }
-    if (!cv) return
-    if (freeRevisionUsed) {
-      // Trigger GH₵5 payment
-      const script = document.createElement('script')
-      script.src = 'https://js.paystack.co/v1/inline.js'
-      script.onload = () => {
-        const handler = (window as any).PaystackPop.setup({
-          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-          email,
-          amount: 500, // GH₵5 — Paystack amounts are in pesewas (GH₵1 = 100)
-          currency: 'GHS',
-          ref: `rev_${Date.now()}`,
-          callback: async () => { await doRevision() },
-          onClose: () => {}
-        })
-        handler.openIframe()
-      }
-      document.body.appendChild(script)
-      return
-    }
-    await doRevision()
+  // ── Edit with RemarkableCV ───────────────────────────────────
+  async function refreshAiEdits() {
+    const id = paidDocumentId()
+    if (!id || isCoverLetter || activeDoc !== 'cv') { setAiAvail(false); return }
+    try {
+      const d = await fetch('/api/cv-history/ai-edit-status', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ historyId: id }),
+      }).then(r => r.json())
+      setAiAvail(!!d.available); setAiLeft(d.left || 0)
+    } catch { setAiAvail(false) }
+  }
+  // Edit button: two ways to edit when AI edits are on, otherwise straight to
+  // editing by hand (as before).
+  function requestEdit() {
+    setLookPanel(null); setShowDownloadMenu(false); setShowReadyBanner(false); setShowAgainToast(false)
+    if (aiAvail && activeDoc === 'cv' && !isCoverLetter) setShowChooser(true)
+    else openEditor()
   }
 
-  async function doRevision() {
-    if (!cv) return
-    setIsRevising(true)
-    setRevisionError('')
+  async function submitAiEdit() {
+    const id = paidDocumentId()
+    if (!id || !cv) return
+    if (aiText.trim().length < 3) { setAiError('Tell us what you would like changed.'); return }
+    setAiBusy('edit'); setAiError('')
     try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cvType: sessionStorage.getItem('swiftcv_type') || 'professional',
-          rawContent: JSON.stringify(cv),
-          specialRequests: revisionText,
-          isRevision: true,
-          email,
-          lockedName: cv.fullName,
-        })
+      const res = await fetch('/api/cv-history/ai-edit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ historyId: id, instruction: aiText, cv }),
       })
-      const data = await res.json()
-      if (data.success && data.cv) {
-        // Preserve locked name
-        data.cv.fullName = cv.fullName
-        const revised = normalizeCV(data.cv)
-        sessionStorage.setItem('swiftcv_cv', JSON.stringify(revised))
-        setCV(revised)
-        setFreeRevisionUsed(true)
-        setShowRevision(false)
-        setRevisionText('')
-      } else {
-        setRevisionError('Something went wrong. Please try again.')
-      }
-    } catch {
-      setRevisionError('Connection error. Please try again.')
+      const data = await res.json().catch(() => ({}))
+      if (res.status === 402) { setAiLeft(0); return }   // none left: the box now offers the GH₵5 pack
+      if (!res.ok || !data.success) { setAiError(data.error || 'We could not apply that edit. Please try again.'); return }
+      const updated = normalizeCV(data.cv)
+      setCV(updated); setBaseCv(updated)
+      sessionStorage.setItem('swiftcv_cv', JSON.stringify(updated))
+      setAiLeft(data.left ?? 0); setAiText(''); setShowAiEdit(false); setShowChanges(true); setShowReadyBanner(false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } catch { setAiError('Connection problem. Please check your internet and try again.') }
+    finally { setAiBusy(null) }
+  }
+
+  // Confirms a payment with the server (which asks Paystack itself — nothing
+  // the browser says counts), retrying briefly in case the webhook is still
+  // settling. True once the edits have been added.
+  async function confirmEditPayment(reference: string): Promise<boolean> {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const d = await fetch('/api/verify-payment', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference }),
+        }).then(r => r.json())
+        if (d.success && d.kind === 'ai_edits') { await refreshAiEdits(); return true }
+      } catch { /* try again */ }
+      await new Promise(r => setTimeout(r, 2000))
     }
-    setIsRevising(false)
+    return false
+  }
+  async function afterEditPayment(reference: string) {
+    if (await confirmEditPayment(reference)) { setAiPendingRef(null); setAiError('') }
+    else { setAiPendingRef(reference); setAiError('We could not confirm your payment yet. If you have paid, tap "Check my payment" — please do not pay again.') }
+    setAiBusy(null)
+  }
+
+  async function buyAiEdits() {
+    const id = paidDocumentId()
+    if (!id) return
+    setAiBusy('pay'); setAiError('')
+    try {
+      const data = await fetch('/api/cv-history/ai-edit-pay', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, historyId: id }),
+      }).then(r => r.json())
+      if (!data.success) { setAiError(data.error || 'Could not start payment. Please try again.'); setAiBusy(null); return }
+      // Leaving is safe: the CV lives in sessionStorage and /payment-return
+      // brings them back here with this box reopened.
+      const goToHostedCheckout = () => {
+        sessionStorage.setItem('swiftcv_pay_return', 'preview')
+        leavingOnPurposeRef.current = true
+        window.location.assign(data.authorization_url)
+      }
+      if (isInAppBrowser()) { goToHostedCheckout(); return }
+      const openPopup = () => {
+        const PaystackPop = (window as any).PaystackPop
+        if (!PaystackPop) { goToHostedCheckout(); return }
+        try {
+          new PaystackPop().resumeTransaction(data.access_code, {
+            onSuccess: () => { void afterEditPayment(data.reference) },
+            onCancel: () => { setAiBusy(null); setAiError('Payment was not completed.') },
+            onError: () => goToHostedCheckout(),
+          })
+        } catch { goToHostedCheckout() }
+      }
+      if ((window as any).PaystackPop) openPopup()
+      else {
+        const script = document.createElement('script')
+        script.src = 'https://js.paystack.co/v2/inline.js'
+        script.onload = openPopup
+        script.onerror = goToHostedCheckout
+        document.body.appendChild(script)
+      }
+    } catch { setAiError('Could not start payment. Please check your internet and try again.'); setAiBusy(null) }
   }
 
   return (
@@ -1278,7 +1333,7 @@ export default function PreviewPage() {
           {/* "Edit with AI" is dropped for now: Edit goes straight to manual
               editing. The chooser + AI-revision flow below are left intact but
               unreachable, so re-enabling is a one-line change (setShowChooser). */}
-          <button onClick={() => setActiveTab('edit')} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12.5px', fontWeight:activeTab==='edit'?600:500, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.72)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
+          <button onClick={() => { if (activeTab !== 'edit') requestEdit() }} style={{ padding:'7px 18px', borderRadius:'50px', fontSize:'12.5px', fontWeight:activeTab==='edit'?600:500, background:activeTab==='edit'?'white':'none', color:activeTab==='edit'?'#0a0f1a':'rgba(255,255,255,0.72)', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Edit</button>
         </div>
         <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
           <HeaderMenu items={menuItems} />
@@ -1424,7 +1479,7 @@ export default function PreviewPage() {
                 </div>
               ))}
               {cv.changesReport.some(r => r.status !== 'applied') && (
-                <div style={{ fontSize:'12.5px', color:'#64748b', marginTop:'8px' }}>Add anything missing with <button onClick={openEditor} style={{ background:'none', border:'none', padding:0, color:'#0a8a3f', fontWeight:600, cursor:'pointer', fontSize:'12.5px', fontFamily:"'DM Sans', sans-serif" }}>Edit</button>.</div>
+                <div style={{ fontSize:'12.5px', color:'#64748b', marginTop:'8px' }}>Add anything missing with <button onClick={requestEdit} style={{ background:'none', border:'none', padding:0, color:'#0a8a3f', fontWeight:600, cursor:'pointer', fontSize:'12.5px', fontFamily:"'DM Sans', sans-serif" }}>Edit</button>.</div>
               )}
             </div>
           )}
@@ -1484,7 +1539,7 @@ export default function PreviewPage() {
             </div>
           ) : (
             <div style={{ display:'flex', alignItems:'center', gap:'2px', height:'60px', padding:'0 10px 0 4px' }}>
-              {barButton('Edit', <path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/>, openEditor, false)}
+              {barButton('Edit', <path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/>, requestEdit, false)}
               {!isCoverLetter && barButton('Templates', <><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="3" y="15" width="7" height="6" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></>, () => lookPanel === 'template' ? setLookPanel(null) : openLookPanel('template'), lookPanel === 'template')}
               {!isCoverLetter && currentTpl?.customizable && barButton('Colour', <><circle cx="12" cy="12" r="9"/><circle cx="8.5" cy="10" r="1.2"/><circle cx="12" cy="7.5" r="1.2"/><circle cx="15.5" cy="10" r="1.2"/><path d="M12 21a2.5 2.5 0 010-5h1.5a2.5 2.5 0 002.5-2.5"/></>, () => lookPanel === 'colour' ? setLookPanel(null) : openLookPanel('colour'), lookPanel === 'colour')}
               <div style={{ position:'relative', marginLeft:'auto' }}>
@@ -1627,17 +1682,24 @@ export default function PreviewPage() {
               <button className="scv-x" onClick={() => setShowChooser(false)} style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', borderRadius:'8px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
 
-            {/* "Edit with AI" (whole-CV revision panel) deactivated for now —
-                a future feature, not ready to ship. Its code (showRevision,
-                handleRevision/doRevision, the revision panel below) is left
-                in place to resume from later; this is just the entry point. */}
-            <button className="scv-opt" onClick={() => { setShowChooser(false); setActiveTab('edit') }} style={{ display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'0 8px', textAlign:'left', padding:'15px', background:'white', border:'1px solid #e7ebf0', borderRadius:'14px', cursor:'pointer' }}>
+            <button className="scv-opt" onClick={() => { setShowChooser(false); setAiError(''); setShowAiEdit(true) }} style={{ display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'0 8px 8px', textAlign:'left', padding:'15px', background:'#f0fdf9', border:'2px solid #0d9488', borderRadius:'14px', cursor:'pointer' }}>
+              <span style={{ width:'42px', height:'42px', borderRadius:'11px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#ccfbf1' }}>
+                <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z" stroke="#0f766e" strokeWidth="1.6" strokeLinejoin="round"/></svg>
+              </span>
+              <span style={{ flex:1 }}>
+                <span style={{ display:'block', fontSize:'14.5px', fontWeight:700, letterSpacing:'-0.1px', color:'#0a0f1a' }}>Edit with RemarkableCV</span>
+                <span style={{ display:'block', fontSize:'12.5px', color:'#475569', marginTop:'2px', lineHeight:1.45 }}>Tell us what to change. <b style={{ color:'#0a8a3f', fontWeight:600 }}>{aiLeft > 0 ? `${aiLeft} edit${aiLeft === 1 ? '' : 's'} left` : `2 more edits GH₵${AI_EDIT_PACK.price}`}</b></span>
+              </span>
+              <span className="scv-go" style={{ color:'#94a3b8', display:'flex' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+            </button>
+
+            <button className="scv-opt" onClick={() => { setShowChooser(false); openEditor() }} style={{ display:'flex', gap:'14px', alignItems:'center', width:'calc(100% - 16px)', margin:'0 8px', textAlign:'left', padding:'15px', background:'white', border:'1px solid #e7ebf0', borderRadius:'14px', cursor:'pointer' }}>
               <span style={{ width:'42px', height:'42px', borderRadius:'11px', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', background:'#f1f5f9' }}>
                 <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M14.5 4.5l5 5M4 20l1.2-4.2L15.3 5.7a1.7 1.7 0 012.4 0l.6.6a1.7 1.7 0 010 2.4L8.2 18.8 4 20z" stroke="#0a0f1a" strokeWidth="1.8" strokeLinejoin="round"/></svg>
               </span>
               <span style={{ flex:1 }}>
-                <span style={{ display:'block', fontSize:'14.5px', fontWeight:700, letterSpacing:'-0.1px', color:'#0a0f1a' }}>Edit manually</span>
-                <span style={{ display:'block', fontSize:'12.5px', color:'#64748b', marginTop:'2px', lineHeight:1.45 }}>Edit every section yourself.</span>
+                <span style={{ display:'block', fontSize:'14.5px', fontWeight:700, letterSpacing:'-0.1px', color:'#0a0f1a' }}>Edit it myself</span>
+                <span style={{ display:'block', fontSize:'12.5px', color:'#64748b', marginTop:'2px', lineHeight:1.45 }}>Change the words directly. Always free.</span>
               </span>
               <span className="scv-go" style={{ color:'#94a3b8', display:'flex' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-6-6m6 6l-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
             </button>
@@ -1647,26 +1709,50 @@ export default function PreviewPage() {
         </div>
       )}
 
-      {/* REVISION PANEL */}
-      {showRevision && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'flex-end', justifyContent:'center' }}>
-          <div style={{ background:'white', borderRadius:'20px 20px 0 0', padding:'28px 24px 36px', width:'100%', maxWidth:'600px', boxShadow:'0 -8px 40px rgba(0,0,0,0.15)' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'16px' }}>
-              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.4rem', fontWeight:600, color:'#0a0f1a' }}>What would you like changed?</div>
-              <button onClick={() => setShowRevision(false)} style={{ background:'none', border:'none', fontSize:'20px', color:'#94a3b8', cursor:'pointer' }}>✕</button>
+      {/* EDIT WITH REMARKABLECV — the person's change requests applied by the
+          writer; one free edit per CV, then GH₵5 for two more. */}
+      {showAiEdit && (
+        <div onClick={() => { if (!aiBusy) setShowAiEdit(false) }} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+          <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'440px', padding:'22px', boxShadow:'0 1px 3px rgba(10,15,26,0.08), 0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif", maxHeight:'92vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'4px' }}>
+              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>Edit with RemarkableCV</div>
+              <button onClick={() => !aiBusy && setShowAiEdit(false)} aria-label="Close" style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
-            <div style={{ fontSize:'12px', color:'#94a3b8', marginBottom:'12px', fontStyle:'italic' }}>e.g. "Make the summary more confident" · "Add my KNUST degree" · "Remove date of birth"</div>
-            <div style={{ fontSize:'11px', color:'#64748b', background: freeRevisionUsed ? '#fffbeb' : '#f0fdf9', border:`1px solid ${freeRevisionUsed ? 'rgba(245,158,11,0.3)' : 'rgba(13,148,136,0.2)'}`, borderRadius:'8px', padding:'8px 14px', marginBottom:'14px' }}>
-              {freeRevisionUsed ? '⚠️ Your free revision has been used. This revision costs GH₵5.' : '✅ 1 free revision included.'}
-            </div>
-            <textarea value={revisionText} onChange={e => setRevisionText(e.target.value)} placeholder="Describe what you'd like changed..." style={{ width:'100%', padding:'12px 14px', border:'1.5px solid #e2e8f0', borderRadius:'12px', fontFamily:"'DM Sans', sans-serif", fontSize:'14px', color:'#0a0f1a', resize:'none', lineHeight:1.7, minHeight:'100px', marginBottom:'8px' }} />
-            {revisionError && <div style={{ fontSize:'12px', color:'#e24b4a', marginBottom:'10px' }}>{revisionError}</div>}
-            <div style={{ display:'flex', gap:'10px', justifyContent:'flex-end' }}>
-              <button onClick={() => setShowRevision(false)} style={{ padding:'11px 22px', background:'white', border:'1px solid #e2e8f0', borderRadius:'50px', fontSize:'13px', fontWeight:500, color:'#64748b', cursor:'pointer' }}>Cancel</button>
-              <button onClick={handleRevision} disabled={isRevising} style={{ padding:'11px 28px', background: freeRevisionUsed ? '#f59e0b' : '#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'13px', fontWeight:600, cursor:'pointer', opacity: isRevising ? 0.7 : 1 }}>
-                {isRevising ? 'Regenerating...' : freeRevisionUsed ? 'Pay GH₵5 & Regenerate →' : 'Regenerate →'}
-              </button>
-            </div>
+
+            {aiBusy === 'edit' ? (
+              <div style={{ padding:'26px 4px 14px', textAlign:'center' }}>
+                <div style={{ width:'34px', height:'34px', border:'3px solid rgba(13,148,136,0.2)', borderTopColor:'#0d9488', borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 14px' }} />
+                <div style={{ fontSize:'14px', fontWeight:600, color:'#0a0f1a' }}>Updating your CV…</div>
+                <div style={{ fontSize:'12.5px', color:'#64748b', marginTop:'4px' }}>This usually takes about 30 seconds. Please keep this open.</div>
+                <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
+              </div>
+            ) : aiPendingRef ? (
+              <div style={{ marginTop:'10px' }}>
+                <div style={{ fontSize:'13px', color:'#334155', lineHeight:1.55, marginBottom:'12px' }}>We are confirming your GH₵{AI_EDIT_PACK.price} payment. If you have already paid, please do not pay again.</div>
+                <button onClick={() => { setAiBusy('pay'); void afterEditPayment(aiPendingRef) }} disabled={aiBusy === 'pay'} style={{ width:'100%', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', opacity: aiBusy === 'pay' ? 0.6 : 1 }}>{aiBusy === 'pay' ? 'Checking…' : 'Check my payment'}</button>
+              </div>
+            ) : aiLeft > 0 ? (
+              <>
+                <div style={{ fontSize:'12.5px', color:'#0a8a3f', fontWeight:600, margin:'0 0 10px' }}>{aiLeft} edit{aiLeft === 1 ? '' : 's'} left</div>
+                <textarea value={aiText} onChange={e => { setAiText(e.target.value); if (aiError) setAiError('') }} rows={5} maxLength={1500}
+                  placeholder="e.g. My new number is 024 123 4567. Add my new job at MTN as Sales Lead (2025 – now). Make the summary shorter."
+                  style={{ width:'100%', padding:'12px 14px', border:'1.5px solid #e2e8f0', borderRadius:'12px', fontFamily:"'DM Sans', sans-serif", fontSize:'14px', color:'#0a0f1a', resize:'none', lineHeight:1.6 }} />
+                <button onClick={() => void submitAiEdit()} style={{ width:'100%', marginTop:'12px', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>Update my CV</button>
+                <div style={{ fontSize:'12px', color:'#64748b', textAlign:'center', marginTop:'10px', lineHeight:1.5 }}>Takes about 30 seconds. Your design and colour stay the same.</div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize:'13.5px', color:'#334155', margin:'12px 0', lineHeight:1.55 }}>You have used your free edit on this CV. <b>2 more edits cost GH₵{AI_EDIT_PACK.price}.</b></div>
+                <button onClick={() => void buyAiEdits()} disabled={aiBusy === 'pay'} style={{ width:'100%', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', opacity: aiBusy === 'pay' ? 0.6 : 1 }}>{aiBusy === 'pay' ? 'Opening payment…' : `Pay GH₵${AI_EDIT_PACK.price} for 2 edits`}</button>
+                <div style={{ fontSize:'12px', color:'#64748b', textAlign:'center', marginTop:'10px' }}>MTN MoMo · Telecel · AirtelTigo · card</div>
+              </>
+            )}
+
+            {aiError && <div role="alert" style={{ marginTop:'12px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'10px 12px', lineHeight:1.5 }}>{aiError}</div>}
+
+            {!aiBusy && (
+              <button onClick={() => { setShowAiEdit(false); openEditor() }} style={{ display:'block', width:'100%', marginTop:'14px', padding:'12px 0 0', background:'none', border:'none', borderTop:'1px solid #e2e8f0', color:'#0a8a3f', fontSize:'13.5px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif" }}>Or edit it yourself, free</button>
+            )}
           </div>
         </div>
       )}

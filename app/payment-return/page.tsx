@@ -41,6 +41,16 @@ export default function PaymentReturnPage() {
           // rather than dumping a paying customer back at the start.
           const from = sessionStorage.getItem('swiftcv_pay_return')
           sessionStorage.removeItem('swiftcv_pay_return')
+          // Paid for AI edits from the results page: straight back there with
+          // the edit box reopened. No credits were bought, so no unlock and no
+          // access-code offer.
+          if (data.kind === 'ai_edits') {
+            if (sessionStorage.getItem('swiftcv_cv')) {
+              sessionStorage.setItem('swiftcv_ai_edit_open', '1')
+              router.replace('/preview')
+            } else router.replace('/build')
+            return
+          }
           // A pack was bought: the page they land on offers an access code
           // once (only if the account has none), same as the pop-up checkout.
           if ((data.cv_credits || 0) > 1) sessionStorage.setItem('swiftcv_offer_code', '1')

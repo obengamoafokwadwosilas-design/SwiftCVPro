@@ -7,6 +7,7 @@ import { packageByAmount } from '@/lib/packages'
 import { sendCustomerLink } from '@/lib/customerMail'
 import { mailTargetFor } from '@/lib/customerAuth'
 import { alertOwner } from '@/lib/alerts'
+import { creditEditPayment } from '@/lib/aiEdits'
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,6 +39,13 @@ export async function POST(req: NextRequest) {
     if (!reference) {
       console.error('No reference in webhook payload — cannot guard against double-crediting')
       return NextResponse.json({ error: 'No reference' }, { status: 400 })
+    }
+
+    // A GH₵5 AI-edit pack is credited to its document, never as a package.
+    if (event.data?.metadata?.kind === 'ai_edits') {
+      const edits = await creditEditPayment({ reference, amount: Number(event.data?.amount), currency: event.data?.currency, ownerId, historyId: event.data?.metadata?.history_id })
+      if (!edits.ok) return NextResponse.json({ error: edits.error }, { status: 500 })
+      return NextResponse.json({ received: true, duplicate: edits.duplicate })
     }
 
     // Resolve the package from the amount PAYSTACK confirms was charged — never
