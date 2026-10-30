@@ -69,7 +69,7 @@ export default function Page() {
       <p>
         Under the Data Protection Act, 2012 (Act 843), you may ask us for a copy of your information,
         ask us to correct it, ask us to delete your saved documents and details, or object to how we
-        use it. Message us on WhatsApp at{' '}
+        use it. Visit our <a href="/support" style={{ color: '#0a8a3f' }}>Support page</a> or message us on WhatsApp at{' '}
         <a href="https://wa.me/233559519783" style={{ color: '#0a8a3f' }}>+233 55 951 9783</a>, from the
         phone or email you used with us, and we will act on your request promptly.
       </p>
