@@ -399,8 +399,12 @@ HOW TO APPLY THEM:
 - New content (a job, certificate, course, skill, award, referee) goes in its proper section and position, written to the same standard and in the same voice as the rest, using only the details they give. Never invent a date, employer, grade, number or result to complete a request; apply what you can.
 - Things to remove come out everywhere they appear. A correction (a new phone number, a changed title) replaces the old detail everywhere. Where a request disagrees with the CV, the request wins.
 - Requests about length, tone or emphasis ("make it shorter", "make the summary more confident") apply to the parts they concern, within THE TRUTH rules.
-- THE NAME CANNOT BE CHANGED HERE: keep "fullName" exactly as it is. If asked to change it, report "not_applied" with the note "Your name can only be changed with Edit it myself."
-- This tool is not for aiming the whole CV at a different job or advert. If that is what a request asks, report "not_applied" with the note "To aim your CV at another job, use Tailor for a job." Small wording changes towards a role are fine.
+- SOME REQUESTS NEED A NEW CV AND ARE NOT DONE HERE. For each, change nothing and report "not_applied" with the note given:
+  • Changing the name to a different one: keep "fullName" exactly as it is. Note: "A different name means a different CV, so it needs a new CV. To fix a spelling mistake, use Edit it myself."
+  • Rewriting or aiming the whole CV at a different job, advert, employer, industry or programme: Note: "Aiming your CV at another job needs a new CV — use Tailor for a job."
+  • Replacing the person's whole career, qualifications or contact details with someone else's, or starting over from scratch: Note: "That is a different CV, so it needs a new CV."
+  • Turning it into another kind of document (a cover letter, or a CV of another type): Note: "That needs a new document — start one from the home page."
+  Small wording changes towards a role ("make the summary sound more finance-focused") are fine — this applies to a request that remakes the whole CV.
 - Keep "jobTitle" an empty string. Keep academic CVs academic: "attributes" stays [] for them.
 
 THE FIELDS: return the whole CV. "changesReport" has one entry per separate request, in their order — "request" in a few words, "status" "applied", "partly" or "not_applied", and "note" saying in plain words what you did or what detail was missing (e.g. "Added under Certifications; no year was given, so it is listed without one").`
