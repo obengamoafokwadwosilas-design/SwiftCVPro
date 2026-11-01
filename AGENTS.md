@@ -235,8 +235,10 @@ closed rather than crash.
    duties or outcomes), job titles copied exactly, nothing claimed to
    match an advert, no headline under the name (`jobTitle` is always '' on CVs;
    the aimed-at role is `targetRole`, used to name the CV in My CVs), every
-   "Anything to add or change?" request reported in `changesReport` (shown as
-   "Your requests" on the results page). Before changing a prompt, the model or
+   "Anything to add or change?" request reported in `changesReport` (the results
+   page shows nothing when everything went through — the owner hates clutter — and
+   one slim note only for a request that could not be done; don't bring the
+   "Your requests" box back). Before changing a prompt, the model or
    the effort: run `npx tsx --env-file=.env.local --tsconfig evals/tsconfig.json
    evals/run.ts` (add `--private` for the real CVs in `evals/private/`, never
    committed), compare with the previous run using `evals/judge.ts`, and don't
@@ -250,7 +252,8 @@ closed rather than crash.
    `supabase_ai_edits.sql` — **run that file once in Supabase**; until then
    `/api/cv-history/ai-edit-status` says `available: false` and the page just
    edits by hand, so deploying first is safe. `/api/cv-history/ai-edit` takes an
-   edit *before* the AI call and hands it back if the call fails; the writer is
+   edit *before* the AI call and hands it back if the call fails or if nothing could be done (every request
+   `not_applied`, the person is told why); the writer is
    `editDocument` in `cvEngine.ts` (same truth rules, returns the whole CV plus a
    `changesReport`). **The name is locked to the one saved with the document**
    and whole-CV re-aiming at another job is refused ("Tailor for a job") — so one
