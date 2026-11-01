@@ -172,6 +172,7 @@ export default function PreviewPage() {
   const [aiText, setAiText] = useState('')
   const [aiBusy, setAiBusy] = useState<'edit' | 'pay' | null>(null)
   const [aiError, setAiError] = useState('')
+  const [aiNewCv, setAiNewCv] = useState(false)
   const [aiPendingRef, setAiPendingRef] = useState<string | null>(null)
   const [hasDownloaded, setHasDownloaded] = useState(false)
   // Whether the document on screen has been paid for. null until the server has
@@ -996,7 +997,7 @@ export default function PreviewPage() {
   }
 
   function handleNewCV() {
-    if (confirm('Start a new CV? Your current CV will be cleared.')) {
+    if (confirm('Start a new CV? Your current CV stays saved in My CVs. A new CV uses one free preview or one credit.')) {
       sessionStorage.removeItem('swiftcv_cv')
       sessionStorage.removeItem('swiftcv_type')
       sessionStorage.removeItem('swiftcv_email')
@@ -1117,7 +1118,7 @@ export default function PreviewPage() {
     const id = paidDocumentId()
     if (!id || !cv) return
     if (aiText.trim().length < 3) { setAiError('Tell us what you would like changed.'); return }
-    setAiBusy('edit'); setAiError('')
+    setAiBusy('edit'); setAiError(''); setAiNewCv(false)
     try {
       const res = await fetch('/api/cv-history/ai-edit', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1127,7 +1128,7 @@ export default function PreviewPage() {
       if (res.status === 402) { setAiLeft(0); return }   // none left: the box now offers the GH₵5 pack
       if (!res.ok || !data.success) { setAiError(data.error || 'We could not apply that edit. Please try again.'); return }
       if (data.applied === false) {   // nothing could be done, so nothing was used
-        setAiLeft(data.left ?? aiLeft)
+        setAiLeft(data.left ?? aiLeft); setAiNewCv(!!data.needsNewCv)
         setAiError(`${(data.notes || []).join(' ') || 'That could not be done with an edit.'} Your edit has been kept, so ask for something else.`)
         return
       }
@@ -1746,7 +1747,7 @@ export default function PreviewPage() {
               </>
             )}
 
-            {aiError && <div role="alert" style={{ marginTop:'12px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'10px 12px', lineHeight:1.5 }}>{aiError}</div>}
+            {aiError && <div role="alert" style={{ marginTop:'12px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'10px 12px', lineHeight:1.5 }}>{aiError}{aiNewCv && <> <button onClick={handleNewCV} style={{ background:'none', border:'none', padding:0, color:'#0a8a3f', fontWeight:600, cursor:'pointer', fontSize:'12.5px', fontFamily:"'DM Sans', sans-serif" }}>Start a new CV →</button></>}</div>}
 
             {!aiBusy && (
               <button onClick={() => { setShowAiEdit(false); openEditor() }} style={{ display:'block', width:'100%', marginTop:'14px', padding:'12px 0 0', background:'none', border:'none', borderTop:'1px solid #e2e8f0', color:'#0a8a3f', fontSize:'13.5px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif" }}>Or edit it yourself, free</button>

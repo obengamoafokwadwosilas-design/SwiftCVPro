@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     if (report.length > 0 && report.every(r => r.status === 'not_applied')) {
       await refundAiEdit(access.id, id)
       const back = await aiEditsLeft(access.id, id)
-      return NextResponse.json({ success: true, applied: false, notes: report.map(r => r.note).filter(Boolean), left: back.left }, { headers: noStore })
+      return NextResponse.json({ success: true, applied: false, notes: report.map(r => r.note).filter(Boolean), needsNewCv: report.some(r => /new (cv|document)/i.test(r.note || '')), left: back.left }, { headers: noStore })
     }
     const { error } = await supabaseAdmin.from('customer_history').update({ generated_cv: doc }).eq('id', id).eq('owner_id', access.id)
     if (error) throw new Error('Could not save the edited CV: ' + error.message)
