@@ -188,7 +188,12 @@ closed rather than crash.
    page count and text past a page box. Restore points: tag `before-cv-font-bump` (before body text went
    ~10.5 → 11pt) `before-cv-12pt` (before 11 → 12pt body, 11pt dates/contact) and
    `before-cv-12-5pt` (before 12 → 12.5pt body; PDF 16 → 16.5px, roles 17px).
-   12.5pt is meant as the ceiling — above it a CV starts to look padded.
+   `before-cv-13pt` (before 12.5 → 13pt body; PDF 16.5 → 17px, roles 17.5px, Word 25 → 26). The
+   owner asked for it — 13pt is now the ceiling; above it a CV starts to look padded. The
+   cover letter is the same size as the CV body (17px / 13pt Word) because Ghanaian
+   recruiters will not strain to read a smaller letter, so the writer is asked for
+   180–230 body words to keep it on one A4 page (a longer old letter flows onto a second
+   page, with the sign-off and name kept together).
 
 10. **Access codes (4 digits) protect CVs and credits — RemarkableSOP's rules.**
    **Optional, never at checkout** (owner's call): right after a **pack**

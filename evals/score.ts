@@ -154,7 +154,7 @@ export function scoreLetter(letter: GeneratedCV, input: string, expect: Expect):
   const body = letter.coverLetterBody || ''
   const n = words(body)
   add('letter: has a body', 'hard', n > 0)
-  add('letter: 200–340 words', 'soft', n >= 200 && n <= 340, `${n} words`)
+  add('letter: 160–250 words', 'soft', n >= 160 && n <= 250, `${n} words`)
   if (expect.letterSubjectIncludes) add('letter: subject names the role', 'hard', has(letter.clSubject || '', expect.letterSubjectIncludes), letter.clSubject)
   add('letter: no salutation or sign-off in the body', 'hard', !/\bDear\b|Yours (faithfully|sincerely)/i.test(body))
   add('letter: no placeholders', 'hard', !/\[[A-Za-z][^\]]{1,30}\]/.test(body))

@@ -26,11 +26,11 @@ const NAME_FONT_SANS = 'Calibri'       // For modern templates
 const SIZE_NAME = 44       // 22pt
 const SIZE_TITLE = 26      // 13pt
 const SIZE_CONTACT = 22    // 11pt
-const SIZE_SECTION_HEAD = 25  // 12.5pt bold caps
-const SIZE_BODY = 25       // 12.5pt
-const SIZE_ROLE = 26       // 13pt bold
+const SIZE_SECTION_HEAD = 26  // 13pt bold caps
+const SIZE_BODY = 26       // 13pt
+const SIZE_ROLE = 27       // 13.5pt bold
 const SIZE_DATES = 22      // 11pt italic
-const SIZE_BULLET = 25     // 12.5pt
+const SIZE_BULLET = 26     // 13pt
 
 // ── Bullet numbering ──────────────────────────────
 const numbering = {
@@ -210,9 +210,9 @@ function buildDocument(cv: GeneratedCV, templateId: TemplateId, accentColor?: st
 function buildFormalCoverLetter(cv: GeneratedCV): Document {
   const FONT = 'Cambria'
   const right = (text: string, opts: { bold?: boolean } = {}) =>
-    new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 40 }, children: [new TextRun({ text, font: FONT, size: 22, bold: opts.bold })] })
+    new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { after: 40 }, children: [new TextRun({ text, font: FONT, size: 26, bold: opts.bold })] })
   const line = (text: string, opts: { bold?: boolean; after?: number } = {}) =>
-    new Paragraph({ spacing: { after: opts.after ?? 40 }, children: [new TextRun({ text, font: FONT, size: 22, bold: opts.bold })] })
+    new Paragraph({ spacing: { after: opts.after ?? 40 }, children: [new TextRun({ text, font: FONT, size: 26, bold: opts.bold })] })
 
   const children: Paragraph[] = []
 
@@ -221,31 +221,31 @@ function buildFormalCoverLetter(cv: GeneratedCV): Document {
   if (cv.location) children.push(right(cv.location))
   if (cv.email) children.push(right(`Email: ${cv.email}`))
   if (cv.phone) children.push(right(`Tel: ${cv.phone}`))
-  children.push(new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { before: 160, after: 260 }, children: [new TextRun({ text: formatLetterDate(), font: FONT, size: 22 })] }))
+  children.push(new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { before: 160, after: 260 }, children: [new TextRun({ text: formatLetterDate(), font: FONT, size: 26 })] }))
 
   // Recipient block (left)
   const recipient = cv.clRecipient?.length ? cv.clRecipient : ['The Human Resource Manager']
   recipient.forEach((l, i) => children.push(line(l, { bold: i === 0 })))
 
   // Salutation
-  children.push(new Paragraph({ spacing: { before: 200, after: 200 }, children: [new TextRun({ text: cv.clSalutation || 'Dear Sir/Madam,', font: FONT, size: 22 })] }))
+  children.push(new Paragraph({ spacing: { before: 200, after: 200 }, children: [new TextRun({ text: cv.clSalutation || 'Dear Sir/Madam,', font: FONT, size: 26 })] }))
 
   // Subject — bold + underlined
   if (cv.clSubject) {
-    children.push(new Paragraph({ spacing: { after: 220 }, children: [new TextRun({ text: cv.clSubject, font: FONT, size: 22, bold: true, underline: {} })] }))
+    children.push(new Paragraph({ spacing: { after: 220 }, children: [new TextRun({ text: cv.clSubject, font: FONT, size: 26, bold: true, underline: {} })] }))
   }
 
   // Body — justified
   ;(cv.coverLetterBody || '').split('\n\n').forEach(p =>
-    children.push(new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: { after: 200, line: 320 }, children: [new TextRun({ text: p, font: FONT, size: 22 })] })))
+    children.push(new Paragraph({ alignment: AlignmentType.JUSTIFIED, spacing: { after: 200, line: 320 }, children: [new TextRun({ text: p, font: FONT, size: 26 })] })))
 
   // Sign-off + name
-  children.push(new Paragraph({ spacing: { before: 220, after: 400 }, children: [new TextRun({ text: cv.clSignOff || 'Yours faithfully,', font: FONT, size: 22 })] }))
-  children.push(new Paragraph({ children: [new TextRun({ text: (cv.fullName || '').toUpperCase(), font: FONT, size: 22, bold: true })] }))
+  children.push(new Paragraph({ spacing: { before: 220, after: 400 }, children: [new TextRun({ text: cv.clSignOff || 'Yours faithfully,', font: FONT, size: 26 })] }))
+  children.push(new Paragraph({ children: [new TextRun({ text: (cv.fullName || '').toUpperCase(), font: FONT, size: 26, bold: true })] }))
 
   return new Document({
     sections: [{
-      properties: { page: { margin: { top: convertInchesToTwip(1), bottom: convertInchesToTwip(1), left: convertInchesToTwip(1), right: convertInchesToTwip(1) } } },
+      properties: { page: { margin: { top: convertInchesToTwip(0.8), bottom: convertInchesToTwip(0.8), left: convertInchesToTwip(1), right: convertInchesToTwip(1) } } },
       children,
     }],
   })
@@ -399,7 +399,7 @@ function buildClassic(cv: GeneratedCV, accentColor?: string | null): Document {
 function buildSlate(cv: GeneratedCV, accentColor?: string | null): Document {
   const ACCENT = (accentColor || '#1a1a1a').replace('#', '')
   const sectionHead = (text: string) => new Paragraph({
-    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 25, font: BODY_FONT, color: ACCENT, characterSpacing: 70 })],
+    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 26, font: BODY_FONT, color: ACCENT, characterSpacing: 70 })],
     spacing: { before: 320, after: 120 }
   })
 
@@ -577,7 +577,7 @@ function buildCompass(cv: GeneratedCV, accentColor?: string | null): Document {
     width: { size: 10200, type: WidthType.DXA }, columnWidths: [2400, 5400, 2400], borders: NO_BORDERS,
     rows: [new TableRow({ children: [
       new TableCell({ width: { size: 2400, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT } }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }),
-      new TableCell({ width: { size: 5400, type: WidthType.DXA }, borders: NO_BORDERS, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 25, font: HEADER_FONT, color: '1a1a1a', characterSpacing: 40 })] })] }),
+      new TableCell({ width: { size: 5400, type: WidthType.DXA }, borders: NO_BORDERS, children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 26, font: HEADER_FONT, color: '1a1a1a', characterSpacing: 40 })] })] }),
       new TableCell({ width: { size: 2400, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER, borders: { ...NO_BORDERS, bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT } }, children: [new Paragraph({ children: [new TextRun({ text: '', size: 2 })] })] }),
     ] })]
   })
@@ -612,7 +612,7 @@ function buildEditorial(cv: GeneratedCV, accentColor?: string | null): Document 
   // Thick top border above the heading text = the PDF's accent rule above it.
   const heading = (text: string) => new Paragraph({
     border: { top: { style: BorderStyle.SINGLE, size: 24, color: ACCENT } },
-    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 25, font: HEADER_FONT, color: ACCENT, characterSpacing: 50 })],
+    children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 26, font: HEADER_FONT, color: ACCENT, characterSpacing: 50 })],
     spacing: { before: 300, after: 150 }
   })
 
@@ -626,7 +626,7 @@ function buildEditorial(cv: GeneratedCV, accentColor?: string | null): Document 
       new TextRun({ text: `${first.toUpperCase()} `, bold: true, size: 46, font: NAME_FONT_SERIF, color: '1a1a1a' }),
       new TextRun({ text: rest.toUpperCase(), size: 46, font: NAME_FONT_SERIF, color: '1a1a1a' }),
     ], spacing: { after: 70 } }),
-    ...(cv.jobTitle ? [new Paragraph({ children: [new TextRun({ text: cv.jobTitle.toUpperCase(), bold: true, size: 25, font: HEADER_FONT, color: ACCENT, characterSpacing: 60 })], spacing: { after: 90 } })] : []),
+    ...(cv.jobTitle ? [new Paragraph({ children: [new TextRun({ text: cv.jobTitle.toUpperCase(), bold: true, size: 26, font: HEADER_FONT, color: ACCENT, characterSpacing: 60 })], spacing: { after: 90 } })] : []),
     new Paragraph({ children: [new TextRun({ text: contactStr(cv), size: SIZE_CONTACT, font: BODY_FONT, color: '777777' })], spacing: { after: 260 } }),
   ]
 

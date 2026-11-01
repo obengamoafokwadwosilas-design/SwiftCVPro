@@ -347,7 +347,7 @@ WORDING FOR THIS LETTER:
 - Build the final thank-you line around "${closing}", in your own words.
 - Everything in between is written fresh from this applicant's own background — no stock phrases.
 
-LENGTH: 220–320 words for the body.
+LENGTH: 180–230 words for the body. The letter is printed at the same text size as the CV and must fit one A4 page, so every sentence has to earn its place.
 
 THE FIELDS:
 - "coverLetterBody": only the body paragraphs (opening through the thank-you line), separated by a blank line (\\n\\n). No subject, salutation ("Dear …"), sign-off ("Yours faithfully"), recipient address or the applicant's own details — the template lays those out.
