@@ -736,6 +736,7 @@ section { padding:var(--section-y) 0; }
 
 /* ── TESTIMONIALS — marquee ── */
 .testi-section { background:var(--white); }
+.testi-hidden { display:none; }
 .testi-marquee-outer {
   overflow: hidden; position: relative;
   margin-top: 52px; padding: 8px 0 24px;
@@ -1402,8 +1403,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <!-- TESTIMONIALS -->
+<!-- The quotes are hidden for now (owner's call) but kept in the page: the faces
+     in the social-proof strip above are cloned from them, and removing the
+     class .testi-hidden below brings the section back. -->
 <section class="testi-section">
-  <div class="container">
+  <div class="container testi-hidden">
     <div class="section-head reveal">
       <span class="section-eyebrow label">Success stories</span>
       <h2 class="section-title">What people say</h2>
@@ -1441,7 +1445,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 
   <!-- SCROLLING TICKER -->
-  <div class="testi-marquee-outer">
+  <div class="testi-marquee-outer testi-hidden">
   <div class="testi-grid">
 
         <!-- CARD 1 -->
@@ -1621,7 +1625,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   <!-- SUCCESS STORY CTA -->
   <div class="container">
-    <div class="success-story-cta reveal" style="margin-top:64px;">
+    <div class="success-story-cta reveal">
       <div class="success-story-inner">
         <h3 class="success-story-title">Share your experience</h3>
         <p class="success-story-desc">If Remarkable CV helped you improve your CV, secure an interview, or feel more confident in your job search, we'd love to hear from you. Share your feedback, interview invitation, or success story with us on WhatsApp.</p>
