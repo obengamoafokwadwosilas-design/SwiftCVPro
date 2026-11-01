@@ -778,12 +778,26 @@ export default function BuildPage() {
   }
 
   // ── Validate ──────────────────────────────────
+  // A cheap look, before anyone is asked to pay, at whether a pasted or
+  // uploaded text could be a CV at all. It only stops text that has no sign of
+  // one (a few stray words, no year, no email, no job or school words); any
+  // real CV, however short, passes. The writer still refuses non-CVs and
+  // returns the credit, this just saves the person the round trip.
+  function looksLikeCv(text: string): boolean {
+    const words = text.trim().split(/\s+/).filter(Boolean).length
+    if (words >= 80) return true
+    const signs = /@|\b(19|20)\d{2}\b|\d{7,}|experience|education|skills|university|college|school|certificate|diploma|degree|bsc|msc|wassce|bece|employ|worked|work at|intern|national service|referee|profile|summary|responsib|manager|officer|assistant|teacher|nurse|engineer|accountant|developer|supervisor|clerk|driver|sales|admin/i
+    return words >= 8 && signs.test(text)
+  }
+
   function validate(): string | null {
     if (!email.trim()) return 'email'
     if (inputMethod === 'paste') {
       // Upload and typing both land in this one box, so there's only one
       // thing to check regardless of how the content got there.
-      if (!refs.paste.current?.value.trim()) return 'content'
+      const text = refs.paste.current?.value || ''
+      if (!text.trim()) return 'content'
+      if (!looksLikeCv(text)) return 'notcv'
     }
     if (inputMethod === 'form') {
       if (!refs.fullName.current?.value.trim()) return 'name'
@@ -804,6 +818,7 @@ export default function BuildPage() {
     if (validErr) {
       const msgs: Record<string, {title:string;msg:string;type:any}> = {
         content:  { title: 'No CV content', msg: 'Please upload your CV or type it in before generating.', type: 'input' },
+        notcv:    { title: 'This doesn’t look like a CV yet', msg: 'Add your work experience, education or skills, or upload your CV, so we can write it. Nothing has been charged.', type: 'input' },
         name:     { title: 'Name required', msg: 'Please enter your full name.', type: 'input' },
         location: { title: 'Location required', msg: 'Please enter your location (e.g. Accra, Ghana).', type: 'input' },
         jd:       { title: 'Job description required', msg: 'This CV type needs a job description. Please paste or upload one.', type: 'input' },

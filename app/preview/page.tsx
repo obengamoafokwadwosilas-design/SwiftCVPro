@@ -1084,7 +1084,7 @@ export default function PreviewPage() {
   const watermark = docPaid !== true && (
     <div className="no-print" aria-hidden="true" style={{
       position:'absolute', inset:0, zIndex:5, cursor:'default',
-      backgroundImage: "url(\"data:image/svg+xml;utf8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='340' height='210'><g transform='rotate(-28 170 105)' fill='rgba(7,24,44,0.16)' font-family='Arial,Helvetica,sans-serif' font-weight='700' text-anchor='middle'><text x='170' y='100' font-size='32' letter-spacing='5'>PREVIEW</text><text x='170' y='128' font-size='13' letter-spacing='1.5'>RemarkableCV · unlock to download</text></g></svg>") + "\")",
+      backgroundImage: "url(\"data:image/svg+xml;utf8," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' width='300' height='150'><g transform='rotate(-28 150 75)' fill='rgba(7,24,44,0.16)' font-family='Arial,Helvetica,sans-serif' font-weight='700' text-anchor='middle'><text x='150' y='72' font-size='30' letter-spacing='5'>PREVIEW</text><text x='150' y='98' font-size='12.5' letter-spacing='1.5'>RemarkableCV · unlock to download</text></g></svg>") + "\")",
       backgroundRepeat:'repeat',
     }} />
   )
