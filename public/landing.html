@@ -954,11 +954,16 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 .faq-extra { display:none; }
 .faq-list.expanded .faq-extra { display:block; }
 .faq-more {
-  display:block; margin:22px auto 0; padding:12px 26px; border-radius:100px; cursor:pointer;
-  background:var(--white); color:var(--navy); border:1.5px solid var(--rule-strong);
-  font-family:var(--font-body); font-weight:600; font-size:0.88rem;
+  display:flex; align-items:center; justify-content:center; gap:10px; margin:30px auto 0;
+  padding:14px 30px; border-radius:100px; cursor:pointer;
+  background:var(--white); color:var(--navy); border:1px solid var(--rule-strong);
+  font-family:var(--font-mono); font-weight:500; font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase;
+  box-shadow:0 8px 22px -14px rgba(11,16,23,0.35);
+  transition:background 0.3s var(--ease), color 0.3s var(--ease), border-color 0.3s var(--ease), transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
 }
-.faq-more:hover { border-color:var(--navy); }
+.faq-more svg { transition:transform 0.3s var(--ease); }
+.faq-more[aria-expanded="true"] svg { transform:rotate(180deg); }
+.faq-more:hover { background:var(--navy); color:var(--white); border-color:var(--navy); transform:translateY(-1px); box-shadow:0 14px 28px -14px rgba(11,16,23,0.5); }
 @media(max-width:700px){
   :root { --section-y: 2.75rem; }
   .section-head { margin-bottom:26px; }
@@ -1223,7 +1228,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="container">
     <div class="section-head reveal">
       <span class="section-eyebrow label">Choose what you need</span>
-      <h2 class="section-title">One platform. Every CV type you need.</h2>
+      <h2 class="section-title">One platform. Everything you need.</h2>
     </div>
     <div class="cv-types-grid" data-document-showcase>
       <div class="cv-type-card reveal rd1 is-active" data-showcase-card>
@@ -1698,7 +1703,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="faq-item faq-extra reveal rd2"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Is my information safe?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Your information is processed securely and is never shared with third parties.</p></div></div>
       <div class="faq-item faq-extra reveal rd3"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I use my CV for international jobs?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Our CVs are designed using internationally accepted standards and can be used for both local and international applications.</p></div></div>
     </div>
-    <button type="button" class="faq-more" id="faqMore" aria-expanded="false">See more questions</button>
+    <button type="button" class="faq-more" id="faqMore" aria-expanded="false"><span>See more questions</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>
   </div>
 </section>
 
@@ -1758,7 +1763,7 @@ document.getElementById('faqMore').addEventListener('click', function () {
   const list = document.querySelector('.faq-list');
   const open = list.classList.toggle('expanded');
   if (open) list.querySelectorAll('.faq-extra').forEach(i => i.classList.add('visible'));
-  this.textContent = open ? 'Show fewer questions' : 'See more questions';
+  this.querySelector('span').textContent = open ? 'Show fewer questions' : 'See more questions';
   this.setAttribute('aria-expanded', open);
 });
 if (window.innerWidth > 760) { const d = document.querySelector('.how-demo'); if (d) d.open = true; }
