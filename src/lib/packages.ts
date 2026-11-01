@@ -40,8 +40,11 @@ export const PACKAGES: Package[] = [
 // to someone who's making a cover letter. Hidden packages (old multi-CV
 // bundles) are parked out of the modal but still valid for the webhook to
 // credit if an old link or receipt ever replays one.
+// Someone buying only a cover letter sees only the cover letter price, not the
+// CV packs that happen to include a letter. Those packs' own free letter is
+// still credited and spent as a cover-letter credit.
 export function packagesForDoc(isCoverLetter: boolean): Package[] {
-  return PACKAGES.filter(p => !p.hidden && (isCoverLetter ? p.cl > 0 : p.cv > 0))
+  return PACKAGES.filter(p => !p.hidden && (isCoverLetter ? p.cl > 0 && p.cv === 0 : p.cv > 0))
 }
 
 // The webhook resolves the package from the amount Paystack actually charged —

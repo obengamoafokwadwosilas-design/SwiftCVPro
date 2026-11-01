@@ -1252,7 +1252,7 @@ export default function BuildPage() {
     const docWord = isCoverLetter ? 'cover letter' : 'CV'
     const signedIn = !!signedInEmail && email === signedInEmail
     const credits = creditBalance ? (isCoverLetter ? creditBalance.cl : creditBalance.cv) : 0
-    const picked = pkgFromUrl ? PACKAGES.find(p => p.id === pkgFromUrl) : null
+    const picked = pkgFromUrl ? packagesForDoc(isCoverLetter).find(p => p.id === pkgFromUrl) : null
     const busy = isGenerating || !!paymentPending || !!uploadReadError
     return (
       <div style={{ marginTop: '28px' }}>
@@ -1309,7 +1309,7 @@ export default function BuildPage() {
           </button>
           {credits > 0 ? (
             <p style={{ margin: 0, textAlign: 'center', fontSize: '12px', color: 'var(--graphite)' }}>
-              You have {credits} {docWord} credit{credits === 1 ? '' : 's'} — building uses one.
+              You have {credits} {docWord} credit{credits === 1 ? '' : 's'}, so there is nothing to pay. Building uses one.
             </p>
           ) : (
             <p style={{ margin: 0, textAlign: 'center', fontSize: '12px', color: 'var(--graphite)' }}>
@@ -1383,7 +1383,7 @@ export default function BuildPage() {
                 click back into a real path to checkout. Hidden once they
                 already hold credits, so it can't nag a paying customer. */}
             {(() => {
-              const picked = pkgFromUrl ? PACKAGES.find(p => p.id === pkgFromUrl) : null
+              const picked = pkgFromUrl ? packagesForDoc(cvType === 'cover_letter').find(p => p.id === pkgFromUrl) : null
               if (!picked || hasCredits) return null
               return (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' as const, marginTop: '18px', padding: '14px 16px', background: 'var(--teal-tint)', border: '1px solid rgba(10,138,63,0.18)', borderRadius: '12px' }}>
