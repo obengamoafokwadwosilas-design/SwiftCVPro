@@ -937,6 +937,44 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
   font-weight: 500;
 }
 
+
+/* ── SHORTER PAGE — fold away what isn't needed to decide ── */
+.how-demo > summary {
+  list-style:none; cursor:pointer; display:flex; width:max-content; margin:0 auto 28px;
+  align-items:center; gap:9px; padding:12px 22px; border-radius:100px;
+  background:var(--navy); color:var(--white); font-weight:600; font-size:0.88rem;
+}
+.how-demo > summary::-webkit-details-marker { display:none; }
+.how-demo > summary::before { content:''; border-left:9px solid currentColor; border-top:6px solid transparent; border-bottom:6px solid transparent; }
+.how-demo[open] > summary { background:var(--white); color:var(--navy); border:1.5px solid var(--rule-strong); }
+.how-demo[open] > summary::before { display:none; }
+.how-demo[open] > summary::after { content:'Hide the demo'; }
+.how-demo[open] > summary { font-size:0; }
+.how-demo[open] > summary::after { font-size:0.88rem; }
+.faq-extra { display:none; }
+.faq-list.expanded .faq-extra { display:block; }
+.faq-more {
+  display:block; margin:22px auto 0; padding:12px 26px; border-radius:100px; cursor:pointer;
+  background:var(--white); color:var(--navy); border:1.5px solid var(--rule-strong);
+  font-family:var(--font-body); font-weight:600; font-size:0.88rem;
+}
+.faq-more:hover { border-color:var(--navy); }
+@media(max-width:700px){
+  :root { --section-y: 2.75rem; }
+  .section-head { margin-bottom:26px; }
+  .why-section { padding:44px 0; }
+  .how-diagram { margin-bottom:0; }
+  .how-demo > summary { margin-bottom:20px; }
+  .how-demo[open] .how-diagram { margin-bottom:28px; }
+  .how-step { padding:12px 0; }
+  .how-step-outcome { display:none; }
+  .faq-q { padding:16px 2px; }
+  .faq-a p { padding-bottom:16px; }
+  .founder-inner { gap:20px; padding:0 24px; }
+  .founder-img { max-width:116px; border-radius:50%; }
+  .success-story-inner { padding:34px 22px; }
+  .success-story-desc { margin-bottom:18px; }
+}
 </style>
 
 <!-- Trustpilot TrustBox loader. async so it can never block first paint, and
@@ -1247,14 +1285,19 @@ document.addEventListener('DOMContentLoaded', () => {
       <h2 class="section-title">Three steps. Under a minute.</h2>
     </div>
 
-    <!-- REAL SCREEN RECORDING of the product in use -->
-    <div class="how-diagram reveal">
+    <!-- REAL SCREEN RECORDING of the product in use. Folded away on phones to
+         keep the page short (opened by script on wider screens); preload="none"
+         so a closed demo costs no data. -->
+    <details class="how-demo reveal">
+    <summary>Watch the 1-minute demo</summary>
+    <div class="how-diagram">
       <div class="how-diagram-bg"></div>
       <div class="how-diagram-glow"></div>
       <div class="how-diagram-video">
-        <video src="how-it-works-demo.mp4" controls preload="metadata" playsinline></video>
+        <video src="how-it-works-demo.mp4" controls preload="none" playsinline></video>
       </div>
     </div>
+    </details>
 
     <!-- FLOW ROW -->
     <div class="how-flow reveal rd1">
@@ -1653,12 +1696,13 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="faq-item reveal rd1"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">How does the free preview work?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Build your full CV for free — no payment needed to see it. You only pay if you decide to download it as a PDF or Word file.</p></div></div>
       <div class="faq-item reveal rd1"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Do I have to create an account?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>No signup or password needed. Use your email for your receipt and future access to your CVs. When you return, we'll email you a secure access link.</p></div></div>
       <div class="faq-item reveal rd2"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I upload my old CV?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Upload your current CV and Remarkable CV can use it as a starting point — rewriting, restructuring, and improving it professionally.</p></div></div>
-      <div class="faq-item reveal rd3"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I add a job advert?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Paste the job description and Remarkable CV tailors your CV to match exactly what that employer is asking for.</p></div></div>
-      <div class="faq-item reveal rd4"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I download PDF and Word?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Your completed CV can be downloaded in both PDF and editable Word formats — PDF for applications, Word if you want to make further edits.</p></div></div>
-      <div class="faq-item reveal rd1"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Do my credits expire?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>No. Credits never expire — buy once, and use them whenever you're ready.</p></div></div>
-      <div class="faq-item reveal rd2"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Is my information safe?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Your information is processed securely and is never shared with third parties.</p></div></div>
-      <div class="faq-item reveal rd3"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I use my CV for international jobs?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Our CVs are designed using internationally accepted standards and can be used for both local and international applications.</p></div></div>
+      <div class="faq-item faq-extra reveal rd3"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I add a job advert?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Paste the job description and Remarkable CV tailors your CV to match exactly what that employer is asking for.</p></div></div>
+      <div class="faq-item faq-extra reveal rd4"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I download PDF and Word?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Your completed CV can be downloaded in both PDF and editable Word formats — PDF for applications, Word if you want to make further edits.</p></div></div>
+      <div class="faq-item faq-extra reveal rd1"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Do my credits expire?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>No. Credits never expire — buy once, and use them whenever you're ready.</p></div></div>
+      <div class="faq-item faq-extra reveal rd2"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Is my information safe?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Your information is processed securely and is never shared with third parties.</p></div></div>
+      <div class="faq-item faq-extra reveal rd3"><button class="faq-q" onclick="toggleFaq(this)"><span class="faq-q-text">Can I use my CV for international jobs?</span><span class="faq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="faq-a"><p>Yes. Our CVs are designed using internationally accepted standards and can be used for both local and international applications.</p></div></div>
     </div>
+    <button type="button" class="faq-more" id="faqMore" aria-expanded="false">See more questions</button>
   </div>
 </section>
 
@@ -1713,6 +1757,15 @@ function closeMob() {
   mob.classList.remove('open');
   document.body.style.overflow = '';
 }
+
+document.getElementById('faqMore').addEventListener('click', function () {
+  const list = document.querySelector('.faq-list');
+  const open = list.classList.toggle('expanded');
+  if (open) list.querySelectorAll('.faq-extra').forEach(i => i.classList.add('visible'));
+  this.textContent = open ? 'Show fewer questions' : 'See more questions';
+  this.setAttribute('aria-expanded', open);
+});
+if (window.innerWidth > 760) { const d = document.querySelector('.how-demo'); if (d) d.open = true; }
 
 function toggleFaq(btn) {
   const item = btn.closest('.faq-item');
