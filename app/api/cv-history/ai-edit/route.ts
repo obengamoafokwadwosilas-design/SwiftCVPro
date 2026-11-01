@@ -51,6 +51,15 @@ export async function POST(req: Request) {
 
   try {
     const { doc } = await editDocument({ ...cv, fullName: savedName }, text, row.cv_type)
+    // Asking for something an edit can't do (a different name, another job)
+    // changes nothing, so it costs nothing: the edit goes back and the person
+    // is told why, to ask for something else.
+    const report = doc.changesReport || []
+    if (report.length > 0 && report.every(r => r.status === 'not_applied')) {
+      await refundAiEdit(access.id, id)
+      const back = await aiEditsLeft(access.id, id)
+      return NextResponse.json({ success: true, applied: false, notes: report.map(r => r.note).filter(Boolean), left: back.left }, { headers: noStore })
+    }
     const { error } = await supabaseAdmin.from('customer_history').update({ generated_cv: doc }).eq('id', id).eq('owner_id', access.id)
     if (error) throw new Error('Could not save the edited CV: ' + error.message)
     const after = await aiEditsLeft(access.id, id)

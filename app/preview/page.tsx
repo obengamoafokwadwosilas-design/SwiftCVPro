@@ -1126,6 +1126,11 @@ export default function PreviewPage() {
       const data = await res.json().catch(() => ({}))
       if (res.status === 402) { setAiLeft(0); return }   // none left: the box now offers the GH₵5 pack
       if (!res.ok || !data.success) { setAiError(data.error || 'We could not apply that edit. Please try again.'); return }
+      if (data.applied === false) {   // nothing could be done, so nothing was used
+        setAiLeft(data.left ?? aiLeft)
+        setAiError(`${(data.notes || []).join(' ') || 'That could not be done with an edit.'} Your edit has been kept, so ask for something else.`)
+        return
+      }
       const updated = normalizeCV(data.cv)
       setCV(updated); setBaseCv(updated)
       sessionStorage.setItem('swiftcv_cv', JSON.stringify(updated))
@@ -1464,23 +1469,16 @@ export default function PreviewPage() {
               </div>
             </div>
           )}
-          {/* What the writer did with each "Anything to add or change?" request,
-              so nothing they asked for is silently skipped. */}
-          {activeTab === 'preview' && activeDoc === 'cv' && showChanges && !!cv.changesReport?.length && (
-            <div className="no-print" style={{ maxWidth:'210mm', margin: isMobile ? '10px 12px' : '0 auto 14px', background:'white', border:'1px solid #e2e8f0', borderRadius:'14px', padding:'12px 14px', boxShadow:'0 2px 8px rgba(10,15,26,0.05)', fontFamily:"'DM Sans', sans-serif" }}>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'6px' }}>
-                <span style={{ fontSize:'13.5px', fontWeight:700, color:'#0a0f1a' }}>Your requests</span>
-                <button onClick={() => setShowChanges(false)} aria-label="Hide your requests" style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'2px', display:'flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
-              </div>
-              {cv.changesReport.map((r, i) => (
-                <div key={i} style={{ display:'flex', gap:'8px', alignItems:'flex-start', fontSize:'13px', lineHeight:1.5, color:'#334155', marginTop: i ? '4px' : 0 }}>
-                  <span aria-hidden="true" style={{ color: r.status === 'applied' ? '#0a8a3f' : '#b45309', fontWeight:700, flexShrink:0 }}>{r.status === 'applied' ? '✓' : '!'}</span>
-                  <span><strong style={{ fontWeight:600, color:'#0a0f1a' }}>{r.request}</strong>{r.note ? ` — ${r.note}` : ''}</span>
-                </div>
-              ))}
-              {cv.changesReport.some(r => r.status !== 'applied') && (
-                <div style={{ fontSize:'12.5px', color:'#64748b', marginTop:'8px' }}>Add anything missing with <button onClick={requestEdit} style={{ background:'none', border:'none', padding:0, color:'#0a8a3f', fontWeight:600, cursor:'pointer', fontSize:'12.5px', fontFamily:"'DM Sans', sans-serif" }}>Edit</button>.</div>
-              )}
+          {/* Nothing shows when every "Anything to add or change?" request went
+              through. Only a request the writer could not honestly do gets a
+              single line, so it is never silently skipped. */}
+          {activeTab === 'preview' && activeDoc === 'cv' && showChanges && (cv.changesReport || []).some(r => r.status !== 'applied') && (
+            <div className="no-print" role="status" style={{ maxWidth:'210mm', margin: isMobile ? '10px 12px' : '0 auto 14px', display:'flex', gap:'10px', alignItems:'flex-start', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'12px', padding:'10px 12px', fontSize:'13px', lineHeight:1.5, color:'#334155', fontFamily:"'DM Sans', sans-serif" }}>
+              <span style={{ flex:1 }}>
+                {(cv.changesReport || []).filter(r => r.status !== 'applied').map(r => r.note || r.request).join(' ')}{' '}
+                <button onClick={requestEdit} style={{ background:'none', border:'none', padding:0, color:'#0a8a3f', fontWeight:600, cursor:'pointer', fontSize:'13px', fontFamily:"'DM Sans', sans-serif" }}>Edit</button>
+              </span>
+              <button onClick={() => setShowChanges(false)} aria-label="Dismiss" style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'2px', display:'flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
           )}
           {activeTab === 'preview' ? (<>
