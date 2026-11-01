@@ -473,8 +473,33 @@ export default function BuildPage() {
         .match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:.[A-Za-z0-9-]+)*.[A-Za-z]{2,}/)
       if (found) setEmail(found[0].toLowerCase())
     }
+    if (s !== screen) { window.history.pushState({ ...window.history.state, scvScreen: s }, ''); stepsPushed.current++ }
     setScreen(s)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // The builder is one page, so without this the Android Back key leaves it
+  // altogether. Every screen change is a history entry (above) and Back —
+  // the key or the button — walks them in reverse. Next's own history state is
+  // copied into each entry, since its router reloads the page on an entry
+  // that lacks it.
+  const stepsPushed = useRef(0)
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      const s = e.state?.scvScreen as Screen | undefined
+      stepsPushed.current = Math.max(0, stepsPushed.current - 1)
+      if (s) { setScreen(s); window.scrollTo({ top: 0 }) }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
+  // Keeps the current entry's screen in step even when a restore jumps screens
+  // without go(), so Back never lands on a stale one.
+  useEffect(() => { window.history.replaceState({ ...window.history.state, scvScreen: screen }, '') }, [screen])
+  function goBack() {
+    if (stepsPushed.current > 0) window.history.back()
+    else if (backTo) go(backTo)
+    else router.push('/')
   }
 
   // Header progress. Phase 3 covers every form screen, so it advances with
@@ -1303,9 +1328,9 @@ export default function BuildPage() {
       {/* Back, on its own. The status pill (email, "first 2 previews free", "Purchase
           CV credits") is gone: the email is asked once, on the last page, and a limit
           nobody has hit yet is not worth announcing. */}
-      {(backTo || screen === 'type') && (
+      {screen === 'type' && (
         <div style={{ maxWidth: '680px', margin: '0 auto', padding: '26px 24px 0' }}>
-          <button onClick={() => backTo ? go(backTo) : router.push('/')} className="xcv-link" style={btnBackTop}>
+          <button onClick={() => router.push('/')} className="xcv-link" style={btnBackTop}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Back
           </button>
@@ -2015,6 +2040,16 @@ WASSCE, St Thomas Aquinas SHS, 2020`} />
           <ErrorDisplay error={error} onRetry={() => handleGenerate()} onDismiss={() => setError(null)} />
 
           {renderFinish('summary')}
+        </div>
+      )}
+
+      {/* Back at the bottom, where the thumb already is on a phone. */}
+      {backTo && screen !== 'type' && (
+        <div style={{ maxWidth: '640px', margin: '-52px auto 0', padding: '0 24px 56px' }}>
+          <button onClick={goBack} className="xcv-link" style={{ ...btnBackTop, fontSize: '14px', padding: '12px 4px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Back
+          </button>
         </div>
       )}
 
