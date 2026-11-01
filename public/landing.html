@@ -986,17 +986,12 @@ footer { background:var(--navy); border-top:1px solid var(--rule-on-ink); paddin
 .arch-visual { width:96px; height:96px; display:block; margin:0 auto 14px; }
 .arch-name { font-family:var(--font-display); font-size:1.4rem; font-weight:600; line-height:1.2; color:var(--navy); margin-bottom:8px; }
 .arch-line { font-size:0.9rem; color:var(--ink-55); line-height:1.6; margin:0 auto 16px; max-width:36ch; }
-.arch-points { list-style:none; display:grid; gap:9px; padding:16px 0 0; border-top:1px solid var(--rule-strong); text-align:left; }
-.arch-points li { display:flex; gap:10px; align-items:flex-start; font-size:0.84rem; color:var(--ink-80); line-height:1.5; }
-.arch-points svg { flex-shrink:0; margin-top:3px; color:var(--teal-dark); }
 @media(max-width:780px){
   .arch-grid { grid-template-columns:1fr; gap:14px; }
   .arch-card { display:grid; grid-template-columns:64px 1fr; column-gap:14px; align-items:center; padding:18px 18px 16px; text-align:left; }
   .arch-visual { grid-column:1; grid-row:1 / span 2; width:64px; height:64px; margin:0; }
   .arch-name { grid-column:2; font-size:1.1rem; margin-bottom:4px; }
   .arch-line { grid-column:2; font-size:0.82rem; margin:0; max-width:none; }
-  .arch-points { grid-column:1 / -1; gap:7px; padding-top:12px; margin-top:14px; }
-  .arch-points li { font-size:0.8rem; }}
 </style>
 
 <!-- Trustpilot TrustBox loader. async so it can never block first paint, and
@@ -1445,9 +1440,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </svg>
         <h3 class="arch-name">Applicant-Tracking System Architecture</h3>
         <p class="arch-line">Made so applicant-tracking systems can read every line.</p>
-        <ul class="arch-points">
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>Keywords from your job advert, in your own true experience</li>
-        </ul>
       </div>
       <div class="arch-card reveal rd2">
         <svg class="arch-visual" viewBox="0 0 96 96" aria-hidden="true">
@@ -1457,9 +1449,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </svg>
         <h3 class="arch-name">Interview-Readiness Framework</h3>
         <p class="arch-line">Engineered so every statement on your CV can be defended, with total composure, across the interview table.</p>
-        <ul class="arch-points">
-          <li><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>No skills or achievements you didn’t tell us</li>
-        </ul>
       </div>
     </div>
   </div>
