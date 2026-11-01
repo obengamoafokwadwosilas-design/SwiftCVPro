@@ -266,6 +266,15 @@ closed rather than crash.
    dormant "Edit with AI" code (which ran the edit after the payment window
    closed without checking with Paystack) is gone — don't bring it back.
 
+13. **Search visibility (SEO).** The written guides live in `src/content/guides.ts` and render
+   at `/guides` and `/guides/<slug>` (Article + FAQ + breadcrumb data, listed in
+   `app/sitemap.ts`). Keep them honest: no invented statistics, and any claim about
+   the product must be true. The home page's title, description and
+   `WebApplication` offers (GH₵39 / 99 / 19) in `public/landing.html` must mirror
+   `packages.ts` like the pricing cards do; if a price changes, change the data
+   there too. The FAQ markup must stay word-for-word with the visible FAQ.
+   Search Console is verified by `public/googlefbb5d01f177becce.html` — keep it.
+
 ## Conventions already in place
 - No comments explaining *what* code does — only *why*, when non-obvious.
 - Don't add speculative abstractions, feature flags, or "just in case"
