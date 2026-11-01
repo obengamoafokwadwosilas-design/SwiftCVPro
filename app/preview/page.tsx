@@ -170,6 +170,7 @@ export default function PreviewPage() {
   const [aiLeft, setAiLeft] = useState(0)
   const [showAiEdit, setShowAiEdit] = useState(false)
   const [aiText, setAiText] = useState('')
+  const [draftToast, setDraftToast] = useState(false)
   const [aiBusy, setAiBusy] = useState<'edit' | 'pay' | null>(null)
   const [aiError, setAiError] = useState('')
   const [aiNewCv, setAiNewCv] = useState(false)
@@ -1006,6 +1007,15 @@ export default function PreviewPage() {
     }
   }
 
+  // Notes typed for an AI edit are kept (per document, for this visit) so the
+  // box can be closed to look at the CV and reopened to carry on.
+  const draftKey = () => { const id = paidDocumentId(); return id ? 'swiftcv_ai_draft_' + id : '' }
+  function saveDraft(text: string) {
+    try { const k = draftKey(); if (!k) return; if (text) sessionStorage.setItem(k, text); else sessionStorage.removeItem(k) } catch { /* private mode: the notes simply live on the open page */ }
+  }
+  useEffect(() => { try { const k = draftKey(); const t = k ? sessionStorage.getItem(k) : null; if (t) setAiText(t) } catch { /* see saveDraft */ } }, [cvLoaded, activeDoc]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!draftToast) return; const t = setTimeout(() => setDraftToast(false), 3200); return () => clearTimeout(t) }, [draftToast])
+
   // Effects for "Edit with RemarkableCV" live here, above the early return below.
   useEffect(() => { void refreshAiEdits() }, [cvLoaded, activeDoc, isCoverLetter]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1135,7 +1145,7 @@ export default function PreviewPage() {
       const updated = normalizeCV(data.cv)
       setCV(updated); setBaseCv(updated)
       sessionStorage.setItem('swiftcv_cv', JSON.stringify(updated))
-      setAiLeft(data.left ?? 0); setAiText(''); setShowAiEdit(false); setShowChanges(true); setShowReadyBanner(false)
+      setAiLeft(data.left ?? 0); setAiText(''); saveDraft(''); setShowAiEdit(false); setShowChanges(true); setShowReadyBanner(false)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch { setAiError('Connection problem. Please check your internet and try again.') }
     finally { setAiBusy(null) }
@@ -1710,6 +1720,11 @@ export default function PreviewPage() {
 
       {/* EDIT WITH REMARKABLECV — the person's change requests applied by the
           writer; one free edit per CV, then GH₵5 for two more. */}
+      {draftToast && (
+        <div role="status" className="no-print" style={{ position:'fixed', left:'50%', transform:'translateX(-50%)', bottom: isMobile ? '84px' : '28px', zIndex:220, background:'#0a0f1a', color:'white', padding:'11px 18px', borderRadius:'50px', fontSize:'13px', fontFamily:"'DM Sans', sans-serif", boxShadow:'0 10px 30px -8px rgba(10,15,26,0.5)', whiteSpace:'nowrap' }}>
+          Saved. Tap Edit when you are ready to carry on.
+        </div>
+      )}
       {showAiEdit && (
         <div onClick={() => { if (!aiBusy) setShowAiEdit(false) }} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
           <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'440px', padding:'22px', boxShadow:'0 1px 3px rgba(10,15,26,0.08), 0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif", maxHeight:'92vh', overflowY:'auto' }}>
@@ -1733,10 +1748,11 @@ export default function PreviewPage() {
             ) : aiLeft > 0 ? (
               <>
                 <div style={{ fontSize:'12.5px', color:'#0a8a3f', fontWeight:600, margin:'0 0 10px' }}>{aiLeft} edit{aiLeft === 1 ? '' : 's'} left</div>
-                <textarea value={aiText} onChange={e => { setAiText(e.target.value); if (aiError) setAiError('') }} rows={5} maxLength={1500}
+                <textarea value={aiText} onChange={e => { setAiText(e.target.value); saveDraft(e.target.value); if (aiError) setAiError('') }} rows={5} maxLength={1500}
                   placeholder="e.g. My new number is 024 123 4567. Add my new job at MTN as Sales Lead (2025 – now). Make the summary shorter."
                   style={{ width:'100%', padding:'12px 14px', border:'1.5px solid #e2e8f0', borderRadius:'12px', fontFamily:"'DM Sans', sans-serif", fontSize:'14px', color:'#0a0f1a', resize:'none', lineHeight:1.6 }} />
                 <button onClick={() => void submitAiEdit()} style={{ width:'100%', marginTop:'12px', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>Update my CV</button>
+                <button onClick={() => { saveDraft(aiText); setShowAiEdit(false); if (aiText.trim()) setDraftToast(true) }} style={{ width:'100%', marginTop:'8px', padding:'12px', background:'white', color:'#0d9488', border:'1.5px solid #99d6cf', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>Save and look at my CV</button>
                 <div style={{ fontSize:'12px', color:'#64748b', textAlign:'center', marginTop:'10px', lineHeight:1.5 }}>Takes about 30 seconds. Your design and colour stay the same.</div>
               </>
             ) : (
