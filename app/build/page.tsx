@@ -41,7 +41,7 @@ const LOADING_STEPS = [
   { pct: 78, msg: 'Polishing language and tone...',     detail: 'Removing weak words, adding impact verbs' },
   { pct: 88, msg: 'Final quality check...',             detail: 'Running through 24 quality checkpoints' },
   { pct: 95, msg: 'Almost there...',                    detail: 'Putting the finishing touches' },
-  { pct: 99, msg: 'Your CV is ready!',                  detail: 'Preparing your preview' },
+  { pct: 99, msg: 'Everything was added successfully',  detail: 'Preparing your preview' },
 ]
 
 const DID_YOU_KNOWS = [
@@ -428,7 +428,7 @@ export default function BuildPage() {
     const CEILING = 98   // approached, never reached
     const RATE = 0.014   // fraction of the remaining gap closed per tick
     const TICK_MS = 200
-    // Every step except the last. "Your CV is ready!" must not appear while
+    // Every step except the last. The success line must not appear while
     // we're still waiting — finishThenGo is the only thing allowed to show it.
     const climbing = LOADING_STEPS.slice(0, -1)
     let exact = 0
@@ -1238,7 +1238,6 @@ export default function BuildPage() {
     const signedIn = !!signedInEmail && email === signedInEmail
     const credits = creditBalance ? (isCoverLetter ? creditBalance.cl : creditBalance.cv) : 0
     const picked = pkgFromUrl ? PACKAGES.find(p => p.id === pkgFromUrl) : null
-    const fromPrice = Math.min(...packagesForDoc(isCoverLetter).map(p => p.price))
     const busy = isGenerating || !!paymentPending || !!uploadReadError
     return (
       <div style={{ marginTop: '28px' }}>
@@ -1299,7 +1298,7 @@ export default function BuildPage() {
             </p>
           ) : (
             <p style={{ margin: 0, textAlign: 'center', fontSize: '12px', color: 'var(--graphite)' }}>
-              {picked ? `${picked.name} · GH₵${picked.price}` : `From GH₵${fromPrice}`} · secure payment via Paystack · MTN MoMo, Telecel, AirtelTigo &amp; card
+              {picked ? `${picked.name} · GH₵${picked.price} · ` : ''}Secure payment via Paystack · MTN MoMo, Telecel, AirtelTigo &amp; card
             </p>
           )}
           {/* Someone holding a credit has already paid: they build the finished

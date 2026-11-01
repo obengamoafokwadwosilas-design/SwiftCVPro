@@ -21,7 +21,7 @@ const nextConfig = {
         // these filenames are not content-hashed, so a replaced image must
         // still reach visitors — give a changed image a new filename to show it
         // immediately. HTML is untouched, so page updates are seen at once.
-        source: '/:all*(png|jpg|jpeg|webp|svg|ico|mp4)',
+        source: '/:all*(png|jpg|jpeg|webp|svg|ico|mp4|woff2)',
         headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],
       },
     ]
