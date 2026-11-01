@@ -366,7 +366,8 @@ nav.scrolled {
 .ticker-track::after { right:0; background:linear-gradient(-90deg,var(--paper),transparent); }
 /* Two rows of 15 names, the second sliding the other way. width:max-content so
    -50% is exactly one copy of the list and the loop has no jump. */
-.ticker-inner { display:flex; width:max-content; white-space:nowrap; animation:tickerRoll 44s linear infinite; }
+.ticker-note { text-align:center; margin:18px 20px 0; font-size:0.68rem; line-height:1.4; color:#a8a29a; letter-spacing:0.01em; }
+.ticker-inner { display:flex; width:max-content; white-space:nowrap; animation:tickerRoll 80s linear infinite; }
 .ticker-inner.reverse { animation-direction:reverse; }
 .ticker-inner:hover { animation-play-state:paused; }
 @keyframes tickerRoll { 0%{transform:translateX(0);} 100%{transform:translateX(-50%);} }
@@ -759,7 +760,7 @@ section { padding:var(--section-y) 0; }
    delivers a third of the content per second and reads as crawling. Shorter
    durations restore the desktop sense of pace. */
 @media(max-width:768px){
-  .ticker-inner    { animation-duration: 28s; }
+  .ticker-inner    { animation-duration: 52s; }
   .template-ticker { animation-duration: 20s; }
   .testi-grid      { animation-duration: 45s; }
 }
@@ -1152,6 +1153,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <span class="ticker-item alt">Enterprise Group</span>
     </div>
   </div>
+  <p class="ticker-note">Company names are shown only as examples of where people apply. We are not affiliated with them.</p>
 </div>
 
 <!-- TEMPLATES -->
