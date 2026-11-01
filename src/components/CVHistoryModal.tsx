@@ -33,7 +33,10 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
   open: boolean; onClose: () => void; initialEmail?: string; autoSetPin?: boolean; notice?: string
 }) {
   const router = useRouter()
-  const [step, setStep] = useState<Step>('email')
+  // Opens on email + access code: people who set a code get in at once, and
+  // "No code?" below leads to the emailed link, which is the only way in
+  // without one (an email address alone must never open anyone's CVs).
+  const [step, setStep] = useState<Step>('pin')
   const [email, setEmail] = useState(initialEmail || '')
   const [pin, setPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
@@ -80,7 +83,7 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
     if (!open) { initialized.current = false; return }
     if (initialized.current) return
     initialized.current = true
-    setStep('email'); setItems([]); setPin(''); setConfirmPin(''); setRemember(false); setError(''); setMessage('')
+    setStep('pin'); setItems([]); setPin(''); setConfirmPin(''); setRemember(false); setError(''); setMessage('')
     const token = new URLSearchParams(window.location.hash.slice(1)).get('access')
     if (token) {
       // Remove the bearer secret before any navigation or external link is followed.
@@ -136,7 +139,7 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
       sessionStorage.removeItem('swiftcv_email')
       sessionStorage.removeItem('swiftcv_history_id')
       clearPreviousCoverLetter()
-      setItems([]); setStep('email'); setPin(''); setRemember(false)
+      setItems([]); setStep('pin'); setPin(''); setRemember(false)
       setMessage('Signed out of this device.')
     })
   }
@@ -176,7 +179,7 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(8,13,24,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 500 }}>
       <div role="dialog" aria-modal="true" aria-labelledby="history-title" style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '540px', padding: '28px', maxHeight: '88vh', overflowY: 'auto', fontFamily: "'DM Sans', sans-serif" }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 id="history-title" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', margin: '0 0 12px' }}>{step === 'email' ? 'Sign in' : 'My CVs'}</h2>
+          <h2 id="history-title" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', margin: '0 0 12px' }}>{step === 'email' || step === 'pin' ? 'Sign in' : 'My CVs'}</h2>
           <button onClick={onClose} aria-label="Close My CVs" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '6px', margin: '-6px -6px 6px 0', display: 'flex' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
           </button>
@@ -191,15 +194,18 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
             above an "or" divider. */}
         {(step === 'email' || step === 'pin') && (
           <>
-            <p style={{ color: '#64748b', fontSize: '14px' }}>Enter the email you used to save your CVs.</p>
+            <p style={{ color: '#64748b', fontSize: '14px' }}>
+              {step === 'pin' ? 'Enter the email you used to pay and your 4-digit access code.' : 'Enter the email you used to pay and we will email you a secure link. It opens your CVs and credits on any device.'}
+            </p>
             <input type="email" aria-label="Email address" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" autoComplete="email" style={inputStyle} />
             {step === 'pin' && <input type="password" inputMode="numeric" aria-label="4-digit access code" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4-digit access code" style={{ ...inputStyle, marginTop: '12px' }} />}
             {step === 'pin' && <label style={{ display: 'block', margin: '14px 0', fontSize: '13px' }}><input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)} /> Keep me signed in on this device</label>}
             <button disabled={loading} style={{ ...primary, width: '100%', marginTop: '16px' }} onClick={() => step === 'email' ? void emailLink() : void run(async () => {
+              if (pin.length < 4) throw new Error('Enter your 4-digit access code, or choose "No code? Email me a link".')
               await request('/api/cv-pin/verify', { email, pin, remember })
               await loadHistory()
             })}>{loading ? 'Please wait…' : step === 'email' ? 'Email me a secure access link' : 'Open My CVs'}</button>
-            <button disabled={loading} style={link} onClick={() => { setStep(step === 'email' ? 'pin' : 'email'); setError(''); setMessage('') }}>{step === 'email' ? 'Use your access code' : 'Use an email link / Forgot your code'}</button>
+            <button disabled={loading} style={link} onClick={() => { setStep(step === 'email' ? 'pin' : 'email'); setError(''); setMessage('') }}>{step === 'email' ? 'I have an access code' : 'No code, or forgot it? Email me a link'}</button>
           </>
         )}
         {step === 'list' && (
