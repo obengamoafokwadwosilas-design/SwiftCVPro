@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { GUIDES, GUIDES_UPDATED, guideBySlug } from '@/content/guides'
+import { GUIDES, guideBySlug, guidePublished } from '@/content/guides'
 import { SITE_URL } from '@/lib/site'
 import GuideShell from '../GuideShell'
 
@@ -37,8 +37,8 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
         description: g.description,
         inLanguage: 'en-GH',
         mainEntityOfPage: url,
-        datePublished: GUIDES_UPDATED,
-        dateModified: GUIDES_UPDATED,
+        datePublished: guidePublished(g),
+        dateModified: guidePublished(g),
         author: { '@type': 'Organization', name: 'Remarkable CV', url: SITE_URL },
         publisher: { '@type': 'Organization', name: 'Remarkable CV', logo: { '@type': 'ImageObject', url: `${SITE_URL}/remarkable-cv-mark.png` } },
         image: `${SITE_URL}/og-cover.jpg`,
@@ -66,13 +66,19 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
         <Link href="/" style={{ color: '#64748b' }}>Home</Link> / <Link href="/guides" style={{ color: '#64748b' }}>Guides</Link>
       </nav>
       <h1 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: 'clamp(2rem, 6vw, 2.8rem)', fontWeight: 600, lineHeight: 1.12, margin: '0 0 12px', color: '#07182c' }}>{g.h1}</h1>
-      <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 0 22px' }}>Updated 1 November 2026</p>
+      <p style={{ fontSize: '12.5px', color: '#64748b', margin: '0 0 22px' }}>Updated {new Date(guidePublished(g) + 'T12:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}</p>
       <p style={{ fontSize: '1.05rem', lineHeight: 1.75, color: '#334155', margin: '0 0 8px' }}>{g.intro}</p>
 
       {g.sections.map(s => (
         <section key={s.h2}>
           <h2 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '1.6rem', fontWeight: 600, margin: '34px 0 10px', color: '#07182c' }}>{s.h2}</h2>
           {s.paragraphs?.map((p, i) => <p key={i} style={{ lineHeight: 1.75, color: '#334155', margin: '0 0 12px' }}>{p}</p>)}
+          {s.examples?.map(ex => (
+            <figure key={ex.label} style={{ margin: '12px 0 16px', padding: '16px 18px', background: '#fff', border: '1px solid #e5e0d6', borderLeft: '4px solid #0aa447', borderRadius: '10px' }}>
+              <figcaption style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#64748b', marginBottom: '8px' }}>{ex.label}</figcaption>
+              <div style={{ whiteSpace: 'pre-line', lineHeight: 1.7, color: '#1e293b', fontSize: '0.98rem' }}>{ex.text}</div>
+            </figure>
+          ))}
           {s.bullets && (
             <ul style={{ paddingLeft: '22px', margin: '6px 0 12px', listStyleType: 'disc', color: '#334155', lineHeight: 1.75 }}>
               {s.bullets.map(b => <li key={b} style={{ marginBottom: '6px' }}>{b}</li>)}

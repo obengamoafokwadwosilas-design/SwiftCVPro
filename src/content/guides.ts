@@ -4,15 +4,19 @@ export interface Guide {
   description: string
   h1: string
   intro: string
-  sections: { h2: string; paragraphs?: string[]; bullets?: string[] }[]
+  sections: { h2: string; paragraphs?: string[]; bullets?: string[]; examples?: { label: string; text: string }[] }[]
   faq: { q: string; a: string }[]
   cta: { label: string; href: string }
   related: string[]
+  // ISO date; guides without one use GUIDES_UPDATED
+  published?: string
 }
+
+import { MORE_GUIDES } from './guidesMore'
 
 export const GUIDES_UPDATED = '2026-11-01'
 
-export const GUIDES: Guide[] = [
+const BASE_GUIDES: Guide[] = [
   {
     slug: 'how-to-write-a-cv-in-ghana',
     title: 'How to Write a CV in Ghana: Format and Tips',
@@ -299,6 +303,10 @@ export const GUIDES: Guide[] = [
     related: ['how-to-write-a-cv-in-ghana', 'tailor-your-cv-to-a-job-advert'],
   },
 ]
+
+export const GUIDES: Guide[] = [...BASE_GUIDES, ...MORE_GUIDES]
+
+export function guidePublished(g: Guide) { return g.published || GUIDES_UPDATED }
 
 export function guideBySlug(slug: string) {
   return GUIDES.find(g => g.slug === slug)
