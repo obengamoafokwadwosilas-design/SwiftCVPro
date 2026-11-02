@@ -452,6 +452,7 @@ export default function BuildPage() {
   // sat frozen at 99 while the request ran on, or the page jumped away
   // mid-climb — both of which read as the timing being broken.
   const finishThenGo = (to: string) => {
+    if (leftWhileWritingRef.current) return
     setLoadingPct(100)
     setLoadingStep(LOADING_STEPS.length - 1)
     setTimeout(() => router.push(to), 520)
@@ -484,15 +485,38 @@ export default function BuildPage() {
   // copied into each entry, since its router reloads the page on an entry
   // that lacks it.
   const stepsPushed = useRef(0)
+  // While the CV is being written, Back and refresh ask first. Confirming Back
+  // stops the page following the result to the preview; the CV itself is still
+  // saved by the server and waits in My CVs.
+  const writingRef = useRef(false)
+  const leftWhileWritingRef = useRef(false)
+  const screenRef = useRef<Screen>(screen)
+  screenRef.current = screen
+  writingRef.current = isGenerating
   useEffect(() => {
     const onPop = (e: PopStateEvent) => {
       const s = e.state?.scvScreen as Screen | undefined
       stepsPushed.current = Math.max(0, stepsPushed.current - 1)
+      if (writingRef.current) {
+        if (!window.confirm('Your CV is still being written. Leave anyway?')) {
+          window.history.pushState({ ...window.history.state, scvScreen: screenRef.current }, '')
+          stepsPushed.current++
+          return
+        }
+        leftWhileWritingRef.current = true
+        setIsGenerating(false)
+      }
       if (s) { setScreen(s); window.scrollTo({ top: 0 }) }
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
+  useEffect(() => {
+    if (!isGenerating) return
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = '' }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [isGenerating])
   // Keeps the current entry's screen in step even when a restore jumps screens
   // without go(), so Back never lands on a stale one.
   useEffect(() => { window.history.replaceState({ ...window.history.state, scvScreen: screen }, '') }, [screen])
@@ -890,6 +914,7 @@ export default function BuildPage() {
   }
 
   async function doGenerate(accessEmail: string, intent: 'build' | 'preview' = 'build') {
+    leftWhileWritingRef.current = false
     // Reads whichever advert input is in play. An uploaded file has to be
     // extracted (a second Claude vision call for a photo), and that can fail
     // on an unreadable scan — tagged as AdvertReadError so the catch below
@@ -1576,7 +1601,7 @@ export default function BuildPage() {
                         </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--ink)', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{uploadedCV?.name || 'Your CV'}</div>
-                          <div style={{ fontSize: '13px', color: 'var(--graphite)' }}>{rememberedUpload ? 'Saved from your last visit' : 'Read successfully'}</div>
+                          <div style={{ fontSize: '13px', color: 'var(--graphite)' }}>{rememberedUpload ? 'Saved from your last visit' : 'Successfully read'}</div>
                         </div>
                       </div>
                       <div style={{ borderTop: '1px solid var(--rule)', margin: '14px 0 12px' }} />

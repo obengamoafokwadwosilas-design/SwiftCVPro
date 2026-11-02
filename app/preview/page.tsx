@@ -10,6 +10,7 @@ import HeaderMenu from '@/components/HeaderMenu'
 import { PACKAGES, packagesForDoc, AI_EDIT_PACK } from '@/lib/packages'
 import CreditPicker from '@/components/CreditPicker'
 import AccessCodePrompt from '@/components/AccessCodePrompt'
+import { useBackGuard } from '@/lib/leaveGuard'
 
 // Read from the packages so the cover-letter offer can never drift from what
 // Paystack actually charges (it once said GH₵20 while the package was GH₵19).
@@ -1015,6 +1016,9 @@ export default function PreviewPage() {
   }
   useEffect(() => { try { const k = draftKey(); const t = k ? sessionStorage.getItem(k) : null; if (t) setAiText(t) } catch { /* see saveDraft */ } }, [cvLoaded, activeDoc]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (!draftToast) return; const t = setTimeout(() => setDraftToast(false), 3200); return () => clearTimeout(t) }, [draftToast])
+
+  // Back (the phone's key included) asks before leaving the results page.
+  useBackGuard(!!cv, 'Leave your CV? It stays saved in My CVs, and you can open it again any time.', () => { leavingOnPurposeRef.current = true })
 
   // Effects for "Edit with RemarkableCV" live here, above the early return below.
   useEffect(() => { void refreshAiEdits() }, [cvLoaded, activeDoc, isCoverLetter]) // eslint-disable-line react-hooks/exhaustive-deps
