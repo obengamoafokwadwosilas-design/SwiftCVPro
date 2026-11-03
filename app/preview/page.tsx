@@ -31,6 +31,7 @@ const TEMPLATES: { id: TemplateId; name: string; tag: string; color: string; for
   { id: 'ascend',    name: 'Corporate Blue',  tag: 'Strong · Colour Bars · Structured',color: '#1d4ed8', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'harbour',   name: 'Refined Teal',    tag: 'Editorial · Elegant · Professional',color: '#0f766e',formats: 'both', category: 'premium',  customizable: true  },
   { id: 'tandem',    name: 'Tandem',          tag: 'Two-Column · Repeating Sidebar · Print Safe', color: '#275D63', formats: 'pdf', category: 'premium', customizable: true },
+  { id: 'meridian',  name: 'Meridian',        tag: 'Two-Column · Colour Sidebar',       color: '#0d9488', formats: 'both', category: 'premium',  customizable: true  },
   { id: 'metro',     name: 'Aurora',          tag: 'Colourful · Bold Header Band',      color: '#7c3aed', formats: 'both', category: 'premium',  customizable: true  },
   // Prestige keeps its fixed navy + gold identity (not colour-customizable).
   { id: 'prestige',  name: 'Prestige',        tag: 'Executive · Navy & Gold · Centered',color: '#a87b00', formats: 'both', category: 'premium',  customizable: false },

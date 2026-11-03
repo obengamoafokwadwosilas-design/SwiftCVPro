@@ -45,6 +45,10 @@ closed rather than crash.
    other 14 templates) would drop the sidebar to page-1-only — a visual
    change the owner explicitly declined. Don't "fix" the gap without
    discussing that trade-off first.
+   **Which designs are offered:** both were taken out of the list on 11 Aug 2026 (replaced by Tandem,
+   PDF only). **Meridian is back** (PDF + Word, the only two-column design with Word, via
+   `buildMeridianV2`) after a 2 Nov 2026 check at 13pt: no clipped text on 7 CVs, pages about 76–87%
+   full. **Sterling is still not offered** (PDF only, dark sidebar; its Word route points at Meridian).
 
 2. **`TESTING_MODE` flags do not exist anymore** — they were removed on
    purpose (credit checks were being bypassed in production). If you see
