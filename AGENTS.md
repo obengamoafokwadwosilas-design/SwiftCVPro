@@ -38,7 +38,15 @@ closed rather than crash.
 
 ## Things that look like bugs but are deliberate — please don't "fix" these without asking
 
-1. **Meridian and Sterling templates leave a gap when a bullet doesn't fit
+1. **Meridian now uses flow pagination (fixed 3 Nov 2026).** A customer hit a clipped
+   line on a real PDF: Meridian was still on the packer, whose page breaks are planned in
+   the browser while Api2Pdf draws them, and that drift slices text. It now uses the same
+   mechanism as Tandem — `flowPaginate`, `flowSidebar`, `flowSidebarBg`,
+   `flowAllowBlockSplit` — so the renderer owns the breaks and clipping is impossible by
+   construction. The look is unchanged (262px accent sidebar, same blocks). **Sterling is
+   the only packer template left, and it is not offered.** The note below is the old
+   trade-off, kept for Sterling:
+   **Sterling leaves a gap when a bullet doesn't fit
    a page**, instead of splitting it mid-bullet. This was a conscious
    trade-off (see git log: "Fix the real cause of Meridian/Sterling
    clipping"). The alternative (converting them to flow pagination like the

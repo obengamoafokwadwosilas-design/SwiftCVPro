@@ -1103,6 +1103,16 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     // 58 is back — enough for ordinary sub-pixel drift, small enough that pages
     // still fill. See PACK_BOTTOM_SAFETY.
     design: 'meridian', font: BODY_SERIF, contentPadV: 40, mainPad: '40px 32px', sidebarW: 262, sidebarSide: 'left', measureW: 468, buildSidebarBlocks: meridianSidebarBlocks, sidebarMeasureW: 210, sidebarPadV: 40, packBottomSafety: 58,
+    // Flow pagination (same mechanism as Tandem): the PDF renderer decides the
+    // page breaks, so a line can never be sliced by a fixed-height page box.
+    // The sidebar colour repeats on every sheet (position: fixed) and its
+    // content reuses the packed blocks, so the design is unchanged.
+    flowPaginate: true, flowSidebarW: 262, flowSidebarBg: A => A, flowAllowBlockSplit: true,
+    flowSidebar: ({ cv, A }) => (
+      <div style={{ padding: '10px 26px 24px', color: '#fff', fontFamily: BODY_SERIF, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+        {meridianSidebarBlocks(cv, A).map(b => <div key={b.key}>{b.node}</div>)}
+      </div>
+    ),
     buildBlocks: (cv, A) => {
       const head = (t: string) => <div style={{ fontSize: 17.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: A, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 10 }}>{t}<span style={{ flex: 1, height: 2, background: A, opacity: 0.25 }} /></div>
       const b: Block[] = []
