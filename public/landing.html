@@ -72,10 +72,10 @@
       "@type": "VideoObject",
       "name": "How Remarkable CV works",
       "description": "A two-minute walk through building a CV or cover letter with Remarkable CV: choose the document, add your details or a job advert, pick a design, and download.",
-      "thumbnailUrl": "https://www.remarkablecv.com/how-it-works-poster.jpg",
+      "thumbnailUrl": "https://www.remarkablecv.com/how-it-works-landscape-poster.jpg",
       "uploadDate": "2026-11-02",
       "duration": "PT2M7S",
-      "contentUrl": "https://www.remarkablecv.com/how-it-works.mp4",
+      "contentUrl": "https://www.remarkablecv.com/how-it-works-landscape.mp4",
       "inLanguage": "en"
     },
     {
@@ -1351,7 +1351,7 @@ document.addEventListener('DOMContentLoaded', () => {
       <div class="how-diagram-bg"></div>
       <div class="how-diagram-glow"></div>
       <div class="how-diagram-video how-diagram-portrait">
-        <video src="how-it-works.mp4" poster="how-it-works-poster.jpg" width="720" height="1280" controls preload="none" playsinline></video>
+        <video width="720" height="1280" controls preload="none" playsinline></video>
       </div>
     </div>
     </details>
@@ -1815,6 +1815,18 @@ document.getElementById('faqMore').addEventListener('click', function () {
   this.setAttribute('aria-expanded', open);
 });
 if (window.innerWidth > 760) { const d = document.querySelector('.how-demo'); if (d) d.open = true; }
+// Wide screens get the landscape cut of the demo, phones the tall one. Setting the source here costs nothing:
+// the video has preload="none", so neither file downloads until someone presses play.
+(function pickDemo() {
+  const v = document.querySelector('.how-demo video'); if (!v) return;
+  if (window.matchMedia('(min-width: 900px)').matches) {
+    v.poster = 'how-it-works-landscape-poster.jpg'; v.src = 'how-it-works-landscape.mp4';
+    v.setAttribute('width', '1280'); v.setAttribute('height', '720');
+    const box = v.closest('.how-diagram-video'); if (box) box.classList.remove('how-diagram-portrait');
+  } else {
+    v.poster = 'how-it-works-poster.jpg'; v.src = 'how-it-works.mp4';
+  }
+})();
 
 function toggleFaq(btn) {
   const item = btn.closest('.faq-item');
