@@ -7,6 +7,7 @@ import { currentAccess } from '@/lib/customerAuth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { editDocument, WriterError } from '@/lib/cvEngine'
 import { aiEditsLeft, takeAiEdit, refundAiEdit } from '@/lib/aiEdits'
+import { takeFromBucket } from '@/lib/dbRateLimit'
 import { alertOwner } from '@/lib/alerts'
 import type { GeneratedCV } from '@/types'
 
@@ -38,6 +39,13 @@ export async function POST(req: Request) {
     .select('cv_type, generated_cv').eq('id', id).eq('owner_id', access.id).maybeSingle()
   if (!row || row.cv_type === 'cover_letter') return NextResponse.json({ error: 'This document cannot be edited this way.' }, { status: 404, headers: noStore })
   const savedName = (row.generated_cv as GeneratedCV | null)?.fullName || cv.fullName
+
+  // A request we can't act on hands the edit back, so the count alone can't stop
+  // someone looping — and every attempt still costs an AI call. Honest editing
+  // never comes near this.
+  if (!await takeFromBucket(`aiedit:${access.id}:${id}`, 6, 3600)) {
+    return NextResponse.json({ error: 'That is a lot of edits in one hour. Please wait a little and try again.' }, { status: 429, headers: noStore })
+  }
 
   const status = await aiEditsLeft(access.id, id)
   if (!status.available) return NextResponse.json({ error: 'AI edits are not available yet.' }, { status: 503, headers: noStore })

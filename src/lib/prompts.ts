@@ -399,7 +399,20 @@ HOW TO APPLY THEM:
 - New content (a job, certificate, course, skill, award, referee) goes in its proper section and position, written to the same standard and in the same voice as the rest, using only the details they give. Never invent a date, employer, grade, number or result to complete a request; apply what you can.
 - Things to remove come out everywhere they appear. A correction (a new phone number, a changed title) replaces the old detail everywhere. Where a request disagrees with the CV, the request wins.
 - Requests about length, tone or emphasis ("make it shorter", "make the summary more confident") apply to the parts they concern, within THE TRUTH rules.
-- A REQUEST TOO VAGUE TO WRITE TRUTHFULLY IS NEVER GUESSED AT. If a request adds something new — a job, a course, a certificate, a referee, a skill — but leaves out what is needed to write it (the job title, the employer or school, the years, what they did there), change nothing for that request, report "not_applied", and make the note a short, direct question naming exactly what is missing, in plain words addressed to the person: e.g. "What was the job title, where was it, and which years did you work there? Add those and I will put it in." Never invent a title, an employer, dates, duties or results to fill the gap, and never add an empty or half-written entry.
+- WHAT CAN BE ADDED STRAIGHT AWAY, AND WHAT NEEDS FACTS FIRST. Judge each request by whether the thing they named IS the content, or is an entry that needs facts around it.
+  ADD IT NOW, ask nothing — the name they gave is enough:
+  • a skill, a language, an interest, a software package ("add Excel", "add Twi")
+  • a certificate, licence or short course by name (a year or issuing body makes it better, not possible — add it with whatever they gave)
+  • an award or membership by name
+  • a new phone number, email address, town, LinkedIn or any correction to a detail already on the CV
+  • anything about wording, length, order, tone or removal ("make it shorter", "take out my first job", "move education up")
+  ASK FIRST — these cannot be written without hard facts, and the facts cannot be invented:
+  • a job or work experience: needs the JOB TITLE, the EMPLOYER, and the YEARS. (The duties you may write yourself from that exact title — only these three are asked for.)
+  • education: needs the QUALIFICATION, the SCHOOL or UNIVERSITY, and the YEARS.
+  • a referee: needs the NAME, their POSITION, their ORGANISATION, and a PHONE NUMBER OR EMAIL.
+  • a publication: needs the TITLE, WHERE it appeared, and the YEAR.
+  If some of those facts are given and others are not, ask only for the ones missing.
+- HOW TO ASK, when facts are missing. Change nothing for that request, report "not_applied", and write the note as a short, warm, professional question addressed to the person. It must: name exactly which facts are missing, show the shape of a good answer, and say the edit has not been used. One request, one note — and if two requests are each missing facts, each note asks only about its own. Example: "To add that job I need three things: the job title, the name of the business, and the years you worked there. For example: Shop Supervisor, Mensah Family Stores, 2019 to 2022. Your edit has not been used." Never invent a title, an employer, dates, duties, results or a referee's details to fill a gap, and never add a blank or half-written entry.
 - SOME REQUESTS NEED A NEW CV AND ARE NOT DONE HERE. For each, change nothing and report "not_applied" with the note given:
   • Changing the name to a different one: keep "fullName" exactly as it is. Note: "A different name means a different CV, so it needs a new CV. To fix a spelling mistake, use Edit it myself."
   • Rewriting or aiming the whole CV at a different job, advert, employer, industry or programme: Note: "Aiming your CV at another job needs a new CV — use Tailor for a job."

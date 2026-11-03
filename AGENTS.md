@@ -260,7 +260,13 @@ closed rather than crash.
    note under the top bar already asks that question). **A request too vague to write
    truthfully is never guessed at** — the writer reports `not_applied` and the note is a
    direct question naming what is missing (job title, employer, years), so the edit is
-   handed back instead of spent on an invention. Before changing a prompt, the model or
+   handed back instead of spent on an invention. The prompt draws the line explicitly:
+   a skill, language, certificate, award or a corrected contact detail is ADDED with whatever
+   was given; a job, a degree, a referee or a publication needs hard facts first (job title +
+   employer + years; qualification + school + years; name + position + organisation + contact;
+   title + where + year) and only the MISSING ones are asked for. Duties are still written from
+   the job title, so they are never asked for. AI edits are capped at 6 attempts per CV per
+   hour (`takeFromBucket`), because a handed-back edit still costs an AI call. Before changing a prompt, the model or
    the effort: run `npx tsx --env-file=.env.local --tsconfig evals/tsconfig.json
    evals/run.ts` (add `--private` for the real CVs in `evals/private/`, never
    committed), compare with the previous run using `evals/judge.ts`, and don't
