@@ -41,3 +41,6 @@ next-env.d.ts
 # eval runs and private test CVs (real people) never leave this machine
 evals/results/
 evals/private/
+
+# large video files stay out of git
+marketing/video/*.mp4

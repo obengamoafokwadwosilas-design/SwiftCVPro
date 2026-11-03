@@ -69,6 +69,16 @@
       ]
     },
     {
+      "@type": "VideoObject",
+      "name": "How Remarkable CV works",
+      "description": "A two-minute walk through building a CV or cover letter with Remarkable CV: choose the document, add your details or a job advert, pick a design, and download.",
+      "thumbnailUrl": "https://www.remarkablecv.com/how-it-works-poster.jpg",
+      "uploadDate": "2026-11-02",
+      "duration": "PT2M7S",
+      "contentUrl": "https://www.remarkablecv.com/how-it-works.mp4",
+      "inLanguage": "en"
+    },
+    {
       "@type": "FAQPage",
       "mainEntity": [
         { "@type": "Question", "name": "How does the free preview work?", "acceptedAnswer": { "@type": "Answer", "text": "Build your full CV for free — no payment needed to see it. You only pay if you decide to download it as a PDF or Word file." } },
@@ -575,6 +585,8 @@ section { padding:var(--section-y) 0; }
   display:block;
 }
 .how-diagram-video video { width:100%; height:auto; display:block; }
+/* The video is recorded on a phone, so it is tall: keep it at phone width, centred, not stretched. */
+.how-diagram-video.how-diagram-portrait { max-width:340px; }
 
 .how-flow {
   display: flex; align-items:flex-start; justify-content: center;
@@ -1334,12 +1346,12 @@ document.addEventListener('DOMContentLoaded', () => {
          keep the page short (opened by script on wider screens); preload="none"
          so a closed demo costs no data. -->
     <details class="how-demo reveal">
-    <summary>Watch the 1-minute demo</summary>
+    <summary>Watch the 2-minute demo</summary>
     <div class="how-diagram">
       <div class="how-diagram-bg"></div>
       <div class="how-diagram-glow"></div>
-      <div class="how-diagram-video">
-        <video src="how-it-works-demo.mp4" controls preload="none" playsinline></video>
+      <div class="how-diagram-video how-diagram-portrait">
+        <video src="how-it-works.mp4" poster="how-it-works-poster.jpg" width="720" height="1280" controls preload="none" playsinline></video>
       </div>
     </div>
     </details>
