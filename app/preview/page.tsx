@@ -173,6 +173,10 @@ export default function PreviewPage() {
   const [showAiEdit, setShowAiEdit] = useState(false)
   const [aiText, setAiText] = useState('')
   const [draftToast, setDraftToast] = useState(false)
+  // What the writer did with the last AI edit, offered behind a button rather
+  // than shown as a panel (the results page stays clear by default).
+  const [editNotes, setEditNotes] = useState<GeneratedCV['changesReport'] | null>(null)
+  const [showEditNotes, setShowEditNotes] = useState(false)
   const [aiBusy, setAiBusy] = useState<'edit' | 'pay' | null>(null)
   const [aiError, setAiError] = useState('')
   const [aiNewCv, setAiNewCv] = useState(false)
@@ -1151,6 +1155,10 @@ export default function PreviewPage() {
       setCV(updated); setBaseCv(updated)
       sessionStorage.setItem('swiftcv_cv', JSON.stringify(updated))
       setAiLeft(data.left ?? 0); setAiText(''); saveDraft(''); setShowAiEdit(false); setShowChanges(true); setShowReadyBanner(false)
+      // The pill is for a clean edit. When something could not be done, the note
+      // under the top bar already asks the question, so don't say it twice.
+      const notes = updated.changesReport || []
+      setEditNotes(notes.length && notes.every(r => r.status === 'applied') ? notes : null); setShowEditNotes(false)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch { setAiError('Connection problem. Please check your internet and try again.') }
     finally { setAiBusy(null) }
@@ -1730,6 +1738,30 @@ export default function PreviewPage() {
           Saved. Tap Edit when you are ready to carry on.
         </div>
       )}
+      {/* After an AI edit: one small pill, and the list only if they ask for it. */}
+      {editNotes && !showAiEdit && !showEditNotes && (
+        <div className="no-print" style={{ position:'fixed', left:'50%', transform:'translateX(-50%)', bottom: isMobile ? '84px' : '28px', zIndex:220, display:'flex', alignItems:'center', gap:'10px', background:'#0a0f1a', color:'white', padding:'9px 10px 9px 18px', borderRadius:'50px', fontSize:'13px', fontFamily:"'DM Sans', sans-serif", boxShadow:'0 10px 30px -8px rgba(10,15,26,0.5)', whiteSpace:'nowrap' }}>
+          <span>CV updated</span>
+          <button onClick={() => setShowEditNotes(true)} style={{ background:'none', border:'none', color:'#5eead4', fontWeight:600, fontSize:'13px', cursor:'pointer', fontFamily:"'DM Sans', sans-serif", padding:0 }}>See what changed</button>
+          <button onClick={() => setEditNotes(null)} aria-label="Dismiss" style={{ background:'none', border:'none', color:'rgba(255,255,255,0.55)', cursor:'pointer', padding:'2px', display:'flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+        </div>
+      )}
+      {showEditNotes && editNotes && (
+        <div onClick={() => setShowEditNotes(false)} className="no-print" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:230, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'440px', padding:'22px', boxShadow:'0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif", maxHeight:'80vh', overflowY:'auto' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'12px' }}>
+              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, color:'#0a0f1a' }}>What changed</div>
+              <button onClick={() => setShowEditNotes(false)} aria-label="Close" style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
+            </div>
+            {editNotes.map((r, i) => (
+              <div key={i} style={{ display:'flex', gap:'9px', alignItems:'flex-start', fontSize:'13.5px', lineHeight:1.55, color:'#334155', marginTop: i ? '10px' : 0 }}>
+                <span aria-hidden="true" style={{ color: r.status === 'applied' ? '#0a8a3f' : '#b45309', fontWeight:700, flexShrink:0 }}>{r.status === 'applied' ? '✓' : '!'}</span>
+                <span><strong style={{ fontWeight:600, color:'#0a0f1a' }}>{r.request}</strong>{r.note ? ` — ${r.note}` : ''}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {showAiEdit && (
         <div onClick={() => { if (!aiBusy) setShowAiEdit(false) }} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
           <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'440px', padding:'22px', boxShadow:'0 1px 3px rgba(10,15,26,0.08), 0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif", maxHeight:'92vh', overflowY:'auto' }}>
@@ -1758,7 +1790,6 @@ export default function PreviewPage() {
                   style={{ width:'100%', padding:'12px 14px', border:'1.5px solid #e2e8f0', borderRadius:'12px', fontFamily:"'DM Sans', sans-serif", fontSize:'14px', color:'#0a0f1a', resize:'none', lineHeight:1.6 }} />
                 <button onClick={() => void submitAiEdit()} style={{ width:'100%', marginTop:'12px', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>Update my CV</button>
                 <button onClick={() => { saveDraft(aiText); setShowAiEdit(false); if (aiText.trim()) setDraftToast(true) }} style={{ width:'100%', marginTop:'8px', padding:'12px', background:'white', color:'#0d9488', border:'1.5px solid #99d6cf', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer' }}>Save and look at my CV</button>
-                <div style={{ fontSize:'12px', color:'#64748b', textAlign:'center', marginTop:'10px', lineHeight:1.5 }}>Takes about 30 seconds. Your design and colour stay the same.</div>
               </>
             ) : (
               <>

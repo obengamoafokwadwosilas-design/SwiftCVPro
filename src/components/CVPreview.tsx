@@ -1686,7 +1686,6 @@ const TEMPLATES_CONFIG: Record<string, TemplateConfig> = {
     design: 'tandem', font: BODY_SERIF, contentPadV: 42, mainPad: '42px 42px', sidebarW: 212, sidebarSide: 'left', measureW: 498, flowPaginate: true, flowSidebar: ({ cv, A }) => <TandemSidebar cv={cv} A={A} flow />, flowSidebarW: 212, flowSidebarBg: A => darken(A), flowAllowBlockSplit: true,
     buildBlocks: tandemMainBlocks,
     Header: ({ cv, A }) => (<div style={{ borderBottom: '1px solid #d9e4e5', paddingBottom: 22, marginBottom: 24 }}>
-      <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 2.1, color: A, marginBottom: 9 }}>CAREER PROFILE</div>
       <div style={{ fontSize: 34, fontWeight: 800, letterSpacing: -0.7, lineHeight: 1.04, color: '#183339' }}>{cv.fullName}</div>
       {cv.jobTitle && <div style={{ fontSize: 17.5, fontWeight: 600, color: '#5b7276', marginTop: 8 }}>{cv.jobTitle}</div>}
     </div>),
