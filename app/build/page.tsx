@@ -31,6 +31,9 @@ const TIER_ICON_COLOR: Record<string, { bg: string; fg: string }> = {
 // ─────────────────────────────────────────────────────────────
 // LOADING SCREEN DATA
 // ─────────────────────────────────────────────────────────────
+const REMEMBERED_EMAIL = 'swiftcv_receipt_email'
+const REMEMBER_EMAIL_OFF = 'swiftcv_receipt_email_off'
+
 const LOADING_STEPS = [
   { pct: 5,  msg: 'Reading your details...',            detail: 'Extracting your experience and qualifications' },
   { pct: 15, msg: 'Understanding your background...',   detail: 'Mapping your career story and achievements' },
@@ -204,6 +207,9 @@ export default function BuildPage() {
   // Set when the visitor already has a verified session (Google or email
   // link); their email is then known and is never asked for again.
   const [signedInEmail, setSignedInEmail] = useState<string | null>(null)
+  // The receipt address is remembered on this device so a returning visitor
+  // doesn't retype it. Turning it off forgets it straight away.
+  const [rememberEmail, setRememberEmail] = useState(true)
   const [employmentUpdates, setEmploymentUpdates] = useState(false)
   // Last page: an inline email problem; why the package list opened; which of the
   // two buttons was pressed (so a retry repeats the same one).
@@ -307,6 +313,23 @@ export default function BuildPage() {
     const t = new URLSearchParams(window.location.search).get('type') as CVType
     return t && ['professional', 'targeted', 'academic', 'cover_letter'].includes(t) ? t : null
   }
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(REMEMBER_EMAIL_OFF) === '1') { setRememberEmail(false); return }
+      const saved = localStorage.getItem(REMEMBERED_EMAIL)
+      if (saved) setEmail(prev => prev || saved)
+    } catch { /* private mode: nothing is remembered, which is the safe way round */ }
+  }, [])
+
+  useEffect(() => {
+    try {
+      if (!rememberEmail) { localStorage.removeItem(REMEMBERED_EMAIL); localStorage.setItem(REMEMBER_EMAIL_OFF, '1'); return }
+      localStorage.removeItem(REMEMBER_EMAIL_OFF)
+      const clean = email.trim().toLowerCase()
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) localStorage.setItem(REMEMBERED_EMAIL, clean)
+    } catch { /* see above */ }
+  }, [email, rememberEmail])
 
   // The functional setEmail keeps an email a restored build seed already carries.
   useEffect(() => {
@@ -466,14 +489,11 @@ export default function BuildPage() {
   // are typed after a file is uploaded and so aren't covered by the save on
   // upload itself.
   const go = (s: Screen) => {
-    // The last pages ask for an email. Nearly everyone has already written one
-    // into their CV (or the personal-details form), so offer that instead of an
-    // empty box — they can change it, and a signed-in or remembered address wins.
-    if ((s === 'tailor' || s === 'summary') && !email.trim()) {
-      const found = (refs.paste.current?.value + ' ' + (refs.email.current?.value || ''))
-        .match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:.[A-Za-z0-9-]+)*.[A-Za-z]{2,}/)
-      if (found) setEmail(found[0].toLowerCase())
-    }
+    // The email on the last page is the RECEIPT address — whoever is paying and
+    // will come back for the file. It used to be lifted out of the pasted CV,
+    // which is the address of the person the CV is ABOUT: wrong whenever someone
+    // builds a CV for a friend or a relative. They type it themselves now, and
+    // only their own remembered or signed-in address is offered.
     if (s !== screen) { window.history.pushState({ ...window.history.state, scvScreen: s }, ''); stepsPushed.current++ }
     setScreen(s)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1299,8 +1319,13 @@ export default function BuildPage() {
               onChange={e => { setEmail(e.target.value); if (finishErr) setFinishErr('') }}
               placeholder="e.g. kwame@email.com" autoComplete="email"
               className={'xcv-field' + (finishErr ? ' err' : '')} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '9px', marginTop: '11px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={rememberEmail} onChange={e => setRememberEmail(e.target.checked)}
+                style={{ width: '15px', height: '15px', accentColor: 'var(--teal)', flexShrink: 0 }} />
+              <span style={{ fontSize: '12.5px', color: 'var(--graphite)' }}>Remember this email on this device</span>
+            </label>
             <p style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '10px', lineHeight: 1.65 }}>
-              For your receipt and to open this on another device.{' '}
+              Yours, for the receipt and to open this on another device — not the email on the CV.{' '}
               <button type="button" className="xcv-link" style={{ fontSize: '12px', color: 'var(--teal)', fontWeight: 500 }}
                 onClick={() => { saveBuildSeed(captureBuildSeed('summary')); router.push('/my-cvs') }}>
                 Bought credits before? Sign in

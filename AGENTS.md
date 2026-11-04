@@ -117,6 +117,12 @@ closed rather than crash.
 
 7. **The browser is the account until an email is proved ("use first, identify
    later").** Nobody is asked for an email until the last page of the builder,
+   and they type it themselves: the builder used to lift an address out of the pasted CV,
+   which is the address of the person the CV is ABOUT — wrong whenever someone builds a CV
+   for a friend or a relative, who then never got the receipt. Only their own address is
+   offered (signed-in member, this browser's guest contact, or one remembered in
+   localStorage under `swiftcv_receipt_email` with a "Remember this email on this device"
+   tick that forgets it at once when cleared).
    and that email is only a *receipt address* (`customers.contact_email` on a
    guest row) plus the job-alerts tick — it is never an identity and is never
    used to look up an account. Ownership of CVs and credits is a signed
