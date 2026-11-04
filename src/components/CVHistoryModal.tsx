@@ -24,7 +24,9 @@ function whenOf(iso: string) {
   return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} · ${d.toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true })}`
 }
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
-type Step = 'email' | 'pin' | 'list' | 'setPin'
+// 'sent' and 'opening' exist so the two waits are never silent: after the link
+// is sent, and while an opened link is being redeemed.
+type Step = 'email' | 'pin' | 'list' | 'setPin' | 'sent' | 'opening'
 const inputStyle = { width: '100%', padding: '12px 14px', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '14px' }
 const primary = { padding: '12px 18px', background: '#0a8a3f', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '14px' }
 const link = { background: 'none', border: 'none', color: '#0a8a3f', cursor: 'pointer', padding: '8px 0', fontSize: '13px' }
@@ -88,9 +90,15 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
     if (token) {
       // Remove the bearer secret before any navigation or external link is followed.
       window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      setStep('opening')
       void run(async () => {
-        await request('/api/customer-access/consume', { token })
-        await loadHistory(!!autoSetPin)
+        try {
+          await request('/api/customer-access/consume', { token })
+          await loadHistory(!!autoSetPin)
+        } catch (err) {
+          setStep('pin')   // back to the form, with the error above it
+          throw err
+        }
       })
     } else {
       // Runs in the background without run(): on a slow mobile line this check
@@ -130,6 +138,7 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
     await run(async () => {
       const data = await request('/api/customer-access/request', { email })
       setMessage(data.message)
+      setStep('sent')
     })
   }
   async function signOut() {
@@ -179,13 +188,37 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(8,13,24,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 500 }}>
       <div role="dialog" aria-modal="true" aria-labelledby="history-title" style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '540px', padding: '28px', maxHeight: '88vh', overflowY: 'auto', fontFamily: "'DM Sans', sans-serif" }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 id="history-title" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', margin: '0 0 12px' }}>{step === 'email' || step === 'pin' ? 'Sign in' : 'My CVs'}</h2>
+          <h2 id="history-title" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', margin: '0 0 12px' }}>{step === 'list' || step === 'setPin' ? 'My CVs' : 'Sign in'}</h2>
           <button onClick={onClose} aria-label="Close My CVs" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '6px', margin: '-6px -6px 6px 0', display: 'flex' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
           </button>
         </div>
         {error && <p role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
-        {message && <p role="status" style={{ color: '#0a5d55', lineHeight: 1.6 }}>{message}</p>}
+        {message && step !== 'sent' && <p role="status" style={{ color: '#0a5d55', lineHeight: 1.6 }}>{message}</p>}
+        {step === 'opening' && (
+          <div role="status" style={{ padding: '26px 4px 14px', textAlign: 'center' }}>
+            <div style={{ width: '34px', height: '34px', border: '3px solid rgba(10,138,63,0.2)', borderTopColor: '#0a8a3f', borderRadius: '50%', animation: 'scvspin 0.8s linear infinite', margin: '0 auto 14px' }} />
+            <div style={{ fontSize: '15px', fontWeight: 600, color: '#0a0f1a' }}>Opening your CVs…</div>
+            <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>One moment. Please keep this page open.</div>
+            <style>{'@keyframes scvspin{to{transform:rotate(360deg)}}'}</style>
+          </div>
+        )}
+        {step === 'sent' && (
+          <div style={{ padding: '14px 0 2px', textAlign: 'center' }}>
+            <div aria-hidden="true" style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#e9f7ef', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a8a3f" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
+            </div>
+            <div role="status" style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 600, color: '#0a0f1a' }}>Check your email</div>
+            {/* The address is echoed, never claimed to have been written to: the
+                server answers the same for an address it has never seen. */}
+            <div style={{ fontSize: '15px', fontWeight: 600, color: '#0a0f1a', margin: '8px 0 10px', overflowWrap: 'anywhere' }}>{email}</div>
+            <p style={{ color: '#334155', fontSize: '14px', lineHeight: 1.65, margin: 0 }}>
+              {message} Open the link on this device and your CVs appear here.
+            </p>
+            <button disabled={loading} style={{ ...primary, width: '100%', marginTop: '18px' }} onClick={() => void emailLink()}>{loading ? 'Sending…' : 'Send it again'}</button>
+            <button disabled={loading} style={link} onClick={() => { setStep('email'); setMessage(''); setError('') }}>Use a different email address</button>
+          </div>
+        )}
         {/* Google sign-in is hidden for now, not removed: with the browser as the
             account, signing in is only for reaching CVs on another device, and
             the email link does that everywhere (Google refuses WhatsApp/Instagram
@@ -204,7 +237,7 @@ export default function CVHistoryModal({ open, onClose, initialEmail, autoSetPin
               if (pin.length < 4) throw new Error('Enter your 4-digit access code, or choose "No code? Email me a link".')
               await request('/api/cv-pin/verify', { email, pin, remember })
               await loadHistory()
-            })}>{loading ? 'Please wait…' : step === 'email' ? 'Email me a secure access link' : 'Open My CVs'}</button>
+            })}>{loading ? (step === 'email' ? 'Sending…' : 'Please wait…') : step === 'email' ? 'Email me a secure access link' : 'Open My CVs'}</button>
             <button disabled={loading} style={link} onClick={() => { setStep(step === 'email' ? 'pin' : 'email'); setError(''); setMessage('') }}>{step === 'email' ? 'I have an access code' : 'No code, or forgot it? Email me a link'}</button>
           </>
         )}

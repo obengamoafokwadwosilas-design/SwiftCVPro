@@ -686,23 +686,6 @@ section { padding:var(--section-y) 0; }
 .cv-type-link:focus-visible { outline:2px solid var(--teal); outline-offset:4px; border-radius:2px; }
 .cv-type-link svg { transition:transform 0.25s var(--ease); }
 .cv-type-card:hover .cv-type-link svg, .cv-type-card.is-active .cv-type-link svg { transform:translateX(4px); }
-.cv-types-controls { display:flex; align-items:center; justify-content:center; gap:13px; margin-top:26px; }
-.cv-types-dots { display:flex; align-items:center; gap:8px; }
-.cv-types-dot {
-  width:7px; height:7px; padding:0; border:0; border-radius:50%;
-  background:var(--ink-20); cursor:pointer;
-  transition:width 0.4s var(--ease), border-radius 0.4s var(--ease), background-color 0.4s var(--ease);
-}
-.cv-types-dot[aria-current="true"] { width:28px; border-radius:5px; background:var(--teal); }
-.cv-types-pause {
-  width:30px; height:30px; padding:0; border:1px solid var(--rule-strong); border-radius:50%;
-  background:var(--white); color:var(--navy); display:grid; place-items:center; cursor:pointer;
-}
-.cv-types-pause svg { width:13px; height:13px; }
-.cv-types-pause .play-icon { display:none; }
-.cv-types-pause.is-paused .pause-icon { display:none; }
-.cv-types-pause.is-paused .play-icon { display:block; }
-.cv-types-dot:focus-visible, .cv-types-pause:focus-visible { outline:2px solid var(--teal); outline-offset:4px; }
 @media(max-width:999px){
   .cv-types-grid {
     display:flex; gap:14px; max-width:none;
@@ -1321,17 +1304,6 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
     </div>
-    <div class="cv-types-controls" aria-label="Document showcase controls">
-      <div class="cv-types-dots">
-        <button class="cv-types-dot" type="button" aria-label="Show Professional CV" aria-current="true" data-showcase-dot></button>
-        <button class="cv-types-dot" type="button" aria-label="Show Academic CV" aria-current="false" data-showcase-dot></button>
-        <button class="cv-types-dot" type="button" aria-label="Show Cover Letter" aria-current="false" data-showcase-dot></button>
-      </div>
-      <button class="cv-types-pause" type="button" aria-label="Pause document rotation" title="Pause rotation" data-showcase-pause>
-        <svg class="pause-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
-        <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-      </button>
-    </div>
   </div>
 </section>
 
@@ -1893,8 +1865,6 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
   if (!rail) return;
 
   const cards = [...rail.querySelectorAll('[data-showcase-card]')];
-  const dots = [...document.querySelectorAll('[data-showcase-dot]')];
-  const pauseButton = document.querySelector('[data-showcase-pause]');
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let activeIndex = 0;
   let timer;
@@ -1905,7 +1875,6 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
   function setActive(index, moveRail = true) {
     activeIndex = (index + cards.length) % cards.length;
     cards.forEach((card, cardIndex) => card.classList.toggle('is-active', cardIndex === activeIndex));
-    dots.forEach((dot, dotIndex) => dot.setAttribute('aria-current', dotIndex === activeIndex ? 'true' : 'false'));
 
     if (moveRail && window.matchMedia('(max-width: 999px)').matches) {
       const card = cards[activeIndex];
@@ -1924,29 +1893,11 @@ document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
     timer = window.setInterval(() => setActive(activeIndex + 1), 2000);
   }
 
-  dots.forEach((dot, index) => dot.addEventListener('click', () => {
-    setActive(index);
-    startRotation();
-  }));
 
   cards.forEach((card, index) => card.addEventListener('click', event => {
     if (!event.target.closest('a')) setActive(index);
   }));
 
-  if (pauseButton) {
-    if (reducedMotion) {
-      pauseButton.classList.add('is-paused');
-      pauseButton.setAttribute('aria-label', 'Play document rotation');
-      pauseButton.title = 'Play rotation';
-    }
-    pauseButton.addEventListener('click', () => {
-      isPaused = !isPaused;
-      pauseButton.classList.toggle('is-paused', isPaused);
-      pauseButton.setAttribute('aria-label', isPaused ? 'Play document rotation' : 'Pause document rotation');
-      pauseButton.title = isPaused ? 'Play rotation' : 'Pause rotation';
-      if (isPaused) stopRotation(); else startRotation();
-    });
-  }
 
   rail.addEventListener('mouseenter', stopRotation);
   rail.addEventListener('mouseleave', startRotation);
