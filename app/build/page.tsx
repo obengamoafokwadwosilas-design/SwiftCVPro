@@ -1325,7 +1325,7 @@ export default function BuildPage() {
               <span style={{ fontSize: '12.5px', color: 'var(--graphite)' }}>Remember this email on this device</span>
             </label>
             <p style={{ fontSize: '12px', color: 'var(--graphite)', marginTop: '10px', lineHeight: 1.65 }}>
-              Yours, for the receipt and to open this on another device — not the email on the CV.{' '}
+              For your receipt.{' '}
               <button type="button" className="xcv-link" style={{ fontSize: '12px', color: 'var(--teal)', fontWeight: 500 }}
                 onClick={() => { saveBuildSeed(captureBuildSeed('summary')); router.push('/my-cvs') }}>
                 Bought credits before? Sign in
