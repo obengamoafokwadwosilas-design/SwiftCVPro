@@ -1766,7 +1766,7 @@ export default function PreviewPage() {
         <div onClick={() => { if (!aiBusy) setShowAiEdit(false) }} className="no-print scv-scrim" style={{ position:'fixed', inset:0, background:'rgba(8,13,24,0.5)', backdropFilter:'blur(3px)', WebkitBackdropFilter:'blur(3px)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px' }}>
           <div onClick={e => e.stopPropagation()} className="scv-sheet" style={{ background:'white', borderRadius:'20px', width:'100%', maxWidth:'440px', padding:'22px', boxShadow:'0 1px 3px rgba(10,15,26,0.08), 0 24px 60px -12px rgba(10,15,26,0.34)', fontFamily:"'DM Sans', sans-serif", maxHeight:'92vh', overflowY:'auto' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'4px' }}>
-              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>Edit with RemarkableCV</div>
+              <div style={{ fontFamily:"'Cormorant Garamond', serif", fontSize:'1.42rem', fontWeight:600, lineHeight:1.15, color:'#0a0f1a' }}>{!aiBusy && !aiPendingRef && aiLeft <= 0 ? 'Need more edits?' : 'Edit with RemarkableCV'}</div>
               <button onClick={() => !aiBusy && setShowAiEdit(false)} aria-label="Close" style={{ background:'none', border:'none', color:'#94a3b8', cursor:'pointer', padding:'6px', display:'flex' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></button>
             </div>
 
@@ -1793,8 +1793,8 @@ export default function PreviewPage() {
               </>
             ) : (
               <>
-                <div style={{ fontSize:'13.5px', color:'#334155', margin:'12px 0', lineHeight:1.55 }}>You have used your free edit on this CV. <b>2 more edits cost GH₵{AI_EDIT_PACK.price}.</b></div>
-                <button onClick={() => void buyAiEdits()} disabled={aiBusy === 'pay'} style={{ width:'100%', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', opacity: aiBusy === 'pay' ? 0.6 : 1 }}>{aiBusy === 'pay' ? 'Opening payment…' : `Pay GH₵${AI_EDIT_PACK.price} for 2 edits`}</button>
+                <div style={{ fontSize:'13.5px', color:'#334155', margin:'12px 0', lineHeight:1.55 }}>Your free edit on this CV has been used. Enjoy 2 additional edits for just <b>GH₵{AI_EDIT_PACK.price}</b>.</div>
+                <button onClick={() => void buyAiEdits()} disabled={aiBusy === 'pay'} style={{ width:'100%', padding:'13px', background:'#0d9488', color:'white', border:'none', borderRadius:'50px', fontSize:'14px', fontWeight:600, cursor:'pointer', opacity: aiBusy === 'pay' ? 0.6 : 1 }}>{aiBusy === 'pay' ? 'Opening payment…' : `Pay GH₵${AI_EDIT_PACK.price} for 2 Edits`}</button>
                 <div style={{ fontSize:'12px', color:'#64748b', textAlign:'center', marginTop:'10px' }}>MTN MoMo · Telecel · AirtelTigo · card</div>
               </>
             )}
@@ -1802,7 +1802,7 @@ export default function PreviewPage() {
             {aiError && <div role="alert" style={{ marginTop:'12px', fontSize:'12.5px', color:'#b91c1c', background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'10px 12px', lineHeight:1.5 }}>{aiError}{aiNewCv && <> <button onClick={handleNewCV} style={{ background:'none', border:'none', padding:0, color:'#0a8a3f', fontWeight:600, cursor:'pointer', fontSize:'12.5px', fontFamily:"'DM Sans', sans-serif" }}>Start a new CV →</button></>}</div>}
 
             {!aiBusy && (
-              <button onClick={() => { setShowAiEdit(false); openEditor() }} style={{ display:'block', width:'100%', marginTop:'14px', padding:'12px 0 0', background:'none', border:'none', borderTop:'1px solid #e2e8f0', color:'#0a8a3f', fontSize:'13.5px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif" }}>Or edit it yourself, free</button>
+              <button onClick={() => { setShowAiEdit(false); openEditor() }} style={{ display:'block', width:'100%', marginTop:'14px', padding:'12px 0 0', background:'none', border:'none', borderTop:'1px solid #e2e8f0', color:'#0a8a3f', fontSize:'13.5px', fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans', sans-serif" }}>Or edit it yourself for free</button>
             )}
           </div>
         </div>
